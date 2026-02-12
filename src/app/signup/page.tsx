@@ -42,7 +42,7 @@ export default function SignupPage() {
     };
 
     return (
-        <div className="flex min-h-screen font-[family-name:var(--font-geist-sans)]">
+        <div className="flex min-h-screen bg-white font-[family-name:var(--font-geist-sans)]">
             {/* ─── Left: Branding Panel ─── */}
             <div className="hidden w-1/2 flex-col justify-between bg-zinc-900 p-12 lg:flex">
                 <Link href="/" className="flex items-center gap-2.5">
@@ -83,7 +83,7 @@ export default function SignupPage() {
             </div>
 
             {/* ─── Right: Signup Form ─── */}
-            <div className="flex w-full flex-col items-center justify-center px-6 lg:w-1/2">
+            <div className="flex w-full flex-col items-center justify-center bg-white px-6 lg:w-1/2">
                 {/* Mobile logo */}
                 <div className="mb-10 lg:hidden">
                     <Link href="/" className="flex items-center gap-2.5">
@@ -119,7 +119,7 @@ export default function SignupPage() {
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="Jane Doe"
-                                className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition-colors focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100"
+                                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition-colors focus:border-zinc-300 focus:bg-white focus:ring-2 focus:ring-zinc-100"
                             />
                         </div>
 
@@ -137,7 +137,7 @@ export default function SignupPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="you@example.com"
-                                className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition-colors focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100"
+                                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition-colors focus:border-zinc-300 focus:bg-white focus:ring-2 focus:ring-zinc-100"
                             />
                         </div>
 
@@ -155,7 +155,7 @@ export default function SignupPage() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="Min. 8 characters"
-                                className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition-colors focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100"
+                                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition-colors focus:border-zinc-300 focus:bg-white focus:ring-2 focus:ring-zinc-100"
                             />
                         </div>
 
@@ -173,7 +173,7 @@ export default function SignupPage() {
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 placeholder="••••••••"
-                                className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition-colors focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100"
+                                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition-colors focus:border-zinc-300 focus:bg-white focus:ring-2 focus:ring-zinc-100"
                             />
                         </div>
 
@@ -194,7 +194,7 @@ export default function SignupPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="flex w-full items-center justify-center rounded-lg bg-zinc-900 py-2.5 text-sm font-semibold text-white transition-all hover:bg-zinc-700 disabled:opacity-50"
+                            className="flex w-full items-center justify-center rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white shadow-lg shadow-zinc-900/20 transition-all hover:bg-zinc-700 hover:shadow-xl disabled:opacity-50"
                         >
                             {loading ? (
                                 <svg
@@ -222,7 +222,7 @@ export default function SignupPage() {
                     {/* Social signup */}
                     <button
                         type="button"
-                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-200 py-2.5 text-sm font-medium text-zinc-700 transition-all hover:bg-zinc-50"
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-100 bg-white py-2.5 text-sm font-medium text-zinc-700 transition-all hover:border-zinc-200 hover:bg-zinc-50"
                     >
                         <svg className="h-4 w-4" viewBox="0 0 24 24">
                             <path

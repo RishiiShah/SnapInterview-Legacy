@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 
 const navItems = [
     {
@@ -58,7 +60,16 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
-    const router = useRouter();
+    const { data: session } = useSession();
+
+    const userName = session?.user?.name || "User";
+    const userImage = session?.user?.image;
+    const initials = userName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
 
     return (
         <div className="flex min-h-screen bg-zinc-50 font-[family-name:var(--font-geist-sans)]">
@@ -85,8 +96,8 @@ export default function DashboardLayout({
                                 key={item.href}
                                 href={item.href}
                                 className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${active
-                                        ? "bg-zinc-100 text-zinc-900"
-                                        : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+                                    ? "bg-zinc-100 text-zinc-900"
+                                    : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
                                     }`}
                             >
                                 {item.icon}
@@ -99,7 +110,7 @@ export default function DashboardLayout({
                 {/* Logout */}
                 <div className="border-t border-zinc-100 px-3 py-4">
                     <button
-                        onClick={() => router.push("/login")}
+                        onClick={() => signOut({ callbackUrl: "/login" })}
                         className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
                     >
                         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -141,9 +152,19 @@ export default function DashboardLayout({
                         </button>
 
                         {/* Avatar */}
-                        <div className="grid h-8 w-8 place-items-center rounded-full bg-zinc-900 text-xs font-bold text-white">
-                            JD
-                        </div>
+                        {userImage ? (
+                            <Image
+                                src={userImage}
+                                alt={userName}
+                                width={32}
+                                height={32}
+                                className="h-8 w-8 rounded-full object-cover"
+                            />
+                        ) : (
+                            <div className="grid h-8 w-8 place-items-center rounded-full bg-zinc-900 text-xs font-bold text-white">
+                                {initials}
+                            </div>
+                        )}
                     </div>
                 </header>
 

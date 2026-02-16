@@ -1,4 +1,10 @@
+"use client";
+
+import { useSession } from "next-auth/react";
+
 export default function DashboardPage() {
+    const { data: session } = useSession();
+    const firstName = session?.user?.name?.split(" ")[0] || "there";
     // ── Mock data ──
     const stats = [
         {
@@ -71,7 +77,7 @@ export default function DashboardPage() {
             {/* ── Greeting ── */}
             <div>
                 <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-                    Welcome back, Jane
+                    Welcome back, {firstName}
                 </h1>
                 <p className="mt-1 text-sm text-zinc-500">
                     Here&apos;s how your interview prep is going.

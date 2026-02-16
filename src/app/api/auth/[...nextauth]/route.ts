@@ -3,7 +3,11 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import { createRateLimiter } from "@/lib/rate-limit";
 import bcrypt from "bcryptjs";
+
+// 5 login attempts per email per minute
+const loginLimiter = createRateLimiter(60 * 1000, 5);
 
 const handler = NextAuth({
     adapter: PrismaAdapter(prisma),
@@ -23,8 +27,14 @@ const handler = NextAuth({
                     throw new Error("Email and password are required");
                 }
 
+                // Rate limit by email to prevent brute force
+                const emailKey = credentials.email.toLowerCase();
+                if (loginLimiter.isLimited(emailKey)) {
+                    throw new Error("Too many login attempts. Please try again later.");
+                }
+
                 const user = await prisma.user.findUnique({
-                    where: { email: credentials.email },
+                    where: { email: emailKey },
                 });
 
                 if (!user || !user.passwordHash) {

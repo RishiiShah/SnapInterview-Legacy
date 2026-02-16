@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -11,7 +12,7 @@ export default function LoginPage() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
 
@@ -22,11 +23,23 @@ export default function LoginPage() {
 
         setLoading(true);
 
-        // Simulate auth — replace with real logic later
-        setTimeout(() => {
-            setLoading(false);
+        const res = await signIn("credentials", {
+            email,
+            password,
+            redirect: false,
+        });
+
+        setLoading(false);
+
+        if (res?.error) {
+            setError("Invalid email or password.");
+        } else {
             router.push("/dashboard");
-        }, 800);
+        }
+    };
+
+    const handleGoogleSignIn = () => {
+        signIn("google", { callbackUrl: "/dashboard" });
     };
 
     return (
@@ -158,9 +171,10 @@ export default function LoginPage() {
                         <span className="h-px flex-1 bg-zinc-200" />
                     </div>
 
-                    {/* Social login placeholder */}
+                    {/* Google login */}
                     <button
                         type="button"
+                        onClick={handleGoogleSignIn}
                         className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-100 bg-white py-2.5 text-sm font-medium text-zinc-700 transition-all hover:border-zinc-200 hover:bg-zinc-50"
                     >
                         <svg className="h-4 w-4" viewBox="0 0 24 24">

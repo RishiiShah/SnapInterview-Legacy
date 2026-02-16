@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 
 export default function SignupPage() {
     const router = useRouter();
@@ -13,7 +14,7 @@ export default function SignupPage() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
 
@@ -34,11 +35,39 @@ export default function SignupPage() {
 
         setLoading(true);
 
-        // Simulate signup — replace with real logic later
-        setTimeout(() => {
+        // 1. Register the user
+        const res = await fetch("/api/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email, password }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
             setLoading(false);
+            setError(data.error || "Something went wrong.");
+            return;
+        }
+
+        // 2. Auto sign-in after registration
+        const signInRes = await signIn("credentials", {
+            email,
+            password,
+            redirect: false,
+        });
+
+        setLoading(false);
+
+        if (signInRes?.error) {
+            setError("Account created but sign-in failed. Please log in manually.");
+        } else {
             router.push("/dashboard");
-        }, 800);
+        }
+    };
+
+    const handleGoogleSignIn = () => {
+        signIn("google", { callbackUrl: "/dashboard" });
     };
 
     return (
@@ -219,9 +248,10 @@ export default function SignupPage() {
                         <span className="h-px flex-1 bg-zinc-200" />
                     </div>
 
-                    {/* Social signup */}
+                    {/* Google signup */}
                     <button
                         type="button"
+                        onClick={handleGoogleSignIn}
                         className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-100 bg-white py-2.5 text-sm font-medium text-zinc-700 transition-all hover:border-zinc-200 hover:bg-zinc-50"
                     >
                         <svg className="h-4 w-4" viewBox="0 0 24 24">

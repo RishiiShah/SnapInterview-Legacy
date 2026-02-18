@@ -55,11 +55,20 @@ const handler = NextAuth({
                     throw new Error("Invalid email or password");
                 }
 
+                // If it's the first login, update the flag
+                if (user.isFirstLogin) {
+                    await prisma.user.update({
+                        where: { id: user.id },
+                        data: { isFirstLogin: false },
+                    });
+                }
+
                 return {
                     id: user.id,
                     email: user.email,
                     name: user.name,
                     image: user.image,
+                    isFirstLogin: user.isFirstLogin,
                 };
             },
         }),
@@ -71,15 +80,34 @@ const handler = NextAuth({
         signIn: "/login",
     },
     callbacks: {
+        async signIn({ user }) {
+            // Handle first login for OAuth providers (Google, etc.)
+            if (user?.id) {
+                const dbUser = await prisma.user.findUnique({
+                    where: { id: user.id },
+                });
+                
+                if (dbUser?.isFirstLogin) {
+                    await prisma.user.update({
+                        where: { id: user.id },
+                        data: { isFirstLogin: false },
+                    });
+                }
+            }
+            return true;
+        },
         async jwt({ token, user }) {
             if (user) {
                 token.id = user.id;
+                // Store isFirstLogin from user object (will be set if user comes from DB)
+                token.isFirstLogin = (user as any).isFirstLogin ?? true;
             }
             return token;
         },
         async session({ session, token }) {
             if (session.user) {
                 session.user.id = token.id as string;
+                session.user.isFirstLogin = token.isFirstLogin as boolean;
             }
             return session;
         },

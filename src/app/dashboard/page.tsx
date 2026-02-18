@@ -8,6 +8,7 @@ import { getScoreColor, getScoreLabel } from "@/utils/helpers";
 export default function DashboardPage() {
     const { data: session } = useSession();
     const firstName = session?.user?.name?.split(" ")[0] || "there";
+    const isFirstLogin = session?.user?.isFirstLogin ?? false;
 
     // ── Mock data (will be replaced by API calls) ──
     const stats = [
@@ -36,7 +37,9 @@ export default function DashboardPage() {
             <div className="space-y-8">
                 {/* Greeting */}
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Welcome back, {firstName}</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
+                        {isFirstLogin ? `Welcome, ${firstName}` : `Welcome back, ${firstName}`}
+                    </h1>
                     <p className="mt-1 text-sm text-zinc-500">Here&apos;s how your interview prep is going.</p>
                 </div>
 

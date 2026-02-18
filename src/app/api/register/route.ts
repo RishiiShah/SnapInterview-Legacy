@@ -102,6 +102,7 @@ export async function POST(req: Request) {
                 name,
                 email: email.toLowerCase(),
                 passwordHash,
+                isFirstLogin: true,
             },
         });
 
@@ -109,7 +110,8 @@ export async function POST(req: Request) {
             { id: user.id, name: user.name, email: user.email },
             { status: 201 }
         );
-    } catch {
+    } catch (error) {
+        console.error("Registration error:", error);
         return NextResponse.json(
             { error: "Something went wrong" },
             { status: 500 }

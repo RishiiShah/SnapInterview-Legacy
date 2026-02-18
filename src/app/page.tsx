@@ -1,6 +1,16 @@
 import Link from "next/link";
+import { getServerSession } from "next-auth/next";
+import { redirect } from "next/navigation";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  // Check if user has an active session
+  const session = await getServerSession();
+  
+  // If they do, redirect to dashboard
+  if (session) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="min-h-screen bg-white text-zinc-900 font-[family-name:var(--font-geist-sans)]">
       {/* ─── Navbar ─── */}

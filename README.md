@@ -2,7 +2,18 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+## After pulling
+
+```bash
+npm install
+
+npx prisma migrate deploy
+
+npx prisma generate
+
+```
+
+Then, run the development server:
 
 ```bash
 npm run dev

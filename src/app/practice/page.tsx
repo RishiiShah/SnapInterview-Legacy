@@ -1,11 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { CATEGORIES, DIFFICULTIES } from "@/data/constants";
 import type { InterviewType, Difficulty } from "@/data/types";
 
+// Generate a UUID v4
+function generateUUID(): string {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+    });
+}
+
 export default function PracticePage() {
+    const router = useRouter();
     const [role, setRole] = useState("");
     const [company, setCompany] = useState("");
     const [type, setType] = useState<InterviewType>("behavioral");
@@ -22,8 +33,14 @@ export default function PracticePage() {
     function handleStart() {
         if (!role.trim()) return;
         setStarted(true);
-        // TODO: Connect to AI interview engine
-        setTimeout(() => setStarted(false), 2000);
+        
+        // Generate interview UUID and redirect
+        const interviewId = generateUUID();
+        
+        // Redirect to interview page with UUID
+        setTimeout(() => {
+            router.push(`/interview/${interviewId}`);
+        }, 500);
     }
 
     return (

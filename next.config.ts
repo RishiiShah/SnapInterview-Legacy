@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
           // Force HTTPS (1 year, include subdomains)
           { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
           // Restrict browser features
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=()" },
           // Basic XSS protection via CSP
           { key: "X-XSS-Protection", value: "1; mode=block" },
         ],

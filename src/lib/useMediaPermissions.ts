@@ -114,14 +114,30 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
   };
 
   const toggleCamera = () => {
-    if (!stream) return;
-    const videoTracks = stream.getVideoTracks();
-    if (videoTracks.length > 0) {
-      const newState = !isCameraEnabled;
-      videoTracks.forEach((track) => {
-        track.enabled = newState;
-      });
-      setIsCameraEnabled(newState);
+    const newState = !isCameraEnabled;
+    if (!newState) {
+      // Turning camera off: stop all video tracks and clear stream
+      if (stream) {
+        stream.getVideoTracks().forEach((track) => track.stop());
+      }
+      setIsCameraEnabled(false);
+      setStream(null);
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+    } else {
+      // Turning camera on: request new video stream
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+        .then((mediaStream) => {
+          setIsCameraEnabled(true);
+          setStream(mediaStream);
+          if (videoRef.current) {
+            videoRef.current.srcObject = mediaStream;
+          }
+        })
+        .catch((err) => {
+          setError("Failed to re-enable camera: " + (err?.message || err));
+        });
     }
   };
 

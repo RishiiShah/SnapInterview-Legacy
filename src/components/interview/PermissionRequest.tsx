@@ -39,10 +39,10 @@ export default function PermissionRequest({
   if (!isOpen) return null;
 
   return (
-    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
       {/* Left: preview rectangle + options below */}
       <div className="flex flex-1 flex-col gap-4">
-        {/* Preview: single rounded rectangle (not full-width block) */}
+        {/* Preview: single rounded rectangle with overlaid controls */}
         <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-900">
           <video
             ref={videoRef}
@@ -83,11 +83,111 @@ export default function PermissionRequest({
           <span className="absolute bottom-2 left-2 rounded bg-black/50 px-2 py-1 text-xs font-medium text-white/90">
             You
           </span>
+
+          {/* Control buttons overlay - bottom center */}
+          {hasPermission && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3">
+              {/* Microphone toggle */}
+              <button
+                onClick={toggleMic}
+                className={`flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white transition-all ${
+                  isMicEnabled
+                    ? "bg-green-500/30 text-white hover:bg-green-500/50"
+                    : "bg-red-500/30 text-white hover:bg-red-500/50"
+                }`}
+                title={isMicEnabled ? "Turn off microphone" : "Turn on microphone"}
+              >
+                {isMicEnabled ? (
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </button>
+
+              {/* Camera toggle */}
+              <button
+                onClick={toggleCamera}
+                className={`flex h-10 w-10 items-center justify-center rounded-lg border-2 border-white transition-all ${
+                  isCameraEnabled
+                    ? "bg-green-500/30 text-white hover:bg-green-500/50"
+                    : "bg-red-500/30 text-white hover:bg-red-500/50"
+                }`}
+                title={isCameraEnabled ? "Turn off camera" : "Turn on camera"}
+              >
+                {isCameraEnabled ? (
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                ) : (
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Options below preview: question + Allow, then controls + dropdowns */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-          {!hasPermission && !isLoading && (
+        {/* Device selection below preview */}
+        {hasPermission && (
+          <div className="flex justify-center gap-2">
+            {/* Microphone dropdown */}
+            <select
+              defaultValue={audioInputs[0]?.deviceId || ""}
+              className="w-32 truncate rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-2 text-sm text-zinc-700 focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-100 transition-all hover:border-zinc-300 hover:bg-zinc-100"
+            >
+              {audioInputs.length > 0 ? (
+                audioInputs.map((d) => (
+                  <option key={d.deviceId} value={d.deviceId}>
+                    {d.label}
+                  </option>
+                ))
+              ) : (
+                <option value="">Microphone</option>
+              )}
+            </select>
+
+            {/* Speaker dropdown */}
+            <select
+              defaultValue={audioOutputs[0]?.deviceId || ""}
+              className="w-32 truncate rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-2 text-sm text-zinc-700 focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-100 transition-all hover:border-zinc-300 hover:bg-zinc-100"
+            >
+              {audioOutputs.length > 0 ? (
+                audioOutputs.map((d) => (
+                  <option key={d.deviceId} value={d.deviceId}>
+                    {d.label}
+                  </option>
+                ))
+              ) : (
+                <option value="">Speaker</option>
+              )}
+            </select>
+
+            {/* Camera dropdown */}
+            <select
+              defaultValue={videoInputs[0]?.deviceId || ""}
+              className="w-32 truncate rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-2 text-sm text-zinc-700 focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-100 transition-all hover:border-zinc-300 hover:bg-zinc-100"
+            >
+              {videoInputs.length > 0 ? (
+                videoInputs.map((d) => (
+                  <option key={d.deviceId} value={d.deviceId}>
+                    {d.label}
+                  </option>
+                ))
+              ) : (
+                <option value="">Camera</option>
+              )}
+            </select>
+          </div>
+        )}
+
+        {/* Initial permission request */}
+        {!hasPermission && !isLoading && (
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5">
             <div className="mb-4">
               <p className="text-sm font-medium text-zinc-900">
                 Do you want to be seen and heard in the interview?
@@ -104,134 +204,13 @@ export default function PermissionRequest({
                 <p className="mt-2 text-xs text-red-600">{error}</p>
               )}
             </div>
-          )}
-
-          <div className="flex flex-wrap items-center gap-4">
-            <button
-              type="button"
-              onClick={hasPermission && toggleMic ? toggleMic : undefined}
-              disabled={!hasPermission || !toggleMic}
-              className="flex items-center gap-3 transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
-              title={hasPermission ? (isMicEnabled ? "Turn off microphone" : "Turn on microphone") : "Microphone"}
-            >
-              <span className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
-                hasPermission
-                  ? isMicEnabled
-                    ? "bg-green-100 text-green-600"
-                    : "bg-red-100 text-red-600"
-                  : "bg-zinc-100 text-zinc-600"
-              }`}>
-                {hasPermission ? (
-                  isMicEnabled ? (
-                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
-                    </svg>
-                  ) : (
-                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
-                    </svg>
-                  )
-                ) : (
-                  <span className="text-xs font-bold text-amber-600">!</span>
-                )}
-              </span>
-              <span className="text-xs font-medium text-zinc-500">
-                Microphone {hasPermission && (isMicEnabled ? "(On)" : "(Off)")}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={hasPermission && toggleCamera ? toggleCamera : undefined}
-              disabled={!hasPermission || !toggleCamera}
-              className="flex items-center gap-3 transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
-              title={hasPermission ? (isCameraEnabled ? "Turn off camera" : "Turn on camera") : "Camera"}
-            >
-              <span className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
-                hasPermission
-                  ? isCameraEnabled
-                    ? "bg-green-100 text-green-600"
-                    : "bg-red-100 text-red-600"
-                  : "bg-zinc-100 text-zinc-600"
-              }`}>
-                {hasPermission ? (
-                  isCameraEnabled ? (
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                  ) : (
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                    </svg>
-                  )
-                ) : (
-                  <span className="text-xs font-bold text-amber-600">!</span>
-                )}
-              </span>
-              <span className="text-xs font-medium text-zinc-500">
-                Camera {hasPermission && (isCameraEnabled ? "(On)" : "(Off)")}
-              </span>
-            </button>
-            <div className="h-4 w-px bg-zinc-200" />
-            <div className="flex flex-wrap items-center gap-3">
-              <select
-                defaultValue={audioInputs[0]?.deviceId || ""}
-                className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-700 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-100"
-              >
-                {audioInputs.length > 0 ? (
-                  <>
-                    <option value={audioInputs[0].deviceId}>
-                      Microphone (Default - {audioInputs[0].label})
-                    </option>
-                    {audioInputs.slice(1).map((d) => (
-                      <option key={d.deviceId} value={d.deviceId}>{d.label}</option>
-                    ))}
-                  </>
-                ) : (
-                  <option value="">Microphone</option>
-                )}
-              </select>
-              <select
-                defaultValue={audioOutputs[0]?.deviceId || ""}
-                className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-700 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-100"
-              >
-                {audioOutputs.length > 0 ? (
-                  <>
-                    <option value={audioOutputs[0].deviceId}>
-                      Speaker (Default - {audioOutputs[0].label})
-                    </option>
-                    {audioOutputs.slice(1).map((d) => (
-                      <option key={d.deviceId} value={d.deviceId}>{d.label}</option>
-                    ))}
-                  </>
-                ) : (
-                  <option value="">Speaker</option>
-                )}
-              </select>
-              <select
-                defaultValue={videoInputs[0]?.deviceId || ""}
-                className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-700 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-100"
-              >
-                {videoInputs.length > 0 ? (
-                  <>
-                    <option value={videoInputs[0].deviceId}>
-                      Camera (Default - {videoInputs[0].label})
-                    </option>
-                    {videoInputs.slice(1).map((d) => (
-                      <option key={d.deviceId} value={d.deviceId}>{d.label}</option>
-                    ))}
-                  </>
-                ) : (
-                  <option value="">Camera</option>
-                )}
-              </select>
-            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Right: Ready to join + Join now below */}
-      <div className="w-full rounded-2xl border border-zinc-200 bg-white p-6 lg:w-80 lg:shrink-0">
-        <h2 className="text-lg font-semibold text-zinc-900">Ready to join?</h2>
+      <div className="w-full rounded-2xl bg-white p-6 lg:w-80 lg:shrink-0">
+        <h2 className="text-center text-lg font-semibold text-zinc-900">Ready to join?</h2>
         <button
           type="button"
           onClick={onPermissionsGranted}

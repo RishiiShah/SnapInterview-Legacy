@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardShell from "@/components/dashboard/DashboardShell";
-import { CATEGORIES, DIFFICULTIES } from "@/data/constants";
+import SearchableDropdown from "@/components/SearchableDropdown";
+import { CATEGORIES, DIFFICULTIES, ROLES, COMPANIES } from "@/data/constants";
 import type { InterviewType, Difficulty } from "@/data/types";
 
 // Generate a UUID v4
@@ -58,24 +59,23 @@ export default function PracticePage() {
                             <h2 className="mb-6 text-lg font-semibold text-zinc-900">Interview Setup</h2>
                             <div className="space-y-5">
                                 {/* Role */}
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-zinc-700">Role / Position</label>
-                                    <input
-                                        type="text" value={role} onChange={(e) => setRole(e.target.value)}
-                                        placeholder="e.g. Frontend Developer, Product Manager"
-                                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-colors focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100"
-                                    />
-                                </div>
+                                <SearchableDropdown
+                                    label="Role / Position"
+                                    value={role}
+                                    onChange={setRole}
+                                    options={ROLES}
+                                    placeholder="Search or type role (e.g. Frontend Developer)"
+                                />
 
                                 {/* Company */}
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-zinc-700">Company <span className="text-zinc-400">(optional)</span></label>
-                                    <input
-                                        type="text" value={company} onChange={(e) => setCompany(e.target.value)}
-                                        placeholder="e.g. Google, Meta, Amazon"
-                                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-colors focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100"
-                                    />
-                                </div>
+                                <SearchableDropdown
+                                    label="Company"
+                                    value={company}
+                                    onChange={setCompany}
+                                    options={COMPANIES}
+                                    placeholder="Search or type company (e.g. Google)"
+                                    isOptional
+                                />
 
                                 {/* Interview Type */}
                                 <div>

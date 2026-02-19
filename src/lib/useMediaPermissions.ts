@@ -48,6 +48,15 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
   };
 
   const requestPermissions = async () => {
+    // Must run in secure context (HTTPS or localhost) for getUserMedia to show prompts
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      setError(
+        "Camera and microphone require a secure connection. Please open this site over HTTPS or from localhost."
+      );
+      setHasPermission(false);
+      return;
+    }
+
     if (!navigator.mediaDevices?.getUserMedia) {
       setError("Your browser doesn't support camera or microphone access.");
       setHasPermission(false);

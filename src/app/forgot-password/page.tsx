@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { AuthSidePanel } from "@/components/auth/AuthSidePanel";
+import { PasswordInput } from "@/components/auth/PasswordInput";
+import { SubmitButton } from "@/components/auth/SubmitButton";
 
 const OTP_LENGTH = 6;
 
@@ -21,8 +24,6 @@ export default function ForgotPasswordPage() {
     const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    const [showNewPassword, setShowNewPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [otpError, setOtpError] = useState("");
     const [otpLoading, setOtpLoading] = useState(false);
     const [resendCooldown, setResendCooldown] = useState(0);
@@ -153,46 +154,14 @@ export default function ForgotPasswordPage() {
         }
     };
 
-    // Eye icon SVGs
-    const EyeOpen = (
-        <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-    );
-    const EyeClosed = (
-        <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12c1.292 4.338 5.31 7.5 10.066 7.5.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-        </svg>
-    );
+
 
     return (
         <div className="flex min-h-screen bg-white font-[family-name:var(--font-geist-sans)]">
-            {/* ─── Left: Branding Panel ─── */}
-            <div className="hidden w-1/2 flex-col justify-between bg-zinc-900 p-12 lg:flex">
-                <Link href="/" className="flex items-center gap-2.5">
-                    <div className="grid h-8 w-8 place-items-center rounded-lg bg-white text-[11px] font-bold leading-none tracking-tighter text-zinc-900">
-                        SI
-                    </div>
-                    <span className="text-lg font-semibold tracking-tight text-white">
-                        SnapInterview
-                    </span>
-                </Link>
-
-                <div>
-                    <h2 className="max-w-sm text-3xl font-bold leading-tight text-white">
-                        Reset your password
-                    </h2>
-                    <p className="mt-4 max-w-sm text-sm leading-relaxed text-zinc-400">
-                        We&apos;ll send a verification code to your email so you can
-                        securely set a new password and get back to practicing.
-                    </p>
-                </div>
-
-                <p className="text-xs text-zinc-600">
-                    © {new Date().getFullYear()} SnapInterview
-                </p>
-            </div>
+            <AuthSidePanel
+                title="Reset your password"
+                subtitle="We'll send a verification code to your email so you can securely set a new password and get back to practicing."
+            />
 
             {/* ─── Right: Form ─── */}
             <div className="flex w-full flex-col items-center justify-center bg-white px-6 lg:w-1/2">
@@ -244,20 +213,7 @@ export default function ForgotPasswordPage() {
                                     <p className="text-sm text-red-600">{emailError}</p>
                                 )}
 
-                                <button
-                                    type="submit"
-                                    disabled={emailLoading}
-                                    className="flex w-full items-center justify-center rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white shadow-lg shadow-zinc-900/20 transition-all hover:bg-zinc-700 hover:shadow-xl disabled:opacity-50"
-                                >
-                                    {emailLoading ? (
-                                        <svg className="h-5 w-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                        </svg>
-                                    ) : (
-                                        "Send reset code"
-                                    )}
-                                </button>
+                                <SubmitButton loading={emailLoading} text="Send reset code" />
                             </form>
 
                             <p className="mt-8 text-center text-sm text-zinc-500">
@@ -322,66 +278,33 @@ export default function ForgotPasswordPage() {
 
                             {/* New Password */}
                             <div className="mt-6 space-y-4">
-                                <div>
-                                    <label htmlFor="new-password" className="mb-1.5 block text-sm font-medium text-zinc-700">
-                                        New password
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            id="new-password"
-                                            type={showNewPassword ? "text" : "password"}
-                                            value={newPassword}
-                                            onChange={(e) => setNewPassword(e.target.value)}
-                                            placeholder="Min. 8 characters"
-                                            className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 pr-11 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition-colors focus:border-zinc-300 focus:bg-white focus:ring-2 focus:ring-zinc-100"
-                                        />
-                                        <button type="button" onClick={() => setShowNewPassword(!showNewPassword)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors"
-                                            aria-label={showNewPassword ? "Hide password" : "Show password"}>
-                                            {showNewPassword ? EyeClosed : EyeOpen}
-                                        </button>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label htmlFor="confirm-password" className="mb-1.5 block text-sm font-medium text-zinc-700">
-                                        Confirm new password
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            id="confirm-password"
-                                            type={showConfirmPassword ? "text" : "password"}
-                                            value={confirmPassword}
-                                            onChange={(e) => setConfirmPassword(e.target.value)}
-                                            placeholder="••••••••"
-                                            className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 pr-11 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition-colors focus:border-zinc-300 focus:bg-white focus:ring-2 focus:ring-zinc-100"
-                                        />
-                                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors"
-                                            aria-label={showConfirmPassword ? "Hide password" : "Show password"}>
-                                            {showConfirmPassword ? EyeClosed : EyeOpen}
-                                        </button>
-                                    </div>
-                                </div>
+                                <PasswordInput
+                                    id="new-password"
+                                    label="New password"
+                                    value={newPassword}
+                                    onChange={setNewPassword}
+                                    placeholder="Min. 8 characters"
+                                />
+                                <PasswordInput
+                                    id="confirm-password"
+                                    label="Confirm new password"
+                                    value={confirmPassword}
+                                    onChange={setConfirmPassword}
+                                />
                             </div>
 
                             {otpError && (
                                 <p className="mt-3 text-sm text-red-600">{otpError}</p>
                             )}
 
-                            <button
-                                onClick={handleResetPassword}
-                                disabled={otpLoading || otp.some((d) => !d) || !newPassword || !confirmPassword}
-                                className="mt-6 flex w-full items-center justify-center rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white shadow-lg shadow-zinc-900/20 transition-all hover:bg-zinc-700 hover:shadow-xl disabled:opacity-50"
-                            >
-                                {otpLoading ? (
-                                    <svg className="h-5 w-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                    </svg>
-                                ) : (
-                                    "Reset password"
-                                )}
-                            </button>
+                            <div className="mt-6">
+                                <SubmitButton
+                                    loading={otpLoading}
+                                    text="Reset password"
+                                    onClick={handleResetPassword}
+                                    disabled={otp.some((d) => !d) || !newPassword || !confirmPassword}
+                                />
+                            </div>
 
                             <button
                                 onClick={() => { setStep("email"); setOtp(Array(OTP_LENGTH).fill("")); setOtpError(""); }}

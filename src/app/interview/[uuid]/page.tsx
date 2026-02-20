@@ -11,6 +11,12 @@ export default function InterviewPage() {
   const interviewId = params.uuid as string;
   const [showPreJoin, setShowPreJoin] = useState(true);
   const [interviewStarted, setInterviewStarted] = useState(false);
+
+  // Dummy Chat & Recording State
+  const [isRecording, setIsRecording] = useState(false);
+  const [messages, setMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([
+    { role: 'ai', text: 'Welcome to your interview. Tell me about a time when you had to handle a challenging project deadline.' }
+  ]);
   const {
     videoRef,
     stream,
@@ -90,93 +96,107 @@ export default function InterviewPage() {
 
       {/* Interview: full-screen session (user video + UI) */}
       {interviewStarted && (
-        <div className="h-screen w-full bg-zinc-900">
-          <div className="flex h-full flex-col">
-            <div className="border-b border-zinc-700 bg-zinc-800 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-xl font-bold text-white">Interview Session</h1>
-                  <p className="text-sm text-zinc-400">ID: {interviewId}</p>
+        <div className="h-screen w-full overflow-hidden bg-[#1c1c1e] flex flex-col p-4 sm:p-6 font-sans gap-4 sm:gap-6 relative">
+
+          {/* Main Container */}
+          <div className="w-full h-full relative flex flex-col gap-4 sm:gap-6 overflow-hidden max-w-[1600px] mx-auto">
+
+            {/* Top Header */}
+            <div className="relative flex items-center justify-center pl-2 pr-4 h-12 shrink-0">
+              {/* Center: Timer Bar */}
+              <div className="flex flex-col gap-2 w-full max-w-[400px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold tracking-wider text-zinc-400">Time Remaining</span>
+                  <span className="text-[11px] font-semibold tracking-wider text-zinc-400">3:45 / 5:00</span>
                 </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+                  <div className="h-full w-[75%] rounded-full bg-blue-500" />
+                </div>
+              </div>
+
+              {/* Right: Exit Button */}
+              <div className="absolute right-4 top-1/2 -translate-y-1/2">
                 <button
                   onClick={handleExitInterview}
-                  className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
+                  className="rounded-full border border-zinc-700 bg-zinc-800/40 px-5 py-2 text-xs font-semibold text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
                   Exit Interview
                 </button>
               </div>
             </div>
 
-            <div className="flex flex-1 gap-6 p-6">
-              {/* User video playback */}
-              <div className="flex-1">
-                <div className="relative h-full overflow-hidden rounded-2xl bg-black">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="h-full w-full object-cover"
-                    style={{ transform: "scaleX(-1)" }}
-                  />
-                  <div className="absolute bottom-4 right-4 flex gap-2">
-                    <div className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium ${hasPermission && isMicEnabled ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
-                      <div className={`h-2 w-2 rounded-full ${hasPermission && isMicEnabled ? "bg-green-400" : "bg-red-400"}`} />
-                      Microphone
-                    </div>
-                    <div className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium ${hasPermission && isCameraEnabled ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
-                      <div className={`h-2 w-2 rounded-full ${hasPermission && isCameraEnabled ? "bg-green-400" : "bg-red-400"}`} />
-                      Camera
-                    </div>
-                  </div>
+            {/* Main Content Area (Video + Chat) */}
+            <div className="flex w-full flex-1 min-h-0 gap-6 relative">
+
+              {/* Left: Video Container */}
+              <div className="relative w-full lg:w-[70%] flex-col flex overflow-hidden rounded-2xl border-2 border-cyan-400/80 bg-black shadow-[0_0_20px_rgba(34,211,238,0.2)] shrink-0">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="h-full w-full object-cover"
+                  style={{ transform: "scaleX(-1)" }}
+                />
+                <div className="absolute right-5 top-5 flex items-center gap-2 rounded-full bg-zinc-800/80 px-3 py-1.5 backdrop-blur-md">
+                  <div className={`h-[6px] w-[6px] rounded-full ${isRecording ? 'bg-red-500 animate-[pulse_1.5s_ease-in-out_infinite]' : 'bg-red-500'}`} />
+                  <span className="text-[11px] font-semibold tracking-wide text-zinc-100">Recording</span>
                 </div>
               </div>
 
-              <div className="w-96 space-y-4">
-                <div className="rounded-2xl bg-zinc-800 p-6">
-                  <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-zinc-400">Current Question</h2>
-                  <div className="rounded-lg bg-zinc-700 p-4">
-                    <p className="text-lg font-medium text-white">
-                      Tell me about a time when you had to handle a challenging project deadline.
-                    </p>
-                    <p className="mt-3 text-sm text-zinc-300">Type: Behavioral</p>
-                  </div>
+              {/* Right: Chat Transcript */}
+              <div className="hidden lg:flex flex-col flex-1 bg-zinc-800/20 rounded-2xl border border-zinc-800/50 overflow-hidden relative">
+                {/* Fade overlays for smooth scrolling look */}
+                <div className="absolute top-0 w-full h-8 bg-gradient-to-b from-[#1c1c1e] to-transparent z-10 pointer-events-none" />
+                <div className="flex-1 overflow-y-auto p-5 space-y-5 flex flex-col pt-8 pb-12">
+                  {messages.map((msg, idx) => (
+                    <div key={idx} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] rounded-[18px] px-5 py-3.5 text-sm leading-relaxed tracking-wide shadow-sm ${msg.role === 'user'
+                        ? 'bg-blue-600/90 text-white rounded-br-sm'
+                        : 'bg-zinc-800/90 text-zinc-100 rounded-bl-sm ring-1 ring-white/5'
+                        }`}>
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-
-                <div className="rounded-2xl bg-zinc-800 p-6">
-                  <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-zinc-400">Time Remaining</h2>
-                  <div className="text-4xl font-bold text-white">2:45</div>
-                  <p className="mt-2 text-sm text-zinc-400">Out of 5:00</p>
-                </div>
-
-                <div className="flex items-center gap-2 rounded-lg bg-red-500/10 px-4 py-3">
-                  <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
-                  <p className="text-sm font-medium text-red-300">Recording</p>
-                </div>
-
-                <div className="flex gap-2">
-                  <button className="flex-1 rounded-lg bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-600">
-                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.172a1 1 0 011.414 0A6.972 6.972 0 0121 10c0 1.912-.586 3.68-1.586 5.172a1 1 0 11-1.414-1.414A5.971 5.971 0 0019 10a5.972 5.972 0 00-1.757-4.243 1 1 0 010-1.414z" />
-                    </svg>
-                  </button>
-                  <button className="flex-1 rounded-lg bg-zinc-700 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-600">
-                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 11-2 0V5H5v10h8v-1a1 1 0 112 0v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4z" />
-                    </svg>
-                  </button>
-                </div>
-
-                <div className="rounded-lg bg-blue-500/10 p-3">
-                  <p className="text-xs text-blue-200">
-                    💡 <strong>Tip:</strong> Speak clearly and think out loud. The AI evaluator will assess your communication skills and problem-solving approach.
-                  </p>
-                </div>
+                <div className="absolute bottom-0 w-full h-12 bg-gradient-to-t from-[#1c1c1e] to-transparent z-10 pointer-events-none" />
               </div>
+
             </div>
+
+            {/* Controls Area (Below Video) */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 px-2 mt-2">
+
+              {/* Centered Recording Controls */}
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={toggleMic}
+                  className={`flex h-12 w-12 items-center justify-center rounded-full transition-colors shadow-lg ${hasPermission && isMicEnabled
+                    ? 'bg-emerald-500 text-white hover:bg-emerald-600 ring-2 ring-emerald-500/20'
+                    : 'bg-zinc-800 text-red-500 hover:bg-zinc-700'
+                    }`}
+                >
+                  {hasPermission && isMicEnabled ? (
+                    <svg className="h-[22px] w-[22px] translate-y-[-1px]" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" /></svg>
+                  ) : (
+                    <svg className="h-[22px] w-[22px] translate-y-[-1px]" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" /></svg>
+                  )}
+                </button>
+                <button
+                  onClick={() => setIsRecording(!isRecording)}
+                  className={`flex items-center gap-3 rounded-[20px] shadow-lg border px-5 py-3.5 text-xs font-semibold tracking-wide transition-colors ${isRecording
+                    ? 'border-zinc-700 bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700'
+                    : 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700 ring-2 ring-blue-500/20'
+                    }`}
+                >
+                  <div className={`h-2.5 w-2.5 rounded-[2px] ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-white rounded-full'}`} />
+                  {isRecording ? 'Stop Speaking (Space)' : 'Start Speaking'}
+                </button>
+              </div>
+
+            </div>
+
           </div>
         </div>
       )}

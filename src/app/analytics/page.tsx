@@ -107,8 +107,7 @@ export default function AnalyticsPage() {
                 {/* Strengths & Weaknesses */}
                 <div className="grid gap-6 lg:grid-cols-2">
                     <div className="rounded-2xl border border-zinc-200 bg-white p-6">
-                        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-zinc-900">
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs">💪</span>
+                        <h3 className="mb-4 text-sm font-semibold text-zinc-900">
                             Strengths
                         </h3>
                         <div className="space-y-3">
@@ -122,8 +121,7 @@ export default function AnalyticsPage() {
                     </div>
 
                     <div className="rounded-2xl border border-zinc-200 bg-white p-6">
-                        <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-zinc-900">
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-xs">🎯</span>
+                        <h3 className="mb-4 text-sm font-semibold text-zinc-900">
                             Areas to Improve
                         </h3>
                         <div className="space-y-3">

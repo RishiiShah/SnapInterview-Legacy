@@ -22,6 +22,8 @@ export default function PracticePage() {
     const [company, setCompany] = useState("");
     const [type, setType] = useState<InterviewType>("behavioral");
     const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+    const [jobDescription, setJobDescription] = useState("");
+    const [resumeName, setResumeName] = useState("");
     const [started, setStarted] = useState(false);
 
     // Mock recent practice sessions (will come from DB)
@@ -34,10 +36,10 @@ export default function PracticePage() {
     function handleStart() {
         if (!role.trim()) return;
         setStarted(true);
-        
+
         // Generate interview UUID and redirect
         const interviewId = generateUUID();
-        
+
         // Redirect to interview page with UUID
         setTimeout(() => {
             router.push(`/interview/${interviewId}`);
@@ -100,6 +102,56 @@ export default function PracticePage() {
                                                 {d.label}
                                             </button>
                                         ))}
+                                    </div>
+                                </div>
+
+                                {/* Job Description (Optional) */}
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium text-zinc-700">
+                                        Job Description <span className="text-zinc-400 font-normal">(Optional)</span>
+                                    </label>
+                                    <textarea
+                                        value={jobDescription}
+                                        onChange={(e) => setJobDescription(e.target.value)}
+                                        placeholder="Paste the job description here to tailor the interview..."
+                                        className="w-full rounded-xl border border-zinc-200 bg-white p-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-100 min-h-[100px] resize-y"
+                                    />
+                                </div>
+
+                                {/* Resume Upload (Optional) */}
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium text-zinc-700">
+                                        Resume <span className="text-zinc-400 font-normal">(Optional)</span>
+                                    </label>
+                                    <div className="flex items-center gap-3">
+                                        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:text-zinc-900">
+                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                                            </svg>
+                                            {resumeName ? "Change File" : "Upload PDF"}
+                                            <input
+                                                type="file"
+                                                accept=".pdf,.doc,.docx"
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) setResumeName(file.name);
+                                                }}
+                                            />
+                                        </label>
+                                        {resumeName && (
+                                            <div className="flex items-center gap-2 rounded-lg bg-zinc-100 px-3 py-1.5 text-sm text-zinc-700">
+                                                <svg className="h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                <span className="truncate max-w-[200px]">{resumeName}</span>
+                                                <button onClick={() => setResumeName("")} className="ml-1 text-zinc-400 hover:text-red-500" title="Remove file">
+                                                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

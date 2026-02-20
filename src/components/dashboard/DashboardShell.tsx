@@ -100,10 +100,12 @@ function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCollapsed
                 <button
                     onClick={() => setAccountOpen(!accountOpen)}
                     title={collapsed ? userName : undefined}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-zinc-100 ${collapsed ? "justify-center" : ""}`}
+                    className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-zinc-100 ${collapsed ? "justify-center" : ""}`}
                 >
                     {userImage ? (
-                        <Image src={userImage} alt={userName} width={28} height={28} className="h-7 w-7 rounded-full object-cover shrink-0" />
+                        <div className="relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full">
+                            <Image src={userImage} alt={userName} fill sizes="28px" className="object-cover" />
+                        </div>
                     ) : (
                         <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-zinc-900 text-[10px] font-bold text-white">{initials}</div>
                     )}
@@ -142,7 +144,7 @@ function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCollapsed
                                 Settings
                             </Link>
                             <button onClick={() => signOut({ callbackUrl: "/login" })}
-                                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100">
+                                className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100">
                                 <svg className="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
                                 </svg>
@@ -208,7 +210,7 @@ function AvatarDropdown({ open, onClose }: { open: boolean; onClose: () => void 
                     </svg>
                     Settings
                 </Link>
-                <button onClick={() => signOut({ callbackUrl: "/login" })} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100">
+                <button onClick={() => signOut({ callbackUrl: "/login" })} className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100">
                     <svg className="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
                     </svg>
@@ -328,11 +330,11 @@ function Header({ onSearchOpen }: { onSearchOpen: () => void }) {
 
                 {/* Avatar */}
                 <div ref={avatarRef} className="relative">
-                    <button onClick={() => { setAvatarOpen(!avatarOpen); setNotifOpen(false); }} className="rounded-full ring-2 ring-transparent transition-all hover:ring-zinc-200">
+                    <button onClick={() => { setAvatarOpen(!avatarOpen); setNotifOpen(false); }} className="relative flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full ring-2 ring-transparent transition-all hover:ring-zinc-200">
                         {userImage ? (
-                            <Image src={userImage} alt={userName} width={32} height={32} className="h-8 w-8 rounded-full object-cover" />
+                            <Image src={userImage} alt={userName} fill sizes="32px" className="object-cover" />
                         ) : (
-                            <div className="grid h-8 w-8 place-items-center rounded-full bg-zinc-900 text-xs font-bold text-white">{initials}</div>
+                            <div className="grid h-full w-full place-items-center bg-zinc-900 text-xs font-bold text-white">{initials}</div>
                         )}
                     </button>
                     <AvatarDropdown open={avatarOpen} onClose={() => setAvatarOpen(false)} />

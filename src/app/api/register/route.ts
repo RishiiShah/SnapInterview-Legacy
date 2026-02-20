@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isDisposableEmail } from "@/lib/disposable-emails";
+import { sendOtpEmail } from "@/lib/email";
 import bcrypt from "bcryptjs";
 import { z } from "zod/v4";
+import crypto from "crypto";
 
 // ── Zod schema ──
 const registerSchema = z.object({
@@ -34,6 +36,11 @@ function isRateLimited(ip: string): boolean {
 
     entry.count++;
     return entry.count > RATE_LIMIT_MAX_REQUESTS;
+}
+
+/** Generate a cryptographically secure 6-digit OTP */
+function generateOtp(): string {
+    return crypto.randomInt(100000, 999999).toString();
 }
 
 export async function POST(req: Request) {
@@ -72,9 +79,10 @@ export async function POST(req: Request) {
         }
 
         const { name, email, password } = result.data;
+        const normalizedEmail = email.toLowerCase();
 
         // Block disposable/temporary email services
-        const emailCheck = await isDisposableEmail(email);
+        const emailCheck = await isDisposableEmail(normalizedEmail);
         if (emailCheck.disposable) {
             return NextResponse.json(
                 { error: "Please use a permanent email address. Temporary email services are not allowed." },
@@ -84,7 +92,7 @@ export async function POST(req: Request) {
 
         // Check for existing user
         const existingUser = await prisma.user.findUnique({
-            where: { email: email.toLowerCase() },
+            where: { email: normalizedEmail },
         });
 
         // Prevent email enumeration — always hash (constant timing)
@@ -97,18 +105,28 @@ export async function POST(req: Request) {
             );
         }
 
-        const user = await prisma.user.create({
+        // Generate OTP and store pending user (upsert to handle resends)
+        const otp = generateOtp();
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+        // Delete any existing pending records for this email, then create new one
+        await prisma.pendingUser.deleteMany({ where: { email: normalizedEmail } });
+        await prisma.pendingUser.create({
             data: {
                 name,
-                email: email.toLowerCase(),
+                email: normalizedEmail,
                 passwordHash,
-                isFirstLogin: true,
+                otp,
+                expiresAt,
             },
         });
 
+        // Send OTP email
+        await sendOtpEmail(normalizedEmail, otp);
+
         return NextResponse.json(
-            { id: user.id, name: user.name, email: user.email },
-            { status: 201 }
+            { success: true, message: "Verification code sent to your email." },
+            { status: 200 }
         );
     } catch (error) {
         console.error("Registration error:", error);

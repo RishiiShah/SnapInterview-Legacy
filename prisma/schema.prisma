@@ -59,3 +59,15 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+model PendingUser {
+  id           String   @id @default(cuid())
+  name         String
+  email        String
+  passwordHash String
+  otp          String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([email])
+}

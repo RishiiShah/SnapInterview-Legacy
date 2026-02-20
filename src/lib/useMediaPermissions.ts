@@ -125,18 +125,25 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
   const toggleCamera = () => {
     const newState = !isCameraEnabled;
     if (!newState) {
-      // Turning camera off: stop all video tracks and clear stream
+      // Turning camera off: stop only video tracks, keep audio stream
       if (stream) {
         stream.getVideoTracks().forEach((track) => track.stop());
       }
       setIsCameraEnabled(false);
-      setStream(null);
       if (videoRef.current) {
         videoRef.current.srcObject = null;
       }
+      // Get audio-only stream to keep microphone functional
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then((audioStream) => {
+          setStream(audioStream);
+        })
+        .catch((err) => {
+          setError("Failed to get audio stream: " + (err?.message || err));
+        });
     } else {
-      // Turning camera on: request new video stream
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+      // Turning camera on: request new stream with both audio and video
+      navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: "user" } })
         .then((mediaStream) => {
           setIsCameraEnabled(true);
           setStream(mediaStream);

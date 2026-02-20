@@ -1,6 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
+import { useState, useEffect } from "react";
 import type { MediaDeviceInfo } from "@/lib/useMediaPermissions";
 
 export interface PermissionRequestProps {
@@ -18,6 +19,7 @@ export interface PermissionRequestProps {
   isCameraEnabled?: boolean;
   toggleMic?: () => void;
   toggleCamera?: () => void;
+  stream?: MediaStream | null;
 }
 
 export default function PermissionRequest({
@@ -35,7 +37,46 @@ export default function PermissionRequest({
   isCameraEnabled = true,
   toggleMic,
   toggleCamera,
+  stream,
 }: PermissionRequestProps) {
+  const [audioLevel, setAudioLevel] = useState(0);
+
+  // Set up audio analyser for level visualization
+  useEffect(() => {
+    if (!stream || !isMicEnabled) {
+      setAudioLevel(0);
+      return;
+    }
+
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+      analyser.fftSize = 256;
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      let animationId: number;
+
+      const updateLevel = () => {
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        setAudioLevel(Math.min(100, (average / 255) * 150)); // Scale to 0-100
+        animationId = requestAnimationFrame(updateLevel);
+      };
+
+      updateLevel();
+
+      return () => {
+        cancelAnimationFrame(animationId);
+        source.disconnect();
+        analyser.disconnect();
+      };
+    } catch (err) {
+      console.error("Failed to set up audio analyser:", err);
+    }
+  }, [stream, isMicEnabled]);
+
   if (!isOpen) return null;
 
   return (
@@ -80,9 +121,25 @@ export default function PermissionRequest({
               </div>
             </div>
           )}
-          <span className="absolute bottom-2 left-2 rounded bg-black/50 px-2 py-1 text-xs font-medium text-white/90">
+          <span className="absolute bottom-2 right-2 rounded bg-black/50 px-2 py-1 text-xs font-medium text-white/90">
             You
           </span>
+
+          {/* Audio level indicator - bottom left corner */}
+          {hasPermission && isMicEnabled && (
+            <div className="absolute bottom-4 left-4 flex items-center gap-1">
+              {[0, 1, 2].map((index) => (
+                <div
+                  key={index}
+                  className="h-6 w-1 rounded-full bg-green-500 transition-all duration-100"
+                  style={{
+                    opacity: audioLevel > index * 30 ? 1 : 0.3,
+                    height: audioLevel > index * 30 ? `${8 + index * 4}px` : "6px",
+                  }}
+                />
+              ))}
+            </div>
+          )}
 
           {/* Control buttons overlay - bottom center */}
           {hasPermission && (

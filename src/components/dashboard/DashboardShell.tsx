@@ -85,10 +85,15 @@ function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCollapsed
                 {navItems.map((item) => {
                     const active = pathname === item.href;
                     return (
-                        <Link key={item.href} href={item.href} title={collapsed ? item.label : undefined}
-                            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${active ? "bg-zinc-100 text-zinc-900" : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"} ${collapsed ? "justify-center" : ""}`}>
+                        <Link key={item.href} href={item.href}
+                            className={`group/nav relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${active ? "bg-zinc-100 text-zinc-900" : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"} ${collapsed ? "justify-center" : ""}`}>
                             {item.icon}
                             {!collapsed && <span>{item.label}</span>}
+                            {collapsed && (
+                                <span className="absolute left-full ml-4 hidden rounded-md bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 transition-opacity group-hover/nav:block group-hover/nav:opacity-100">
+                                    {item.label}
+                                </span>
+                            )}
                         </Link>
                     );
                 })}

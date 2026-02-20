@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import SearchableDropdown from "@/components/SearchableDropdown";
+import SelectDropdown from "@/components/SelectDropdown";
 import { CATEGORIES, DIFFICULTIES, ROLES, COMPANIES } from "@/data/constants";
 import type { InterviewType, Difficulty } from "@/data/types";
 
@@ -60,99 +61,96 @@ export default function PracticePage() {
                         <div className="rounded-2xl border border-zinc-200 bg-white p-6">
                             <h2 className="mb-6 text-lg font-semibold text-zinc-900">Interview Setup</h2>
                             <div className="space-y-5">
-                                {/* Role */}
-                                <SearchableDropdown
-                                    label="Role / Position"
-                                    value={role}
-                                    onChange={setRole}
-                                    options={ROLES}
-                                    placeholder="Search or type role (e.g. Frontend Developer)"
-                                />
+                                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                                    {/* Role */}
+                                    <SearchableDropdown
+                                        label="Role / Position"
+                                        value={role}
+                                        onChange={setRole}
+                                        options={ROLES}
+                                        placeholder="Search or type role"
+                                    />
 
-                                {/* Company */}
-                                <SearchableDropdown
-                                    label="Company"
-                                    value={company}
-                                    onChange={setCompany}
-                                    options={COMPANIES}
-                                    placeholder="Search or type company (e.g. Google)"
-                                    isOptional
-                                />
-
-                                {/* Interview Type */}
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium text-zinc-700">Interview Type</label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {CATEGORIES.map((cat) => (
-                                            <button key={cat.value} onClick={() => setType(cat.value)}
-                                                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${type === cat.value ? "bg-zinc-900 text-white shadow-sm" : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"}`}>
-                                                {cat.label}
-                                            </button>
-                                        ))}
-                                    </div>
+                                    {/* Company */}
+                                    <SearchableDropdown
+                                        label="Company"
+                                        value={company}
+                                        onChange={setCompany}
+                                        options={COMPANIES}
+                                        placeholder="Search or type company"
+                                        isOptional
+                                    />
                                 </div>
 
-                                {/* Difficulty */}
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium text-zinc-700">Difficulty</label>
-                                    <div className="flex gap-2">
-                                        {DIFFICULTIES.map((d) => (
-                                            <button key={d.value} onClick={() => setDifficulty(d.value)}
-                                                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${difficulty === d.value ? "bg-zinc-900 text-white shadow-sm" : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"}`}>
-                                                {d.label}
-                                            </button>
-                                        ))}
+                                <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+                                    {/* Interview Type */}
+                                    <SelectDropdown
+                                        label="Interview Type"
+                                        value={type}
+                                        onChange={(val) => setType(val as InterviewType)}
+                                        options={CATEGORIES}
+                                    />
+
+                                    {/* Difficulty */}
+                                    <SelectDropdown
+                                        label="Difficulty"
+                                        value={difficulty}
+                                        onChange={(val) => setDifficulty(val as Difficulty)}
+                                        options={DIFFICULTIES}
+                                    />
+
+                                    {/* Resume Upload (Optional) */}
+                                    <div>
+                                        <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+                                            Resume <span className="text-zinc-400 font-normal">(optional)</span>
+                                        </label>
+                                        <div className="flex h-[38px] items-center">
+                                            {!resumeName ? (
+                                                <label className="flex h-full w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-white hover:text-zinc-900">
+                                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                                                    </svg>
+                                                    Upload PDF
+                                                    <input
+                                                        type="file"
+                                                        accept=".pdf,.doc,.docx"
+                                                        className="hidden"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (file) setResumeName(file.name);
+                                                        }}
+                                                    />
+                                                </label>
+                                            ) : (
+                                                <div className="flex w-full items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-700 hover:border-zinc-300">
+                                                    <div className="flex items-center gap-2 overflow-hidden">
+                                                        <svg className="h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        <span className="truncate max-w-[120px]">{resumeName}</span>
+                                                    </div>
+                                                    <button onClick={() => setResumeName("")} className="shrink-0 text-zinc-400 transition-colors hover:text-red-500 rounded-md p-1 hover:bg-red-50" title="Remove file">
+                                                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Job Description (Optional) */}
                                 <div>
-                                    <label className="mb-2 block text-sm font-medium text-zinc-700">
-                                        Job Description <span className="text-zinc-400 font-normal">(Optional)</span>
+                                    <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+                                        Job Description <span className="text-zinc-400 font-normal">(optional)</span>
                                     </label>
                                     <textarea
                                         value={jobDescription}
                                         onChange={(e) => setJobDescription(e.target.value)}
                                         placeholder="Paste the job description here to tailor the interview..."
-                                        className="w-full rounded-xl border border-zinc-200 bg-white p-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-100 min-h-[100px] resize-y"
+                                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-colors focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100 min-h-[120px] resize-y"
                                     />
-                                </div>
-
-                                {/* Resume Upload (Optional) */}
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium text-zinc-700">
-                                        Resume <span className="text-zinc-400 font-normal">(Optional)</span>
-                                    </label>
-                                    <div className="flex items-center gap-3">
-                                        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:text-zinc-900">
-                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                                            </svg>
-                                            {resumeName ? "Change File" : "Upload PDF"}
-                                            <input
-                                                type="file"
-                                                accept=".pdf,.doc,.docx"
-                                                className="hidden"
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) setResumeName(file.name);
-                                                }}
-                                            />
-                                        </label>
-                                        {resumeName && (
-                                            <div className="flex items-center gap-2 rounded-lg bg-zinc-100 px-3 py-1.5 text-sm text-zinc-700">
-                                                <svg className="h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                <span className="truncate max-w-[200px]">{resumeName}</span>
-                                                <button onClick={() => setResumeName("")} className="ml-1 text-zinc-400 hover:text-red-500" title="Remove file">
-                                                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
                                 </div>
                             </div>
 

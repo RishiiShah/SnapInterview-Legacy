@@ -102,11 +102,27 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
 
   const stopStream = () => {
     if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
+      stream.getTracks().forEach((track) => {
+        track.stop();
+        track.enabled = false;
+      });
       setStream(null);
-      if (videoRef.current) {
+    }
+
+    if (videoRef.current) {
+      if (videoRef.current.srcObject) {
+        const mediaStream = videoRef.current.srcObject as MediaStream;
+        mediaStream.getTracks().forEach((track) => {
+          track.stop();
+          track.enabled = false;
+        });
         videoRef.current.srcObject = null;
       }
+    }
+
+    // Force release of any other hanging userMedia streams globally
+    if (typeof window !== "undefined") {
+      navigator.mediaDevices?.getUserMedia({ audio: false, video: false }).catch(() => { });
     }
   };
 

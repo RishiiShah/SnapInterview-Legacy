@@ -92,6 +92,13 @@ export default function PermissionRequest({
     } catch (err) {
       console.error("Failed to set up audio analyser:", err);
     }
+
+    // Cleanup: explicitly stop the stream tracks when unmounting the PermissionRequest
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
   }, [stream, isMicEnabled]);
 
   if (!isOpen) return null;

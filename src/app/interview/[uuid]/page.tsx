@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import PermissionRequest from "@/components/interview/PermissionRequest";
 import { useMediaPermissions } from "@/lib/useMediaPermissions";
@@ -12,11 +12,106 @@ export default function InterviewPage() {
   const [showPreJoin, setShowPreJoin] = useState(true);
   const [interviewStarted, setInterviewStarted] = useState(false);
 
-  // Dummy Chat & Recording State
+  // Chat & Transcription State
   const [isRecording, setIsRecording] = useState(false);
   const [messages, setMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([
     { role: 'ai', text: 'Welcome to your interview. Tell me about a time when you had to handle a challenging project deadline.' }
   ]);
+  const [interimTranscript, setInterimTranscript] = useState("");
+  const [volatileTranscript, setVolatileTranscript] = useState("");
+  const recognitionRef = useRef<any>(null);
+  const fullTranscriptRef = useRef<string>("");
+
+  // Track continuous explicit recording intent to prevent duplicate onend fires
+  const isIntentionalRecordingRef = useRef<boolean>(false);
+
+  // Speech Recognition initialization
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onresult = (event: any) => {
+          let currentInterim = '';
+          let currentFinal = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              currentFinal += event.results[i][0].transcript;
+            } else {
+              currentInterim += event.results[i][0].transcript;
+            }
+          }
+
+          if (currentFinal) {
+            const currentObj = fullTranscriptRef.current;
+            fullTranscriptRef.current = currentObj + (currentObj.endsWith(' ') || currentFinal.startsWith(' ') || currentObj === '' ? '' : ' ') + currentFinal;
+            setInterimTranscript(fullTranscriptRef.current);
+          }
+          setVolatileTranscript(currentInterim);
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error("Speech recognition error", event.error);
+        };
+
+        recognition.onend = () => {
+          // If we weren't actively recording on purpose (e.g., interrupted by the browser), ignore.
+          // Or if we already processed the final chunk, prevent a duplicate execution.
+          if (!isIntentionalRecordingRef.current) return;
+
+          // Secure the lock immediately so it can never double-fire
+          isIntentionalRecordingRef.current = false;
+
+          const finalStr = fullTranscriptRef.current.trim();
+          if (finalStr) {
+            setMessages(msgs => [...msgs, { role: 'user', text: finalStr }]);
+          }
+
+          fullTranscriptRef.current = "";
+          setInterimTranscript("");
+          setVolatileTranscript("");
+        };
+
+        recognitionRef.current = recognition;
+      }
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.onend = null;
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  // Handle start/stop recording
+  useEffect(() => {
+    if (!recognitionRef.current) return;
+
+    if (isRecording) {
+      setInterimTranscript("");
+      setVolatileTranscript("");
+      fullTranscriptRef.current = "";
+      isIntentionalRecordingRef.current = true;
+      try {
+        recognitionRef.current.start();
+      } catch (e) {
+        console.error("Failed to start recognition", e);
+      }
+    } else {
+      try {
+        if (isIntentionalRecordingRef.current) {
+          recognitionRef.current.stop();
+        }
+        // Committing to final messages is now reliably handled by the `onend` event to prevent race conditions & dupes
+      } catch (e) {
+        console.error("Failed to stop recognition", e);
+      }
+    }
+  }, [isRecording]);
   const {
     videoRef,
     stream,
@@ -159,6 +254,13 @@ export default function InterviewPage() {
                       </div>
                     </div>
                   ))}
+                  {(interimTranscript || volatileTranscript) && (
+                    <div className="flex w-full justify-end">
+                      <div className="max-w-[85%] rounded-[18px] px-5 py-3.5 text-sm leading-relaxed tracking-wide shadow-sm bg-blue-600/50 text-white rounded-br-sm animate-pulse">
+                        {interimTranscript} <span className="opacity-70">{volatileTranscript}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="absolute bottom-0 w-full h-12 bg-gradient-to-t from-[#1c1c1e] to-transparent z-10 pointer-events-none" />
               </div>

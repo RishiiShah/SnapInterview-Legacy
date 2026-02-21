@@ -34,7 +34,7 @@ export default function DashboardPage() {
 
     return (
         <DashboardShell>
-            <div className="space-y-8">
+            <div className="space-y-4">
                 {/* Greeting */}
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
@@ -46,8 +46,8 @@ export default function DashboardPage() {
                 {/* Stat Cards */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {stats.map((s) => (
-                        <div key={s.label} className="rounded-2xl border border-zinc-200 bg-white p-5 transition-shadow hover:shadow-md">
-                            <div className="mb-3 flex items-center justify-between">
+                        <div key={s.label} className="rounded-2xl border border-zinc-200 bg-white p-4 transition-shadow hover:shadow-md">
+                            <div className="mb-2 flex items-center justify-between">
                                 <span className="text-sm font-medium text-zinc-500">{s.label}</span>
                                 <span className="text-zinc-400">{s.icon}</span>
                             </div>
@@ -61,19 +61,19 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="flex flex-wrap gap-3">
-                    <Link href="/practice" className="flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-zinc-700 hover:shadow-lg">
+                <div className="flex flex-wrap gap-3 py-1">
+                    <Link href="/practice" className="flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-zinc-700 hover:shadow-lg">
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                         Start New Interview
                     </Link>
-                    <Link href="/questions" className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50">
+                    <Link href="/questions" className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-5 py-2 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50">
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
                         Browse Questions
                     </Link>
                 </div>
 
                 {/* Chart + Sessions */}
-                <div className="grid gap-6 lg:grid-cols-5">
+                <div className="grid gap-4 lg:grid-cols-5">
                     {/* Performance Chart */}
                     <div className="rounded-2xl border border-zinc-200 bg-white p-6 lg:col-span-2">
                         <h3 className="mb-1 text-sm font-semibold text-zinc-900">Performance</h3>

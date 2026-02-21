@@ -208,6 +208,23 @@ export default function InterviewPage() {
                   )}
                 </button>
                 <button
+                  onClick={toggleCamera}
+                  className={`flex h-12 w-12 items-center justify-center rounded-full transition-colors shadow-lg ${hasPermission && isCameraEnabled
+                    ? 'bg-emerald-500 text-white hover:bg-emerald-600 ring-2 ring-emerald-500/20'
+                    : 'bg-zinc-800 text-red-500 hover:bg-zinc-700'
+                    }`}
+                >
+                  {hasPermission && isCameraEnabled ? (
+                    <svg className="h-[22px] w-[22px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  ) : (
+                    <svg className="h-[22px] w-[22px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                  )}
+                </button>
+                <button
                   onClick={toggleRecording}
                   className={`flex items-center gap-3 rounded-[20px] shadow-lg border px-5 py-3.5 text-xs font-semibold tracking-wide transition-colors ${isRecording
                     ? 'border-zinc-700 bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700'

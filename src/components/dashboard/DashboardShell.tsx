@@ -378,7 +378,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
             <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
             <div className={`${collapsed ? "ml-16" : "ml-64"} flex flex-1 flex-col transition-all duration-300 ease-in-out`}>
                 <Header onSearchOpen={() => setSearchOpen(true)} />
-                <main className="flex-1 p-8">{children}</main>
+                <main className="flex-1 p-6 pb-2">{children}</main>
             </div>
             <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
         </div>

@@ -105,7 +105,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Strengths & Weaknesses */}
-                <div className="grid gap-6 lg:grid-cols-2">
+                <div className="grid gap-6 lg:grid-cols-2 pb-8">
                     <div className="rounded-2xl border border-zinc-200 bg-white p-6">
                         <h3 className="mb-4 text-sm font-semibold text-zinc-900">
                             Strengths

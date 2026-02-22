@@ -8,3 +8,6 @@ declare module "next-auth" {
             email?: string | null;
             image?: string | null;
             isFirstLogin?: boolean;
+        } & DefaultSession["user"];
+    }
+}

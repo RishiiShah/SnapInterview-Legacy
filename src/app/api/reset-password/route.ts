@@ -18,6 +18,16 @@ const schema = z.object({
 
 export async function POST(req: Request) {
     try {
+        // CSRF protection: validate Origin header
+        const origin = req.headers.get("origin");
+        const allowedOrigin = process.env.NEXTAUTH_URL || "http://localhost:3000";
+        if (!origin || origin !== allowedOrigin) {
+            return NextResponse.json(
+                { error: "Forbidden" },
+                { status: 403 }
+            );
+        }
+
         const body = await req.json();
         const result = schema.safeParse(body);
 
@@ -52,13 +62,55 @@ export async function POST(req: Request) {
             );
         }
 
+        // --- OTP Brute force prevention (Max 5 attempts) ---
+        const resetRateLimit = new Map<string, { count: number; lockoutUntil: number }>();
+        const MAX_OTP_ATTEMPTS = 5;
+        const LOCKOUT_MS = 15 * 60 * 1000; // 15 mins
+
+        const now = Date.now();
+        let limitEntry = resetRateLimit.get(normalizedEmail);
+
+        if (limitEntry && now < limitEntry.lockoutUntil) {
+            return NextResponse.json(
+                { error: "Too many failed attempts. Try again later." },
+                { status: 429 }
+            );
+        }
+
         // Validate OTP
         if (token.token !== otp) {
+            // Increment failed attempts
+            if (!limitEntry || now > limitEntry.lockoutUntil) {
+                limitEntry = { count: 1, lockoutUntil: 0 };
+            } else {
+                limitEntry.count++;
+            }
+
+            if (limitEntry.count >= MAX_OTP_ATTEMPTS) {
+                limitEntry.lockoutUntil = now + LOCKOUT_MS;
+                resetRateLimit.set(normalizedEmail, limitEntry);
+
+                // Delete the verification token so they have to request a new one
+                await prisma.verificationToken.deleteMany({
+                    where: { identifier: `reset:${normalizedEmail}` },
+                });
+
+                return NextResponse.json(
+                    { error: "Maximum attempts reached. Reset cancelled. Please request a new code." },
+                    { status: 429 }
+                );
+            }
+
+            resetRateLimit.set(normalizedEmail, limitEntry);
+
             return NextResponse.json(
-                { error: "Invalid code. Please try again." },
+                { error: `Invalid code. ${MAX_OTP_ATTEMPTS - limitEntry.count} attempts left.` },
                 { status: 400 }
             );
         }
+
+        // On success, clear the rate limit
+        resetRateLimit.delete(normalizedEmail);
 
         // Find user
         const user = await prisma.user.findUnique({

@@ -48,7 +48,7 @@ export async function POST(req: Request) {
         // CSRF protection: validate Origin header
         const origin = req.headers.get("origin");
         const allowedOrigin = process.env.NEXTAUTH_URL || "http://localhost:3000";
-        if (!origin || !allowedOrigin.startsWith(origin)) {
+        if (!origin || origin !== allowedOrigin) {
             return NextResponse.json(
                 { error: "Forbidden" },
                 { status: 403 }

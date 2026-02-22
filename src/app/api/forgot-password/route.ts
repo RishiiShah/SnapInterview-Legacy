@@ -26,6 +26,16 @@ function isRateLimited(key: string): boolean {
 
 export async function POST(req: Request) {
     try {
+        // CSRF protection: validate Origin header
+        const origin = req.headers.get("origin");
+        const allowedOrigin = process.env.NEXTAUTH_URL || "http://localhost:3000";
+        if (!origin || origin !== allowedOrigin) {
+            return NextResponse.json(
+                { error: "Forbidden" },
+                { status: 403 }
+            );
+        }
+
         const body = await req.json();
         const result = schema.safeParse(body);
 

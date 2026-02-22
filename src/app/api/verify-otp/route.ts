@@ -12,7 +12,7 @@ export async function POST(req: Request) {
         // CSRF protection
         const origin = req.headers.get("origin");
         const allowedOrigin = process.env.NEXTAUTH_URL || "http://localhost:3000";
-        if (!origin || !allowedOrigin.startsWith(origin)) {
+        if (!origin || origin !== allowedOrigin) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
@@ -50,13 +50,56 @@ export async function POST(req: Request) {
             );
         }
 
+        // --- OTP Brute force prevention (Max 5 attempts) ---
+        // For simplicity we will decrement the expiry time or track attempts if the schema allowed.
+        // Since we don't have an attempts column on pendingUser right now, 
+        // we'll use a simple in-memory map keyed by email to rate limit verification attempts.
+        const verifyRateLimit = new Map<string, { count: number; lockoutUntil: number }>();
+        const MAX_OTP_ATTEMPTS = 5;
+        const LOCKOUT_MS = 15 * 60 * 1000; // 15 mins
+
+        const now = Date.now();
+        let limitEntry = verifyRateLimit.get(normalizedEmail);
+
+        if (limitEntry && now < limitEntry.lockoutUntil) {
+            return NextResponse.json(
+                { error: "Too many failed attempts. Try again later." },
+                { status: 429 }
+            );
+        }
+
         // Validate OTP
         if (pendingUser.otp !== otp) {
+            // Increment failed attempts
+            if (!limitEntry || now > limitEntry.lockoutUntil) {
+                limitEntry = { count: 1, lockoutUntil: 0 };
+            } else {
+                limitEntry.count++;
+            }
+
+            if (limitEntry.count >= MAX_OTP_ATTEMPTS) {
+                limitEntry.lockoutUntil = now + LOCKOUT_MS;
+                verifyRateLimit.set(normalizedEmail, limitEntry);
+
+                // Delete the pending user so they have to restart the flow
+                await prisma.pendingUser.delete({ where: { id: pendingUser.id } });
+
+                return NextResponse.json(
+                    { error: "Maximum attempts reached. Registration cancelled. Please sign up again." },
+                    { status: 429 }
+                );
+            }
+
+            verifyRateLimit.set(normalizedEmail, limitEntry);
+
             return NextResponse.json(
-                { error: "Invalid OTP. Please try again." },
+                { error: `Invalid OTP. ${MAX_OTP_ATTEMPTS - limitEntry.count} attempts left.` },
                 { status: 400 }
             );
         }
+
+        // On success, clear the rate limit
+        verifyRateLimit.delete(normalizedEmail);
 
         // Check if a user with this email was created in the meantime
         const existingUser = await prisma.user.findUnique({

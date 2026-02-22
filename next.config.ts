@@ -9,27 +9,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: [
-          // Prevent clickjacking — only allow same-origin framing
-          { key: "X-Frame-Options", value: "SAMEORIGIN" },
-          // Prevent MIME-type sniffing
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          // Control referrer info leakage
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          // Force HTTPS (1 year, include subdomains)
-          { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
-          // Restrict browser features
-          { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=()" },
-          // Basic XSS protection via CSP
-          { key: "X-XSS-Protection", value: "1; mode=block" },
-        ],
-      },
-    ];
-  },
 };
 
 export default nextConfig;

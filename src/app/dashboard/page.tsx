@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { getScoreColor, getScoreLabel } from "@/utils/helpers";
+import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
+import { motion } from "framer-motion";
+
 
 export default function DashboardPage() {
     const { data: session } = useSession();
@@ -36,17 +39,19 @@ export default function DashboardPage() {
         <DashboardShell>
             <div className="space-y-4">
                 {/* Greeting */}
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-                        {isFirstLogin ? `Welcome, ${firstName}` : `Welcome back, ${firstName}`}
-                    </h1>
-                    <p className="mt-1 text-sm text-zinc-500">Here&apos;s how your interview prep is going.</p>
-                </div>
+                <SlideIn>
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
+                            {isFirstLogin ? `Welcome, ${firstName}` : `Welcome back, ${firstName}`}
+                        </h1>
+                        <p className="mt-1 text-sm text-zinc-500">Here&apos;s how your interview prep is going.</p>
+                    </div>
+                </SlideIn>
 
                 {/* Stat Cards */}
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <FadeInStagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {stats.map((s) => (
-                        <div key={s.label} className="rounded-2xl border border-zinc-200 bg-white p-4 transition-shadow hover:shadow-md">
+                        <FadeInStaggerItem key={s.label} className="rounded-2xl border border-zinc-200 bg-white p-4 transition-shadow hover:shadow-md">
                             <div className="mb-2 flex items-center justify-between">
                                 <span className="text-sm font-medium text-zinc-500">{s.label}</span>
                                 <span className="text-zinc-400">{s.icon}</span>
@@ -56,70 +61,83 @@ export default function DashboardPage() {
                                 {s.suffix && <span className="text-lg font-medium text-zinc-400">{s.suffix}</span>}
                             </p>
                             <p className="mt-1 text-xs text-emerald-600">{s.change}</p>
-                        </div>
+                        </FadeInStaggerItem>
                     ))}
-                </div>
+                </FadeInStagger>
 
                 {/* Quick Actions */}
-                <div className="flex flex-wrap gap-3 py-1">
-                    <Link href="/practice" className="flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-zinc-700 hover:shadow-lg">
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                        Start New Interview
-                    </Link>
-                    <Link href="/questions" className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-5 py-2 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50">
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
-                        Browse Questions
-                    </Link>
-                </div>
+                <SlideIn delay={0.2}>
+                    <div className="flex flex-wrap gap-3 py-1">
+                        <Link href="/practice" className="flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-zinc-700 hover:shadow-lg hover:-translate-y-0.5">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                            Start New Interview
+                        </Link>
+                        <Link href="/questions" className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-5 py-2 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:-translate-y-0.5">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+                            Browse Questions
+                        </Link>
+                    </div>
+                </SlideIn>
 
                 {/* Chart + Sessions */}
-                <div className="grid gap-4 lg:grid-cols-5">
-                    {/* Performance Chart */}
-                    <div className="rounded-2xl border border-zinc-200 bg-white p-6 lg:col-span-2">
-                        <h3 className="mb-1 text-sm font-semibold text-zinc-900">Performance</h3>
-                        <p className="mb-6 text-xs text-zinc-400">Last 7 sessions</p>
-                        <div className="flex items-end gap-3">
-                            {chartData.map((d) => {
-                                const barH = Math.round((d.value / 100) * 140);
-                                return (
-                                    <div key={d.label} className="group flex flex-1 flex-col items-center gap-1.5">
-                                        <span className="text-[10px] font-medium text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100">{d.value}</span>
-                                        <div className="w-full min-h-[4px] rounded-md bg-zinc-200 transition-colors group-hover:bg-zinc-900" style={{ height: barH }} />
-                                        <span className="text-[10px] text-zinc-400">{d.label.split(" ")[1]}</span>
-                                    </div>
-                                );
-                            })}
+                <FadeIn delay={0.4} direction="up">
+                    <div className="grid gap-4 lg:grid-cols-5">
+                        {/* Performance Chart */}
+                        <div className="rounded-2xl border border-zinc-200 bg-white p-6 lg:col-span-2">
+                            <h3 className="mb-1 text-sm font-semibold text-zinc-900">Performance</h3>
+                            <p className="mb-6 text-xs text-zinc-400">Last 7 sessions</p>
+                            <div className="flex items-end gap-3 h-[180px]">
+                                {chartData.map((d, i) => {
+                                    const barH = Math.round((d.value / 100) * 140);
+                                    return (
+                                        <div key={d.label} className="group flex flex-1 flex-col justify-end items-center gap-1.5 h-full">
+                                            <span className="text-[10px] font-medium text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100">{d.value}</span>
+                                            <motion.div
+                                                className="w-full rounded-md bg-zinc-200 transition-colors group-hover:bg-zinc-900 origin-bottom"
+                                                initial={{ height: 0 }}
+                                                animate={{ height: Math.max(4, barH) }}
+                                                transition={{
+                                                    duration: 0.8,
+                                                    delay: 0.4 + (i * 0.1),
+                                                    ease: [0.21, 0.47, 0.32, 0.98]
+                                                }}
+                                            />
+                                            <span className="text-[10px] text-zinc-400">{d.label.split(" ")[1]}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Recent Sessions */}
-                    <div className="rounded-2xl border border-zinc-200 bg-white lg:col-span-3">
-                        <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4">
-                            <h3 className="text-sm font-semibold text-zinc-900">Recent Sessions</h3>
-                            <Link href="/analytics" className="text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-900">View all →</Link>
-                        </div>
-                        <div className="divide-y divide-zinc-100">
-                            {recentSessions.map((s) => (
-                                <div key={s.id} className="flex items-center justify-between px-6 py-3.5 transition-colors hover:bg-zinc-50">
-                                    <div className="flex items-center gap-4">
-                                        <div className="grid h-9 w-9 place-items-center rounded-lg bg-zinc-100 text-xs font-bold text-zinc-500">{s.company.slice(0, 2).toUpperCase()}</div>
-                                        <div>
-                                            <p className="text-sm font-medium text-zinc-900">{s.role}</p>
-                                            <p className="text-xs text-zinc-400">{s.company} · {s.date}</p>
+                        {/* Recent Sessions */}
+                        <div className="rounded-2xl border border-zinc-200 bg-white lg:col-span-3">
+                            <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4">
+                                <h3 className="text-sm font-semibold text-zinc-900">Recent Sessions</h3>
+                                <Link href="/analytics" className="text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-900">View all →</Link>
+                            </div>
+                            <div className="divide-y divide-zinc-100">
+                                {recentSessions.map((s) => (
+                                    <div key={s.id} className="group flex items-center justify-between px-6 py-3.5 transition-colors hover:bg-zinc-50">
+                                        <div className="flex items-center gap-4">
+                                            <div className="grid h-9 w-9 place-items-center rounded-lg bg-zinc-100 text-xs font-bold text-zinc-500 transition-colors group-hover:bg-white group-hover:shadow-sm">{s.company.slice(0, 2).toUpperCase()}</div>
+                                            <div>
+                                                <p className="text-sm font-medium text-zinc-900">{s.role}</p>
+                                                <p className="text-xs text-zinc-400">{s.company} · {s.date}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <div className="text-right">
+                                                <p className="text-sm font-semibold text-zinc-900">{s.score}<span className="text-xs font-normal text-zinc-400">/100</span></p>
+                                                <p className="text-[11px] text-zinc-400">{s.duration}</p>
+                                            </div>
+                                            <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${getScoreColor(s.score)}`}>{getScoreLabel(s.score)}</span>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="text-right">
-                                            <p className="text-sm font-semibold text-zinc-900">{s.score}<span className="text-xs font-normal text-zinc-400">/100</span></p>
-                                            <p className="text-[11px] text-zinc-400">{s.duration}</p>
-                                        </div>
-                                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${getScoreColor(s.score)}`}>{getScoreLabel(s.score)}</span>
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
+                </FadeIn>
             </div>
         </DashboardShell>
     );

@@ -7,6 +7,7 @@ import SearchableDropdown from "@/components/SearchableDropdown";
 import SelectDropdown from "@/components/SelectDropdown";
 import { CATEGORIES, DIFFICULTIES, ROLES, COMPANIES } from "@/data/constants";
 import type { InterviewType, Difficulty } from "@/data/types";
+import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 
 // Generate a UUID v4
 function generateUUID(): string {
@@ -50,14 +51,16 @@ export default function PracticePage() {
     return (
         <DashboardShell>
             <div className="space-y-8">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Practice Interview</h1>
-                    <p className="mt-1 text-sm text-zinc-500">Set up your mock interview and start practicing.</p>
-                </div>
+                <SlideIn>
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Practice Interview</h1>
+                        <p className="mt-1 text-sm text-zinc-500">Set up your mock interview and start practicing.</p>
+                    </div>
+                </SlideIn>
 
                 <div className="grid gap-8 lg:grid-cols-3">
                     {/* ── Interview Setup ── */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <FadeIn delay={0.2} direction="up" className="lg:col-span-2 space-y-6">
                         <div className="rounded-2xl border border-zinc-200 bg-white p-6">
                             <h2 className="mb-6 text-lg font-semibold text-zinc-900">Interview Setup</h2>
                             <div className="space-y-5">
@@ -170,39 +173,39 @@ export default function PracticePage() {
                                 )}
                             </button>
                         </div>
-                    </div>
+                    </FadeIn>
 
                     {/* ── Recent Practice ── */}
-                    <div className="space-y-4">
+                    <FadeIn delay={0.4} direction="up" className="space-y-4">
                         <div className="rounded-2xl border border-zinc-200 bg-white">
                             <div className="border-b border-zinc-100 px-5 py-4">
                                 <h3 className="text-sm font-semibold text-zinc-900">Recent Practice</h3>
                             </div>
-                            <div className="divide-y divide-zinc-50">
+                            <FadeInStagger className="divide-y divide-zinc-50">
                                 {recentPractice.map((s) => (
-                                    <div key={s.id} className="px-5 py-3.5 transition-colors hover:bg-zinc-50">
+                                    <FadeInStaggerItem key={s.id} className="px-5 py-3.5 transition-colors hover:bg-zinc-50">
                                         <div className="flex items-center justify-between">
                                             <p className="text-sm font-medium text-zinc-900">{s.role}</p>
                                             <span className="text-sm font-semibold text-zinc-900">{s.score}<span className="text-xs font-normal text-zinc-400">/100</span></span>
                                         </div>
                                         <p className="mt-0.5 text-xs text-zinc-400">{s.company} · {s.date}</p>
                                         <span className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${CATEGORIES.find((c) => c.value === s.type)?.color}`}>{CATEGORIES.find((c) => c.value === s.type)?.label}</span>
-                                    </div>
+                                    </FadeInStaggerItem>
                                 ))}
-                            </div>
+                            </FadeInStagger>
                         </div>
 
                         {/* Tips */}
                         <div className="rounded-2xl border border-zinc-200 bg-white p-5">
                             <h3 className="mb-3 text-sm font-semibold text-zinc-900">💡 Pro Tips</h3>
                             <ul className="space-y-2 text-xs text-zinc-500">
-                                <li className="flex gap-2"><span className="text-zinc-300">•</span>Use the STAR method for behavioral questions</li>
-                                <li className="flex gap-2"><span className="text-zinc-300">•</span>Think out loud during technical interviews</li>
-                                <li className="flex gap-2"><span className="text-zinc-300">•</span>Start with high-level design before diving into details</li>
-                                <li className="flex gap-2"><span className="text-zinc-300">•</span>Ask clarifying questions before solving</li>
+                                <li className="flex gap-2 group"><span className="text-zinc-300 transition-colors group-hover:text-amber-400">•</span><span className="transition-colors group-hover:text-zinc-800">Use the STAR method for behavioral questions</span></li>
+                                <li className="flex gap-2 group"><span className="text-zinc-300 transition-colors group-hover:text-amber-400">•</span><span className="transition-colors group-hover:text-zinc-800">Think out loud during technical interviews</span></li>
+                                <li className="flex gap-2 group"><span className="text-zinc-300 transition-colors group-hover:text-amber-400">•</span><span className="transition-colors group-hover:text-zinc-800">Start with high-level design before diving into details</span></li>
+                                <li className="flex gap-2 group"><span className="text-zinc-300 transition-colors group-hover:text-amber-400">•</span><span className="transition-colors group-hover:text-zinc-800">Ask clarifying questions before solving</span></li>
                             </ul>
                         </div>
-                    </div>
+                    </FadeIn>
                 </div>
             </div>
         </DashboardShell>

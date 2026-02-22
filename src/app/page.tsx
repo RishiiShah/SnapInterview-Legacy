@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
+import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 
 export default async function LandingPage() {
   // Check if user has an active session
   const session = await getServerSession();
-  
+
   // If they do, redirect to dashboard
   if (session) {
     redirect("/dashboard");
@@ -58,84 +59,98 @@ export default async function LandingPage() {
       </nav>
 
       {/* ─── Hero ─── */}
-      <section className="relative flex flex-col items-center px-6 pt-36 pb-24 text-center">
+      <section className="relative flex flex-col items-center px-6 pt-36 pb-24 text-center overflow-hidden">
         {/* Badge */}
-        <span className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-600">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          Now with AI‑powered feedback
-        </span>
-
-        <h1 className="mx-auto max-w-3xl text-4xl font-bold leading-[1.15] tracking-tight sm:text-5xl lg:text-6xl">
-          Interview prep that
-          <br className="hidden sm:block" />
-          <span className="bg-gradient-to-r from-zinc-900 via-zinc-600 to-zinc-400 bg-clip-text text-transparent">
-            actually works.
+        <SlideIn delay={0.1}>
+          <span className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-600 shadow-sm">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            Now with AI‑powered feedback
           </span>
-        </h1>
+        </SlideIn>
 
-        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-zinc-500">
-          Practice realistic mock interviews, receive instant AI feedback, and
-          track your progress — so you walk in confident on the day that
-          matters.
-        </p>
+        <SlideIn delay={0.2}>
+          <h1 className="mx-auto max-w-3xl text-4xl font-bold leading-[1.15] tracking-tight sm:text-5xl lg:text-6xl">
+            Interview prep that
+            <br className="hidden sm:block" />
+            <span className="bg-gradient-to-r from-zinc-900 via-zinc-600 to-zinc-400 bg-clip-text text-transparent">
+              actually works.
+            </span>
+          </h1>
+        </SlideIn>
 
-        <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row">
-          <Link
-            href="/signup"
-            className="rounded-xl bg-zinc-900 px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-zinc-900/20 transition-all hover:bg-zinc-700 hover:shadow-xl"
-          >
-            Start Practicing — It&apos;s Free
-          </Link>
-          <a
-            href="#how-it-works"
-            className="group flex items-center gap-2 rounded-xl border border-zinc-200 px-7 py-3 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50"
-          >
-            See How It Works
-            <svg
-              className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
+        <SlideIn delay={0.3}>
+          <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-zinc-500">
+            Practice realistic mock interviews, receive instant AI feedback, and
+            track your progress — so you walk in confident on the day that
+            matters.
+          </p>
+        </SlideIn>
+
+        <SlideIn delay={0.4}>
+          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row">
+            <Link
+              href="/signup"
+              className="group relative overflow-hidden rounded-xl bg-zinc-900 px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-zinc-900/20 transition-all hover:bg-zinc-800 hover:shadow-xl hover:-translate-y-0.5"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </a>
-        </div>
+              <span className="relative z-10">Start Practicing — It&apos;s Free</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+            </Link>
+            <a
+              href="#how-it-works"
+              className="group flex items-center gap-2 rounded-xl border border-zinc-200 px-7 py-3 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:-translate-y-0.5"
+            >
+              See How It Works
+              <svg
+                className="h-4 w-4 transition-transform group-hover:translate-x-1 group-hover:text-zinc-900"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+        </SlideIn>
 
         {/* Hero visual — a minimal browser mockup */}
-        <div className="mx-auto mt-20 w-full max-w-4xl overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50 shadow-2xl shadow-zinc-200/60">
-          {/* Browser chrome */}
-          <div className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3">
-            <span className="h-3 w-3 rounded-full bg-zinc-200" />
-            <span className="h-3 w-3 rounded-full bg-zinc-200" />
-            <span className="h-3 w-3 rounded-full bg-zinc-200" />
-            <span className="mx-auto block w-56 rounded-md bg-zinc-100 px-3 py-1 text-center text-[11px] text-zinc-400">
-              snapinterview.app/practice
-            </span>
+        <FadeIn delay={0.6} direction="up" className="w-full relative z-10">
+          <div className="mx-auto mt-20 w-full max-w-4xl overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50 shadow-2xl shadow-zinc-200/60 ring-1 ring-zinc-900/5 transition-transform hover:scale-[1.01] duration-500">
+            {/* Browser chrome */}
+            <div className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3 bg-white/50 backdrop-blur-sm">
+              <span className="h-3 w-3 rounded-full bg-zinc-200" />
+              <span className="h-3 w-3 rounded-full bg-zinc-200" />
+              <span className="h-3 w-3 rounded-full bg-zinc-200" />
+              <span className="mx-auto block w-56 rounded-md bg-zinc-100/50 px-3 py-1 text-center text-[11px] text-zinc-400 font-mono tracking-tight">
+                snapinterview.app/practice
+              </span>
+            </div>
+            {/* Mock content */}
+            <div className="grid gap-6 p-8 sm:grid-cols-3 bg-zinc-50/50">
+              <div className="space-y-3 rounded-xl bg-white p-5 shadow-sm border border-zinc-100/80 transition-shadow hover:shadow-md">
+                <div className="h-3 w-20 rounded bg-zinc-200 animate-pulse" />
+                <div className="h-2 w-full rounded bg-zinc-100" />
+                <div className="h-2 w-4/5 rounded bg-zinc-100" />
+                <div className="mt-4 h-8 w-full rounded-lg bg-zinc-900" />
+              </div>
+              <div className="space-y-3 rounded-xl bg-white p-5 shadow-sm border border-zinc-100/80 transition-shadow hover:shadow-md">
+                <div className="h-3 w-24 rounded bg-zinc-200 animate-pulse" />
+                <div className="h-2 w-full rounded bg-zinc-100" />
+                <div className="h-2 w-3/4 rounded bg-zinc-100" />
+                <div className="mt-4 h-8 w-full rounded-lg bg-emerald-500" />
+              </div>
+              <div className="space-y-3 rounded-xl bg-white p-5 shadow-sm border border-zinc-100/80 transition-shadow hover:shadow-md">
+                <div className="h-3 w-16 rounded bg-zinc-200 animate-pulse" />
+                <div className="h-2 w-full rounded bg-zinc-100" />
+                <div className="h-2 w-5/6 rounded bg-zinc-100" />
+                <div className="mt-4 h-8 w-full rounded-lg bg-zinc-300" />
+              </div>
+            </div>
           </div>
-          {/* Mock content */}
-          <div className="grid gap-6 p-8 sm:grid-cols-3">
-            <div className="space-y-3 rounded-xl bg-white p-5 shadow-sm border border-zinc-100">
-              <div className="h-3 w-20 rounded bg-zinc-200" />
-              <div className="h-2 w-full rounded bg-zinc-100" />
-              <div className="h-2 w-4/5 rounded bg-zinc-100" />
-              <div className="mt-4 h-8 w-full rounded-lg bg-zinc-900" />
-            </div>
-            <div className="space-y-3 rounded-xl bg-white p-5 shadow-sm border border-zinc-100">
-              <div className="h-3 w-24 rounded bg-zinc-200" />
-              <div className="h-2 w-full rounded bg-zinc-100" />
-              <div className="h-2 w-3/4 rounded bg-zinc-100" />
-              <div className="mt-4 h-8 w-full rounded-lg bg-emerald-500" />
-            </div>
-            <div className="space-y-3 rounded-xl bg-white p-5 shadow-sm border border-zinc-100">
-              <div className="h-3 w-16 rounded bg-zinc-200" />
-              <div className="h-2 w-full rounded bg-zinc-100" />
-              <div className="h-2 w-5/6 rounded bg-zinc-100" />
-              <div className="mt-4 h-8 w-full rounded-lg bg-zinc-300" />
-            </div>
-          </div>
-        </div>
+        </FadeIn>
       </section>
 
       {/* ─── Logos / Social Proof ─── */}
@@ -160,18 +175,20 @@ export default async function LandingPage() {
       {/* ─── Features ─── */}
       <section id="features" className="py-28 px-6">
         <div className="mx-auto max-w-6xl">
-          <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-zinc-400">
-            Features
-          </p>
-          <h2 className="mx-auto max-w-2xl text-center text-3xl font-bold tracking-tight sm:text-4xl">
-            Everything you need to prepare
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-center text-zinc-500">
-            From AI mock interviews to detailed analytics — we give you the
-            full toolkit to outperform the competition.
-          </p>
+          <FadeIn direction="up">
+            <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-zinc-400">
+              Features
+            </p>
+            <h2 className="mx-auto max-w-2xl text-center text-3xl font-bold tracking-tight sm:text-4xl">
+              Everything you need to prepare
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-center text-zinc-500">
+              From AI mock interviews to detailed analytics — we give you the
+              full toolkit to outperform the competition.
+            </p>
+          </FadeIn>
 
-          <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <FadeInStagger className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
                 icon: (
@@ -228,34 +245,35 @@ export default async function LandingPage() {
                 desc: "Practice on your schedule — morning, night, or five minutes before the real thing.",
               },
             ].map((f) => (
-              <div
-                key={f.title}
-                className="group rounded-2xl border border-zinc-100 bg-white p-7 transition-all hover:border-zinc-200 hover:shadow-lg hover:shadow-zinc-100"
-              >
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 transition-colors group-hover:bg-zinc-900 group-hover:text-white">
-                  {f.icon}
+              <FadeInStaggerItem key={f.title}>
+                <div className="group h-full rounded-2xl border border-zinc-100 bg-white p-7 transition-all hover:border-zinc-200 hover:shadow-xl hover:shadow-zinc-100 hover:-translate-y-1">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 transition-colors group-hover:bg-zinc-900 group-hover:text-white">
+                    {f.icon}
+                  </div>
+                  <h3 className="mb-2 text-base font-semibold">{f.title}</h3>
+                  <p className="text-sm leading-relaxed text-zinc-500">
+                    {f.desc}
+                  </p>
                 </div>
-                <h3 className="mb-2 text-base font-semibold">{f.title}</h3>
-                <p className="text-sm leading-relaxed text-zinc-500">
-                  {f.desc}
-                </p>
-              </div>
+              </FadeInStaggerItem>
             ))}
-          </div>
+          </FadeInStagger>
         </div>
       </section>
 
       {/* ─── How It Works ─── */}
       <section id="how-it-works" className="bg-zinc-50 py-28 px-6 border-y border-zinc-100">
         <div className="mx-auto max-w-6xl">
-          <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-zinc-400">
-            How It Works
-          </p>
-          <h2 className="mx-auto max-w-2xl text-center text-3xl font-bold tracking-tight sm:text-4xl">
-            Three steps to interview confidence
-          </h2>
+          <FadeIn direction="up">
+            <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-zinc-400">
+              How It Works
+            </p>
+            <h2 className="mx-auto max-w-2xl text-center text-3xl font-bold tracking-tight sm:text-4xl">
+              Three steps to interview confidence
+            </h2>
+          </FadeIn>
 
-          <div className="mt-16 grid gap-10 md:grid-cols-3">
+          <FadeInStagger className="mt-16 grid gap-10 md:grid-cols-3">
             {[
               {
                 step: "01",
@@ -273,61 +291,65 @@ export default async function LandingPage() {
                 desc: "Get an instant scorecard with actionable tips. Track your scores over time and watch yourself improve.",
               },
             ].map((s) => (
-              <div key={s.step} className="relative">
-                <span className="mb-4 block text-5xl font-extrabold text-zinc-300">
+              <FadeInStaggerItem key={s.step} className="relative group">
+                <span className="mb-4 block text-5xl font-extrabold text-zinc-300 transition-colors group-hover:text-zinc-900">
                   {s.step}
                 </span>
                 <h3 className="mb-2 text-lg font-semibold">{s.title}</h3>
                 <p className="text-sm leading-relaxed text-zinc-500">
                   {s.desc}
                 </p>
-              </div>
+              </FadeInStaggerItem>
             ))}
-          </div>
+          </FadeInStagger>
         </div>
       </section>
 
       {/* ─── Stats ─── */}
       <section className="py-20 px-6">
-        <div className="mx-auto grid max-w-4xl gap-8 text-center sm:grid-cols-3">
+        <FadeInStagger className="mx-auto grid max-w-4xl gap-8 text-center sm:grid-cols-3">
           {[
             { value: "50k+", label: "Mock Interviews Completed" },
             { value: "93%", label: "Users Report More Confidence" },
             { value: "4.9/5", label: "Average User Rating" },
           ].map((s) => (
-            <div key={s.label}>
-              <p className="text-4xl font-bold tracking-tight">{s.value}</p>
+            <FadeInStaggerItem key={s.label}>
+              <p className="text-4xl font-bold tracking-tight text-zinc-900">{s.value}</p>
               <p className="mt-1 text-sm text-zinc-500">{s.label}</p>
-            </div>
+            </FadeInStaggerItem>
           ))}
-        </div>
+        </FadeInStagger>
       </section>
 
       {/* ─── CTA ─── */}
       <section id="pricing" className="px-6 pb-28">
-        <div className="mx-auto max-w-3xl overflow-hidden rounded-3xl bg-zinc-900 px-8 py-16 text-center text-white sm:px-16">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Ready to nail your next interview?
-          </h2>
-          <p className="mx-auto mt-4 max-w-md text-zinc-400">
-            Join thousands of candidates who went from nervous to confident.
-            Start free — no credit card required.
-          </p>
-          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link
-              href="/signup"
-              className="rounded-xl bg-white px-7 py-3 text-sm font-semibold text-zinc-900 shadow-lg transition-all hover:bg-zinc-100 hover:shadow-xl"
-            >
-              Create Free Account
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-xl border border-zinc-700 px-7 py-3 text-sm font-semibold text-zinc-300 transition-all hover:border-zinc-500 hover:text-white"
-            >
-              Sign In
-            </Link>
+        <FadeIn direction="up">
+          <div className="mx-auto max-w-3xl overflow-hidden rounded-3xl bg-zinc-900 px-8 py-16 text-center text-white sm:px-16 shadow-2xl relative">
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-zinc-800 opacity-50 blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl"></div>
+            <h2 className="relative z-10 text-3xl font-bold tracking-tight sm:text-4xl">
+              Ready to nail your next interview?
+            </h2>
+            <p className="relative z-10 mx-auto mt-4 max-w-md text-zinc-400">
+              Join thousands of candidates who went from nervous to confident.
+              Start free — no credit card required.
+            </p>
+            <div className="relative z-10 mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+              <Link
+                href="/signup"
+                className="rounded-xl bg-white px-7 py-3 text-sm font-semibold text-zinc-900 shadow-lg transition-all hover:bg-zinc-100 hover:shadow-xl hover:-translate-y-0.5"
+              >
+                Create Free Account
+              </Link>
+              <Link
+                href="/login"
+                className="rounded-xl border border-zinc-700 px-7 py-3 text-sm font-semibold text-zinc-300 transition-all hover:border-zinc-500 hover:text-white hover:-translate-y-0.5 hover:bg-zinc-800"
+              >
+                Sign In
+              </Link>
+            </div>
           </div>
-        </div>
+        </FadeIn>
       </section>
 
       {/* ─── Footer ─── */}

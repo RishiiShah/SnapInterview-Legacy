@@ -2,6 +2,7 @@
 
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { CATEGORIES } from "@/data/constants";
+import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 
 export default function AnalyticsPage() {
     // Mock analytics data (will come from DB)
@@ -37,13 +38,15 @@ export default function AnalyticsPage() {
     return (
         <DashboardShell>
             <div className="space-y-8">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Analytics</h1>
-                    <p className="mt-1 text-sm text-zinc-500">Track your progress and identify areas for improvement.</p>
-                </div>
+                <SlideIn>
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Analytics</h1>
+                        <p className="mt-1 text-sm text-zinc-500">Track your progress and identify areas for improvement.</p>
+                    </div>
+                </SlideIn>
 
                 {/* Monthly Comparison */}
-                <div className="grid gap-4 sm:grid-cols-3">
+                <FadeInStagger className="grid gap-4 sm:grid-cols-3">
                     {[
                         { label: "Interviews", current: monthlyComparison[0].interviews, prev: monthlyComparison[1].interviews, suffix: "" },
                         { label: "Avg Score", current: monthlyComparison[0].avgScore, prev: monthlyComparison[1].avgScore, suffix: "/100" },
@@ -52,7 +55,7 @@ export default function AnalyticsPage() {
                         const diff = stat.current - stat.prev;
                         const pct = stat.prev > 0 ? Math.round((diff / stat.prev) * 100) : 0;
                         return (
-                            <div key={stat.label} className="rounded-2xl border border-zinc-200 bg-white p-5">
+                            <FadeInStaggerItem key={stat.label} className="rounded-2xl border border-zinc-200 bg-white p-5">
                                 <p className="text-sm font-medium text-zinc-500">{stat.label}</p>
                                 <p className="mt-1 text-3xl font-bold tracking-tight text-zinc-900">
                                     {stat.current}<span className="text-lg font-medium text-zinc-400">{stat.suffix}</span>
@@ -60,14 +63,14 @@ export default function AnalyticsPage() {
                                 <p className={`mt-1 text-xs font-medium ${diff >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                                     {diff >= 0 ? "↑" : "↓"} {Math.abs(pct)}% vs last month
                                 </p>
-                            </div>
+                            </FadeInStaggerItem>
                         );
                     })}
-                </div>
+                </FadeInStagger>
 
                 <div className="grid gap-6 lg:grid-cols-2">
                     {/* Weekly Score Chart */}
-                    <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+                    <FadeIn delay={0.2} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
                         <h3 className="mb-1 text-sm font-semibold text-zinc-900">Weekly Performance</h3>
                         <p className="mb-6 text-xs text-zinc-400">Score trend this week</p>
                         <div className="flex items-end gap-4">
@@ -82,10 +85,10 @@ export default function AnalyticsPage() {
                                 );
                             })}
                         </div>
-                    </div>
+                    </FadeIn>
 
                     {/* Category Breakdown */}
-                    <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+                    <FadeIn delay={0.3} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
                         <h3 className="mb-1 text-sm font-semibold text-zinc-900">Category Breakdown</h3>
                         <p className="mb-6 text-xs text-zinc-400">Average score by category</p>
                         <div className="space-y-5">
@@ -101,12 +104,12 @@ export default function AnalyticsPage() {
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </FadeIn>
                 </div>
 
                 {/* Strengths & Weaknesses */}
                 <div className="grid gap-6 lg:grid-cols-2 pb-8">
-                    <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+                    <FadeIn delay={0.4} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
                         <h3 className="mb-4 text-sm font-semibold text-zinc-900">
                             Strengths
                         </h3>
@@ -118,9 +121,9 @@ export default function AnalyticsPage() {
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </FadeIn>
 
-                    <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+                    <FadeIn delay={0.5} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
                         <h3 className="mb-4 text-sm font-semibold text-zinc-900">
                             Areas to Improve
                         </h3>
@@ -132,7 +135,7 @@ export default function AnalyticsPage() {
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </FadeIn>
                 </div>
             </div>
         </DashboardShell>

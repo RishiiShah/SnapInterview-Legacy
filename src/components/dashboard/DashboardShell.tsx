@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { useSidebar } from "@/app/providers";
 import { getInitials } from "@/utils/helpers";
 import { SEARCH_ITEMS, DEFAULT_NOTIFICATIONS } from "@/data/constants";
 import { Notification } from "@/data/types";
@@ -353,15 +354,8 @@ function Header({ onSearchOpen }: { onSearchOpen: () => void }) {
    DASHBOARD SHELL
    ═══════════════════════════════════════════════════ */
 export default function DashboardShell({ children }: { children: ReactNode }) {
-    const [collapsed, setCollapsed] = useState(false);
+    const { collapsed, setCollapsed } = useSidebar();
     const [searchOpen, setSearchOpen] = useState(false);
-
-    // Persist sidebar state
-    useEffect(() => {
-        const saved = localStorage.getItem("sidebar-collapsed");
-        if (saved === "true") setCollapsed(true);
-    }, []);
-    useEffect(() => { localStorage.setItem("sidebar-collapsed", String(collapsed)); }, [collapsed]);
 
     // ⌘K shortcut
     useEffect(() => {

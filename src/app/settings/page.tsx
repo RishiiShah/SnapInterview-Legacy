@@ -5,6 +5,7 @@ import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { getInitials } from "@/utils/helpers";
+import { FadeIn, SlideIn } from "@/components/ui/motion";
 
 export default function SettingsPage() {
     const { data: session } = useSession();
@@ -97,14 +98,16 @@ export default function SettingsPage() {
 
     return (
         <DashboardShell>
-            <div className="mx-auto max-w-2xl space-y-8">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Settings</h1>
-                    <p className="mt-1 text-sm text-zinc-500">Manage your account and preferences.</p>
-                </div>
+            <div className="mx-auto max-w-2xl space-y-8 pb-12">
+                <SlideIn>
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Settings</h1>
+                        <p className="mt-1 text-sm text-zinc-500">Manage your account and preferences.</p>
+                    </div>
+                </SlideIn>
 
                 {/* ── Profile ── */}
-                <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+                <FadeIn delay={0.2} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
                     <h2 className="mb-6 text-lg font-semibold text-zinc-900">Profile</h2>
                     <div className="flex items-center gap-5 mb-6">
                         {userImage ? (
@@ -137,10 +140,10 @@ export default function SettingsPage() {
                         </button>
                         {profileSaved && <span className="text-sm text-emerald-600">✓ Saved</span>}
                     </div>
-                </div>
+                </FadeIn>
 
                 {/* ── Password ── */}
-                <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+                <FadeIn delay={0.3} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
                     <h2 className="mb-6 text-lg font-semibold text-zinc-900">Change Password</h2>
                     <div className="space-y-4">
                         <div>
@@ -215,10 +218,10 @@ export default function SettingsPage() {
                         </button>
                         {passwordSaved && <span className="text-sm text-emerald-600">✓ Password updated</span>}
                     </div>
-                </div>
+                </FadeIn>
 
                 {/* ── Notification Preferences ── */}
-                <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+                <FadeIn delay={0.4} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
                     <h2 className="mb-6 text-lg font-semibold text-zinc-900">Notification Preferences</h2>
                     <div className="space-y-4">
                         {[
@@ -239,17 +242,17 @@ export default function SettingsPage() {
                             </div>
                         ))}
                     </div>
-                </div>
+                </FadeIn>
 
                 {/* ── Danger Zone ── */}
-                <div className="rounded-2xl border border-red-200 bg-red-50/30 p-6">
+                <FadeIn delay={0.5} direction="up" className="rounded-2xl border border-red-200 bg-red-50/30 p-6">
                     <h2 className="mb-2 text-lg font-semibold text-red-900">Danger Zone</h2>
                     <p className="mb-4 text-sm text-red-700/70">Once you delete your account, there is no going back. Please be certain.</p>
                     <button onClick={() => setDeleteOpen(true)}
                         className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50">
                         Delete Account
                     </button>
-                </div>
+                </FadeIn>
 
                 {/* Delete Confirmation Modal */}
                 {deleteOpen && (

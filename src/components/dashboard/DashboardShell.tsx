@@ -56,7 +56,7 @@ function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCollapsed
     }, []);
 
     return (
-        <aside className={`fixed inset-y-0 left-0 z-40 flex ${collapsed ? "w-16" : "w-64"} flex-col border-r border-zinc-200 bg-white transition-all duration-300 ease-in-out`}>
+        <aside className={`fixed inset-y-0 left-0 z-[60] flex ${collapsed ? "w-16" : "w-64"} flex-col border-r border-zinc-200 bg-white transition-all duration-300 ease-in-out`}>
             {/* Logo + Toggle */}
             <div className={`flex h-16 items-center border-b border-zinc-100 ${collapsed ? "justify-center px-2" : "justify-between px-3"}`}>
                 {collapsed ? (
@@ -91,7 +91,7 @@ function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCollapsed
                             {item.icon}
                             {!collapsed && <span>{item.label}</span>}
                             {collapsed && (
-                                <span className="absolute left-full ml-4 hidden rounded-md bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 transition-opacity group-hover/nav:block group-hover/nav:opacity-100">
+                                <span className="absolute left-full ml-4 hidden rounded-md bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 transition-opacity group-hover/nav:block group-hover/nav:opacity-100 z-50 shadow-sm border border-zinc-800">
                                     {item.label}
                                 </span>
                             )}
@@ -366,6 +366,12 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
         document.addEventListener("keydown", handleKeyDown);
         return () => document.removeEventListener("keydown", handleKeyDown);
     }, []);
+
+    // Scroll restoration
+    const pathname = usePathname();
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, [pathname]);
 
     return (
         <div className="flex min-h-screen bg-zinc-50 font-[family-name:var(--font-geist-sans)]">

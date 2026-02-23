@@ -19,7 +19,7 @@ export function FadeInStagger({
         hidden: {},
         visible: {
           transition: {
-            staggerChildren: 0.15,
+            staggerChildren: 0.10,
           },
         },
       }}
@@ -84,7 +84,7 @@ export function FadeIn({
       whileInView={{ opacity: 1, x: 0, y: 0 }}
       viewport={{ once: true, margin: "-100px" }}
       transition={{
-        duration: 0.6,
+        duration: 0.5,
         delay,
         ease: [0.21, 0.47, 0.32, 0.98], // Custom easeOut cubic
       }}

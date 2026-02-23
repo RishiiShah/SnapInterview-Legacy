@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { CATEGORIES, DIFFICULTIES } from "@/data/constants";
 import type { InterviewType, Difficulty, Question } from "@/data/types";
@@ -63,6 +63,19 @@ export default function QuestionsPage() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | "all">("all");
   const [selectedTimeRange, setSelectedTimeRange] = useState<"all" | "0-5" | "5-10" | "10-20" | "20+">("all");
   const [showFilters, setShowFilters] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  // Close filters on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowFilters(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
   const [practiceModal, setPracticeModal] = useState<PracticeModalState>({
     isOpen: false,
     question: null,
@@ -233,7 +246,7 @@ export default function QuestionsPage() {
 
   return (
     <DashboardShell>
-      <div className="space-y-6">
+      <div className="space-y-6 pb-8">
         <SlideIn>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Question Bank</h1>
@@ -242,8 +255,8 @@ export default function QuestionsPage() {
         </SlideIn>
 
         {/* Filters */}
-        <FadeIn delay={0.2} direction="up" className="relative">
-          <div className="flex flex-wrap items-center gap-3">
+        <FadeIn delay={0.2} direction="up" className="relative z-50">
+          <div ref={filterRef} className="flex flex-wrap items-center gap-3">
             {/* Search */}
             <div className="relative flex-1 min-w-[240px]">
               <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
@@ -254,7 +267,7 @@ export default function QuestionsPage() {
             {/* Filter Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${showFilters
+              className={`flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${showFilters
                 ? "bg-zinc-900 text-white"
                 : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
                 }`}
@@ -273,14 +286,14 @@ export default function QuestionsPage() {
 
           {/* Filter Panel */}
           {showFilters && (
-            <div className="absolute right-0 top-full z-40 mt-2 w-96 rounded-2xl border border-zinc-200 bg-white shadow-lg p-6 space-y-6">
+            <div ref={filterRef} className="absolute right-0 top-full z-40 mt-2 w-96 rounded-2xl border border-zinc-200 bg-white shadow-lg p-6 space-y-6">
               {/* Category Filter */}
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-700 mb-3">Question Type</h3>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => setSelectedCategory("all")}
-                    className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${selectedCategory === "all" ? "bg-zinc-900 text-white" : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}
+                    className={`cursor-pointer rounded-lg px-3 py-2 text-xs font-medium transition-all ${selectedCategory === "all" ? "bg-zinc-900 text-white" : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}
                   >
                     All Types
                   </button>
@@ -288,7 +301,7 @@ export default function QuestionsPage() {
                     <button
                       key={cat.value}
                       onClick={() => setSelectedCategory(cat.value)}
-                      className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${selectedCategory === cat.value ? "bg-zinc-900 text-white" : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}
+                      className={`cursor-pointer rounded-lg px-3 py-2 text-xs font-medium transition-all ${selectedCategory === cat.value ? "bg-zinc-900 text-white" : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}
                     >
                       {cat.label}
                     </button>
@@ -302,7 +315,7 @@ export default function QuestionsPage() {
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => setSelectedDifficulty("all")}
-                    className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${selectedDifficulty === "all" ? "bg-zinc-900 text-white" : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}
+                    className={`cursor-pointer rounded-lg px-3 py-2 text-xs font-medium transition-all ${selectedDifficulty === "all" ? "bg-zinc-900 text-white" : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}
                   >
                     All Levels
                   </button>
@@ -310,7 +323,7 @@ export default function QuestionsPage() {
                     <button
                       key={d.value}
                       onClick={() => setSelectedDifficulty(d.value)}
-                      className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${selectedDifficulty === d.value ? "bg-zinc-900 text-white" : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}
+                      className={`cursor-pointer rounded-lg px-3 py-2 text-xs font-medium transition-all ${selectedDifficulty === d.value ? "bg-zinc-900 text-white" : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}
                     >
                       {d.label}
                     </button>
@@ -326,7 +339,7 @@ export default function QuestionsPage() {
                     <button
                       key={range.value}
                       onClick={() => setSelectedTimeRange(range.value)}
-                      className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${selectedTimeRange === range.value ? "bg-zinc-900 text-white" : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}
+                      className={`cursor-pointer rounded-lg px-3 py-2 text-xs font-medium transition-all ${selectedTimeRange === range.value ? "bg-zinc-900 text-white" : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}
                     >
                       {range.label}
                     </button>
@@ -342,7 +355,7 @@ export default function QuestionsPage() {
                     setSelectedDifficulty("all");
                     setSelectedTimeRange("all");
                   }}
-                  className="w-full rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 transition-all hover:bg-zinc-50"
+                  className="w-full cursor-pointer rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 transition-all hover:bg-zinc-50"
                 >
                   Clear All Filters
                 </button>

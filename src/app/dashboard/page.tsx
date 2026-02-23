@@ -37,7 +37,7 @@ export default function DashboardPage() {
 
     return (
         <DashboardShell>
-            <div className="space-y-4">
+            <div className="space-y-4 pb-8">
                 {/* Greeting */}
                 <SlideIn>
                     <div>
@@ -83,25 +83,29 @@ export default function DashboardPage() {
                 <FadeIn delay={0.4} direction="up">
                     <div className="grid gap-4 lg:grid-cols-5">
                         {/* Performance Chart */}
-                        <div className="rounded-2xl border border-zinc-200 bg-white p-6 lg:col-span-2">
+                        <div className="rounded-2xl border border-zinc-200 bg-white p-6 lg:col-span-2 flex flex-col">
                             <h3 className="mb-1 text-sm font-semibold text-zinc-900">Performance</h3>
-                            <p className="mb-6 text-xs text-zinc-400">Last 7 sessions</p>
-                            <div className="flex items-end gap-3 h-[180px]">
+                            <p className="mb-2 text-xs text-zinc-400">Last 7 sessions</p>
+                            <div className="flex items-end gap-3 flex-1 min-h-[220px] pt-4 mt-2">
                                 {chartData.map((d, i) => {
-                                    const barH = Math.round((d.value / 100) * 140);
                                     return (
-                                        <div key={d.label} className="group flex flex-1 flex-col justify-end items-center gap-1.5 h-full">
-                                            <span className="text-[10px] font-medium text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100">{d.value}</span>
-                                            <motion.div
-                                                className="w-full rounded-md bg-zinc-200 transition-colors group-hover:bg-zinc-900 origin-bottom"
-                                                initial={{ height: 0 }}
-                                                animate={{ height: Math.max(4, barH) }}
-                                                transition={{
-                                                    duration: 0.8,
-                                                    delay: 0.4 + (i * 0.1),
-                                                    ease: [0.21, 0.47, 0.32, 0.98]
-                                                }}
-                                            />
+                                        <div key={d.label} className="group flex flex-1 flex-col justify-end items-center gap-2 h-full">
+                                            <div className="relative flex-1 w-full flex items-end">
+                                                <motion.div
+                                                    className="w-full relative rounded-md bg-zinc-200 transition-colors group-hover:bg-zinc-900 origin-bottom"
+                                                    initial={{ height: "0%" }}
+                                                    animate={{ height: `${Math.min(100, Math.max(4, d.value * 1.15))}%` }}
+                                                    transition={{
+                                                        duration: 0.8,
+                                                        delay: 0.4 + (i * 0.1),
+                                                        ease: [0.21, 0.47, 0.32, 0.98]
+                                                    }}
+                                                >
+                                                    <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-[11px] font-medium text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100">
+                                                        {d.value}
+                                                    </span>
+                                                </motion.div>
+                                            </div>
                                             <span className="text-[10px] text-zinc-400">{d.label.split(" ")[1]}</span>
                                         </div>
                                     );

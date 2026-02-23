@@ -98,7 +98,7 @@ export default function SettingsPage() {
 
     return (
         <DashboardShell>
-            <div className="mx-auto max-w-2xl space-y-8 pb-12">
+            <div className="mx-auto max-w-2xl space-y-8 pb-8">
                 <SlideIn>
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Settings</h1>

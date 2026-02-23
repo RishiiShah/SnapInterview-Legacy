@@ -50,7 +50,7 @@ export default function PracticePage() {
 
     return (
         <DashboardShell>
-            <div className="space-y-8">
+            <div className="space-y-8 pb-8">
                 <SlideIn>
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Practice Interview</h1>

@@ -3,8 +3,36 @@
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { CATEGORIES } from "@/data/constants";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
+import { useEffect, useState } from "react";
+
+interface VideoRecording {
+    key: string;
+    url: string;
+    lastModified: string;
+    size: number;
+}
 
 export default function AnalyticsPage() {
+    const [recordings, setRecordings] = useState<VideoRecording[]>([]);
+    const [isLoadingRecordings, setIsLoadingRecordings] = useState(true);
+
+    useEffect(() => {
+        const fetchRecordings = async () => {
+            try {
+                const res = await fetch("/api/s3/videos");
+                if (res.ok) {
+                    const data = await res.json();
+                    setRecordings(data.videos || []);
+                }
+            } catch (error) {
+                console.error("Failed to fetch recordings:", error);
+            } finally {
+                setIsLoadingRecordings(false);
+            }
+        };
+
+        fetchRecordings();
+    }, []);
     // Mock analytics data (will come from DB)
     const weeklyScores = [
         { label: "Mon", value: 72 }, { label: "Tue", value: 85 }, { label: "Wed", value: 68 },
@@ -136,6 +164,55 @@ export default function AnalyticsPage() {
                             ))}
                         </div>
                     </FadeIn>
+                </div>
+
+                {/* Recordings Section */}
+                <div className="pt-8 mb-8 border-t border-zinc-200">
+                    <SlideIn delay={0.6}>
+                        <h2 className="text-xl font-bold tracking-tight text-zinc-900 mb-6">Your Recordings</h2>
+
+                        {isLoadingRecordings ? (
+                            <div className="flex justify-center py-12">
+                                <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-zinc-900" />
+                            </div>
+                        ) : recordings.length === 0 ? (
+                            <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 py-12 text-center text-sm text-zinc-500">
+                                No recordings found. Complete an interview to save your session.
+                            </div>
+                        ) : (
+                            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                                {recordings.map((rec, idx) => {
+                                    const date = new Date(rec.lastModified).toLocaleDateString(undefined, {
+                                        year: 'numeric', month: 'short', day: 'numeric',
+                                        hour: '2-digit', minute: '2-digit'
+                                    });
+                                    const formattedSize = (rec.size / (1024 * 1024)).toFixed(2) + " MB";
+
+                                    return (
+                                        <FadeIn key={rec.key} delay={0.6 + (idx * 0.1)} direction="up" className="overflow-hidden rounded-2xl border border-zinc-200 bg-white hover:shadow-lg transition-shadow">
+                                            <div className="aspect-video bg-zinc-900">
+                                                <video
+                                                    src={rec.url}
+                                                    controls
+                                                    controlsList="nodownload"
+                                                    className="w-full h-full object-contain"
+                                                />
+                                            </div>
+                                            <div className="p-4">
+                                                <h3 className="text-sm font-semibold text-zinc-900 truncate">
+                                                    Interview Session
+                                                </h3>
+                                                <div className="mt-1 flex items-center justify-between text-xs text-zinc-500">
+                                                    <span>{date}</span>
+                                                    <span>{formattedSize}</span>
+                                                </div>
+                                            </div>
+                                        </FadeIn>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </SlideIn>
                 </div>
             </div>
         </DashboardShell>

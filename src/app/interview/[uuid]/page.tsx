@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import PermissionRequest from "@/components/interview/PermissionRequest";
 import { useMediaPermissions } from "@/lib/useMediaPermissions";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useVideoRecording } from "@/hooks/useVideoRecording";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function InterviewPage() {
@@ -13,6 +14,7 @@ export default function InterviewPage() {
   const interviewId = params.uuid as string;
   const [showPreJoin, setShowPreJoin] = useState(true);
   const [interviewStarted, setInterviewStarted] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Dummy Chat State
   const [messages, setMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([
@@ -53,15 +55,51 @@ export default function InterviewPage() {
     toggleCamera,
   } = useMediaPermissions();
 
+  const { startVideoRecording, stopVideoRecording } = useVideoRecording();
+
   const handlePermissionsGranted = () => {
     setShowPreJoin(false);
     setInterviewStarted(true);
+    if (stream) {
+      startVideoRecording(stream);
+    }
   };
 
-  const handleExitInterview = () => {
+  const handleExitInterview = async () => {
     stopRecording();
-    stopStream();
-    router.push("/practice");
+    setIsUploading(true);
+
+    try {
+      const blob = await stopVideoRecording();
+      if (blob && blob.size > 0) {
+        // Fetch presigned URL
+        const res = await fetch("/api/s3/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ interviewId }),
+        });
+
+        if (res.ok) {
+          const { url } = await res.json();
+          // Upload the blob directly to S3
+          await fetch(url, {
+            method: "PUT",
+            body: blob,
+            headers: {
+              "Content-Type": "video/webm",
+            },
+          });
+        } else {
+          console.error("Failed to get presigned URL", await res.text());
+        }
+      }
+    } catch (err) {
+      console.error("Error uploading recording:", err);
+    } finally {
+      stopStream();
+      setIsUploading(false);
+      router.push("/practice");
+    }
   };
 
   return (
@@ -147,9 +185,10 @@ export default function InterviewPage() {
               <div className="absolute right-4 top-1/2 -translate-y-1/2">
                 <button
                   onClick={handleExitInterview}
-                  className="rounded-full border border-zinc-700 bg-zinc-800/40 px-5 py-2 text-xs font-semibold text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"
+                  disabled={isUploading}
+                  className="rounded-full border border-zinc-700 bg-zinc-800/40 px-5 py-2 text-xs font-semibold text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Exit Interview
+                  {isUploading ? "Uploading..." : "Exit Interview"}
                 </button>
               </div>
             </div>

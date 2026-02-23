@@ -34,6 +34,12 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
   const [isMicEnabled, setIsMicEnabled] = useState(true);
   const [isCameraEnabled, setIsCameraEnabled] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const setStreamSafe = (s: MediaStream | null) => {
+    setStream(s);
+    streamRef.current = s;
+  };
 
   const refreshDevices = async () => {
     if (!navigator.mediaDevices?.enumerateDevices) return;
@@ -76,7 +82,7 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
     try {
       const mediaStream = await mediaPromise;
       setHasPermission(true);
-      setStream(mediaStream);
+      setStreamSafe(mediaStream);
       setIsMicEnabled(true);
       setIsCameraEnabled(true);
       await refreshDevices();
@@ -101,12 +107,13 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
   };
 
   const stopStream = () => {
-    if (stream) {
-      stream.getTracks().forEach((track) => {
+    const activeStream = streamRef.current;
+    if (activeStream) {
+      activeStream.getTracks().forEach((track) => {
         track.stop();
         track.enabled = false;
       });
-      setStream(null);
+      setStreamSafe(null);
     }
 
     if (videoRef.current) {
@@ -141,28 +148,27 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
   const toggleCamera = () => {
     const newState = !isCameraEnabled;
     if (!newState) {
-      // Turning camera off: stop only video tracks, keep audio stream
-      if (stream) {
-        stream.getVideoTracks().forEach((track) => track.stop());
-      }
+      // Turning camera off: stop existing stream entirely to prevent leak
+      stopStream();
       setIsCameraEnabled(false);
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
+
       // Get audio-only stream to keep microphone functional
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then((audioStream) => {
-          setStream(audioStream);
+          setStreamSafe(audioStream);
         })
         .catch((err) => {
           setError("Failed to get audio stream: " + (err?.message || err));
         });
     } else {
-      // Turning camera on: request new stream with both audio and video
+      // Turning camera on: stop existing audio stream entirely
+      stopStream();
+      setIsCameraEnabled(true);
+
+      // request new stream with both audio and video
       navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: "user" } })
         .then((mediaStream) => {
-          setIsCameraEnabled(true);
-          setStream(mediaStream);
+          setStreamSafe(mediaStream);
           if (videoRef.current) {
             videoRef.current.srcObject = mediaStream;
           }

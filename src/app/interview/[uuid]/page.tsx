@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import PermissionRequest from "@/components/interview/PermissionRequest";
 import { useMediaPermissions } from "@/lib/useMediaPermissions";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function InterviewPage() {
   const params = useParams();
@@ -22,6 +23,7 @@ export default function InterviewPage() {
   const {
     isRecording,
     toggleRecording,
+    stopRecording,
     interimTranscript,
     volatileTranscript,
     finalTranscriptBlock
@@ -57,25 +59,28 @@ export default function InterviewPage() {
   };
 
   const handleExitInterview = () => {
+    stopRecording();
     stopStream();
     router.push("/practice");
   };
 
-  // Attach stream to the interview video when we switch to interview view (ref points to the new video element)
-  useEffect(() => {
-    if (!interviewStarted || !stream || !videoRef.current) return;
-    videoRef.current.srcObject = stream;
-  }, [interviewStarted, stream]);
-
   return (
-    <>
+    <AnimatePresence mode="wait">
       {/* Pre-join: standalone page — preview rectangle + options below, Ready to join to the right */}
       {showPreJoin && (
-        <div className="min-h-screen w-full bg-white">
+        <motion.div
+          key="prejoin"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -15 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="min-h-screen w-full bg-white absolute inset-0 z-10"
+        >
           <div className="mx-auto max-w-7xl px-6 py-12">
             <div className="mb-8 flex items-start justify-start">
               <button
                 onClick={() => {
+                  stopRecording();
                   stopStream();
                   router.push("/practice");
                 }}
@@ -108,12 +113,19 @@ export default function InterviewPage() {
               toggleCamera={toggleCamera}
             />
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Interview: full-screen session (user video + UI) */}
       {interviewStarted && (
-        <div className="h-screen w-full overflow-hidden bg-[#1c1c1e] flex flex-col p-4 sm:p-6 font-sans gap-4 sm:gap-6 relative">
+        <motion.div
+          key="interview"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.98 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="h-screen w-full overflow-hidden bg-[#1c1c1e] flex flex-col p-4 sm:p-6 font-sans gap-4 sm:gap-6 relative z-0"
+        >
 
           {/* Main Container */}
           <div className="w-full h-full relative flex flex-col gap-4 sm:gap-6 overflow-hidden max-w-[1600px] mx-auto">
@@ -148,7 +160,14 @@ export default function InterviewPage() {
               {/* Left: Video Container */}
               <div className="relative w-full lg:w-[70%] flex-col flex overflow-hidden rounded-2xl border-2 border-cyan-400/80 bg-black shadow-[0_0_20px_rgba(34,211,238,0.2)] shrink-0">
                 <video
-                  ref={videoRef}
+                  ref={(node) => {
+                    // Keep the shared ref updated for the useMediaPermissions hook
+                    (videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = node;
+                    // Immediately attach the stream when the AnimatePresence DOM node finally mounts
+                    if (node && stream && node.srcObject !== stream) {
+                      node.srcObject = stream;
+                    }
+                  }}
                   autoPlay
                   playsInline
                   muted
@@ -239,8 +258,8 @@ export default function InterviewPage() {
             </div>
 
           </div>
-        </div>
+        </motion.div>
       )}
-    </>
+    </AnimatePresence>
   );
 }

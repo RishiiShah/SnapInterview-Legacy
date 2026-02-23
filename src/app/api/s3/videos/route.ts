@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, ListObjectsV2Command, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const s3Client = new S3Client({
@@ -59,5 +59,39 @@ export async function GET() {
     } catch (error) {
         console.error("Error fetching videos from S3:", error);
         return NextResponse.json({ error: "Failed to fetch videos" }, { status: 500 });
+    }
+}
+
+export async function DELETE(req: Request) {
+    try {
+        const session = await getServerSession();
+
+        if (!session || !session.user || !session.user.email) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { key } = await req.json();
+
+        if (!key) {
+            return NextResponse.json({ error: "Missing key" }, { status: 400 });
+        }
+
+        // Ensure user can only delete their own videos
+        const username = session.user.email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "");
+        if (!key.startsWith(`${username}/`)) {
+            return NextResponse.json({ error: "Unauthorized access to key" }, { status: 403 });
+        }
+
+        const deleteCommand = new DeleteObjectCommand({
+            Bucket: process.env.S3_BUCKET_NAME!,
+            Key: key,
+        });
+
+        await s3Client.send(deleteCommand);
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error("Error deleting video from S3:", error);
+        return NextResponse.json({ error: "Failed to delete video" }, { status: 500 });
     }
 }

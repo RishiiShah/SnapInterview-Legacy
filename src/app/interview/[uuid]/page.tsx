@@ -16,10 +16,10 @@ export default function InterviewPage() {
   const [interviewStarted, setInterviewStarted] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Dummy Chat State
-  const [messages, setMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([
-    { role: 'ai', text: 'Welcome to your interview. Tell me about a time when you had to handle a challenging project deadline.' }
-  ]);
+  // Chat State
+  const [messages, setMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([]);
+  const [currentStreamedText, setCurrentStreamedText] = useState("");
+  const [isThinking, setIsThinking] = useState(false);
 
   // Audio Transcription Hook
   const {
@@ -31,10 +31,68 @@ export default function InterviewPage() {
     finalTranscriptBlock
   } = useSpeechRecognition();
 
-  // Commit finalized text blocks to the standard chat log dynamically
+  const askGroq = async (chatHistory: { role: 'ai' | 'user'; text: string }[]) => {
+    setIsThinking(true);
+    setCurrentStreamedText("");
+
+    // Format messages for the API (replace 'ai' with 'assistant')
+    const formattedMessages = chatHistory.map(m => ({
+      role: m.role === 'ai' ? 'assistant' : 'user',
+      content: m.text
+    }));
+
+    try {
+      const response = await fetch('/api/interview/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: formattedMessages,
+          interviewId,
+        })
+      });
+
+      if (!response.body) throw new Error("No response body");
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let done = false;
+      let aiResponseText = "";
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          aiResponseText += chunk;
+          setCurrentStreamedText(prev => prev + chunk);
+        }
+      }
+
+      // Finalize the AI message
+      setMessages(prev => [...prev, { role: 'ai', text: aiResponseText }]);
+      setCurrentStreamedText("");
+
+    } catch (err) {
+      console.error("AI Chat Error:", err);
+      // Fallback
+      setMessages(prev => [...prev, { role: 'ai', text: "I'm having trouble connecting right now. Let's pause for a moment." }]);
+    } finally {
+      setIsThinking(false);
+    }
+  };
+
+  // Trigger initial greeting when interview starts (permissions granted)
+  useEffect(() => {
+    if (interviewStarted && messages.length === 0) {
+      askGroq([]);
+    }
+  }, [interviewStarted]);
+
+  // Commit finalized text blocks to the standard chat log dynamically and trigger AI
   useEffect(() => {
     if (finalTranscriptBlock) {
-      setMessages(prev => [...prev, { role: 'user', text: finalTranscriptBlock }]);
+      const newMessages = [...messages, { role: 'user' as const, text: finalTranscriptBlock }];
+      setMessages(newMessages);
+      askGroq(newMessages);
     }
   }, [finalTranscriptBlock]);
 
@@ -88,6 +146,14 @@ export default function InterviewPage() {
             headers: {
               "Content-Type": "video/webm",
             },
+          });
+
+          // Save the video URL to the interview session in PostgreSQL
+          const videoUrl = url.split('?')[0]; // Strip the query params from presigned URL
+          await fetch('/api/interview/session', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ interviewId, videoUrl }),
           });
         } else {
           console.error("Failed to get presigned URL", await res.text());
@@ -234,6 +300,27 @@ export default function InterviewPage() {
                       </div>
                     </div>
                   ))}
+
+                  {/* Streaming AI Text */}
+                  {currentStreamedText && (
+                    <div className="flex w-full justify-start">
+                      <div className="max-w-[85%] rounded-[18px] px-5 py-3.5 text-sm leading-relaxed tracking-wide shadow-sm bg-zinc-800/90 text-zinc-100 rounded-bl-sm ring-1 ring-white/5">
+                        {currentStreamedText}
+                        <span className="inline-block w-1.5 h-4 ml-1 align-middle bg-zinc-400 animate-pulse" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AI Thinking Indicator */}
+                  {isThinking && !currentStreamedText && (
+                    <div className="flex w-full justify-start">
+                      <div className="max-w-[85%] rounded-[18px] px-5 py-3.5 text-sm leading-relaxed tracking-wide shadow-sm bg-zinc-800/90 text-zinc-400 rounded-bl-sm ring-1 ring-white/5 animate-pulse flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                    </div>
+                  )}
                   {(interimTranscript || volatileTranscript) && (
                     <div className="flex w-full justify-end">
                       <div className="max-w-[85%] rounded-[18px] px-5 py-3.5 text-sm leading-relaxed tracking-wide shadow-sm bg-blue-600/50 text-white rounded-br-sm animate-pulse">

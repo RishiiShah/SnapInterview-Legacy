@@ -9,14 +9,6 @@ import { CATEGORIES, DIFFICULTIES, ROLES, COMPANIES } from "@/data/constants";
 import type { InterviewType, Difficulty } from "@/data/types";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 
-// Generate a UUID v4
-function generateUUID(): string {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-        const r = (Math.random() * 16) | 0;
-        const v = c === "x" ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-    });
-}
 
 export default function PracticePage() {
     const router = useRouter();
@@ -35,17 +27,35 @@ export default function PracticePage() {
         { id: 3, role: "Data Scientist", company: "Netflix", type: "system-design" as InterviewType, score: 90, date: "Feb 9, 2026" },
     ];
 
-    function handleStart() {
+    async function handleStart() {
         if (!role.trim()) return;
         setStarted(true);
 
-        // Generate interview UUID and redirect
-        const interviewId = generateUUID();
+        try {
+            const res = await fetch('/api/interview/session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    role,
+                    company: company || undefined,
+                    type,
+                    difficulty,
+                    jobDescription: jobDescription || undefined,
+                }),
+            });
 
-        // Redirect to interview page with UUID
-        setTimeout(() => {
+            if (!res.ok) {
+                console.error('Failed to create session');
+                setStarted(false);
+                return;
+            }
+
+            const { id: interviewId } = await res.json();
             router.push(`/interview/${interviewId}`);
-        }, 500);
+        } catch (err) {
+            console.error('Error creating interview session:', err);
+            setStarted(false);
+        }
     }
 
     return (

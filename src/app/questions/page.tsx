@@ -15,6 +15,12 @@ interface PracticeModalState {
   isTimerRunning: boolean;
 }
 
+interface ScoreData {
+  score: number;
+  feedback: string;
+  state: "evaluating" | "completed";
+}
+
 // Mock questions (will come from DB)
 const allQuestions: Question[] = [
   // Behavioral
@@ -65,6 +71,7 @@ export default function QuestionsPage() {
     timeRemaining: 0,
     isTimerRunning: false,
   });
+  const [scores, setScores] = useState<Record<number, ScoreData>>({});
 
   const timeRanges = [
     { label: "All Times", value: "all" as const },
@@ -91,6 +98,17 @@ export default function QuestionsPage() {
 
   const openPracticeModal = (question: Question) => {
     const timeInSeconds = getMinutesFromTime(question.estimatedTime) * 60;
+
+    // Clear previous score if it exists
+    setScores(prev => {
+      if (prev[question.id]) {
+        const newScores = { ...prev };
+        delete newScores[question.id];
+        return newScores;
+      }
+      return prev;
+    });
+
     setPracticeModal({
       isOpen: true,
       question,
@@ -112,13 +130,37 @@ export default function QuestionsPage() {
     });
   };
 
+  const evaluateAnswer = (questionId: number, answer: string) => {
+    setTimeout(() => {
+      const score = answer.trim().length > 10 ? Math.floor(Math.random() * 30) + 70 : Math.floor(Math.random() * 40) + 30;
+      const feedback = answer.trim().length > 10
+        ? "Good response. This is a simulated evaluation. Keep up the good work and try to use the STAR method."
+        : "Your response was quite short. Try to add more details and structure your thoughts better.";
+
+      setScores(prev => ({
+        ...prev,
+        [questionId]: { score, feedback, state: "completed" }
+      }));
+    }, 2000);
+  };
+
   const handleSubmitAnswer = () => {
-    if (practiceModal.question && practiceModal.answerText.trim()) {
+    if (practiceModal.question) {
+      const qId = practiceModal.question.id;
+      const ans = practiceModal.answerText;
+
       console.log("Answer submitted:", {
-        questionId: practiceModal.question.id,
-        answer: practiceModal.answerText,
+        questionId: qId,
+        answer: ans,
       });
-      closePracticeModal();
+
+      // Stop timer
+      setPracticeModal(prev => ({ ...prev, isTimerRunning: false }));
+
+      // Set evaluating state
+      // Even if empty, we evaluate it to give a 0-score or "too short" feedback
+      setScores(prev => ({ ...prev, [qId]: { score: 0, feedback: "", state: "evaluating" } }));
+      evaluateAnswer(qId, ans);
     }
   };
 
@@ -141,11 +183,32 @@ export default function QuestionsPage() {
     if (!practiceModal.isTimerRunning || practiceModal.timeRemaining <= 0) return;
 
     const timer = setInterval(() => {
-      setPracticeModal((prev) => ({
-        ...prev,
-        timeRemaining: Math.max(0, prev.timeRemaining - 1),
-        isTimerRunning: prev.timeRemaining - 1 > 0,
-      }));
+      setPracticeModal((prev) => {
+        const newTime = Math.max(0, prev.timeRemaining - 1);
+        if (newTime === 0 && prev.isTimerRunning) {
+          // Time is up, evaluate directly using the latest answer from 'prev'
+          if (prev.question) {
+            const qId = prev.question.id;
+            const ans = prev.answerText;
+
+            // Asynchronously start evaluation to avoid state update issues in setPracticeModal
+            setTimeout(() => {
+              setScores(s => ({ ...s, [qId]: { score: 0, feedback: "", state: "evaluating" } }));
+              evaluateAnswer(qId, ans);
+            }, 0);
+          }
+          return {
+            ...prev,
+            timeRemaining: 0,
+            isTimerRunning: false,
+          };
+        }
+        return {
+          ...prev,
+          timeRemaining: newTime,
+          isTimerRunning: newTime > 0,
+        };
+      });
     }, 1000);
 
     return () => clearInterval(timer);
@@ -308,7 +371,9 @@ export default function QuestionsPage() {
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     {q.estimatedTime}
                   </span>
-                  <button onClick={() => openPracticeModal(q)} className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white opacity-0 transition-all group-hover:opacity-100 hover:bg-zinc-700 hover:-translate-y-0.5">Practice</button>
+                  <button onClick={() => openPracticeModal(q)} className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white opacity-0 transition-all group-hover:opacity-100 hover:bg-zinc-700 hover:-translate-y-0.5">
+                    {scores[q.id] ? "Practice Again" : "Practice"}
+                  </button>
                 </div>
               </div>
             </FadeInStaggerItem>
@@ -371,40 +436,81 @@ export default function QuestionsPage() {
 
                 {/* Answer Section */}
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-900 mb-2">Your Answer</label>
-                    <textarea
-                      value={practiceModal.answerText}
-                      onChange={(e) => setPracticeModal((prev) => ({ ...prev, answerText: e.target.value }))}
-                      placeholder="Type your answer here..."
-                      className="h-48 w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-colors focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100"
-                    />
-                  </div>
+                  {scores[practiceModal.question.id] ? (
+                    <div className="space-y-4">
+                      {/* Read-only answer display */}
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-900 mb-2">Your Answer</label>
+                        <div className="h-32 w-full overflow-y-auto rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+                          {practiceModal.answerText}
+                        </div>
+                      </div>
 
-                  {/* Voice/Typing Options */}
-                  <div className="flex gap-3">
-                    <button
-                      onClick={toggleRecording}
-                      className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${practiceModal.isRecording
-                        ? "bg-red-100 text-red-600 hover:bg-red-200"
-                        : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
-                        }`}
-                    >
-                      <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
-                      </svg>
-                      {practiceModal.isRecording ? "Stop Recording" : "Start Recording"}
-                    </button>
-                    <button
-                      onClick={clearAnswer}
-                      className="flex items-center gap-2 rounded-lg border border-zinc-200 px-4 py-2.5 text-sm font-medium text-zinc-600 transition-all hover:bg-zinc-50"
-                    >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      Clear Answer
-                    </button>
-                  </div>
+                      {/* Score Card */}
+                      <div className="rounded-lg bg-zinc-50 border border-zinc-200 p-4">
+                        {scores[practiceModal.question.id].state === "evaluating" ? (
+                          <div className="space-y-3">
+                            <h3 className="text-sm font-semibold text-zinc-900">Evaluation Result</h3>
+                            <div className="flex items-center gap-3 text-sm text-blue-600 font-medium animate-pulse">
+                              <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                              Evaluating your answer...
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h3 className="text-sm font-semibold text-zinc-900">Evaluation Result</h3>
+                              <span className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-sm font-bold shadow-sm ${scores[practiceModal.question.id].score >= 70 ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-amber-100 text-amber-700 border border-amber-200'}`}>
+                                Score: {scores[practiceModal.question.id].score}/100
+                              </span>
+                            </div>
+                            <div className="p-3 bg-white rounded-lg border border-zinc-200 shadow-sm">
+                              <p className="text-sm text-zinc-600 leading-relaxed">
+                                {scores[practiceModal.question.id].feedback}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-zinc-900 mb-2">Your Answer</label>
+                        <textarea
+                          value={practiceModal.answerText}
+                          onChange={(e) => setPracticeModal((prev) => ({ ...prev, answerText: e.target.value }))}
+                          placeholder="Type your answer here..."
+                          className="h-48 w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-colors focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100"
+                        />
+                      </div>
+
+                      {/* Voice/Typing Options */}
+                      <div className="flex gap-3">
+                        <button
+                          onClick={toggleRecording}
+                          className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${practiceModal.isRecording
+                            ? "bg-red-100 text-red-600 hover:bg-red-200"
+                            : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                            }`}
+                        >
+                          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
+                          </svg>
+                          {practiceModal.isRecording ? "Stop Recording" : "Start Recording"}
+                        </button>
+                        <button
+                          onClick={clearAnswer}
+                          className="flex items-center gap-2 rounded-lg border border-zinc-200 px-4 py-2.5 text-sm font-medium text-zinc-600 transition-all hover:bg-zinc-50"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          Clear Answer
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -416,13 +522,29 @@ export default function QuestionsPage() {
                 >
                   Close
                 </button>
-                <button
-                  onClick={handleSubmitAnswer}
-                  disabled={!practiceModal.answerText.trim()}
-                  className="rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Submit Answer
-                </button>
+                {!scores[practiceModal.question.id] ? (
+                  <button
+                    onClick={handleSubmitAnswer}
+                    disabled={!practiceModal.answerText.trim()}
+                    className="rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Submit Answer
+                  </button>
+                ) : scores[practiceModal.question.id].state === "completed" && (
+                  <button
+                    onClick={() => {
+                      setScores(prev => {
+                        const newScores = { ...prev };
+                        delete newScores[practiceModal.question!.id];
+                        return newScores;
+                      });
+                      setPracticeModal(prev => ({ ...prev, answerText: "", isTimerRunning: true, timeRemaining: getMinutesFromTime(prev.question!.estimatedTime) * 60 }));
+                    }}
+                    className="rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700"
+                  >
+                    Try Again
+                  </button>
+                )}
               </div>
             </div>
           </div>

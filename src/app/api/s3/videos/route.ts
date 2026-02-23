@@ -43,6 +43,7 @@ export async function GET() {
             const getCommand = new GetObjectCommand({
                 Bucket: process.env.S3_BUCKET_NAME!,
                 Key: item.Key!,
+                ResponseContentDisposition: `attachment; filename="recording-${item.Key!.split('/').pop()}"`,
             });
             const url = await getSignedUrl(s3Client, getCommand, { expiresIn: 3600 });
             return {

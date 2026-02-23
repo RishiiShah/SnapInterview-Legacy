@@ -113,59 +113,71 @@ export default function InterviewPage() {
     toggleCamera,
   } = useMediaPermissions();
 
-  const { startVideoRecording, stopVideoRecording } = useVideoRecording();
+  const { startScreenRecording, stopVideoRecording } = useVideoRecording();
 
-  const handlePermissionsGranted = () => {
+  const handlePermissionsGranted = async () => {
+    // Before entering, force the user to pick a screen to share so we can record it
+    const started = await startScreenRecording(stream || undefined);
+    if (!started) {
+      alert("Please allow screen recording to start the interview.");
+      return;
+    }
+
     setShowPreJoin(false);
     setInterviewStarted(true);
-    if (stream) {
-      startVideoRecording(stream);
-    }
   };
 
-  const handleExitInterview = async () => {
+  const handleExitInterview = () => {
+    // 1. Instantly stop all local AV streams/recordings
     stopRecording();
+    stopStream();
     setIsUploading(true);
 
-    try {
-      const blob = await stopVideoRecording();
-      if (blob && blob.size > 0) {
-        // Fetch presigned URL
-        const res = await fetch("/api/s3/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ interviewId }),
-        });
-
-        if (res.ok) {
-          const { url } = await res.json();
-          // Upload the blob directly to S3
-          await fetch(url, {
-            method: "PUT",
-            body: blob,
-            headers: {
-              "Content-Type": "video/webm",
-            },
+    // 2. Fire and forget the S3 upload in the background
+    const processUpload = async () => {
+      try {
+        const blob = await stopVideoRecording();
+        if (blob && blob.size > 0) {
+          // Fetch presigned URL
+          const res = await fetch("/api/s3/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ interviewId }),
           });
 
-          // Save the video URL to the interview session in PostgreSQL
-          const videoUrl = url.split('?')[0]; // Strip the query params from presigned URL
-          await fetch('/api/interview/session', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ interviewId, videoUrl }),
-          });
-        } else {
-          console.error("Failed to get presigned URL", await res.text());
+          if (res.ok) {
+            const { url } = await res.json();
+            // Upload the blob directly to S3
+            await fetch(url, {
+              method: "PUT",
+              body: blob,
+              headers: {
+                "Content-Type": "video/webm",
+              },
+            });
+
+            // Save the video URL to the interview session in PostgreSQL
+            const videoUrl = url.split('?')[0]; // Strip the query params from presigned URL
+            await fetch('/api/interview/session', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ interviewId, videoUrl }),
+            });
+          } else {
+            console.error("Failed to get presigned URL", await res.text());
+          }
         }
+      } catch (err) {
+        console.error("Error uploading recording:", err);
+      } finally {
+        setIsUploading(false);
       }
-    } catch (err) {
-      console.error("Error uploading recording:", err);
-    } finally {
-      stopStream();
-      setIsUploading(false);
-      router.push("/practice");
-    }
+    };
+
+    processUpload();
+
+    // 3. Immedately navigate returning control to user
+    router.push("/practice");
   };
 
   return (

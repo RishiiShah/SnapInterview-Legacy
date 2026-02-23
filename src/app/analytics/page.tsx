@@ -220,8 +220,10 @@ export default function AnalyticsPage() {
                                         <FadeIn key={rec.key} delay={0.6 + (idx * 0.1)} direction="up" className="overflow-hidden rounded-2xl border border-zinc-200 bg-white hover:shadow-lg transition-shadow">
                                             <div className="aspect-video bg-zinc-900">
                                                 <video
-                                                    src={rec.url}
+                                                    src={`${rec.url}#t=0.001`}
+                                                    crossOrigin="anonymous"
                                                     controls
+                                                    preload="metadata"
                                                     className="w-full h-full object-contain"
                                                 />
                                             </div>

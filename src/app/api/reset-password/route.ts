@@ -16,6 +16,11 @@ const schema = z.object({
         .refine((pw) => /[^A-Za-z0-9]/.test(pw), "Password must contain a special character"),
 });
 
+// --- OTP Brute force prevention (module scope so state persists across requests) ---
+const resetRateLimit = new Map<string, { count: number; lockoutUntil: number }>();
+const MAX_OTP_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 mins
+
 export async function POST(req: Request) {
     try {
         // CSRF protection: validate Origin header
@@ -62,10 +67,7 @@ export async function POST(req: Request) {
             );
         }
 
-        // --- OTP Brute force prevention (Max 5 attempts) ---
-        const resetRateLimit = new Map<string, { count: number; lockoutUntil: number }>();
-        const MAX_OTP_ATTEMPTS = 5;
-        const LOCKOUT_MS = 15 * 60 * 1000; // 15 mins
+        // --- OTP Brute force prevention ---
 
         const now = Date.now();
         let limitEntry = resetRateLimit.get(normalizedEmail);

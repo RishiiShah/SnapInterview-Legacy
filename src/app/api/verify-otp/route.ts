@@ -7,6 +7,11 @@ const verifySchema = z.object({
     otp: z.string().length(6, "OTP must be 6 digits"),
 });
 
+// --- OTP Brute force prevention (module scope so state persists across requests) ---
+const verifyRateLimit = new Map<string, { count: number; lockoutUntil: number }>();
+const MAX_OTP_ATTEMPTS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 mins
+
 export async function POST(req: Request) {
     try {
         // CSRF protection
@@ -50,13 +55,7 @@ export async function POST(req: Request) {
             );
         }
 
-        // --- OTP Brute force prevention (Max 5 attempts) ---
-        // For simplicity we will decrement the expiry time or track attempts if the schema allowed.
-        // Since we don't have an attempts column on pendingUser right now, 
-        // we'll use a simple in-memory map keyed by email to rate limit verification attempts.
-        const verifyRateLimit = new Map<string, { count: number; lockoutUntil: number }>();
-        const MAX_OTP_ATTEMPTS = 5;
-        const LOCKOUT_MS = 15 * 60 * 1000; // 15 mins
+        // --- OTP Brute force prevention ---
 
         const now = Date.now();
         let limitEntry = verifyRateLimit.get(normalizedEmail);

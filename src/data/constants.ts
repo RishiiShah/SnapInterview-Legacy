@@ -6,6 +6,7 @@ export const NAV_ITEMS: NavItem[] = [
     { label: "Practice", href: "/practice", icon: null },
     { label: "Question Bank", href: "/questions", icon: null },
     { label: "Analytics", href: "/analytics", icon: null },
+    { label: "Recordings", href: "/recordings", icon: null },
     { label: "Settings", href: "/settings", icon: null },
 ];
 // Note: icons are set in Sidebar.tsx since they're JSX — constants only stores the data
@@ -16,10 +17,12 @@ export const SEARCH_ITEMS: SearchItem[] = [
     { label: "Practice Interview", href: "/practice", category: "Pages" },
     { label: "Question Bank", href: "/questions", category: "Pages" },
     { label: "Analytics", href: "/analytics", category: "Pages" },
+    { label: "Recordings", href: "/recordings", category: "Pages" },
     { label: "Settings", href: "/settings", category: "Pages" },
     { label: "Start New Interview", href: "/practice", category: "Actions" },
     { label: "Change Password", href: "/settings", category: "Actions" },
     { label: "View Score Trends", href: "/analytics", category: "Actions" },
+    { label: "Review Recordings", href: "/recordings", category: "Actions" },
 ];
 
 /* ─────────────── Categories & Difficulty ─────────────── */

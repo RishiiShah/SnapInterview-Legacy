@@ -10,7 +10,7 @@ export async function proxy(request: NextRequest) {
     // 2. Auth checks
     // We only want to protect specific routes. The matcher is now set to run on all pages for the security headers,
     // so we handle the route protection manually.
-    const protectedPaths = ["/dashboard", "/practice", "/questions", "/analytics", "/settings"];
+    const protectedPaths = ["/dashboard", "/practice", "/questions", "/analytics", "/recordings", "/settings"];
     const isProtectedPath = protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path));
 
     let response = NextResponse.next({

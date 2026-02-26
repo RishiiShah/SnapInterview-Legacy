@@ -75,6 +75,7 @@ const handler = NextAuth({
     ],
     session: {
         strategy: "jwt",
+        maxAge: 7 * 24 * 60 * 60, // 7 days
     },
     pages: {
         signIn: "/login",
@@ -86,7 +87,7 @@ const handler = NextAuth({
                 const dbUser = await prisma.user.findUnique({
                     where: { id: user.id },
                 });
-                
+
                 if (dbUser?.isFirstLogin) {
                     await prisma.user.update({
                         where: { id: user.id },

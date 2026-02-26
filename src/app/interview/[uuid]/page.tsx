@@ -133,10 +133,37 @@ export default function InterviewPage() {
     stopStream();
     setIsUploading(true);
 
+    // Build Q&A transcript from messages: pair each AI question with the next user answer
+    const CLOSING_PATTERNS = /\b(thank you|thanks for|good luck|best of luck|all the best|great job|well done|end of interview|that concludes|wraps up)\b/i;
+    const transcript: { question: string; answer: string }[] = [];
+    let interviewStatus: 'COMPLETED' | 'ABORTED' = 'COMPLETED';
+
+    for (let i = 0; i < messages.length; i++) {
+      if (messages[i].role === 'ai') {
+        const userAnswer = messages[i + 1]?.role === 'user' ? messages[i + 1].text : null;
+        const isLastAiMessage = !messages.slice(i + 1).some(m => m.role === 'ai');
+
+        if (isLastAiMessage && !userAnswer) {
+          if (CLOSING_PATTERNS.test(messages[i].text)) {
+            // AI wrapped up naturally — skip the farewell, mark completed
+            continue;
+          }
+          // User exited mid-question — save it and mark aborted
+          interviewStatus = 'ABORTED';
+          transcript.push({ question: messages[i].text, answer: '[Candidate exited the interview before answering]' });
+          continue;
+        }
+
+        transcript.push({ question: messages[i].text, answer: userAnswer ?? '[No answer provided]' });
+      }
+    }
+
     // 2. Fire and forget the S3 upload in the background
     const processUpload = async () => {
       try {
         const blob = await stopVideoRecording();
+        let videoUrl: string | undefined;
+
         if (blob && blob.size > 0) {
           // Fetch presigned URL
           const res = await fetch("/api/s3/upload", {
@@ -156,17 +183,18 @@ export default function InterviewPage() {
               },
             });
 
-            // Save the video URL to the interview session in PostgreSQL
-            const videoUrl = url.split('?')[0]; // Strip the query params from presigned URL
-            await fetch('/api/interview/session', {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ interviewId, videoUrl }),
-            });
+            videoUrl = url.split('?')[0]; // Strip the query params from presigned URL
           } else {
             console.error("Failed to get presigned URL", await res.text());
           }
         }
+
+        // Save the video URL, transcript, and status to the interview session in PostgreSQL
+        await fetch('/api/interview/session', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ interviewId, videoUrl, transcript, status: interviewStatus }),
+        });
       } catch (err) {
         console.error("Error uploading recording:", err);
       } finally {

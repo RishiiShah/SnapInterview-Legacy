@@ -4,6 +4,13 @@ import { prisma } from "@/lib/prisma";
 
 export async function DELETE(req: Request) {
     try {
+        // CSRF protection: validate Origin header
+        const origin = req.headers.get("origin");
+        const allowedOrigin = process.env.NEXTAUTH_URL || "http://localhost:3000";
+        if (!origin || origin !== allowedOrigin) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         const session = await getServerSession();
         if (!session?.user?.email) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

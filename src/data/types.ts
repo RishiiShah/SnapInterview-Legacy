@@ -49,10 +49,14 @@ export interface InterviewSession {
 /* ─────────────── Questions ─────────────── */
 export interface Question {
     id: number;
+    slug: string;
     text: string;
     category: InterviewType;
     difficulty: Difficulty;
     estimatedTime: string;
+    tags: string[];
+    hint?: string;
+    sampleAnswer?: string;
 }
 
 /* ─────────────── Analytics ─────────────── */

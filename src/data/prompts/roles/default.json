@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "id": "role-default",
+  "title": "Default Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: {{ROLE}}"
+  ],
+  "sections": [
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "Since you do not have specific pre-defined system instructions for this exact role, rely on your general knowledge to:",
+        "1. Ask questions relevant to the fundamental skills required for a {{ROLE}}.",
+        "2. Test their understanding of common tools, workflows, and challenges associated with the position.",
+        "3. Adapt the next question based on the candidate's previous answer quality, selected interview difficulty, and available resume/job-description context.",
+        "4. Avoid fixed scripts; use targeted follow-ups to probe missing reasoning or increase depth when answers are strong.",
+        "5. If no job description is provided, do not infer or fabricate JD-specific requirements."
+      ]
+    }
+  ]
+}

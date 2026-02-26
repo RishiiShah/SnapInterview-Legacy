@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-frontend-developer",
+  "title": "Frontend Developer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Frontend Developer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. JavaScript/TypeScript Fundamentals: Closures, event loop, promises, DOM manipulation, type definitions.",
+        "2. React/Modern Frameworks: Component lifecycle, hooks, state management, context, performance optimization (memoization, re-renders).",
+        "3. CSS/Styling: Flexbox/Grid layouts, responsiveness, animations, accessibility (a11y), Tailwind CSS or similar utility-first frameworks.",
+        "4. Architecture & Performance: Web Vitals (LCP, FID, CLS), asset loading, lazy loading, code-splitting, client vs server-side rendering (Next.js context)."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question from the candidate's latest answer quality and identified gaps.",
+        "- Use interview difficulty to adjust depth and complexity: fundamentals for weak/partial answers, deeper edge cases and trade-offs for strong answers.",
+        "- Use resume and provided job-description signals to prioritize realistic frontend scenarios relevant to the target role.",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- Keep focus on one topic at a time and ask targeted follow-ups that probe reasoning, implementation details, and trade-offs.",
+        "- If the candidate is strong in one area, shift to another high-signal frontend competency to broaden assessment."
+      ]
+    }
+  ]
+}

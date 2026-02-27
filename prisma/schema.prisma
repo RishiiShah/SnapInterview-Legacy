@@ -82,18 +82,19 @@ enum InterviewStatus {
 }
 
 model InterviewSession {
-  id             String          @id @default(uuid())
-  userId         String
-  role           String
-  company        String?
-  type           String
-  difficulty     String
-  jobDescription String?         @db.Text
-  resumeUrl      String?
-  videoUrl       String?
-  status         InterviewStatus @default(IN_PROGRESS)
-  questionCount  Int             @default(10)
-  createdAt      DateTime        @default(now())
+  id              String          @id @default(uuid())
+  userId          String
+  role            String
+  company         String?
+  type            String
+  difficulty      String
+  jobDescription  String?         @db.Text
+  resumeUrl       String?
+  videoUrl        String?
+  status          InterviewStatus @default(IN_PROGRESS)
+  questionCount   Int             @default(10)
+  currentQuestion Int             @default(0)
+  createdAt       DateTime        @default(now())
 
   user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   transcript TranscriptEntry[]

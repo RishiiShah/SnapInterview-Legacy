@@ -1,6 +1,10 @@
 import { useRef, useState, useCallback } from "react";
 
-export function useVideoRecording() {
+type UseVideoRecordingOptions = {
+    onScreenShareEnded?: () => void;
+};
+
+export function useVideoRecording(options?: UseVideoRecordingOptions) {
     const [isRecordingVideo, setIsRecordingVideo] = useState(false);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const screenStreamRef = useRef<MediaStream | null>(null);
@@ -40,7 +44,11 @@ export function useVideoRecording() {
             };
 
             // Handle user clicking "Stop sharing" from browser UI natively
-            screenStream.getVideoTracks()[0].onended = () => {
+            const screenVideoTrack = screenStream.getVideoTracks()[0];
+            screenVideoTrack.onended = () => {
+                setIsRecordingVideo(false);
+                options?.onScreenShareEnded?.();
+
                 if (mediaRecorder.state !== "inactive") {
                     mediaRecorder.stop();
                 }
@@ -55,12 +63,13 @@ export function useVideoRecording() {
             console.error("Failed to start screen recording:", err);
             return false;
         }
-    }, []);
+    }, [options]);
 
     const stopVideoRecording = useCallback((): Promise<Blob | null> => {
         return new Promise((resolve) => {
             const mediaRecorder = mediaRecorderRef.current;
             if (!mediaRecorder || mediaRecorder.state === "inactive") {
+                setIsRecordingVideo(false);
                 resolve(null);
                 return;
             }
@@ -76,6 +85,9 @@ export function useVideoRecording() {
 
             // Also stop all screen tracks to close the "Sharing your screen" indicator
             if (screenStreamRef.current) {
+                screenStreamRef.current.getVideoTracks().forEach(track => {
+                    track.onended = null;
+                });
                 screenStreamRef.current.getTracks().forEach(track => track.stop());
                 screenStreamRef.current = null;
             }

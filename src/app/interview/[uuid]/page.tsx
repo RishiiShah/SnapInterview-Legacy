@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import PermissionRequest from "@/components/interview/PermissionRequest";
 import { useMediaPermissions } from "@/lib/useMediaPermissions";
@@ -14,7 +14,13 @@ export default function InterviewPage() {
   const interviewId = params.uuid as string;
   const [showPreJoin, setShowPreJoin] = useState(true);
   const [interviewStarted, setInterviewStarted] = useState(false);
+  const [interviewDone, setInterviewDone] = useState(false);
+  const [nativeShareStopped, setNativeShareStopped] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const interviewDoneRef = useRef(false);
+  const isExitingRef = useRef(false);
+  const chatScrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const chatBottomRef = useRef<HTMLDivElement | null>(null);
 
   // Chat State
   const [messages, setMessages] = useState<{ role: 'ai' | 'user'; text: string }[]>([]);
@@ -32,6 +38,8 @@ export default function InterviewPage() {
   } = useSpeechRecognition();
 
   const askGroq = async (chatHistory: { role: 'ai' | 'user'; text: string }[]) => {
+    if (interviewDone) return;
+
     setIsThinking(true);
     setCurrentStreamedText("");
 
@@ -51,16 +59,36 @@ export default function InterviewPage() {
         })
       });
 
-      // Check if server returned a JSON done signal (not a stream)
-      const contentType = response.headers.get('Content-Type') || '';
+      const contentType = response.headers.get('content-type') || '';
+
+      if (!response.ok) {
+        let errorMessage = `Chat request failed (${response.status})`;
+
+        if (contentType.includes('application/json')) {
+          const errorPayload = await response.json();
+          if (errorPayload?.error) {
+            errorMessage = errorPayload.error;
+          }
+        } else {
+          const errorText = await response.text();
+          if (errorText) {
+            errorMessage = errorText;
+          }
+        }
+
+        throw new Error(errorMessage);
+      }
+
       if (contentType.includes('application/json')) {
-        const data = await response.json();
-        if (data.done) {
-          setIsThinking(false);
-          // Small delay so the user's final answer renders in the chat
-          setTimeout(() => handleExitInterview(), 1500);
+        const payload = await response.json();
+
+        if (payload?.done) {
+          setInterviewDone(true);
+          setMessages(prev => [...prev, { role: 'ai', text: "Great work — you have completed this interview." }]);
           return;
         }
+
+        throw new Error(payload?.error || 'Unexpected JSON response from interview chat API.');
       }
 
       if (!response.body) throw new Error("No response body");
@@ -92,12 +120,34 @@ export default function InterviewPage() {
     }
   };
 
+  useEffect(() => {
+    interviewDoneRef.current = interviewDone;
+  }, [interviewDone]);
+
+  useEffect(() => {
+    if (!interviewDone) return;
+
+    const exitTimer = setTimeout(() => {
+      if (!isExitingRef.current && !isUploading) {
+        handleExitInterview({ skipConfirmation: true });
+      }
+    }, 4000);
+
+    return () => clearTimeout(exitTimer);
+  }, [interviewDone, isUploading]);
+
+  useEffect(() => {
+    if (!chatScrollContainerRef.current) return;
+
+    chatBottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, currentStreamedText, isThinking, interimTranscript, volatileTranscript]);
+
   // Trigger initial greeting when interview starts (permissions granted)
   useEffect(() => {
-    if (interviewStarted && messages.length === 0) {
+    if (interviewStarted && messages.length === 0 && !interviewDone) {
       askGroq([]);
     }
-  }, [interviewStarted]);
+  }, [interviewStarted, interviewDone, messages.length]);
 
   // Commit finalized text blocks to the standard chat log dynamically and trigger AI
   useEffect(() => {
@@ -125,7 +175,11 @@ export default function InterviewPage() {
     toggleCamera,
   } = useMediaPermissions();
 
-  const { startScreenRecording, stopVideoRecording } = useVideoRecording();
+  const { isRecordingVideo, startScreenRecording, stopVideoRecording } = useVideoRecording({
+    onScreenShareEnded: () => {
+      setNativeShareStopped(true);
+    },
+  });
 
   const handlePermissionsGranted = async () => {
     // Before entering, force the user to pick a screen to share so we can record it
@@ -139,7 +193,15 @@ export default function InterviewPage() {
     setInterviewStarted(true);
   };
 
-  const handleExitInterview = () => {
+  const handleExitInterview = ({ skipConfirmation = false }: { skipConfirmation?: boolean } = {}) => {
+    if (!skipConfirmation && !interviewDoneRef.current) {
+      const confirmed = window.confirm("Are you sure you want to exit? Your recording will be saved.");
+      if (!confirmed) return;
+    }
+
+    if (isExitingRef.current) return;
+    isExitingRef.current = true;
+
     // 1. Instantly stop all local AV streams/recordings
     stopRecording();
     stopStream();
@@ -148,7 +210,7 @@ export default function InterviewPage() {
     // Build Q&A transcript from messages: pair each AI question with the next user answer
     const CLOSING_PATTERNS = /\b(thank you|thanks for|good luck|best of luck|all the best|great job|well done|end of interview|that concludes|wraps up)\b/i;
     const transcript: { question: string; answer: string }[] = [];
-    let interviewStatus: 'COMPLETED' | 'ABORTED' = 'COMPLETED';
+    let interviewStatus: 'COMPLETED' | 'ABORTED' = interviewDoneRef.current ? 'COMPLETED' : 'ABORTED';
 
     for (let i = 0; i < messages.length; i++) {
       if (messages[i].role === 'ai') {
@@ -211,6 +273,7 @@ export default function InterviewPage() {
         console.error("Error uploading recording:", err);
       } finally {
         setIsUploading(false);
+        isExitingRef.current = false;
       }
     };
 
@@ -219,6 +282,21 @@ export default function InterviewPage() {
     // 3. Immedately navigate returning control to user
     router.push("/practice");
   };
+
+  useEffect(() => {
+    if (!nativeShareStopped) return;
+
+    alert("Screen sharing was stopped. The interview will now exit and save what was recorded.");
+    handleExitInterview({ skipConfirmation: true });
+    setNativeShareStopped(false);
+  }, [nativeShareStopped]);
+
+  const totalQuestions = 10;
+  const answeredQuestions = Math.min(
+    messages.filter((message) => message.role === "user").length,
+    totalQuestions
+  );
+  const questionProgressPercent = Math.min((answeredQuestions / totalQuestions) * 100, 100);
 
   return (
     <AnimatePresence mode="wait">
@@ -250,7 +328,7 @@ export default function InterviewPage() {
             </div>
             <div className="mb-8">
               <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Join interview</h1>
-              <p className="mt-1 text-sm text-zinc-500">Allow camera and microphone, then join when you're ready.</p>
+              <p className="mt-1 text-sm text-zinc-500">Allow camera and microphone, then join when you are ready.</p>
             </div>
             <PermissionRequest
               isOpen={true}
@@ -288,22 +366,22 @@ export default function InterviewPage() {
 
             {/* Top Header */}
             <div className="relative flex items-center justify-center pl-2 pr-4 h-12 shrink-0">
-              {/* Center: Timer Bar */}
+              {/* Center: Question Progress */}
               <div className="flex flex-col gap-2 w-full max-w-[400px]">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold tracking-wider text-zinc-400">Time Remaining</span>
-                  <span className="text-[11px] font-semibold tracking-wider text-zinc-400">3:45 / 5:00</span>
+                  <span className="text-[11px] font-semibold tracking-wider text-zinc-400">Question Progress</span>
+                  <span className="text-[11px] font-semibold tracking-wider text-zinc-400">Q{answeredQuestions} / {totalQuestions}</span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
-                  <div className="h-full w-[75%] rounded-full bg-blue-500" />
+                  <div className="h-full rounded-full bg-blue-500 transition-all duration-300" style={{ width: `${questionProgressPercent}%` }} />
                 </div>
               </div>
 
               {/* Right: Exit Button */}
               <div className="absolute right-4 top-1/2 -translate-y-1/2">
                 <button
-                  onClick={handleExitInterview}
-                  disabled={isUploading}
+                  onClick={() => handleExitInterview()}
+                  disabled={isUploading || interviewDone}
                   className="rounded-full border border-zinc-700 bg-zinc-800/40 px-5 py-2 text-xs font-semibold text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isUploading ? "Uploading..." : "Exit Interview"}
@@ -332,8 +410,8 @@ export default function InterviewPage() {
                   style={{ transform: "scaleX(-1)" }}
                 />
                 <div className="absolute right-5 top-5 flex items-center gap-2 rounded-full bg-zinc-800/80 px-3 py-1.5 backdrop-blur-md">
-                  <div className={`h-[6px] w-[6px] rounded-full ${isRecording ? 'bg-red-500 animate-[pulse_1.5s_ease-in-out_infinite]' : 'bg-red-500'}`} />
-                  <span className="text-[11px] font-semibold tracking-wide text-zinc-100">Recording</span>
+                  <div className={`h-[6px] w-[6px] rounded-full ${isRecordingVideo ? 'bg-red-500 animate-[pulse_1.5s_ease-in-out_infinite]' : 'bg-zinc-500'}`} />
+                  <span className="text-[11px] font-semibold tracking-wide text-zinc-100">{isRecordingVideo ? 'Recording' : 'Not Recording'}</span>
                 </div>
               </div>
 
@@ -341,7 +419,7 @@ export default function InterviewPage() {
               <div className="hidden lg:flex flex-col flex-1 bg-zinc-800/20 rounded-2xl border border-zinc-800/50 overflow-hidden relative">
                 {/* Fade overlays for smooth scrolling look */}
                 <div className="absolute top-0 w-full h-8 bg-gradient-to-b from-[#1c1c1e] to-transparent z-10 pointer-events-none" />
-                <div className="flex-1 overflow-y-auto p-5 space-y-5 flex flex-col pt-8 pb-12">
+                <div ref={chatScrollContainerRef} className="flex-1 overflow-y-auto p-5 space-y-5 flex flex-col pt-8 pb-12">
                   {messages.map((msg, idx) => (
                     <div key={idx} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[85%] rounded-[18px] px-5 py-3.5 text-sm leading-relaxed tracking-wide shadow-sm ${msg.role === 'user'
@@ -380,6 +458,7 @@ export default function InterviewPage() {
                       </div>
                     </div>
                   )}
+                  <div ref={chatBottomRef} />
                 </div>
                 <div className="absolute bottom-0 w-full h-12 bg-gradient-to-t from-[#1c1c1e] to-transparent z-10 pointer-events-none" />
               </div>

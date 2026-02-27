@@ -129,7 +129,7 @@ export default function InterviewPage() {
 
     const exitTimer = setTimeout(() => {
       if (!isExitingRef.current && !isUploading) {
-        handleExitInterview({ skipConfirmation: true });
+        void handleExitInterview({ skipConfirmation: true });
       }
     }, 4000);
 
@@ -193,7 +193,7 @@ export default function InterviewPage() {
     setInterviewStarted(true);
   };
 
-  const handleExitInterview = ({ skipConfirmation = false }: { skipConfirmation?: boolean } = {}) => {
+  const handleExitInterview = async ({ skipConfirmation = false }: { skipConfirmation?: boolean } = {}) => {
     if (!skipConfirmation && !interviewDoneRef.current) {
       const confirmed = window.confirm("Are you sure you want to exit? Your recording will be saved.");
       if (!confirmed) return;
@@ -232,62 +232,57 @@ export default function InterviewPage() {
       }
     }
 
-    // 2. Fire and forget the S3 upload in the background
-    const processUpload = async () => {
-      try {
-        const blob = await stopVideoRecording();
-        let videoUrl: string | undefined;
+    // 2. Upload first, persist session, then navigate.
+    try {
+      const blob = await stopVideoRecording();
+      let videoUrl: string | undefined;
 
-        if (blob && blob.size > 0) {
-          // Fetch presigned URL
-          const res = await fetch("/api/s3/upload", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ interviewId }),
+      if (blob && blob.size > 0) {
+        const res = await fetch("/api/s3/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ interviewId }),
+        });
+
+        if (res.ok) {
+          const { url } = await res.json();
+          const uploadRes = await fetch(url, {
+            method: "PUT",
+            body: blob,
+            headers: {
+              "Content-Type": "video/webm",
+            },
           });
 
-          if (res.ok) {
-            const { url } = await res.json();
-            // Upload the blob directly to S3
-            await fetch(url, {
-              method: "PUT",
-              body: blob,
-              headers: {
-                "Content-Type": "video/webm",
-              },
-            });
-
-            videoUrl = url.split('?')[0]; // Strip the query params from presigned URL
+          if (uploadRes.ok) {
+            videoUrl = url.split('?')[0];
           } else {
-            console.error("Failed to get presigned URL", await res.text());
+            console.error("Failed to upload video blob to S3", await uploadRes.text());
           }
+        } else {
+          console.error("Failed to get presigned URL", await res.text());
         }
-
-        // Save the video URL, transcript, and status to the interview session in PostgreSQL
-        await fetch('/api/interview/session', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ interviewId, videoUrl, transcript, status: interviewStatus }),
-        });
-      } catch (err) {
-        console.error("Error uploading recording:", err);
-      } finally {
-        setIsUploading(false);
-        isExitingRef.current = false;
       }
-    };
 
-    processUpload();
-
-    // 3. Immedately navigate returning control to user
-    router.push("/practice");
+      await fetch('/api/interview/session', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ interviewId, videoUrl, transcript, status: interviewStatus }),
+      });
+    } catch (err) {
+      console.error("Error uploading recording:", err);
+    } finally {
+      setIsUploading(false);
+      isExitingRef.current = false;
+      router.push("/practice");
+    }
   };
 
   useEffect(() => {
     if (!nativeShareStopped) return;
 
     alert("Screen sharing was stopped. The interview will now exit and save what was recorded.");
-    handleExitInterview({ skipConfirmation: true });
+    void handleExitInterview({ skipConfirmation: true });
     setNativeShareStopped(false);
   }, [nativeShareStopped]);
 

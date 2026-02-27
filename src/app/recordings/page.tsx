@@ -12,6 +12,43 @@ interface VideoRecording {
     size: number;
 }
 
+let recordingsCache: VideoRecording[] | null = null;
+let recordingsCacheAt = 0;
+let recordingsInFlight: Promise<VideoRecording[]> | null = null;
+
+const RECORDINGS_CACHE_TTL_MS = 5000;
+
+async function fetchRecordingsOnce(): Promise<VideoRecording[]> {
+    const now = Date.now();
+
+    if (recordingsCache && now - recordingsCacheAt < RECORDINGS_CACHE_TTL_MS) {
+        return recordingsCache;
+    }
+
+    if (recordingsInFlight) {
+        return recordingsInFlight;
+    }
+
+    recordingsInFlight = (async () => {
+        const res = await fetch("/api/s3/videos");
+        if (!res.ok) {
+            throw new Error(`Failed to fetch recordings: ${res.status}`);
+        }
+
+        const data = await res.json();
+        const videos = data.videos || [];
+        recordingsCache = videos;
+        recordingsCacheAt = Date.now();
+        return videos;
+    })();
+
+    try {
+        return await recordingsInFlight;
+    } finally {
+        recordingsInFlight = null;
+    }
+}
+
 export default function RecordingsPage() {
     const [recordings, setRecordings] = useState<VideoRecording[]>([]);
     const [isLoadingRecordings, setIsLoadingRecordings] = useState(true);
@@ -21,11 +58,8 @@ export default function RecordingsPage() {
     useEffect(() => {
         const fetchRecordings = async () => {
             try {
-                const res = await fetch("/api/s3/videos");
-                if (res.ok) {
-                    const data = await res.json();
-                    setRecordings(data.videos || []);
-                }
+                const videos = await fetchRecordingsOnce();
+                setRecordings(videos);
             } catch (error) {
                 console.error("Failed to fetch recordings:", error);
             } finally {
@@ -49,6 +83,8 @@ export default function RecordingsPage() {
 
             if (res.ok) {
                 setRecordings((prev) => prev.filter((recording) => recording.key !== recordingToDelete));
+                recordingsCache = (recordingsCache || []).filter((recording) => recording.key !== recordingToDelete);
+                recordingsCacheAt = Date.now();
                 setRecordingToDelete(null);
             } else {
                 alert("Failed to delete recording.");

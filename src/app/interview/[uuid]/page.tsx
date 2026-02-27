@@ -51,6 +51,18 @@ export default function InterviewPage() {
         })
       });
 
+      // Check if server returned a JSON done signal (not a stream)
+      const contentType = response.headers.get('Content-Type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await response.json();
+        if (data.done) {
+          setIsThinking(false);
+          // Small delay so the user's final answer renders in the chat
+          setTimeout(() => handleExitInterview(), 1500);
+          return;
+        }
+      }
+
       if (!response.body) throw new Error("No response body");
       const reader = response.body.getReader();
       const decoder = new TextDecoder("utf-8");

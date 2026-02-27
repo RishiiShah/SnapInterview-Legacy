@@ -92,6 +92,7 @@ model InterviewSession {
   resumeUrl      String?
   videoUrl       String?
   status         InterviewStatus @default(IN_PROGRESS)
+  questionCount  Int             @default(10)
   createdAt      DateTime        @default(now())
 
   user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)

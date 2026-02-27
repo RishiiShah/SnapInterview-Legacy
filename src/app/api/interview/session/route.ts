@@ -33,7 +33,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { role, company, type, difficulty, jobDescription, resumeUrl } = body;
+        const { role, company, type, difficulty, jobDescription, resumeUrl, questionCount } = body;
 
         if (!role || !type || !difficulty) {
             return NextResponse.json(
@@ -51,12 +51,48 @@ export async function POST(req: Request) {
                 difficulty,
                 jobDescription: jobDescription || null,
                 resumeUrl: resumeUrl || null,
+                questionCount: questionCount || 10,
             },
         });
 
         return NextResponse.json({ id: interviewSession.id }, { status: 201 });
     } catch (error) {
         console.error("Create interview session error:", error);
+        return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+    }
+}
+
+export async function GET(req: Request) {
+    try {
+        const session = await getServerSession();
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { searchParams } = new URL(req.url);
+        const interviewId = searchParams.get("id");
+
+        if (!interviewId) {
+            return NextResponse.json({ error: "id query param is required" }, { status: 400 });
+        }
+
+        const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+        if (!user) {
+            return NextResponse.json({ error: "User not found" }, { status: 404 });
+        }
+
+        const interviewSession = await prisma.interviewSession.findFirst({
+            where: { id: interviewId, userId: user.id },
+            select: { questionCount: true, role: true, type: true, difficulty: true },
+        });
+
+        if (!interviewSession) {
+            return NextResponse.json({ error: "Session not found" }, { status: 404 });
+        }
+
+        return NextResponse.json(interviewSession);
+    } catch (error) {
+        console.error("Get interview session error:", error);
         return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
     }
 }

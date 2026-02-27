@@ -16,6 +16,7 @@ export default function PracticePage() {
     const [company, setCompany] = useState("");
     const [type, setType] = useState<InterviewType>("behavioral");
     const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+    const [interviewLength, setInterviewLength] = useState<5 | 10 | 15>(10);
     const [jobDescription, setJobDescription] = useState("");
     const [resumeName, setResumeName] = useState("");
     const [started, setStarted] = useState(false);
@@ -41,6 +42,7 @@ export default function PracticePage() {
                     type,
                     difficulty,
                     jobDescription: jobDescription || undefined,
+                    questionCount: interviewLength,
                 }),
             });
 
@@ -150,6 +152,30 @@ export default function PracticePage() {
                                                 </div>
                                             )}
                                         </div>
+                                    </div>
+                                </div>
+
+                                {/* Interview Length */}
+                                <div>
+                                    <label className="mb-1.5 block text-sm font-medium text-zinc-700">Interview Length</label>
+                                    <div className="flex gap-2">
+                                        {[
+                                            { value: 5 as const, label: "Mini", desc: "5 questions" },
+                                            { value: 10 as const, label: "Full", desc: "10 questions" },
+                                            { value: 15 as const, label: "Extended", desc: "15 questions" },
+                                        ].map((opt) => (
+                                            <button
+                                                key={opt.value}
+                                                onClick={() => setInterviewLength(opt.value)}
+                                                className={`flex-1 cursor-pointer rounded-xl border px-3 py-2.5 text-center transition-all ${interviewLength === opt.value
+                                                        ? "border-zinc-900 bg-zinc-900 text-white shadow-sm"
+                                                        : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:border-zinc-300 hover:bg-white"
+                                                    }`}
+                                            >
+                                                <p className="text-sm font-medium">{opt.label}</p>
+                                                <p className={`text-[11px] ${interviewLength === opt.value ? "text-white/60" : "text-zinc-400"}`}>{opt.desc}</p>
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
 

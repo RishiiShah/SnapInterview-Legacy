@@ -30,12 +30,12 @@ export default function AnalyticsPage() {
 
     return (
         <DashboardShell>
-            <div className="space-y-5">
+            <div className="space-y-8">
                 <SlideIn>
                     <div className="flex flex-wrap items-end justify-between gap-3">
                         <div>
-                            <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Analytics</h1>
-                            <p className="mt-1 text-sm text-zinc-500">Track your progress and identify areas for improvement.</p>
+                        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Analytics</h1>
+                        <p className="mt-1 text-sm text-zinc-500">Track your progress and identify areas for improvement.</p>
                         </div>
                         <Link
                             href="/recordings"
@@ -72,7 +72,7 @@ export default function AnalyticsPage() {
                     })}
                 </FadeInStagger>
 
-                <div className="grid gap-4 lg:grid-cols-2">
+                <div className="grid gap-6 lg:grid-cols-2">
                     {/* Weekly Score Chart */}
                     <FadeIn delay={0.2} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-5 flex flex-col">
                         <h3 className="mb-1 text-sm font-semibold text-zinc-900">Weekly Performance</h3>
@@ -133,7 +133,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Strengths & Weaknesses */}
-                <div className="grid gap-4 lg:grid-cols-2 pb-8">
+                <div className="grid gap-6 lg:grid-cols-2 pb-8">
                     <FadeIn delay={0.4} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
                         <h3 className="mb-1 text-sm font-semibold text-zinc-900">Strengths</h3>
                         <p className="mb-4 text-xs text-zinc-400">Keep leveraging these in interviews</p>

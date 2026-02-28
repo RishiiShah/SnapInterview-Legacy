@@ -21,6 +21,12 @@ export default function PracticePage() {
     const [resumeName, setResumeName] = useState("");
     const [started, setStarted] = useState(false);
 
+    const INTERVIEW_LENGTH_OPTIONS = [
+        { value: "5", label: "Mini (5 questions)" },
+        { value: "10", label: "Full (10 questions)" },
+        { value: "15", label: "Extended (15 questions)" },
+    ];
+
     // Mock recent practice sessions (will come from DB)
     const recentPractice = [
         { id: 1, role: "Frontend Developer", company: "Google", type: "technical" as InterviewType, score: 85, date: "Feb 11, 2026" },
@@ -97,7 +103,7 @@ export default function PracticePage() {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+                                <div className="grid grid-cols-1 gap-5 lg:grid-cols-4">
                                     {/* Interview Type */}
                                     <SelectDropdown
                                         label="Interview Type"
@@ -112,6 +118,14 @@ export default function PracticePage() {
                                         value={difficulty}
                                         onChange={(val) => setDifficulty(val as Difficulty)}
                                         options={DIFFICULTIES}
+                                    />
+
+                                    {/* Interview Length */}
+                                    <SelectDropdown
+                                        label="Interview Length"
+                                        value={String(interviewLength)}
+                                        onChange={(val) => setInterviewLength(Number(val) as 5 | 10 | 15)}
+                                        options={INTERVIEW_LENGTH_OPTIONS}
                                     />
 
                                     {/* Resume Upload (Optional) */}
@@ -152,30 +166,6 @@ export default function PracticePage() {
                                                 </div>
                                             )}
                                         </div>
-                                    </div>
-                                </div>
-
-                                {/* Interview Length */}
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-medium text-zinc-700">Interview Length</label>
-                                    <div className="flex gap-2">
-                                        {[
-                                            { value: 5 as const, label: "Mini", desc: "5 questions" },
-                                            { value: 10 as const, label: "Full", desc: "10 questions" },
-                                            { value: 15 as const, label: "Extended", desc: "15 questions" },
-                                        ].map((opt) => (
-                                            <button
-                                                key={opt.value}
-                                                onClick={() => setInterviewLength(opt.value)}
-                                                className={`flex-1 cursor-pointer rounded-xl border px-3 py-2.5 text-center transition-all ${interviewLength === opt.value
-                                                        ? "border-zinc-900 bg-zinc-900 text-white shadow-sm"
-                                                        : "border-zinc-200 bg-zinc-50 text-zinc-700 hover:border-zinc-300 hover:bg-white"
-                                                    }`}
-                                            >
-                                                <p className="text-sm font-medium">{opt.label}</p>
-                                                <p className={`text-[11px] ${interviewLength === opt.value ? "text-white/60" : "text-zinc-400"}`}>{opt.desc}</p>
-                                            </button>
-                                        ))}
                                     </div>
                                 </div>
 

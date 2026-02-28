@@ -3,7 +3,8 @@
 import Link from "next/link";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
-import { motion } from "framer-motion";
+import PerformanceChart from "@/components/analytics/PerformanceChart";
+import CategoryBreakdown from "@/components/analytics/CategoryBreakdown";
 
 export default function AnalyticsPage() {
     // Mock analytics data (will come from DB)
@@ -73,63 +74,8 @@ export default function AnalyticsPage() {
                 </FadeInStagger>
 
                 <div className="grid gap-6 lg:grid-cols-2">
-                    {/* Weekly Score Chart */}
-                    <FadeIn delay={0.2} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-5 flex flex-col">
-                        <h3 className="mb-1 text-sm font-semibold text-zinc-900">Weekly Performance</h3>
-                        <p className="mb-2 text-xs text-zinc-400">Score trend this week</p>
-                        <div className="flex items-end gap-3 flex-1 min-h-[170px] pt-3 mt-1">
-                            {weeklyScores.map((d, i) => {
-                                return (
-                                    <div key={d.label} className="group flex flex-1 flex-col justify-end items-center gap-2 h-full">
-                                        <div className="relative flex-1 w-full flex items-end">
-                                            <motion.div
-                                                className="w-full relative rounded-md bg-zinc-200 transition-colors group-hover:bg-zinc-900 origin-bottom"
-                                                initial={{ height: "0%" }}
-                                                animate={{ height: `${Math.min(100, Math.max(4, d.value * 1.15))}%` }}
-                                                transition={{
-                                                    duration: 0.8,
-                                                    delay: 0.4 + (i * 0.1),
-                                                    ease: [0.21, 0.47, 0.32, 0.98],
-                                                }}
-                                            >
-                                                <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-[11px] font-medium text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100">
-                                                    {d.value}
-                                                </span>
-                                            </motion.div>
-                                        </div>
-                                        <span className="text-[10px] text-zinc-400">{d.label}</span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </FadeIn>
-
-                    {/* Category Breakdown */}
-                    <FadeIn delay={0.3} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-5">
-                        <h3 className="mb-1 text-sm font-semibold text-zinc-900">Category Breakdown</h3>
-                        <p className="mb-4 text-xs text-zinc-400">Performance by interview dimension</p>
-                        <div className="space-y-3">
-                            {categoryBreakdown.map((cat) => (
-                                <div key={cat.category} className="rounded-xl border border-zinc-100 p-3">
-                                    <div className="mb-1.5 flex items-center justify-between">
-                                        <span className="text-sm font-medium text-zinc-700">{cat.category}</span>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm font-semibold text-zinc-900">{cat.score}%</span>
-                                            <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${cat.score >= 80 ? "bg-emerald-100 text-emerald-700" : cat.score >= 70 ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
-                                                {cat.score >= 80 ? "Strong" : cat.score >= 70 ? "Steady" : "Improve"}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="h-2 w-full rounded-full bg-zinc-100">
-                                        <div
-                                            className={`h-full rounded-full transition-all duration-500 ${cat.score >= 80 ? "bg-emerald-500" : cat.score >= 70 ? "bg-blue-500" : "bg-amber-500"}`}
-                                            style={{ width: `${cat.score}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </FadeIn>
+                    <PerformanceChart weeklyScores={weeklyScores} delay={0.2} />
+                    <CategoryBreakdown categories={categoryBreakdown} delay={0.3} />
                 </div>
 
                 {/* Strengths & Weaknesses */}

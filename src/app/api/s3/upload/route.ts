@@ -50,10 +50,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Interview session not found" }, { status: 403 });
         }
 
-        // Use email as username identifier (everything before @ or the full email safe-stringified)
-        const username = session.user.email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "");
-
-        const key = `${username}/interview-${interviewId}.webm`;
+        const key = `${user.id}/interview-${interviewId}.webm`;
 
         const command = new PutObjectCommand({
             Bucket: process.env.S3_BUCKET_NAME!,

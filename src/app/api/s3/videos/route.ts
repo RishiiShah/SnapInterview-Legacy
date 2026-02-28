@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
+import { prisma } from "@/lib/prisma";
 import { S3Client, ListObjectsV2Command, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -19,8 +20,16 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const username = session.user.email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "");
-        const prefix = `${username}/`;
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email },
+            select: { id: true },
+        });
+
+        if (!user) {
+            return NextResponse.json({ error: "User not found" }, { status: 404 });
+        }
+
+        const prefix = `${user.id}/`;
 
         const listCommand = new ListObjectsV2Command({
             Bucket: process.env.S3_BUCKET_NAME!,
@@ -65,10 +74,25 @@ export async function GET() {
 
 export async function DELETE(req: Request) {
     try {
+        const origin = req.headers.get("origin");
+        const allowedOrigin = process.env.NEXTAUTH_URL || "http://localhost:3000";
+        if (!origin || origin !== allowedOrigin) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         const session = await getServerSession();
 
         if (!session || !session.user || !session.user.email) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email },
+            select: { id: true },
+        });
+
+        if (!user) {
+            return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
         const { key } = await req.json();
@@ -78,8 +102,7 @@ export async function DELETE(req: Request) {
         }
 
         // Ensure user can only delete their own videos
-        const username = session.user.email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "");
-        if (!key.startsWith(`${username}/`)) {
+        if (!key.startsWith(`${user.id}/`)) {
             return NextResponse.json({ error: "Unauthorized access to key" }, { status: 403 });
         }
 

@@ -2,7 +2,16 @@
 
 import type { RefObject } from "react";
 import { useState, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import type { MediaDeviceInfo } from "@/lib/useMediaPermissions";
+import {
+  IconCheckCircle,
+  IconMicrophoneOffSolid,
+  IconMicrophoneSolid,
+  IconSpinner,
+  IconVideoCamera,
+  IconVideoCameraOff,
+} from "@/components/ui/icons";
 
 export interface PermissionRequestProps {
   isOpen: boolean;
@@ -17,8 +26,15 @@ export interface PermissionRequestProps {
   videoInputs?: MediaDeviceInfo[];
   isMicEnabled?: boolean;
   isCameraEnabled?: boolean;
+  selectedAudioInputId?: string;
+  selectedAudioOutputId?: string;
+  selectedVideoInputId?: string;
+  selectAudioInput?: (deviceId: string) => void;
+  selectAudioOutput?: (deviceId: string) => void;
+  selectVideoInput?: (deviceId: string) => void;
   toggleMic?: () => void;
   toggleCamera?: () => void;
+  joinBlockedReason?: string | null;
   stream?: MediaStream | null;
 }
 
@@ -35,30 +51,58 @@ export default function PermissionRequest({
   videoInputs = [],
   isMicEnabled = true,
   isCameraEnabled = true,
+  selectedAudioInputId = "",
+  selectedAudioOutputId = "",
+  selectedVideoInputId = "",
+  selectAudioInput,
+  selectAudioOutput,
+  selectVideoInput,
   toggleMic,
   toggleCamera,
+  joinBlockedReason = null,
   stream,
 }: PermissionRequestProps) {
   const [audioLevels, setAudioLevels] = useState<[number, number, number]>([0, 0, 0]);
+  const [showCompatibilityPopup, setShowCompatibilityPopup] = useState(false);
+
+  const handleJoinNow = () => {
+    if (joinBlockedReason) {
+      setShowCompatibilityPopup(true);
+      return;
+    }
+
+    onPermissionsGranted();
+  };
 
   // Set up audio analyser for level visualization
   useEffect(() => {
     if (!stream || !isMicEnabled) {
-      setAudioLevels([0, 0, 0]);
       return;
     }
 
+    let animationId = 0;
+    let source: MediaStreamAudioSourceNode | null = null;
+    let analyser: AnalyserNode | null = null;
+    let audioContext: AudioContext | null = null;
+
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const analyser = audioContext.createAnalyser();
-      const source = audioContext.createMediaStreamSource(stream);
+      const LegacyWindow = window as unknown as Window & {
+        webkitAudioContext?: typeof AudioContext;
+      };
+      const AudioContextCtor = window.AudioContext ?? LegacyWindow.webkitAudioContext;
+      if (!AudioContextCtor) {
+        return;
+      }
+
+      audioContext = new AudioContextCtor();
+      analyser = audioContext.createAnalyser();
+      source = audioContext.createMediaStreamSource(stream);
       source.connect(analyser);
       analyser.fftSize = 256;
 
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
-      let animationId: number;
-
       const updateLevel = () => {
+        if (!analyser) return;
         analyser.getByteFrequencyData(dataArray);
 
         // Split frequencies into 3 buckets (low, mid, high)
@@ -86,19 +130,20 @@ export default function PermissionRequest({
 
       return () => {
         cancelAnimationFrame(animationId);
-        source.disconnect();
-        analyser.disconnect();
+        source?.disconnect();
+        analyser?.disconnect();
+        void audioContext?.close();
       };
+
     } catch (err) {
       console.error("Failed to set up audio analyser:", err);
+      return () => {
+        cancelAnimationFrame(animationId);
+        source?.disconnect();
+        analyser?.disconnect();
+        void audioContext?.close();
+      };
     }
-
-    // Cleanup: explicitly stop the stream tracks when unmounting the PermissionRequest
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
   }, [stream, isMicEnabled]);
 
   if (!isOpen) return null;
@@ -121,9 +166,7 @@ export default function PermissionRequest({
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-zinc-800">
               <div className="text-center px-4">
                 <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-700">
-                  <svg className="h-7 w-7 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
+                  <IconVideoCamera className="h-7 w-7 text-zinc-400" strokeWidth={1.5} />
                 </div>
                 {!hasPermission ? (
                   <>
@@ -151,10 +194,7 @@ export default function PermissionRequest({
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-zinc-800/90">
               <div className="flex items-center gap-2 rounded-lg bg-zinc-700 px-4 py-2">
-                <svg className="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+                <IconSpinner className="h-4 w-4 animate-spin text-white" />
                 <span className="text-sm text-white">Requesting access…</span>
               </div>
             </div>
@@ -196,13 +236,9 @@ export default function PermissionRequest({
                 title={isMicEnabled ? "Turn off microphone" : "Turn on microphone"}
               >
                 {isMicEnabled ? (
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
-                  </svg>
+                  <IconMicrophoneSolid className="h-5 w-5" />
                 ) : (
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
-                  </svg>
+                  <IconMicrophoneOffSolid className="h-5 w-5" />
                 )}
               </button>
 
@@ -216,13 +252,9 @@ export default function PermissionRequest({
                 title={isCameraEnabled ? "Turn off camera" : "Turn on camera"}
               >
                 {isCameraEnabled ? (
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
+                  <IconVideoCamera className="h-5 w-5" />
                 ) : (
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                  </svg>
+                  <IconVideoCameraOff className="h-5 w-5" />
                 )}
               </button>
             </div>
@@ -234,7 +266,8 @@ export default function PermissionRequest({
           <div className="flex justify-center gap-2">
             {/* Microphone dropdown */}
             <select
-              defaultValue={audioInputs[0]?.deviceId || ""}
+              value={selectedAudioInputId || audioInputs[0]?.deviceId || ""}
+              onChange={(event) => selectAudioInput?.(event.target.value)}
               className="w-32 truncate rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-2 text-sm text-zinc-700 focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-100 transition-all hover:border-zinc-300 hover:bg-zinc-100"
             >
               {audioInputs.length > 0 ? (
@@ -250,7 +283,8 @@ export default function PermissionRequest({
 
             {/* Speaker dropdown */}
             <select
-              defaultValue={audioOutputs[0]?.deviceId || ""}
+              value={selectedAudioOutputId || audioOutputs[0]?.deviceId || ""}
+              onChange={(event) => selectAudioOutput?.(event.target.value)}
               className="w-32 truncate rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-2 text-sm text-zinc-700 focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-100 transition-all hover:border-zinc-300 hover:bg-zinc-100"
             >
               {audioOutputs.length > 0 ? (
@@ -266,7 +300,8 @@ export default function PermissionRequest({
 
             {/* Camera dropdown */}
             <select
-              defaultValue={videoInputs[0]?.deviceId || ""}
+              value={selectedVideoInputId || videoInputs[0]?.deviceId || ""}
+              onChange={(event) => selectVideoInput?.(event.target.value)}
               className="w-32 truncate rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-2 text-sm text-zinc-700 focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-100 transition-all hover:border-zinc-300 hover:bg-zinc-100"
             >
               {videoInputs.length > 0 ? (
@@ -290,13 +325,59 @@ export default function PermissionRequest({
         <h2 className="text-center text-lg font-semibold text-zinc-900">Ready to join?</h2>
         <button
           type="button"
-          onClick={onPermissionsGranted}
+          onClick={handleJoinNow}
           disabled={hasPermission !== true}
           className="mt-6 w-full rounded-lg bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Join now
         </button>
       </div>
+
+      <AnimatePresence>
+        {showCompatibilityPopup && joinBlockedReason && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-zinc-900/40 backdrop-blur-sm"
+              onClick={() => setShowCompatibilityPopup(false)}
+            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                transition={{ type: "spring", duration: 0.3 }}
+                className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl shadow-zinc-900/10 ring-1 ring-zinc-200"
+              >
+                <div className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                      <IconCheckCircle className="h-5 w-5 text-amber-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-base font-semibold text-zinc-900">Browser not supported</h3>
+                      <p className="mt-2 text-sm text-zinc-600">{joinBlockedReason}</p>
+                      <p className="mt-2 text-sm text-zinc-600">
+                        Please use a compatible browser: <span className="font-medium text-zinc-900">Chrome, Safari, or Edge</span>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end bg-zinc-50 px-6 py-4">
+                  <button
+                    onClick={() => setShowCompatibilityPopup(false)}
+                    className="cursor-pointer rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-700"
+                  >
+                    Got it
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

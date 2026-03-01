@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import PermissionRequest, { type PermissionRequestProps } from "@/components/interview/PermissionRequest";
+import { IconArrowLeft } from "@/components/ui/icons";
 
 type PreJoinScreenProps = {
   onBack: () => void;
@@ -22,8 +23,15 @@ export default function PreJoinScreen({
   videoInputs,
   isMicEnabled,
   isCameraEnabled,
+  selectedAudioInputId,
+  selectedAudioOutputId,
+  selectedVideoInputId,
+  selectAudioInput,
+  selectAudioOutput,
+  selectVideoInput,
   toggleMic,
   toggleCamera,
+  joinBlockedReason,
   stream,
 }: PreJoinScreenProps) {
   return (
@@ -41,9 +49,7 @@ export default function PreJoinScreen({
             onClick={onBack}
             className="mb-4 flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:border-zinc-300"
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
+            <IconArrowLeft className="h-4 w-4" />
             Back
           </button>
         </div>
@@ -65,8 +71,15 @@ export default function PreJoinScreen({
           videoInputs={videoInputs}
           isMicEnabled={isMicEnabled}
           isCameraEnabled={isCameraEnabled}
+          selectedAudioInputId={selectedAudioInputId}
+          selectedAudioOutputId={selectedAudioOutputId}
+          selectedVideoInputId={selectedVideoInputId}
+          selectAudioInput={selectAudioInput}
+          selectAudioOutput={selectAudioOutput}
+          selectVideoInput={selectVideoInput}
           toggleMic={toggleMic}
           toggleCamera={toggleCamera}
+          joinBlockedReason={joinBlockedReason}
           stream={stream}
         />
       </div>

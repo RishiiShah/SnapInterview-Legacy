@@ -8,6 +8,7 @@ import SelectDropdown from "@/components/SelectDropdown";
 import { CATEGORIES, DIFFICULTIES, ROLES, COMPANIES } from "@/data/constants";
 import type { InterviewType, Difficulty } from "@/data/types";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
+import { IconCheckCircle, IconPlay, IconSpinner, IconUploadArrow, IconXMark } from "@/components/ui/icons";
 
 
 export default function PracticePage() {
@@ -136,9 +137,7 @@ export default function PracticePage() {
                                         <div className="flex h-[38px] items-center">
                                             {!resumeName ? (
                                                 <label className="flex h-full w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-4 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-white hover:text-zinc-900">
-                                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                                                    </svg>
+                                                    <IconUploadArrow className="h-4 w-4" />
                                                     Upload PDF
                                                     <input
                                                         type="file"
@@ -153,15 +152,11 @@ export default function PracticePage() {
                                             ) : (
                                                 <div className="flex w-full items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-700 hover:border-zinc-300">
                                                     <div className="flex items-center gap-2 overflow-hidden">
-                                                        <svg className="h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
+                                                        <IconCheckCircle className="h-4 w-4 shrink-0 text-emerald-500" strokeWidth={2} />
                                                         <span className="truncate max-w-[120px]">{resumeName}</span>
                                                     </div>
                                                     <button onClick={() => setResumeName("")} className="shrink-0 text-zinc-400 transition-colors hover:text-red-500 rounded-md p-1 hover:bg-red-50" title="Remove file">
-                                                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                        </svg>
+                                                        <IconXMark className="h-3.5 w-3.5" />
                                                     </button>
                                                 </div>
                                             )}
@@ -188,12 +183,12 @@ export default function PracticePage() {
                                 className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-zinc-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
                                 {started ? (
                                     <>
-                                        <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                                        <IconSpinner className="h-4 w-4 animate-spin" />
                                         Preparing interview…
                                     </>
                                 ) : (
                                     <>
-                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" /></svg>
+                                        <IconPlay className="h-4 w-4" />
                                         Start Interview
                                     </>
                                 )}

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { z } from "zod/v4";
 
 const verifySchema = z.object({
@@ -14,12 +15,8 @@ const LOCKOUT_MS = 15 * 60 * 1000; // 15 mins
 
 export async function POST(req: Request) {
     try {
-        // CSRF protection
-        const origin = req.headers.get("origin");
-        const allowedOrigin = process.env.NEXTAUTH_URL || "http://localhost:3000";
-        if (!origin || origin !== allowedOrigin) {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
+        const csrfError = csrfRejectIfInvalid(req);
+        if (csrfError) return csrfError;
 
         const body = await req.json();
         const result = verifySchema.safeParse(body);

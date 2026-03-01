@@ -7,6 +7,20 @@ import DashboardShell from "@/components/dashboard/DashboardShell";
 import { CATEGORIES } from "@/data/constants";
 import { getQuestionBySlug, QUESTIONS } from "@/data/questions";
 import type { Difficulty, InterviewType } from "@/data/types";
+import {
+    IconAcademicCap,
+    IconArrowLeft,
+    IconCheckCircle,
+    IconChartBars,
+    IconChevronRight,
+    IconChevronUp,
+    IconClock,
+    IconLightBulb,
+    IconPencilSquare,
+    IconPlay,
+    IconSpinner,
+    IconTag,
+} from "@/components/ui/icons";
 
 /* ── Tabs on the left panel ── */
 type LeftTab = "description" | "solutions";
@@ -27,6 +41,9 @@ export default function QuestionDetailPage() {
     const [isTimerStarted, setIsTimerStarted] = useState(false);
     const [score, setScore] = useState<{ score: number; feedback: string; state: "evaluating" | "completed" } | null>(null);
     const [rightTab, setRightTab] = useState<"answer" | "result">("answer");
+    const [isSolved, setIsSolved] = useState(false);
+    const [isSolveUpdating, setIsSolveUpdating] = useState(false);
+    const [solveError, setSolveError] = useState<string | null>(null);
 
     /* ── Navigation ── */
     const currentIndex = question ? QUESTIONS.findIndex((q) => q.id === question.id) : -1;
@@ -43,6 +60,79 @@ export default function QuestionDetailPage() {
         ({ easy: "Easy", medium: "Medium", hard: "Hard" })[d];
     const catInfo = (c: InterviewType) => CATEGORIES.find((x) => x.value === c);
 
+    const evaluateAnswer = useCallback(async () => {
+        if (!question) return;
+
+        setIsTimerRunning(false);
+        setScore({ score: 0, feedback: "", state: "evaluating" });
+        setRightTab("result");
+
+        try {
+            const res = await fetch("/api/questions/evaluate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ questionId: question.id, answer: answerText }),
+            });
+
+            if (!res.ok) {
+                const fallbackFeedback =
+                    answerText.trim().length > 20
+                        ? "Your answer was captured, but evaluation failed. Please try submitting again."
+                        : "Please provide a more detailed answer and try again.";
+
+                setScore({
+                    score: 0,
+                    state: "completed",
+                    feedback: fallbackFeedback,
+                });
+                return;
+            }
+
+            const data = await res.json();
+            setScore({
+                score: typeof data?.score === "number" ? data.score : 0,
+                feedback:
+                    typeof data?.feedback === "string" && data.feedback.length > 0
+                        ? data.feedback
+                        : "Evaluation completed.",
+                state: "completed",
+            });
+        } catch {
+            setScore({
+                score: 0,
+                state: "completed",
+                feedback: "Evaluation failed due to a network error. Please try again.",
+            });
+        }
+    }, [answerText, question]);
+
+    const handleToggleSolved = useCallback(async () => {
+        if (!question || isSolveUpdating) return;
+
+        setSolveError(null);
+        setIsSolveUpdating(true);
+
+        try {
+            const res = await fetch("/api/questions/solve", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ questionId: question.id }),
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                setSolveError(typeof data?.error === "string" ? data.error : "Failed to update solved state.");
+                return;
+            }
+
+            setIsSolved(Boolean(data?.solved));
+        } catch {
+            setSolveError("Failed to update solved state.");
+        } finally {
+            setIsSolveUpdating(false);
+        }
+    }, [isSolveUpdating, question]);
+
     /* ── Timer ── */
     useEffect(() => {
         if (!isTimerRunning || timeRemaining <= 0) return;
@@ -51,23 +141,43 @@ export default function QuestionDetailPage() {
                 const n = Math.max(0, p - 1);
                 if (n === 0) {
                     setIsTimerRunning(false);
-                    setScore({ score: 0, feedback: "", state: "evaluating" });
-                    setTimeout(() => {
-                        const s = answerText.trim().length > 10 ? Math.floor(Math.random() * 30) + 70 : Math.floor(Math.random() * 40) + 30;
-                        setScore({
-                            score: s, state: "completed",
-                            feedback: answerText.trim().length > 10
-                                ? "Good response. Consider using the STAR method for more structure and quantifying your impact."
-                                : "Your response was quite short. Try adding more details, examples, and structure.",
-                        });
-                        setRightTab("result");
-                    }, 2000);
+                    void evaluateAnswer();
                 }
                 return n;
             });
         }, 1000);
         return () => clearInterval(t);
-    }, [isTimerRunning, timeRemaining, answerText]);
+    }, [evaluateAnswer, isTimerRunning, timeRemaining]);
+
+    useEffect(() => {
+        if (!question) return;
+
+        let isCancelled = false;
+
+        const loadSolvedState = async () => {
+            try {
+                const res = await fetch("/api/questions/solve", { method: "GET" });
+                if (!res.ok || isCancelled) return;
+                const data = await res.json();
+                const solvedIds: number[] = Array.isArray(data?.solvedQuestionIds)
+                    ? data.solvedQuestionIds.filter((value: unknown): value is number => typeof value === "number")
+                    : [];
+                if (!isCancelled) {
+                    setIsSolved(solvedIds.includes(question.id));
+                }
+            } catch {
+                if (!isCancelled) {
+                    setSolveError("Unable to load solved status.");
+                }
+            }
+        };
+
+        void loadSolvedState();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [question]);
 
     const handleStart = useCallback(() => {
         if (!question) return;
@@ -81,27 +191,7 @@ export default function QuestionDetailPage() {
     }, [question]);
 
     const handleSubmit = () => {
-        setIsTimerRunning(false);
-        setScore({ score: 0, feedback: "", state: "evaluating" });
-        setRightTab("result");
-        setTimeout(() => {
-            const s = answerText.trim().length > 10 ? Math.floor(Math.random() * 30) + 70 : Math.floor(Math.random() * 40) + 30;
-            setScore({
-                score: s, state: "completed",
-                feedback: answerText.trim().length > 10
-                    ? "Good response. Consider using the STAR method for more structure and quantifying your impact."
-                    : "Your response was quite short. Try adding more details, examples, and structure.",
-            });
-            // Persist solved status
-            if (question) {
-                try {
-                    const solved: number[] = JSON.parse(localStorage.getItem("solvedQuestions") || "[]");
-                    if (!solved.includes(question.id)) {
-                        localStorage.setItem("solvedQuestions", JSON.stringify([...solved, question.id]));
-                    }
-                } catch { /* ignore */ }
-            }
-        }, 2000);
+        void evaluateAnswer();
     };
 
     /* ── 404 ── */
@@ -127,22 +217,20 @@ export default function QuestionDetailPage() {
                 <div className="flex h-10 shrink-0 items-center justify-between border-b border-[#ffffff0f] px-4">
                     <div className="flex items-center gap-3">
                         <Link href="/questions" className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 transition-colors hover:text-white">
-                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                            </svg>
+                            <IconArrowLeft className="h-3.5 w-3.5" />
                             Problem List
                         </Link>
                     </div>
                     <div className="flex items-center gap-2">
                         {prevQuestion && (
                             <Link href={`/questions/${prevQuestion.slug}`} className="grid h-7 w-7 place-items-center rounded text-zinc-400 transition-colors hover:bg-[#ffffff0f] hover:text-white">
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+                                <IconArrowLeft className="h-4 w-4" />
                             </Link>
                         )}
                         <span className="text-xs text-zinc-500">{currentIndex + 1} / {QUESTIONS.length}</span>
                         {nextQuestion && (
                             <Link href={`/questions/${nextQuestion.slug}`} className="grid h-7 w-7 place-items-center rounded text-zinc-400 transition-colors hover:bg-[#ffffff0f] hover:text-white">
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                                <IconChevronRight className="h-4 w-4" />
                             </Link>
                         )}
                     </div>
@@ -197,6 +285,22 @@ export default function QuestionDetailPage() {
                                             <strong className="text-zinc-200">Estimated Time:</strong>{" "}
                                             <span className="text-zinc-300">{question.estimatedTime}</span>
                                         </p>
+                                        <div className="pt-1">
+                                            <button
+                                                onClick={() => {
+                                                    void handleToggleSolved();
+                                                }}
+                                                disabled={isSolveUpdating}
+                                                className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${isSolved
+                                                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15"
+                                                    : "border-zinc-600 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                                                    } disabled:opacity-60 disabled:cursor-not-allowed`}
+                                            >
+                                                <IconCheckCircle className="h-3.5 w-3.5" />
+                                                {isSolveUpdating ? "Updating..." : isSolved ? "Solved" : "Mark as Solved"}
+                                            </button>
+                                            {solveError && <p className="mt-2 text-xs text-red-400">{solveError}</p>}
+                                        </div>
                                     </div>
 
                                     {/* Divider */}
@@ -208,15 +312,10 @@ export default function QuestionDetailPage() {
                                         className="flex w-full items-center justify-between py-1 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
                                     >
                                         <span className="flex items-center gap-2">
-                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
-                                            </svg>
+                                            <IconTag className="h-4 w-4" />
                                             Topics
                                         </span>
-                                        <svg className={`h-4 w-4 transition-transform ${showTopics ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                                        </svg>
+                                        <IconChevronUp className={`h-4 w-4 transition-transform ${showTopics ? "rotate-180" : ""}`} />
                                     </button>
                                     {showTopics && (
                                         <div className="flex flex-wrap gap-2">
@@ -236,14 +335,10 @@ export default function QuestionDetailPage() {
                                                 className="flex w-full items-center justify-between py-1 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
                                             >
                                                 <span className="flex items-center gap-2">
-                                                    <svg className="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
-                                                    </svg>
+                                                    <IconLightBulb className="h-4 w-4 text-amber-400" />
                                                     Hint
                                                 </span>
-                                                <svg className={`h-4 w-4 transition-transform ${showHint ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                                                </svg>
+                                                <IconChevronUp className={`h-4 w-4 transition-transform ${showHint ? "rotate-180" : ""}`} />
                                             </button>
                                             {showHint && (
                                                 <p className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-4 py-3 text-sm text-amber-200 leading-relaxed">
@@ -261,14 +356,10 @@ export default function QuestionDetailPage() {
                                                 className="flex w-full items-center justify-between py-1 text-sm font-medium text-emerald-400 transition-colors hover:text-emerald-300"
                                             >
                                                 <span className="flex items-center gap-2">
-                                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342" />
-                                                    </svg>
+                                                    <IconAcademicCap className="h-4 w-4" />
                                                     Sample Answer
                                                 </span>
-                                                <svg className={`h-4 w-4 transition-transform ${showSample ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                                                </svg>
+                                                <IconChevronUp className={`h-4 w-4 transition-transform ${showSample ? "rotate-180" : ""}`} />
                                             </button>
                                             {showSample && (
                                                 <p className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 text-sm text-emerald-200 leading-relaxed">
@@ -282,9 +373,7 @@ export default function QuestionDetailPage() {
                                 /* Solutions tab */
                                 <div className="flex flex-col items-center justify-center py-16 text-center">
                                     <div className="mb-3 grid h-12 w-12 place-items-center rounded-xl bg-[#ffffff0a] text-zinc-500">
-                                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
-                                        </svg>
+                                        <IconLightBulb className="h-6 w-6" />
                                     </div>
                                     <p className="text-sm text-zinc-400">Community solutions coming soon.</p>
                                     <p className="mt-1 text-xs text-zinc-600">Practice this question and build your own approach.</p>
@@ -299,18 +388,14 @@ export default function QuestionDetailPage() {
                         <div className="flex shrink-0 items-center justify-between border-b border-[#ffffff0f] px-4 py-0">
                             <div className="flex items-center gap-1">
                                 <span className="flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium text-white">
-                                    <svg className="h-3.5 w-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                                    </svg>
+                                    <IconPencilSquare className="h-3.5 w-3.5 text-emerald-400" />
                                     Your Answer
                                 </span>
                             </div>
                             {isTimerStarted && (
                                 <div className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-mono font-semibold ${timeRemaining <= 60 ? "bg-red-500/20 text-red-400" : "text-zinc-400"
                                     }`}>
-                                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                                    <IconClock className="h-3.5 w-3.5" strokeWidth={2} />
                                     {formatTime(timeRemaining)}
                                 </div>
                             )}
@@ -322,9 +407,7 @@ export default function QuestionDetailPage() {
                                 /* Start state */
                                 <div className="flex flex-1 flex-col items-center justify-center text-center px-8">
                                     <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#ffffff08] text-zinc-500">
-                                        <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" />
-                                        </svg>
+                                        <IconPlay className="h-7 w-7" strokeWidth={1.5} />
                                     </div>
                                     <p className="mb-1 text-sm font-medium text-zinc-300">Ready to practice?</p>
                                     <p className="mb-5 text-xs text-zinc-500">
@@ -377,9 +460,7 @@ export default function QuestionDetailPage() {
                                                     : "border-transparent text-zinc-500 hover:text-zinc-300"
                                                     }`}
                                             >
-                                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
-                                                </svg>
+                                                <IconChartBars className="h-3.5 w-3.5" strokeWidth={2} />
                                                 Result
                                             </button>
                                         </div>
@@ -410,10 +491,7 @@ export default function QuestionDetailPage() {
                                                         <p className="py-4 text-center text-sm text-zinc-500">Submit your answer first.</p>
                                                     ) : score.state === "evaluating" ? (
                                                         <div className="flex items-center gap-3 py-4 text-sm text-blue-400 font-medium animate-pulse">
-                                                            <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
-                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                                            </svg>
+                                                            <IconSpinner className="h-5 w-5 animate-spin" />
                                                             Evaluating your answer…
                                                         </div>
                                                     ) : (

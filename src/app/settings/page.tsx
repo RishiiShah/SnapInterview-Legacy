@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { getInitials } from "@/utils/helpers";
 import { FadeIn, SlideIn } from "@/components/ui/motion";
 import ProfileTab from "@/components/settings/ProfileTab";
 import PasswordTab from "@/components/settings/PasswordTab";
-import NotificationsTab from "@/components/settings/NotificationsTab";
+import NotificationsTab, { type NotificationPrefs } from "@/components/settings/NotificationsTab";
 import DangerZoneTab from "@/components/settings/DangerZoneTab";
 
 const tabs = [
@@ -55,9 +55,62 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"];
 
+const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
+  emailNotifs: true,
+  practiceReminders: true,
+  weeklyReport: true,
+  scoreAlerts: false,
+};
+
+function normalizePrefs(value: unknown): NotificationPrefs {
+  if (!value || typeof value !== "object") return DEFAULT_NOTIFICATION_PREFS;
+
+  const prefs = value as Partial<NotificationPrefs>;
+  if (
+    typeof prefs.emailNotifs !== "boolean" ||
+    typeof prefs.practiceReminders !== "boolean" ||
+    typeof prefs.weeklyReport !== "boolean" ||
+    typeof prefs.scoreAlerts !== "boolean"
+  ) {
+    return DEFAULT_NOTIFICATION_PREFS;
+  }
+
+  return {
+    emailNotifs: prefs.emailNotifs,
+    practiceReminders: prefs.practiceReminders,
+    weeklyReport: prefs.weeklyReport,
+    scoreAlerts: prefs.scoreAlerts,
+  };
+}
+
 export default function SettingsPage() {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<TabId>("profile");
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>(DEFAULT_NOTIFICATION_PREFS);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadNotificationPrefs = async () => {
+      try {
+        const res = await fetch("/api/settings/notifications", { method: "GET" });
+        if (!res.ok || isCancelled) return;
+
+        const data = await res.json();
+        if (!isCancelled) {
+          setNotificationPrefs(normalizePrefs(data?.notificationPrefs));
+        }
+      } catch {
+        // Keep defaults when fetch fails.
+      }
+    };
+
+    void loadNotificationPrefs();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   const userName = session?.user?.name || "";
   const userEmail = session?.user?.email || "";
@@ -109,7 +162,7 @@ export default function SettingsPage() {
                 <ProfileTab userName={userName} userEmail={userEmail} userImage={userImage} initials={initials} />
               )}
               {activeTab === "password" && <PasswordTab />}
-              {activeTab === "notifications" && <NotificationsTab />}
+              {activeTab === "notifications" && <NotificationsTab initialPrefs={notificationPrefs} />}
               {activeTab === "danger" && <DangerZoneTab />}
             </div>
           </div>

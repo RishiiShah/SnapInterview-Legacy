@@ -1,33 +1,34 @@
-"use client";
-
 import Link from "next/link";
+import { getServerSession } from "next-auth/next";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 import PerformanceChart from "@/components/analytics/PerformanceChart";
 import CategoryBreakdown from "@/components/analytics/CategoryBreakdown";
+import { IconArrowRight } from "@/components/ui/icons";
+import { getAnalyticsOverviewData } from "@/lib/interview/metrics";
 
-export default function AnalyticsPage() {
-    // Mock analytics data (will come from DB)
-    const weeklyScores = [
-        { label: "Mon", value: 72 }, { label: "Tue", value: 85 }, { label: "Wed", value: 68 },
-        { label: "Thu", value: 90 }, { label: "Fri", value: 78 }, { label: "Sat", value: 82 },
-        { label: "Sun", value: 88 },
-    ];
+export default async function AnalyticsPage() {
+    const session = await getServerSession();
+    const email = session?.user?.email || "";
 
-    const monthlyComparison = [
-        { label: "This Month", interviews: 12, avgScore: 82, hours: 8.5 },
-        { label: "Last Month", interviews: 9, avgScore: 74, hours: 6.2 },
-    ];
-
-    const categoryBreakdown = [
-        { category: "Behavioral", score: 85 },
-        { category: "Technical", score: 72 },
-        { category: "System Design", score: 68 },
-        { category: "Leadership", score: 90 },
-    ];
-
-    const strengths = ["Communication clarity", "STAR method structure", "Leadership examples"];
-    const improvements = ["System scalability", "Time complexity analysis", "Edge case handling"];
+    const {
+        weeklyScores,
+        monthlyComparison,
+        categoryBreakdown,
+        strengths,
+        improvements,
+    } = email
+        ? await getAnalyticsOverviewData(email)
+        : {
+            weeklyScores: [],
+            monthlyComparison: [
+                { label: "This Month", interviews: 0, avgScore: 0, hours: 0 },
+                { label: "Last Month", interviews: 0, avgScore: 0, hours: 0 },
+            ],
+            categoryBreakdown: [],
+            strengths: ["Communication clarity", "STAR method structure", "Leadership examples"],
+            improvements: ["System scalability", "Time complexity analysis", "Edge case handling"],
+        };
 
     return (
         <DashboardShell>
@@ -43,9 +44,7 @@ export default function AnalyticsPage() {
                             className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50"
                         >
                             View Recordings
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                            </svg>
+                            <IconArrowRight className="h-4 w-4" />
                         </Link>
                     </div>
                 </SlideIn>

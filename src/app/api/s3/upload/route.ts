@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { prisma } from "@/lib/prisma";
+import { csrfRejectIfInvalid } from "@/lib/csrf";
 
 const s3Client = new S3Client({
     region: process.env.AWS_REGION!,
@@ -14,12 +15,8 @@ const s3Client = new S3Client({
 
 export async function POST(req: Request) {
     try {
-        // CSRF protection
-        const origin = req.headers.get("origin");
-        const allowedOrigin = process.env.NEXTAUTH_URL || "http://localhost:3000";
-        if (!origin || origin !== allowedOrigin) {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
+        const csrfError = csrfRejectIfInvalid(req);
+        if (csrfError) return csrfError;
 
         const session = await getServerSession();
 

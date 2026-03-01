@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
+import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { S3Client, ListObjectsV2Command, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -74,11 +75,8 @@ export async function GET() {
 
 export async function DELETE(req: Request) {
     try {
-        const origin = req.headers.get("origin");
-        const allowedOrigin = process.env.NEXTAUTH_URL || "http://localhost:3000";
-        if (!origin || origin !== allowedOrigin) {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
+        const csrfError = csrfRejectIfInvalid(req);
+        if (csrfError) return csrfError;
 
         const session = await getServerSession();
 

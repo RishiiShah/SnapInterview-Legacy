@@ -11,6 +11,39 @@ import { useVideoRecording } from "@/hooks/useVideoRecording";
 import { useChatSession } from "@/hooks/useChatSession";
 import { finalizeInterviewUpload, type InterviewCompletionStatus } from "@/lib/video/upload-service";
 
+type BraveNavigator = Navigator & {
+  brave?: {
+    isBrave?: () => Promise<boolean>;
+  };
+};
+
+async function getInterviewBlockReason(): Promise<string | null> {
+  if (typeof navigator === "undefined") return null;
+
+  const userAgent = navigator.userAgent.toLowerCase();
+  if (userAgent.includes("firefox")) {
+    return "Firefox is currently not supported for starting interviews.";
+  }
+
+  const braveNavigator = navigator as BraveNavigator;
+  try {
+    if (typeof braveNavigator.brave?.isBrave === "function") {
+      const isBrave = await braveNavigator.brave.isBrave();
+      if (isBrave) {
+        return "Brave is currently not supported for starting interviews.";
+      }
+    }
+  } catch {
+    // Ignore Brave detection errors and continue.
+  }
+
+  if (userAgent.includes("brave")) {
+    return "Brave is currently not supported for starting interviews.";
+  }
+
+  return null;
+}
+
 export default function InterviewPage() {
   const params = useParams();
   const router = useRouter();
@@ -22,6 +55,7 @@ export default function InterviewPage() {
   const [nativeShareStopped, setNativeShareStopped] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [totalQuestions, setTotalQuestions] = useState(10);
+  const [joinBlockedReason, setJoinBlockedReason] = useState<string | null>(null);
 
   const interviewDoneRef = useRef(false);
   const isExitingRef = useRef(false);
@@ -35,6 +69,8 @@ export default function InterviewPage() {
     interimTranscript,
     volatileTranscript,
     finalTranscriptBlock,
+    speechError,
+    hasSupport: hasSpeechSupport,
   } = useSpeechRecognition();
 
   const {
@@ -62,6 +98,12 @@ export default function InterviewPage() {
     videoInputs,
     isMicEnabled,
     isCameraEnabled,
+    selectedAudioInputId,
+    selectedAudioOutputId,
+    selectedVideoInputId,
+    selectAudioInput,
+    selectAudioOutput,
+    selectVideoInput,
     toggleMic,
     toggleCamera,
   } = useMediaPermissions();
@@ -73,10 +115,33 @@ export default function InterviewPage() {
   });
 
   useEffect(() => {
+    let isCancelled = false;
+
+    const detectUnsupportedBrowser = async () => {
+      const reason = await getInterviewBlockReason();
+      if (!isCancelled) {
+        setJoinBlockedReason(reason);
+      }
+    };
+
+    void detectUnsupportedBrowser();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     interviewDoneRef.current = interviewDone;
   }, [interviewDone]);
 
   const handlePermissionsGranted = async () => {
+    const blockReason = await getInterviewBlockReason();
+    if (blockReason) {
+      setJoinBlockedReason(blockReason);
+      return;
+    }
+
     const started = await startScreenRecording(stream || undefined);
     if (!started) {
       alert("Please allow screen recording to start the interview.");
@@ -192,8 +257,15 @@ export default function InterviewPage() {
           videoInputs={videoInputs}
           isMicEnabled={isMicEnabled}
           isCameraEnabled={isCameraEnabled}
+          selectedAudioInputId={selectedAudioInputId}
+          selectedAudioOutputId={selectedAudioOutputId}
+          selectedVideoInputId={selectedVideoInputId}
+          selectAudioInput={selectAudioInput}
+          selectAudioOutput={selectAudioOutput}
+          selectVideoInput={selectVideoInput}
           toggleMic={toggleMic}
           toggleCamera={toggleCamera}
+          joinBlockedReason={joinBlockedReason}
           stream={stream}
         />
       )}
@@ -226,6 +298,8 @@ export default function InterviewPage() {
           isMicEnabled={isMicEnabled}
           isCameraEnabled={isCameraEnabled}
           isRecording={isRecording}
+          hasSpeechSupport={hasSpeechSupport}
+          speechError={speechError}
           toggleMic={toggleMic}
           toggleCamera={toggleCamera}
           toggleRecording={toggleRecording}

@@ -4,6 +4,14 @@ import Link from "next/link";
 import { getScoreColor, getScoreLabel } from "@/utils/helpers";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 import { motion } from "framer-motion";
+import {
+  IconBookOpen,
+  IconCheckCircle,
+  IconClock,
+  IconFlame,
+  IconPlus,
+  IconStarBurst,
+} from "@/components/ui/icons";
 
 type StatItem = {
   label: string;
@@ -14,7 +22,7 @@ type StatItem = {
 };
 
 type SessionItem = {
-  id: number;
+  id: string;
   role: string;
   company: string;
   score: number;
@@ -37,18 +45,18 @@ type DashboardOverviewClientProps = {
 
 function renderStatIcon(iconKey: StatItem["iconKey"]) {
   if (iconKey === "completed") {
-    return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+    return <IconCheckCircle className="h-5 w-5" />;
   }
 
   if (iconKey === "average") {
-    return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.562.562 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" /></svg>;
+    return <IconStarBurst className="h-5 w-5" />;
   }
 
   if (iconKey === "hours") {
-    return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+    return <IconClock className="h-5 w-5" />;
   }
 
-  return <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.047 8.287 8.287 0 009 9.601a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 00.495-7.468 5.99 5.99 0 00-1.925 3.547 5.975 5.975 0 01-2.133-1.001A3.75 3.75 0 0012 18z" /></svg>;
+  return <IconFlame className="h-5 w-5" />;
 }
 
 export default function DashboardOverviewClient({
@@ -88,11 +96,11 @@ export default function DashboardOverviewClient({
       <SlideIn delay={0.2}>
         <div className="flex flex-wrap gap-3 py-1">
           <Link href="/practice" className="flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-zinc-700 hover:shadow-lg hover:-translate-y-0.5">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            <IconPlus className="h-4 w-4" />
             Start New Interview
           </Link>
           <Link href="/questions" className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-5 py-2 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:-translate-y-0.5">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+            <IconBookOpen className="h-4 w-4" />
             Browse Questions
           </Link>
         </div>

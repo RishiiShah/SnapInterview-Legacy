@@ -5,6 +5,7 @@ import { INTERVIEW_DONE_MESSAGE } from "@/lib/interview/constants";
 import { sanitizeChatMessages } from "@/lib/interview/chat-messages";
 import { buildSystemInstruction } from "@/lib/interview/prompts";
 import { saveLatestTranscriptEntry } from "@/lib/interview/transcript-service";
+import { validateRequestOrigin } from "@/lib/csrf";
 
 // Initialize Groq (requires GROQ_API_KEY in .env)
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -12,9 +13,8 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 export async function POST(req: Request) {
     try {
         // 0. CSRF protection
-        const origin = req.headers.get('origin');
-        const allowedOrigin = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-        if (!origin || origin !== allowedOrigin) {
+        const { isValid } = validateRequestOrigin(req);
+        if (!isValid) {
             return new Response(JSON.stringify({ error: 'Forbidden' }), {
                 status: 403,
                 headers: { 'Content-Type': 'application/json' },

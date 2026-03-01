@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
+import { csrfRejectIfInvalid } from "@/lib/csrf";
 
 export async function DELETE(req: Request) {
     try {
-        // CSRF protection: validate Origin header
-        const origin = req.headers.get("origin");
-        const allowedOrigin = process.env.NEXTAUTH_URL || "http://localhost:3000";
-        if (!origin || origin !== allowedOrigin) {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-        }
+        const csrfError = csrfRejectIfInvalid(req);
+        if (csrfError) return csrfError;
 
         const session = await getServerSession();
         if (!session?.user?.email) {

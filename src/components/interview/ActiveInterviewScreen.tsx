@@ -1,4 +1,10 @@
 import { motion } from "framer-motion";
+import {
+  IconMicrophoneOffSolid,
+  IconMicrophoneSolid,
+  IconVideoCamera,
+  IconVideoCameraOff,
+} from "@/components/ui/icons";
 
 type ChatMessage = {
   role: "ai" | "user";
@@ -26,6 +32,8 @@ type ActiveInterviewScreenProps = {
   isMicEnabled: boolean;
   isCameraEnabled: boolean;
   isRecording: boolean;
+  hasSpeechSupport: boolean;
+  speechError: string | null;
   toggleMic: () => void;
   toggleCamera: () => void;
   toggleRecording: () => void;
@@ -51,6 +59,8 @@ export default function ActiveInterviewScreen({
   isMicEnabled,
   isCameraEnabled,
   isRecording,
+  hasSpeechSupport,
+  speechError,
   toggleMic,
   toggleCamera,
   toggleRecording,
@@ -158,9 +168,9 @@ export default function ActiveInterviewScreen({
                 }`}
             >
               {hasPermission && isMicEnabled ? (
-                <svg className="h-[22px] w-[22px] translate-y-[-1px]" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" /></svg>
+                <IconMicrophoneSolid className="h-[22px] w-[22px] translate-y-[-1px]" />
               ) : (
-                <svg className="h-[22px] w-[22px] translate-y-[-1px]" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" /></svg>
+                <IconMicrophoneOffSolid className="h-[22px] w-[22px] translate-y-[-1px]" />
               )}
             </button>
             <button
@@ -171,26 +181,30 @@ export default function ActiveInterviewScreen({
                 }`}
             >
               {hasPermission && isCameraEnabled ? (
-                <svg className="h-[22px] w-[22px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
+                <IconVideoCamera className="h-[22px] w-[22px]" />
               ) : (
-                <svg className="h-[22px] w-[22px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                </svg>
+                <IconVideoCameraOff className="h-[22px] w-[22px]" />
               )}
             </button>
             <button
               onClick={toggleRecording}
+              disabled={!hasSpeechSupport}
               className={`flex items-center gap-3 rounded-[20px] shadow-lg border px-5 py-3.5 text-xs font-semibold tracking-wide transition-colors ${isRecording
                 ? 'border-zinc-700 bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700'
-                : 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700 ring-2 ring-blue-500/20'
-                }`}
+                : 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700 ring-2 ring-blue-500/20'} ${!hasSpeechSupport
+                ? 'cursor-not-allowed border-zinc-700 bg-zinc-800 text-zinc-500 ring-0 hover:bg-zinc-800'
+                : ''}`}
+              title={!hasSpeechSupport ? 'Speech recognition is unavailable in this browser.' : undefined}
             >
               <div className={`h-2.5 w-2.5 rounded-[2px] ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-white rounded-full'}`} />
-              {isRecording ? 'Stop Speaking (Space)' : 'Start Speaking'}
+              {isRecording ? 'Stop Speaking (Space)' : hasSpeechSupport ? 'Start Speaking' : 'Speech Unavailable'}
             </button>
           </div>
+          {speechError && (
+            <p className="text-center text-xs text-amber-300 max-w-xl">
+              {speechError}
+            </p>
+          )}
         </div>
       </div>
     </motion.div>

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AuthSidePanel } from "@/components/auth/AuthSidePanel";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { SubmitButton } from "@/components/auth/SubmitButton";
+import { IconCheckCircle, IconEnvelope, IconLockClosed } from "@/components/ui/icons";
 
 const OTP_LENGTH = 6;
 
@@ -182,9 +183,7 @@ export default function ForgotPasswordPage() {
                     {step === "email" && (
                         <>
                             <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-zinc-100">
-                                <svg className="h-7 w-7 text-zinc-700" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                                </svg>
+                                <IconLockClosed className="h-7 w-7 text-zinc-700" />
                             </div>
 
                             <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
@@ -229,9 +228,7 @@ export default function ForgotPasswordPage() {
                     {step === "otp" && (
                         <>
                             <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-zinc-100">
-                                <svg className="h-7 w-7 text-zinc-700" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-                                </svg>
+                                <IconEnvelope className="h-7 w-7 text-zinc-700" />
                             </div>
 
                             <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
@@ -319,9 +316,7 @@ export default function ForgotPasswordPage() {
                     {step === "done" && (
                         <div className="text-center">
                             <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-emerald-100">
-                                <svg className="h-7 w-7 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                                </svg>
+                                <IconCheckCircle className="h-7 w-7 text-emerald-600" strokeWidth={2} />
                             </div>
                             <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
                                 Password reset!

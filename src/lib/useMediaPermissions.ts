@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface MediaDeviceInfo {
   deviceId: string;
@@ -19,6 +19,12 @@ interface UseMediaPermissionsReturn {
   videoInputs: MediaDeviceInfo[];
   isMicEnabled: boolean;
   isCameraEnabled: boolean;
+  selectedAudioInputId: string;
+  selectedAudioOutputId: string;
+  selectedVideoInputId: string;
+  selectAudioInput: (deviceId: string) => void;
+  selectAudioOutput: (deviceId: string) => void;
+  selectVideoInput: (deviceId: string) => void;
   toggleMic: () => void;
   toggleCamera: () => void;
 }
@@ -33,6 +39,9 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
   const [videoInputs, setVideoInputs] = useState<MediaDeviceInfo[]>([]);
   const [isMicEnabled, setIsMicEnabled] = useState(true);
   const [isCameraEnabled, setIsCameraEnabled] = useState(true);
+  const [selectedAudioInputId, setSelectedAudioInputId] = useState("");
+  const [selectedAudioOutputId, setSelectedAudioOutputId] = useState("");
+  const [selectedVideoInputId, setSelectedVideoInputId] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -41,16 +50,112 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
     streamRef.current = s;
   };
 
+  const stopTracks = (targetStream: MediaStream | null) => {
+    if (!targetStream) return;
+    targetStream.getTracks().forEach((track) => {
+      track.stop();
+      track.enabled = false;
+    });
+  };
+
+  const buildConstraints = (withVideo: boolean, withAudio: boolean): MediaStreamConstraints => ({
+    audio: withAudio
+      ? (selectedAudioInputId
+        ? { deviceId: { exact: selectedAudioInputId } }
+        : true)
+      : false,
+    video: withVideo
+      ? (selectedVideoInputId
+        ? { deviceId: { exact: selectedVideoInputId } }
+        : { facingMode: "user" })
+      : false,
+  });
+
+  const attachStreamToVideo = (mediaStream: MediaStream | null) => {
+    if (!videoRef.current) return;
+    videoRef.current.srcObject = mediaStream;
+    videoRef.current.style.opacity = isCameraEnabled ? "1" : "0";
+  };
+
+  const replaceStream = (nextStream: MediaStream | null) => {
+    const previousStream = streamRef.current;
+    setStreamSafe(nextStream);
+    attachStreamToVideo(nextStream);
+    stopTracks(previousStream);
+  };
+
+  const applyAudioOutputToVideoElement = useCallback(async (deviceId: string) => {
+    if (!videoRef.current || !deviceId) return;
+    const elementWithSink = videoRef.current as HTMLVideoElement & {
+      setSinkId?: (sinkId: string) => Promise<void>;
+    };
+
+    if (typeof elementWithSink.setSinkId !== "function") return;
+
+    try {
+      await elementWithSink.setSinkId(deviceId);
+    } catch {
+      // Ignore if browser does not allow sink switching in this context.
+    }
+  }, []);
+
   const refreshDevices = async () => {
     if (!navigator.mediaDevices?.enumerateDevices) return;
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
-      setAudioInputs(devices.filter((d) => d.kind === "audioinput").map((d) => ({ deviceId: d.deviceId, label: d.label || `Microphone ${d.deviceId.slice(0, 8)}`, kind: d.kind as MediaDeviceInfo["kind"] })));
-      setAudioOutputs(devices.filter((d) => d.kind === "audiooutput").map((d) => ({ deviceId: d.deviceId, label: d.label || `Speaker ${d.deviceId.slice(0, 8)}`, kind: d.kind as MediaDeviceInfo["kind"] })));
-      setVideoInputs(devices.filter((d) => d.kind === "videoinput").map((d) => ({ deviceId: d.deviceId, label: d.label || `Camera ${d.deviceId.slice(0, 8)}`, kind: d.kind as MediaDeviceInfo["kind"] })));
+      const nextAudioInputs = devices
+        .filter((d) => d.kind === "audioinput")
+        .map((d) => ({
+          deviceId: d.deviceId,
+          label: d.label || `Microphone ${d.deviceId.slice(0, 8)}`,
+          kind: d.kind as MediaDeviceInfo["kind"],
+        }));
+      const nextAudioOutputs = devices
+        .filter((d) => d.kind === "audiooutput")
+        .map((d) => ({
+          deviceId: d.deviceId,
+          label: d.label || `Speaker ${d.deviceId.slice(0, 8)}`,
+          kind: d.kind as MediaDeviceInfo["kind"],
+        }));
+      const nextVideoInputs = devices
+        .filter((d) => d.kind === "videoinput")
+        .map((d) => ({
+          deviceId: d.deviceId,
+          label: d.label || `Camera ${d.deviceId.slice(0, 8)}`,
+          kind: d.kind as MediaDeviceInfo["kind"],
+        }));
+
+      setAudioInputs(nextAudioInputs);
+      setAudioOutputs(nextAudioOutputs);
+      setVideoInputs(nextVideoInputs);
+
+      if (!selectedAudioInputId && nextAudioInputs[0]?.deviceId) {
+        setSelectedAudioInputId(nextAudioInputs[0].deviceId);
+      }
+      if (!selectedAudioOutputId && nextAudioOutputs[0]?.deviceId) {
+        setSelectedAudioOutputId(nextAudioOutputs[0].deviceId);
+      }
+      if (!selectedVideoInputId && nextVideoInputs[0]?.deviceId) {
+        setSelectedVideoInputId(nextVideoInputs[0].deviceId);
+      }
     } catch {
       // ignore
     }
+  };
+
+  const requestMediaStream = async ({ withVideo, withAudio }: { withVideo: boolean; withAudio: boolean }) => {
+    const mediaStream = await navigator.mediaDevices.getUserMedia(buildConstraints(withVideo, withAudio));
+    replaceStream(mediaStream);
+
+    if (withAudio) {
+      mediaStream.getAudioTracks().forEach((track) => {
+        track.enabled = isMicEnabled;
+      });
+    }
+    setIsCameraEnabled(withVideo);
+    await refreshDevices();
+    await applyAudioOutputToVideoElement(selectedAudioOutputId);
+    return mediaStream;
   };
 
   const requestPermissions = async () => {
@@ -71,10 +176,7 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
 
     // Critical for Chrome: start getUserMedia in the same synchronous turn as the user click.
     // If we setState or await first, the "user gesture" expires and Chrome won't show the prompt.
-    const mediaPromise = navigator.mediaDevices.getUserMedia({
-      audio: true,
-      video: { facingMode: "user" },
-    });
+    const mediaPromise = navigator.mediaDevices.getUserMedia(buildConstraints(true, true));
 
     setIsLoading(true);
     setError(null);
@@ -82,14 +184,11 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
     try {
       const mediaStream = await mediaPromise;
       setHasPermission(true);
-      setStreamSafe(mediaStream);
+      replaceStream(mediaStream);
       setIsMicEnabled(true);
       setIsCameraEnabled(true);
       await refreshDevices();
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
+      await applyAudioOutputToVideoElement(selectedAudioOutputId);
     } catch (err: unknown) {
       setHasPermission(false);
       const isNotAllowed =
@@ -108,28 +207,15 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
 
   const stopStream = () => {
     const activeStream = streamRef.current;
-    if (activeStream) {
-      activeStream.getTracks().forEach((track) => {
-        track.stop();
-        track.enabled = false;
-      });
-      setStreamSafe(null);
-    }
+    stopTracks(activeStream);
+    setStreamSafe(null);
 
     if (videoRef.current) {
       if (videoRef.current.srcObject) {
         const mediaStream = videoRef.current.srcObject as MediaStream;
-        mediaStream.getTracks().forEach((track) => {
-          track.stop();
-          track.enabled = false;
-        });
+        stopTracks(mediaStream);
         videoRef.current.srcObject = null;
       }
-    }
-
-    // Force release of any other hanging userMedia streams globally
-    if (typeof window !== "undefined") {
-      navigator.mediaDevices?.getUserMedia({ audio: false, video: false }).catch(() => { });
     }
   };
 
@@ -147,36 +233,64 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
 
   const toggleCamera = () => {
     const newState = !isCameraEnabled;
-    if (!newState) {
-      // Turning camera off: stop existing stream entirely to prevent leak
-      stopStream();
-      setIsCameraEnabled(false);
+    setError(null);
+    void requestMediaStream({ withVideo: newState, withAudio: true }).catch((err) => {
+      setError(newState ? "Failed to re-enable camera." : "Failed to switch to microphone-only mode.");
+      console.error("Camera toggle error:", err);
+    });
+  };
 
-      // Get audio-only stream to keep microphone functional
-      navigator.mediaDevices.getUserMedia({ audio: true })
-        .then((audioStream) => {
-          setStreamSafe(audioStream);
-        })
-        .catch((err) => {
-          setError("Failed to get audio stream: " + (err?.message || err));
-        });
-    } else {
-      // Turning camera on: stop existing audio stream entirely
-      stopStream();
-      setIsCameraEnabled(true);
+  const selectAudioInput = (deviceId: string) => {
+    setSelectedAudioInputId(deviceId);
+    if (!streamRef.current) return;
 
-      // request new stream with both audio and video
-      navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: "user" } })
-        .then((mediaStream) => {
-          setStreamSafe(mediaStream);
-          if (videoRef.current) {
-            videoRef.current.srcObject = mediaStream;
-          }
-        })
-        .catch((err) => {
-          setError("Failed to re-enable camera: " + (err?.message || err));
+    setError(null);
+    void navigator.mediaDevices
+      .getUserMedia({
+        audio: { deviceId: { exact: deviceId } },
+        video: isCameraEnabled
+          ? (selectedVideoInputId
+            ? { deviceId: { exact: selectedVideoInputId } }
+            : { facingMode: "user" })
+          : false,
+      })
+      .then((mediaStream) => {
+        replaceStream(mediaStream);
+        mediaStream.getAudioTracks().forEach((track) => {
+          track.enabled = isMicEnabled;
         });
-    }
+      })
+      .catch((err) => {
+        setError("Failed to switch microphone.");
+        console.error("Audio input switch error:", err);
+      });
+  };
+
+  const selectAudioOutput = (deviceId: string) => {
+    setSelectedAudioOutputId(deviceId);
+    void applyAudioOutputToVideoElement(deviceId);
+  };
+
+  const selectVideoInput = (deviceId: string) => {
+    setSelectedVideoInputId(deviceId);
+    if (!streamRef.current || !isCameraEnabled) return;
+
+    setError(null);
+    void navigator.mediaDevices
+      .getUserMedia({
+        audio: selectedAudioInputId ? { deviceId: { exact: selectedAudioInputId } } : true,
+        video: { deviceId: { exact: deviceId } },
+      })
+      .then((mediaStream) => {
+        replaceStream(mediaStream);
+        mediaStream.getAudioTracks().forEach((track) => {
+          track.enabled = isMicEnabled;
+        });
+      })
+      .catch((err) => {
+        setError("Failed to switch camera.");
+        console.error("Video input switch error:", err);
+      });
   };
 
   // Sync video element opacity with camera state
@@ -185,6 +299,11 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
       videoRef.current.style.opacity = isCameraEnabled ? "1" : "0";
     }
   }, [isCameraEnabled, stream]);
+
+  useEffect(() => {
+    if (!selectedAudioOutputId) return;
+    void applyAudioOutputToVideoElement(selectedAudioOutputId);
+  }, [applyAudioOutputToVideoElement, selectedAudioOutputId]);
 
   // Clean up stream on unmount
   useEffect(() => {
@@ -207,6 +326,12 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
     videoInputs,
     isMicEnabled,
     isCameraEnabled,
+    selectedAudioInputId,
+    selectedAudioOutputId,
+    selectedVideoInputId,
+    selectAudioInput,
+    selectAudioOutput,
+    selectVideoInput,
     toggleMic,
     toggleCamera,
   };

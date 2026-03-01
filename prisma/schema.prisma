@@ -18,9 +18,11 @@ model User {
   image             String?
   passwordHash      String?
   isFirstLogin      Boolean            @default(true)
+  notificationPrefs Json               @default("{\"emailNotifs\":true,\"practiceReminders\":true,\"weeklyReport\":true,\"scoreAlerts\":false}")
   accounts          Account[]
   sessions          Session[]
   interviewSessions InterviewSession[]
+  solvedQuestions   SolvedQuestion[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 }
@@ -115,4 +117,16 @@ model TranscriptEntry {
   createdAt        DateTime         @default(now())
 
   @@index([interviewSessionId])
+}
+
+model SolvedQuestion {
+  id         String   @id @default(cuid())
+  userId     String
+  questionId Int
+  solvedAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionId])
+  @@index([userId])
 }

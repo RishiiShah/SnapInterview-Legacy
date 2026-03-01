@@ -1,17 +1,13 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
+import { csrfRejectIfInvalid } from "@/lib/csrf";
 
 const ALLOWED_STATUSES = ["COMPLETED", "ABORTED"] as const;
 const ALLOWED_QUESTION_COUNTS = [5, 10, 15] as const;
 
 function csrfCheck(req: Request): NextResponse | null {
-    const origin = req.headers.get("origin");
-    const allowedOrigin = process.env.NEXTAUTH_URL || "http://localhost:3000";
-    if (!origin || origin !== allowedOrigin) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-    return null;
+    return csrfRejectIfInvalid(req);
 }
 
 export async function GET(req: Request) {

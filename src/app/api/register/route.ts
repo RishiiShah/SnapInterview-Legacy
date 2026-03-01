@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isDisposableEmail } from "@/lib/disposable-emails";
 import { sendOtpEmail } from "@/lib/email";
+import { csrfRejectIfInvalid } from "@/lib/csrf";
 import bcrypt from "bcryptjs";
 import { z } from "zod/v4";
 import crypto from "crypto";
@@ -45,15 +46,8 @@ function generateOtp(): string {
 
 export async function POST(req: Request) {
     try {
-        // CSRF protection: validate Origin header
-        const origin = req.headers.get("origin");
-        const allowedOrigin = process.env.NEXTAUTH_URL || "http://localhost:3000";
-        if (!origin || origin !== allowedOrigin) {
-            return NextResponse.json(
-                { error: "Forbidden" },
-                { status: 403 }
-            );
-        }
+        const csrfError = csrfRejectIfInvalid(req);
+        if (csrfError) return csrfError;
 
         // Rate limiting
         const forwarded = req.headers.get("x-forwarded-for");

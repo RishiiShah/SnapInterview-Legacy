@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { z } from "zod/v4";
+import { apiError, apiJson, badRequestError, internalServerError, notFoundError } from "@/lib/api-response";
 
 const verifySchema = z.object({
     email: z.email("Invalid email address"),
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
 
         if (!result.success) {
             const firstError = result.error.issues[0]?.message || "Invalid input";
-            return NextResponse.json({ error: firstError }, { status: 400 });
+            return badRequestError(firstError);
         }
 
         const { email, otp } = result.data;
@@ -36,20 +36,14 @@ export async function POST(req: Request) {
         });
 
         if (!pendingUser) {
-            return NextResponse.json(
-                { error: "No pending verification found. Please sign up again." },
-                { status: 404 }
-            );
+            return notFoundError("No pending verification found. Please sign up again.");
         }
 
         // Check if OTP has expired
         if (new Date() > pendingUser.expiresAt) {
             // Clean up expired record
             await prisma.pendingUser.delete({ where: { id: pendingUser.id } });
-            return NextResponse.json(
-                { error: "OTP has expired. Please sign up again." },
-                { status: 410 }
-            );
+            return apiError("OTP has expired. Please sign up again.", 410);
         }
 
         // --- OTP Brute force prevention ---
@@ -58,10 +52,7 @@ export async function POST(req: Request) {
         let limitEntry = verifyRateLimit.get(normalizedEmail);
 
         if (limitEntry && now < limitEntry.lockoutUntil) {
-            return NextResponse.json(
-                { error: "Too many failed attempts. Try again later." },
-                { status: 429 }
-            );
+            return apiError("Too many failed attempts. Try again later.", 429);
         }
 
         // Validate OTP
@@ -80,18 +71,12 @@ export async function POST(req: Request) {
                 // Delete the pending user so they have to restart the flow
                 await prisma.pendingUser.delete({ where: { id: pendingUser.id } });
 
-                return NextResponse.json(
-                    { error: "Maximum attempts reached. Registration cancelled. Please sign up again." },
-                    { status: 429 }
-                );
+                return apiError("Maximum attempts reached. Registration cancelled. Please sign up again.", 429);
             }
 
             verifyRateLimit.set(normalizedEmail, limitEntry);
 
-            return NextResponse.json(
-                { error: `Invalid OTP. ${MAX_OTP_ATTEMPTS - limitEntry.count} attempts left.` },
-                { status: 400 }
-            );
+            return badRequestError(`Invalid OTP. ${MAX_OTP_ATTEMPTS - limitEntry.count} attempts left.`);
         }
 
         // On success, clear the rate limit
@@ -105,10 +90,7 @@ export async function POST(req: Request) {
         if (existingUser) {
             // Clean up pending record
             await prisma.pendingUser.deleteMany({ where: { email: normalizedEmail } });
-            return NextResponse.json(
-                { error: "An account with this email already exists. Please log in." },
-                { status: 409 }
-            );
+            return apiError("An account with this email already exists. Please log in.", 409);
         }
 
         // Create the real user from pending data
@@ -125,15 +107,9 @@ export async function POST(req: Request) {
         // Clean up all pending records for this email
         await prisma.pendingUser.deleteMany({ where: { email: normalizedEmail } });
 
-        return NextResponse.json(
-            { id: user.id, name: user.name, email: user.email },
-            { status: 201 }
-        );
+        return apiJson({ id: user.id, name: user.name, email: user.email }, 201);
     } catch (error) {
         console.error("OTP verification error:", error);
-        return NextResponse.json(
-            { error: "Something went wrong" },
-            { status: 500 }
-        );
+        return internalServerError();
     }
 }

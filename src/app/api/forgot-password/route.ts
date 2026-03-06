@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendOtpEmail } from "@/lib/email";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import crypto from "crypto";
 import { z } from "zod/v4";
+import { apiError, apiJson, internalServerError } from "@/lib/api-response";
 
 const schema = z.object({
     email: z.email("Invalid email address"),
@@ -34,17 +34,14 @@ export async function POST(req: Request) {
         const result = schema.safeParse(body);
 
         if (!result.success) {
-            return NextResponse.json({ error: "Invalid email address." }, { status: 400 });
+            return apiError("Invalid email address.", 400);
         }
 
         const email = result.data.email.toLowerCase();
 
         // Rate limit by email
         if (isRateLimited(email)) {
-            return NextResponse.json(
-                { error: "Too many reset requests. Please try again later." },
-                { status: 429 }
-            );
+            return apiError("Too many reset requests. Please try again later.", 429);
         }
 
         // Always respond with success to prevent email enumeration
@@ -72,12 +69,12 @@ export async function POST(req: Request) {
         }
 
         // Always return success (prevent enumeration)
-        return NextResponse.json({
+        return apiJson({
             success: true,
             message: "If an account with that email exists, a reset code has been sent.",
         });
     } catch (error) {
         console.error("Forgot password error:", error);
-        return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+        return internalServerError();
     }
 }

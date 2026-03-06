@@ -1,55 +1,46 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { prisma } from "@/lib/prisma";
+import type { InterviewStatus } from "@/generated/prisma/client";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
+import { getSessionUserIdentity } from "@/lib/server-auth";
+import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
+import {
+    ALLOWED_QUESTION_COUNTS,
+    ALLOWED_STATUSES,
+    getInterviewSessionState,
+    startInterviewSession,
+    updateSessionStatusIfOwned,
+} from "@/services/interview-service";
 
-const ALLOWED_STATUSES = ["COMPLETED", "ABORTED"] as const;
-const ALLOWED_QUESTION_COUNTS = [5, 10, 15] as const;
-
-function csrfCheck(req: Request): NextResponse | null {
+function csrfCheck(req: Request) {
     return csrfRejectIfInvalid(req);
 }
 
 export async function GET(req: Request) {
     try {
-        const session = await getServerSession();
-        if (!session?.user?.email) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        const authUser = await getSessionUserIdentity();
+        if (!authUser) {
+            return unauthorizedError();
         }
 
         const { searchParams } = new URL(req.url);
         const interviewId = searchParams.get("interviewId");
 
         if (!interviewId) {
-            return NextResponse.json({ error: "interviewId is required" }, { status: 400 });
+            return badRequestError("interviewId is required");
         }
 
-        const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
-        });
-
-        if (!user) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
-        }
-
-        const interviewSession = await prisma.interviewSession.findFirst({
-            where: { id: interviewId, userId: user.id },
-            select: {
-                id: true,
-                status: true,
-                questionCount: true,
-                currentQuestion: true,
-            },
+        const interviewSession = await getInterviewSessionState({
+            interviewId,
+            userId: authUser.userId,
         });
 
         if (!interviewSession) {
-            return NextResponse.json({ error: "Interview session not found" }, { status: 404 });
+            return notFoundError("Interview session not found");
         }
 
-        return NextResponse.json(interviewSession, { status: 200 });
+        return apiJson(interviewSession);
     } catch (error) {
         console.error("Get interview session error:", error);
-        return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+        return internalServerError();
     }
 }
 
@@ -58,56 +49,40 @@ export async function POST(req: Request) {
         const csrfError = csrfCheck(req);
         if (csrfError) return csrfError;
 
-        const session = await getServerSession();
-        if (!session?.user?.email) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
-        });
-
-        if (!user) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
+        const authUser = await getSessionUserIdentity();
+        if (!authUser) {
+            return unauthorizedError();
         }
 
         const body = await req.json();
         const { role, company, type, difficulty, jobDescription, resumeUrl, questionCount } = body;
 
         if (!role || !type || !difficulty) {
-            return NextResponse.json(
-                { error: "role, type, and difficulty are required" },
-                { status: 400 }
-            );
+            return badRequestError("role, type, and difficulty are required");
         }
 
         if (
             questionCount !== undefined &&
             !ALLOWED_QUESTION_COUNTS.includes(questionCount)
         ) {
-            return NextResponse.json(
-                { error: "questionCount must be one of: 5, 10, 15" },
-                { status: 400 }
-            );
+            return badRequestError("questionCount must be one of: 5, 10, 15");
         }
 
-        const interviewSession = await prisma.interviewSession.create({
-            data: {
-                userId: user.id,
-                role,
-                company: company || null,
-                type,
-                difficulty,
-                jobDescription: jobDescription || null,
-                resumeUrl: resumeUrl || null,
-                questionCount: questionCount ?? 10,
-            },
+        const interviewSession = await startInterviewSession({
+            userId: authUser.userId,
+            role,
+            company,
+            type,
+            difficulty,
+            jobDescription,
+            resumeUrl,
+            questionCount,
         });
 
-        return NextResponse.json({ id: interviewSession.id }, { status: 201 });
+        return apiJson({ id: interviewSession.id }, 201);
     } catch (error) {
         console.error("Create interview session error:", error);
-        return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+        return internalServerError();
     }
 }
 
@@ -116,52 +91,41 @@ export async function PATCH(req: Request) {
         const csrfError = csrfCheck(req);
         if (csrfError) return csrfError;
 
-        const session = await getServerSession();
-        if (!session?.user?.email) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
-        });
-
-        if (!user) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
+        const authUser = await getSessionUserIdentity();
+        if (!authUser) {
+            return unauthorizedError();
         }
 
         const body = await req.json();
-        const { interviewId, videoUrl, status } = body;
+        const { interviewId, videoUrl, status } = body as {
+            interviewId?: string;
+            videoUrl?: string | null;
+            status?: InterviewStatus;
+        };
 
         if (!interviewId || typeof interviewId !== "string") {
-            return NextResponse.json({ error: "interviewId is required" }, { status: 400 });
+            return badRequestError("interviewId is required");
         }
 
         // Validate status if provided
         if (status && !(ALLOWED_STATUSES as readonly string[]).includes(status)) {
-            return NextResponse.json({ error: "Invalid status value" }, { status: 400 });
+            return badRequestError("Invalid status value");
         }
 
-        // Verify the session belongs to this user
-        const existing = await prisma.interviewSession.findFirst({
-            where: { id: interviewId, userId: user.id },
+        const updated = await updateSessionStatusIfOwned({
+            userId: authUser.userId,
+            interviewId,
+            videoUrl,
+            status,
         });
 
-        if (!existing) {
-            return NextResponse.json({ error: "Interview session not found" }, { status: 404 });
+        if (updated.type === "not_found") {
+            return notFoundError("Interview session not found");
         }
 
-        // Update video URL and status
-        const updated = await prisma.interviewSession.update({
-            where: { id: interviewId },
-            data: {
-                videoUrl: videoUrl || null,
-                ...(status && { status }),
-            },
-        });
-
-        return NextResponse.json({ id: updated.id, videoUrl: updated.videoUrl }, { status: 200 });
+        return apiJson({ id: updated.data.id, videoUrl: updated.data.videoUrl });
     } catch (error) {
         console.error("Update interview session error:", error);
-        return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+        return internalServerError();
     }
 }

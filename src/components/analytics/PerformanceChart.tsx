@@ -15,10 +15,10 @@ type PerformanceChartProps = {
 
 export default function PerformanceChart({ weeklyScores, delay = 0.2 }: PerformanceChartProps) {
   return (
-    <FadeIn delay={delay} direction="up" className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-5">
+    <FadeIn triggerOnView={false} delay={delay} direction="up" className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-[18px]">
       <h3 className="mb-1 text-sm font-semibold text-zinc-900">Weekly Performance</h3>
-      <p className="mb-2 text-xs text-zinc-400">Score trend this week</p>
-      <div className="mt-1 flex min-h-[170px] flex-1 items-end gap-3 pt-3">
+      <p className="mb-1.5 text-xs text-zinc-400">Score trend this week</p>
+      <div className="mt-1 flex min-h-[150px] flex-1 items-end gap-2.5 pt-2.5">
         {weeklyScores.map((d, i) => (
           <div key={d.label} className="group flex h-full flex-1 flex-col items-center justify-end gap-2">
             <div className="relative flex w-full flex-1 items-end">

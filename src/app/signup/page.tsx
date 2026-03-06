@@ -99,10 +99,6 @@ export default function SignupPage() {
         await sendOtp();
     };
 
-    const handleGoogleSignIn = () => {
-        signIn("google", { callbackUrl: "/dashboard" });
-    };
-
     return (
         <div className="flex min-h-screen bg-white font-[family-name:var(--font-geist-sans)]">
             <AuthSidePanel

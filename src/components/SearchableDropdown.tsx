@@ -31,11 +31,6 @@ export default function SearchableDropdown({
         option.toLowerCase().includes(search.toLowerCase())
     );
 
-    // Reset hovered index when filtered options change
-    useEffect(() => {
-        setHoveredIndex(-1);
-    }, [search]);
-
     // Close dropdown when clicking outside
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -122,6 +117,7 @@ export default function SearchableDropdown({
                     value={search || value}
                     onChange={(e) => {
                         setSearch(e.target.value);
+                        setHoveredIndex(-1);
                         if (!open) setOpen(true);
                     }}
                     onFocus={() => setOpen(true)}

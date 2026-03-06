@@ -14,9 +14,9 @@ type CategoryBreakdownProps = {
 
 export default function CategoryBreakdown({ categories, delay = 0.3 }: CategoryBreakdownProps) {
   return (
-    <FadeIn delay={delay} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-5">
+    <FadeIn triggerOnView={false} delay={delay} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-[18px]">
       <h3 className="mb-1 text-sm font-semibold text-zinc-900">Category Breakdown</h3>
-      <p className="mb-4 text-xs text-zinc-400">Performance by interview dimension</p>
+      <p className="mb-3.5 text-xs text-zinc-400">Performance by interview dimension</p>
       <div className="space-y-3">
         {categories.map((cat) => (
           <div key={cat.category} className="rounded-xl border border-zinc-100 p-3">

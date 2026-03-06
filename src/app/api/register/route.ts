@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isDisposableEmail } from "@/lib/disposable-emails";
 import { sendOtpEmail } from "@/lib/email";
@@ -6,6 +5,7 @@ import { csrfRejectIfInvalid } from "@/lib/csrf";
 import bcrypt from "bcryptjs";
 import { z } from "zod/v4";
 import crypto from "crypto";
+import { apiError, apiJson, badRequestError, internalServerError } from "@/lib/api-response";
 
 // ── Zod schema ──
 const registerSchema = z.object({
@@ -54,10 +54,7 @@ export async function POST(req: Request) {
         const ip = forwarded?.split(",")[0]?.trim() || "unknown";
 
         if (isRateLimited(ip)) {
-            return NextResponse.json(
-                { error: "Too many requests. Please try again later." },
-                { status: 429 }
-            );
+            return apiError("Too many requests. Please try again later.", 429);
         }
 
         // Parse & validate input
@@ -66,10 +63,7 @@ export async function POST(req: Request) {
 
         if (!result.success) {
             const firstError = result.error.issues[0]?.message || "Invalid input";
-            return NextResponse.json(
-                { error: firstError },
-                { status: 400 }
-            );
+            return badRequestError(firstError);
         }
 
         const { name, email, password } = result.data;
@@ -78,10 +72,7 @@ export async function POST(req: Request) {
         // Block disposable/temporary email services
         const emailCheck = await isDisposableEmail(normalizedEmail);
         if (emailCheck.disposable) {
-            return NextResponse.json(
-                { error: "Please use a permanent email address. Temporary email services are not allowed." },
-                { status: 400 }
-            );
+            return badRequestError("Please use a permanent email address. Temporary email services are not allowed.");
         }
 
         // Check for existing user
@@ -93,10 +84,7 @@ export async function POST(req: Request) {
         const passwordHash = await bcrypt.hash(password, 12);
 
         if (existingUser) {
-            return NextResponse.json(
-                { error: "Unable to create account. Please try a different email or log in." },
-                { status: 409 }
-            );
+            return apiError("Unable to create account. Please try a different email or log in.", 409);
         }
 
         // Generate OTP and store pending user (upsert to handle resends)
@@ -118,15 +106,9 @@ export async function POST(req: Request) {
         // Send OTP email
         await sendOtpEmail(normalizedEmail, otp);
 
-        return NextResponse.json(
-            { success: true, message: "Verification code sent to your email." },
-            { status: 200 }
-        );
+        return apiJson({ success: true, message: "Verification code sent to your email." }, 200);
     } catch (error) {
         console.error("Registration error:", error);
-        return NextResponse.json(
-            { error: "Something went wrong" },
-            { status: 500 }
-        );
+        return internalServerError();
     }
 }

@@ -38,6 +38,8 @@ const PromptInstructionFileSchema = z
 
 type PromptInstructionFile = z.infer<typeof PromptInstructionFileSchema>;
 
+const promptInstructionCache = new Map<string, string>();
+
 function buildInstructionText(prompt: PromptInstructionFile): string {
   if (prompt.instruction) {
     return prompt.instruction.trim();
@@ -63,13 +65,20 @@ function buildInstructionText(prompt: PromptInstructionFile): string {
 }
 
 function loadPromptInstruction(filePath: string): string {
+  const cached = promptInstructionCache.get(filePath);
+  if (cached !== undefined) {
+    return cached;
+  }
+
   if (!existsSync(filePath)) return "";
 
   try {
     const raw = readFileSync(filePath, "utf-8");
     const json = JSON.parse(raw);
     const parsed = PromptInstructionFileSchema.parse(json);
-    return buildInstructionText(parsed);
+    const instruction = buildInstructionText(parsed);
+    promptInstructionCache.set(filePath, instruction);
+    return instruction;
   } catch (error) {
     throw new Error(
       `Invalid prompt file at ${filePath}: ${error instanceof Error ? error.message : "Unknown error"}`

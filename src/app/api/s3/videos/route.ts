@@ -1,9 +1,8 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { prisma } from "@/lib/prisma";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { S3Client, ListObjectsV2Command, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { getSessionUserIdentity } from "@/lib/server-auth";
+import { apiError, apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 
 const s3Client = new S3Client({
     region: process.env.AWS_REGION!,
@@ -15,22 +14,12 @@ const s3Client = new S3Client({
 
 export async function GET() {
     try {
-        const session = await getServerSession();
-
-        if (!session || !session.user || !session.user.email) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        const authUser = await getSessionUserIdentity();
+        if (!authUser) {
+            return unauthorizedError();
         }
 
-        const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
-            select: { id: true },
-        });
-
-        if (!user) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
-        }
-
-        const prefix = `${user.id}/`;
+        const prefix = `${authUser.userId}/`;
 
         const listCommand = new ListObjectsV2Command({
             Bucket: process.env.S3_BUCKET_NAME!,
@@ -40,7 +29,7 @@ export async function GET() {
         const listData = await s3Client.send(listCommand);
 
         if (!listData.Contents || listData.Contents.length === 0) {
-            return NextResponse.json({ videos: [] });
+            return apiJson({ videos: [] });
         }
 
         // Sort by LastModified (newest first)
@@ -66,10 +55,10 @@ export async function GET() {
 
         const videos = await Promise.all(videoPromises);
 
-        return NextResponse.json({ videos });
+        return apiJson({ videos });
     } catch (error) {
         console.error("Error fetching videos from S3:", error);
-        return NextResponse.json({ error: "Failed to fetch videos" }, { status: 500 });
+        return internalServerError("Failed to fetch videos");
     }
 }
 
@@ -78,30 +67,20 @@ export async function DELETE(req: Request) {
         const csrfError = csrfRejectIfInvalid(req);
         if (csrfError) return csrfError;
 
-        const session = await getServerSession();
-
-        if (!session || !session.user || !session.user.email) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
-            select: { id: true },
-        });
-
-        if (!user) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
+        const authUser = await getSessionUserIdentity();
+        if (!authUser) {
+            return unauthorizedError();
         }
 
         const { key } = await req.json();
 
         if (!key) {
-            return NextResponse.json({ error: "Missing key" }, { status: 400 });
+            return badRequestError("Missing key");
         }
 
         // Ensure user can only delete their own videos
-        if (!key.startsWith(`${user.id}/`)) {
-            return NextResponse.json({ error: "Unauthorized access to key" }, { status: 403 });
+        if (!key.startsWith(`${authUser.userId}/`)) {
+            return apiError("Unauthorized access to key", 403);
         }
 
         const deleteCommand = new DeleteObjectCommand({
@@ -111,9 +90,9 @@ export async function DELETE(req: Request) {
 
         await s3Client.send(deleteCommand);
 
-        return NextResponse.json({ success: true });
+        return apiJson({ success: true });
     } catch (error) {
         console.error("Error deleting video from S3:", error);
-        return NextResponse.json({ error: "Failed to delete video" }, { status: 500 });
+        return internalServerError("Failed to delete video");
     }
 }

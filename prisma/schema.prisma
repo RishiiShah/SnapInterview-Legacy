@@ -96,6 +96,7 @@ model InterviewSession {
   status          InterviewStatus @default(IN_PROGRESS)
   questionCount   Int             @default(10)
   currentQuestion Int             @default(0)
+  evaluation      Json?
   createdAt       DateTime        @default(now())
 
   user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)

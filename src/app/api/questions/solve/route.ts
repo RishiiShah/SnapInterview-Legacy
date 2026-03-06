@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { z } from "zod/v4";
+import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 
 const toggleSolvedSchema = z.object({
   questionId: z.number().int().positive(),
@@ -25,7 +25,7 @@ export async function GET() {
   try {
     const userId = await getAuthedUserId();
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     const solved = await prisma.solvedQuestion.findMany({
@@ -34,10 +34,10 @@ export async function GET() {
       orderBy: { solvedAt: "desc" },
     });
 
-    return NextResponse.json({ solvedQuestionIds: solved.map((item) => item.questionId) });
+    return apiJson({ solvedQuestionIds: solved.map((item) => item.questionId) });
   } catch (error) {
     console.error("Get solved questions error:", error);
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+    return internalServerError();
   }
 }
 
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
 
     const userId = await getAuthedUserId();
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     const body = await req.json();
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
 
     if (!parsed.success) {
       const message = parsed.error.issues[0]?.message || "Invalid payload";
-      return NextResponse.json({ error: message }, { status: 400 });
+      return badRequestError(message);
     }
 
     const { questionId } = parsed.data;
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
 
     if (existing) {
       await prisma.solvedQuestion.delete({ where: { id: existing.id } });
-      return NextResponse.json({ solved: false, questionId }, { status: 200 });
+      return apiJson({ solved: false, questionId });
     }
 
     await prisma.solvedQuestion.create({
@@ -83,9 +83,9 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ solved: true, questionId }, { status: 200 });
+    return apiJson({ solved: true, questionId });
   } catch (error) {
     console.error("Toggle solved question error:", error);
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+    return internalServerError();
   }
 }

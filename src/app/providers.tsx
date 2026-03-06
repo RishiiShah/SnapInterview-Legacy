@@ -1,7 +1,7 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 
 // ─── SIDEBAR CONTEXT ─────────────────────────────────
 interface SidebarContextType {
@@ -20,21 +20,27 @@ export function useSidebar() {
 }
 
 function SidebarProvider({ children }: { children: ReactNode }) {
-    // Default to false on first render to match SSR, avoiding hydration mismatch
+    // Keep first render deterministic for SSR hydration, then restore user preference.
     const [collapsed, setCollapsed] = useState(false);
-    const [mounted, setMounted] = useState(false);
+    const hasLoadedPreference = useRef(false);
 
     useEffect(() => {
-        setMounted(true);
         const saved = localStorage.getItem("sidebar-collapsed");
-        if (saved === "true") setCollapsed(true);
+        hasLoadedPreference.current = true;
+
+        if (saved === "true") {
+            queueMicrotask(() => {
+                setCollapsed(true);
+            });
+        }
     }, []);
 
     useEffect(() => {
-        if (mounted) {
-            localStorage.setItem("sidebar-collapsed", String(collapsed));
+        if (!hasLoadedPreference.current) {
+            return;
         }
-    }, [collapsed, mounted]);
+        localStorage.setItem("sidebar-collapsed", String(collapsed));
+    }, [collapsed]);
 
     return (
         <SidebarContext.Provider value={{ collapsed, setCollapsed }}>

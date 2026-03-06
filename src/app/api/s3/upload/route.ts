@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { prisma } from "@/lib/prisma";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
+import { getSessionUserIdentity } from "@/lib/server-auth";
+import { apiError, apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 
 const s3Client = new S3Client({
     region: process.env.AWS_REGION!,
@@ -18,36 +18,27 @@ export async function POST(req: Request) {
         const csrfError = csrfRejectIfInvalid(req);
         if (csrfError) return csrfError;
 
-        const session = await getServerSession();
-
-        if (!session || !session.user || !session.user.email) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        const authUser = await getSessionUserIdentity();
+        if (!authUser) {
+            return unauthorizedError();
         }
 
         const { interviewId } = await req.json();
 
         if (!interviewId || typeof interviewId !== "string") {
-            return NextResponse.json({ error: "Interview ID is required" }, { status: 400 });
+            return badRequestError("Interview ID is required");
         }
 
         // Verify the interview session belongs to this user
-        const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
-        });
-
-        if (!user) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
-        }
-
         const interviewSession = await prisma.interviewSession.findFirst({
-            where: { id: interviewId, userId: user.id },
+            where: { id: interviewId, userId: authUser.userId },
         });
 
         if (!interviewSession) {
-            return NextResponse.json({ error: "Interview session not found" }, { status: 403 });
+            return apiError("Interview session not found", 403);
         }
 
-        const key = `${user.id}/interview-${interviewId}.webm`;
+        const key = `${authUser.userId}/interview-${interviewId}.webm`;
 
         const command = new PutObjectCommand({
             Bucket: process.env.S3_BUCKET_NAME!,
@@ -57,10 +48,10 @@ export async function POST(req: Request) {
 
         const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // 1 hour
 
-        return NextResponse.json({ url: presignedUrl, key });
+        return apiJson({ url: presignedUrl, key });
     } catch (error) {
         console.error("Error generating presigned URL:", error);
-        return NextResponse.json({ error: "Failed to generate presigned URL" }, { status: 500 });
+        return internalServerError("Failed to generate presigned URL");
     }
 }
 

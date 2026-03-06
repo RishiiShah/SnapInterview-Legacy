@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { z } from "zod/v4";
+import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 
 const prefsSchema = z.object({
   emailNotifs: z.boolean(),
@@ -35,7 +35,7 @@ export async function GET() {
   try {
     const email = await getAuthedEmail();
     if (!email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     const user = await prisma.user.findUnique({
@@ -44,15 +44,15 @@ export async function GET() {
     });
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return notFoundError("User not found");
     }
 
-    return NextResponse.json({
+    return apiJson({
       notificationPrefs: normalizePrefs(user.notificationPrefs),
     });
   } catch (error) {
     console.error("Get notification preferences error:", error);
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+    return internalServerError();
   }
 }
 
@@ -63,14 +63,14 @@ export async function PUT(req: Request) {
 
     const email = await getAuthedEmail();
     if (!email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     const body = await req.json();
     const parsed = prefsSchema.safeParse(body);
     if (!parsed.success) {
       const message = parsed.error.issues[0]?.message || "Invalid notification preferences";
-      return NextResponse.json({ error: message }, { status: 400 });
+      return badRequestError(message);
     }
 
     const updated = await prisma.user.update({
@@ -81,11 +81,11 @@ export async function PUT(req: Request) {
       select: { notificationPrefs: true },
     });
 
-    return NextResponse.json({
+    return apiJson({
       notificationPrefs: normalizePrefs(updated.notificationPrefs),
     });
   } catch (error) {
     console.error("Update notification preferences error:", error);
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+    return internalServerError();
   }
 }

@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
+import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 
 export async function DELETE(req: Request) {
     try {
@@ -10,15 +10,12 @@ export async function DELETE(req: Request) {
 
         const session = await getServerSession();
         if (!session?.user?.email) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return unauthorizedError();
         }
 
         const body = await req.json();
         if (body.confirm !== "DELETE") {
-            return NextResponse.json(
-                { error: "Please type DELETE to confirm." },
-                { status: 400 }
-            );
+            return badRequestError("Please type DELETE to confirm.");
         }
 
         const user = await prisma.user.findUnique({
@@ -26,7 +23,7 @@ export async function DELETE(req: Request) {
         });
 
         if (!user) {
-            return NextResponse.json({ error: "User not found." }, { status: 404 });
+            return notFoundError("User not found.");
         }
 
         // Delete user — cascading deletes handle Account and Session records
@@ -34,9 +31,9 @@ export async function DELETE(req: Request) {
             where: { id: user.id },
         });
 
-        return NextResponse.json({ success: true }, { status: 200 });
+        return apiJson({ success: true });
     } catch (error) {
         console.error("Delete account error:", error);
-        return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+        return internalServerError();
     }
 }

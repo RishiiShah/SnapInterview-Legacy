@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { FadeIn } from "@/components/ui/motion";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
+import RecordingModal from "./RecordingModal";
 import type { VideoRecording } from "@/lib/s3/videos";
+import { extractInterviewIdFromVideoKey } from "@/lib/interview/recordings";
 
 type RecordingsListProps = {
   initialVideos: VideoRecording[];
@@ -13,6 +15,13 @@ export default function RecordingsList({ initialVideos }: RecordingsListProps) {
   const [recordings, setRecordings] = useState<VideoRecording[]>(initialVideos);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
   const [recordingToDelete, setRecordingToDelete] = useState<string | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<{ url: string; interviewId: string; date: string } | null>(null);
+
+  const openRecording = (recording: VideoRecording, date: string) => {
+    const interviewId = extractInterviewIdFromVideoKey(recording.key);
+    if (!interviewId) return;
+    setSelectedVideo({ url: recording.url, interviewId, date });
+  };
 
   const handleDeleteRecording = async () => {
     if (!recordingToDelete) return;
@@ -60,22 +69,50 @@ export default function RecordingsList({ initialVideos }: RecordingsListProps) {
           });
           const formattedSize = `${(recording.size / (1024 * 1024)).toFixed(2)} MB`;
 
+          const interviewId = extractInterviewIdFromVideoKey(recording.key);
+          const canOpen = Boolean(interviewId);
+
           return (
-            <FadeIn key={recording.key} delay={idx * 0.08} direction="up" className="overflow-hidden rounded-2xl border border-zinc-200 bg-white transition-shadow hover:shadow-lg">
-              <div className="aspect-video bg-zinc-900">
+            <FadeIn
+              key={recording.key}
+              delay={idx * 0.08}
+              direction="up"
+              className={`group overflow-hidden rounded-2xl border border-zinc-200 bg-white transition-all hover:border-blue-200 hover:shadow-lg flex flex-col ${canOpen ? "cursor-pointer" : "cursor-not-allowed opacity-80"}`}
+              role={canOpen ? "button" : undefined}
+              tabIndex={canOpen ? 0 : -1}
+              onClick={() => canOpen && openRecording(recording, date)}
+              onKeyDown={(event) => {
+                if (!canOpen) return;
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  openRecording(recording, date);
+                }
+              }}
+              aria-label={canOpen ? "Open recording details" : "Recording is unavailable"}
+            >
+              <div className="relative aspect-video bg-zinc-900 flex-shrink-0">
                 <video
                   src={`${recording.url}#t=0.001`}
                   crossOrigin="anonymous"
-                  controls
                   preload="metadata"
-                  className="h-full w-full object-contain"
+                  className="h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
                 />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 bg-black/20">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-md">
+                    <svg className="h-6 w-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </div>
+                </div>
               </div>
-              <div className="p-4">
+              <div className="flex flex-1 flex-col p-4">
                 <div className="mb-1 flex items-center justify-between gap-3">
                   <h3 className="truncate text-sm font-semibold text-zinc-900">Interview Session</h3>
                   <button
-                    onClick={() => setRecordingToDelete(recording.key)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setRecordingToDelete(recording.key);
+                    }}
                     disabled={deletingKey === recording.key}
                     className="flex cursor-pointer items-center justify-center rounded-lg p-2 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-default disabled:opacity-50"
                     title="Delete this recording"
@@ -93,6 +130,9 @@ export default function RecordingsList({ initialVideos }: RecordingsListProps) {
                   <span>{date}</span>
                   <span>{formattedSize}</span>
                 </div>
+                {!canOpen && (
+                  <p className="mt-2 text-xs text-amber-700">No linked interview session found for this file.</p>
+                )}
               </div>
             </FadeIn>
           );
@@ -105,6 +145,16 @@ export default function RecordingsList({ initialVideos }: RecordingsListProps) {
         onConfirm={handleDeleteRecording}
         isDeleting={deletingKey !== null}
       />
+
+      {selectedVideo && (
+        <RecordingModal
+          isOpen={true}
+          onClose={() => setSelectedVideo(null)}
+          videoUrl={selectedVideo.url}
+          interviewId={selectedVideo.interviewId}
+          videoDate={selectedVideo.date}
+        />
+      )}
     </>
   );
 }

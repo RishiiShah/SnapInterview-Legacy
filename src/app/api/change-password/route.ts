@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import bcrypt from "bcryptjs";
 import { z } from "zod/v4";
+import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 
 const changePasswordSchema = z.object({
     currentPassword: z.string().min(1, "Current password is required"),
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
         const session = await getServerSession();
         if (!session?.user?.email) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return unauthorizedError();
         }
 
         const body = await req.json();
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 
         if (!result.success) {
             const firstError = result.error.issues[0]?.message || "Invalid input";
-            return NextResponse.json({ error: firstError }, { status: 400 });
+            return badRequestError(firstError);
         }
 
         const { currentPassword, newPassword } = result.data;
@@ -42,28 +42,19 @@ export async function POST(req: Request) {
         });
 
         if (!user || !user.passwordHash) {
-            return NextResponse.json(
-                { error: "Password change is not available for this account." },
-                { status: 400 }
-            );
+            return badRequestError("Password change is not available for this account.");
         }
 
         // Verify current password
         const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
         if (!isValid) {
-            return NextResponse.json(
-                { error: "Current password is incorrect." },
-                { status: 400 }
-            );
+            return badRequestError("Current password is incorrect.");
         }
 
         // Prevent reusing the same password
         const isSame = await bcrypt.compare(newPassword, user.passwordHash);
         if (isSame) {
-            return NextResponse.json(
-                { error: "New password must be different from current password." },
-                { status: 400 }
-            );
+            return badRequestError("New password must be different from current password.");
         }
 
         // Hash and save new password
@@ -73,9 +64,9 @@ export async function POST(req: Request) {
             data: { passwordHash: newHash },
         });
 
-        return NextResponse.json({ success: true }, { status: 200 });
+        return apiJson({ success: true });
     } catch (error) {
         console.error("Change password error:", error);
-        return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+        return internalServerError();
     }
 }

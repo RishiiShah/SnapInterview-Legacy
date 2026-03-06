@@ -32,7 +32,7 @@ export default async function AnalyticsPage() {
 
     return (
         <DashboardShell>
-            <div className="space-y-8">
+            <div className="space-y-7">
                 <SlideIn>
                     <div className="flex flex-wrap items-end justify-between gap-3">
                         <div>
@@ -50,7 +50,7 @@ export default async function AnalyticsPage() {
                 </SlideIn>
 
                 {/* Monthly Comparison */}
-                <FadeInStagger className="grid gap-4 sm:grid-cols-3">
+                <FadeInStagger triggerOnView={false} className="grid gap-[14px] sm:grid-cols-3">
                     {[
                         { label: "Interviews", current: monthlyComparison[0].interviews, prev: monthlyComparison[1].interviews, suffix: "" },
                         { label: "Avg Score", current: monthlyComparison[0].avgScore, prev: monthlyComparison[1].avgScore, suffix: "/100" },
@@ -59,9 +59,9 @@ export default async function AnalyticsPage() {
                         const diff = stat.current - stat.prev;
                         const pct = stat.prev > 0 ? Math.round((diff / stat.prev) * 100) : 0;
                         return (
-                            <FadeInStaggerItem key={stat.label} className="rounded-2xl border border-zinc-200 bg-white p-5">
+                            <FadeInStaggerItem key={stat.label} className="rounded-2xl border border-zinc-200 bg-white p-[18px]">
                                 <p className="text-sm font-medium text-zinc-500">{stat.label}</p>
-                                <p className="mt-1 text-3xl font-bold tracking-tight text-zinc-900">
+                                <p className="mt-1 text-[1.75rem] font-bold tracking-tight text-zinc-900 leading-none">
                                     {stat.current}<span className="text-lg font-medium text-zinc-400">{stat.suffix}</span>
                                 </p>
                                 <p className={`mt-1 text-xs font-medium ${diff >= 0 ? "text-emerald-600" : "text-red-600"}`}>
@@ -72,14 +72,14 @@ export default async function AnalyticsPage() {
                     })}
                 </FadeInStagger>
 
-                <div className="grid gap-6 lg:grid-cols-2">
+                <div className="grid gap-[18px] lg:grid-cols-2">
                     <PerformanceChart weeklyScores={weeklyScores} delay={0.2} />
                     <CategoryBreakdown categories={categoryBreakdown} delay={0.3} />
                 </div>
 
                 {/* Strengths & Weaknesses */}
                 <div className="grid gap-6 lg:grid-cols-2 pb-8">
-                    <FadeIn delay={0.4} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
+                    <FadeIn triggerOnView={false} delay={0.4} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
                         <h3 className="mb-1 text-sm font-semibold text-zinc-900">Strengths</h3>
                         <p className="mb-4 text-xs text-zinc-400">Keep leveraging these in interviews</p>
                         <div className="space-y-2.5">
@@ -92,7 +92,7 @@ export default async function AnalyticsPage() {
                         </div>
                     </FadeIn>
 
-                    <FadeIn delay={0.5} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
+                    <FadeIn triggerOnView={false} delay={0.5} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
                         <h3 className="mb-1 text-sm font-semibold text-zinc-900">Areas to Improve</h3>
                         <p className="mb-4 text-xs text-zinc-400">Focus areas for your next sessions</p>
                         <div className="space-y-2.5">

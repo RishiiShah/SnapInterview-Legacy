@@ -1,20 +1,41 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, type HTMLMotionProps } from "framer-motion";
 import { ReactNode } from "react";
+
+type BaseMotionDivProps = Omit<
+  HTMLMotionProps<"div">,
+  | "children"
+  | "className"
+  | "initial"
+  | "animate"
+  | "whileInView"
+  | "viewport"
+  | "transition"
+  | "variants"
+>;
 
 export function FadeInStagger({
   children,
   className,
+  triggerOnView = false,
+  ...rest
 }: {
   children: ReactNode;
   className?: string;
-}) {
+  triggerOnView?: boolean;
+} & BaseMotionDivProps) {
   return (
     <motion.div
       initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-100px" }}
+      {...(triggerOnView
+        ? {
+            whileInView: "visible",
+            viewport: { once: true, margin: "-100px" },
+          }
+        : {
+            animate: "visible",
+          })}
       variants={{
         hidden: {},
         visible: {
@@ -24,6 +45,7 @@ export function FadeInStagger({
         },
       }}
       className={className}
+      {...rest}
     >
       {children}
     </motion.div>
@@ -33,10 +55,11 @@ export function FadeInStagger({
 export function FadeInStaggerItem({
   children,
   className,
+  ...rest
 }: {
   children: ReactNode;
   className?: string;
-}) {
+} & BaseMotionDivProps) {
   return (
     <motion.div
       variants={{
@@ -53,6 +76,7 @@ export function FadeInStaggerItem({
       }}
       className={className}
       style={{ willChange: "transform, opacity" }}
+      {...rest}
     >
       {children}
     </motion.div>
@@ -64,12 +88,15 @@ export function FadeIn({
   className,
   delay = 0,
   direction = "up",
+  triggerOnView = false,
+  ...rest
 }: {
   children: ReactNode;
   className?: string;
   delay?: number;
   direction?: "up" | "down" | "left" | "right" | "none";
-}) {
+  triggerOnView?: boolean;
+} & BaseMotionDivProps) {
   const directions = {
     up: { y: 20, x: 0 },
     down: { y: -20, x: 0 },
@@ -81,8 +108,14 @@ export function FadeIn({
   return (
     <motion.div
       initial={{ opacity: 0, ...directions[direction] }}
-      whileInView={{ opacity: 1, x: 0, y: 0 }}
-      viewport={{ once: true, margin: "-100px" }}
+      {...(triggerOnView
+        ? {
+            whileInView: { opacity: 1, x: 0, y: 0 },
+            viewport: { once: true, margin: "-100px" },
+          }
+        : {
+            animate: { opacity: 1, x: 0, y: 0 },
+          })}
       transition={{
         duration: 0.5,
         delay,
@@ -90,6 +123,7 @@ export function FadeIn({
       }}
       className={className}
       style={{ willChange: "transform, opacity" }}
+      {...rest}
     >
       {children}
     </motion.div>
@@ -100,11 +134,12 @@ export function SlideIn({
   children,
   className,
   delay = 0,
+  ...rest
 }: {
   children: ReactNode;
   className?: string;
   delay?: number;
-}) {
+} & BaseMotionDivProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 40 }}
@@ -117,6 +152,7 @@ export function SlideIn({
       }}
       className={className}
       style={{ willChange: "transform, opacity" }}
+      {...rest}
     >
       {children}
     </motion.div>

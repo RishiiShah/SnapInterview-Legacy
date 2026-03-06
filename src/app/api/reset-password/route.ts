@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import bcrypt from "bcryptjs";
 import { z } from "zod/v4";
+import { apiError, apiJson, badRequestError, internalServerError, notFoundError } from "@/lib/api-response";
 
 const schema = z.object({
     email: z.email("Invalid email address"),
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 
         if (!result.success) {
             const firstError = result.error.issues[0]?.message || "Invalid input";
-            return NextResponse.json({ error: firstError }, { status: 400 });
+            return badRequestError(firstError);
         }
 
         const { email, otp, newPassword } = result.data;
@@ -44,10 +44,7 @@ export async function POST(req: Request) {
         });
 
         if (!token) {
-            return NextResponse.json(
-                { error: "No reset request found. Please request a new code." },
-                { status: 404 }
-            );
+            return notFoundError("No reset request found. Please request a new code.");
         }
 
         // Check expiry
@@ -55,10 +52,7 @@ export async function POST(req: Request) {
             await prisma.verificationToken.deleteMany({
                 where: { identifier: `reset:${normalizedEmail}` },
             });
-            return NextResponse.json(
-                { error: "Reset code has expired. Please request a new one." },
-                { status: 410 }
-            );
+            return apiError("Reset code has expired. Please request a new one.", 410);
         }
 
         // --- OTP Brute force prevention ---
@@ -67,10 +61,7 @@ export async function POST(req: Request) {
         let limitEntry = resetRateLimit.get(normalizedEmail);
 
         if (limitEntry && now < limitEntry.lockoutUntil) {
-            return NextResponse.json(
-                { error: "Too many failed attempts. Try again later." },
-                { status: 429 }
-            );
+            return apiError("Too many failed attempts. Try again later.", 429);
         }
 
         // Validate OTP
@@ -91,18 +82,12 @@ export async function POST(req: Request) {
                     where: { identifier: `reset:${normalizedEmail}` },
                 });
 
-                return NextResponse.json(
-                    { error: "Maximum attempts reached. Reset cancelled. Please request a new code." },
-                    { status: 429 }
-                );
+                return apiError("Maximum attempts reached. Reset cancelled. Please request a new code.", 429);
             }
 
             resetRateLimit.set(normalizedEmail, limitEntry);
 
-            return NextResponse.json(
-                { error: `Invalid code. ${MAX_OTP_ATTEMPTS - limitEntry.count} attempts left.` },
-                { status: 400 }
-            );
+            return badRequestError(`Invalid code. ${MAX_OTP_ATTEMPTS - limitEntry.count} attempts left.`);
         }
 
         // On success, clear the rate limit
@@ -114,10 +99,7 @@ export async function POST(req: Request) {
         });
 
         if (!user) {
-            return NextResponse.json(
-                { error: "Account not found." },
-                { status: 404 }
-            );
+            return notFoundError("Account not found.");
         }
 
         // Hash and update password
@@ -132,9 +114,9 @@ export async function POST(req: Request) {
             where: { identifier: `reset:${normalizedEmail}` },
         });
 
-        return NextResponse.json({ success: true }, { status: 200 });
+        return apiJson({ success: true });
     } catch (error) {
         console.error("Reset password error:", error);
-        return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+        return internalServerError();
     }
 }

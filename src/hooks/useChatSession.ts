@@ -14,6 +14,20 @@ type UseChatSessionOptions = {
   setInterviewDone: (value: boolean) => void;
 };
 
+export function shouldProcessFinalTranscriptBlock(params: {
+  finalTranscriptBlock: string;
+  interviewDone: boolean;
+  processedTranscriptBlock: string;
+}) {
+  const { finalTranscriptBlock, interviewDone, processedTranscriptBlock } = params;
+
+  if (!finalTranscriptBlock || interviewDone) {
+    return false;
+  }
+
+  return processedTranscriptBlock !== finalTranscriptBlock;
+}
+
 export function useChatSession({
   interviewId,
   interviewStarted,
@@ -25,6 +39,7 @@ export function useChatSession({
   const [currentStreamedText, setCurrentStreamedText] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const messagesRef = useRef<ChatSessionMessage[]>([]);
+  const processedTranscriptRef = useRef("");
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -133,7 +148,17 @@ export function useChatSession({
   }, [interviewStarted, interviewDone, askGroq]);
 
   useEffect(() => {
-    if (!finalTranscriptBlock) return;
+    if (
+      !shouldProcessFinalTranscriptBlock({
+        finalTranscriptBlock,
+        interviewDone,
+        processedTranscriptBlock: processedTranscriptRef.current,
+      })
+    ) {
+      return;
+    }
+
+    processedTranscriptRef.current = finalTranscriptBlock;
 
     const newMessages: ChatSessionMessage[] = [
       ...messagesRef.current,
@@ -142,7 +167,7 @@ export function useChatSession({
 
     setMessages(newMessages);
     void askGroq(newMessages);
-  }, [finalTranscriptBlock, askGroq]);
+  }, [finalTranscriptBlock, interviewDone, askGroq]);
 
   return {
     messages,

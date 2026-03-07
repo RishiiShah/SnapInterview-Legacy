@@ -67,6 +67,8 @@ export async function runInterviewChat(params: {
 
   const { questionCount, currentQuestion } = interviewSession;
   if (currentQuestion >= questionCount) {
+    await saveLatestTranscriptEntry({ interviewId, currentQuestion, messages });
+
     return {
       type: "done",
       data: { done: true, currentQuestion, doneMessage: INTERVIEW_DONE_MESSAGE },

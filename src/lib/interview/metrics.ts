@@ -8,6 +8,7 @@ type SessionRecord = {
   status: "IN_PROGRESS" | "COMPLETED" | "ABORTED";
   questionCount: number;
   currentQuestion: number;
+  evaluation: unknown;
   createdAt: Date;
 };
 
@@ -98,6 +99,28 @@ const deriveSessionScore = (session: SessionRecord): number => {
   return clamp(Math.round(score), 0, 100);
 };
 
+const getEvaluationScore = (evaluation: unknown): number | null => {
+  if (!evaluation || typeof evaluation !== "object") {
+    return null;
+  }
+
+  const candidate = (evaluation as { score?: unknown }).score;
+  if (typeof candidate !== "number" || !Number.isFinite(candidate)) {
+    return null;
+  }
+
+  return clamp(Math.round(candidate), 0, 100);
+};
+
+const getSessionScore = (session: SessionRecord): number => {
+  const evaluationScore = getEvaluationScore(session.evaluation);
+  if (evaluationScore !== null) {
+    return evaluationScore;
+  }
+
+  return deriveSessionScore(session);
+};
+
 const formatSessionDate = (date: Date): string =>
   date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
@@ -151,6 +174,7 @@ async function getUserSessions(email: string): Promise<SessionRecord[]> {
       status: true,
       questionCount: true,
       currentQuestion: true,
+      evaluation: true,
       createdAt: true,
     },
     take: 300,
@@ -263,7 +287,7 @@ export async function getDashboardOverviewData(email: string): Promise<Dashboard
   const averageScore =
     completedSessions.length > 0
       ? Math.round(
-          completedSessions.reduce((acc, session) => acc + deriveSessionScore(session), 0) /
+          completedSessions.reduce((acc, session) => acc + getSessionScore(session), 0) /
             completedSessions.length
         )
       : 0;
@@ -281,7 +305,7 @@ export async function getDashboardOverviewData(email: string): Promise<Dashboard
   const thisMonthAverage =
     thisMonthCompleted.length > 0
       ? Math.round(
-          thisMonthCompleted.reduce((acc, session) => acc + deriveSessionScore(session), 0) /
+          thisMonthCompleted.reduce((acc, session) => acc + getSessionScore(session), 0) /
             thisMonthCompleted.length
         )
       : 0;
@@ -289,7 +313,7 @@ export async function getDashboardOverviewData(email: string): Promise<Dashboard
   const previousMonthAverage =
     previousMonthCompleted.length > 0
       ? Math.round(
-          previousMonthCompleted.reduce((acc, session) => acc + deriveSessionScore(session), 0) /
+          previousMonthCompleted.reduce((acc, session) => acc + getSessionScore(session), 0) /
             previousMonthCompleted.length
         )
       : 0;
@@ -309,7 +333,7 @@ export async function getDashboardOverviewData(email: string): Promise<Dashboard
     id: session.id,
     role: session.role,
     company: session.company || "Unknown",
-    score: deriveSessionScore(session),
+    score: getSessionScore(session),
     duration: `${estimateSessionMinutes(session)} min`,
     date: formatSessionDate(session.createdAt),
   }));
@@ -322,7 +346,7 @@ export async function getDashboardOverviewData(email: string): Promise<Dashboard
     );
     const avg =
       daySessions.length > 0
-        ? Math.round(daySessions.reduce((acc, session) => acc + deriveSessionScore(session), 0) / daySessions.length)
+        ? Math.round(daySessions.reduce((acc, session) => acc + getSessionScore(session), 0) / daySessions.length)
         : 0;
 
     return {
@@ -392,7 +416,7 @@ export async function getAnalyticsOverviewData(email: string): Promise<Analytics
   const summarizeMonth = (items: SessionRecord[]) => {
     const interviews = items.length;
     const avgScore = interviews > 0
-      ? Math.round(items.reduce((acc, session) => acc + deriveSessionScore(session), 0) / interviews)
+      ? Math.round(items.reduce((acc, session) => acc + getSessionScore(session), 0) / interviews)
       : 0;
     const hours = items.reduce((acc, session) => acc + estimateSessionMinutes(session), 0) / 60;
     return { interviews, avgScore, hours: Number(hours.toFixed(1)) };
@@ -409,7 +433,7 @@ export async function getAnalyticsOverviewData(email: string): Promise<Analytics
     );
     const value =
       daySessions.length > 0
-        ? Math.round(daySessions.reduce((acc, session) => acc + deriveSessionScore(session), 0) / daySessions.length)
+        ? Math.round(daySessions.reduce((acc, session) => acc + getSessionScore(session), 0) / daySessions.length)
         : 0;
 
     return {
@@ -422,7 +446,7 @@ export async function getAnalyticsOverviewData(email: string): Promise<Analytics
   for (const session of sessions) {
     const key = prettifyCategory(session.type || "General");
     const existing = categoryMap.get(key);
-    const score = deriveSessionScore(session);
+    const score = getSessionScore(session);
     if (!existing) {
       categoryMap.set(key, { total: score, count: 1 });
     } else {

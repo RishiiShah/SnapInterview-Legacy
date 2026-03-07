@@ -91,6 +91,7 @@ export function useSpeechRecognition() {
     const recognitionRef = useRef<RecognitionLike | null>(null);
     const fullTranscriptRef = useRef<string>("");
     const isIntentionalRecordingRef = useRef<boolean>(false);
+    const recognitionActiveRef = useRef<boolean>(false);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -127,16 +128,20 @@ export function useSpeechRecognition() {
                     setSpeechError(getSpeechErrorMessage(event?.error));
                     setIsRecording(false);
                     isIntentionalRecordingRef.current = false;
+                    recognitionActiveRef.current = false;
                 };
 
                 recognition.onend = () => {
-                    if (!isIntentionalRecordingRef.current) return;
+                    const shouldPublishTranscript = isIntentionalRecordingRef.current;
                     isIntentionalRecordingRef.current = false;
+                    recognitionActiveRef.current = false;
                     setIsRecording(false);
 
-                    const finalStr = fullTranscriptRef.current.trim();
-                    if (finalStr) {
-                        setFinalTranscriptBlock(finalStr);
+                    if (shouldPublishTranscript) {
+                        const finalStr = fullTranscriptRef.current.trim();
+                        if (finalStr) {
+                            setFinalTranscriptBlock(finalStr);
+                        }
                     }
 
                     fullTranscriptRef.current = "";
@@ -151,7 +156,11 @@ export function useSpeechRecognition() {
         return () => {
             if (recognitionRef.current) {
                 recognitionRef.current.onend = null;
-                recognitionRef.current.stop();
+                try {
+                    recognitionRef.current.stop();
+                } catch {
+                    // Ignore stop errors during teardown when recognition is already inactive.
+                }
             }
         };
     }, []);
@@ -159,6 +168,9 @@ export function useSpeechRecognition() {
     const startRecording = useCallback(() => {
         if (!recognitionRef.current) {
             setSpeechError("Speech recognition is unavailable in this browser. Use Chrome or Edge for voice answers.");
+            return;
+        }
+        if (recognitionActiveRef.current || isRecording) {
             return;
         }
         setFinalTranscriptBlock(""); // Clear the last finalized block on new start
@@ -171,22 +183,26 @@ export function useSpeechRecognition() {
 
         try {
             recognitionRef.current.start();
+            recognitionActiveRef.current = true;
         } catch (e) {
             console.error("Failed to start recognition", e);
             setSpeechError("Unable to start speech recognition. Please retry or switch to Chrome/Edge.");
             setIsRecording(false);
             isIntentionalRecordingRef.current = false;
+            recognitionActiveRef.current = false;
         }
-    }, []);
+    }, [isRecording]);
 
     const stopRecording = useCallback(() => {
-        if (!recognitionRef.current) return;
-        if (isIntentionalRecordingRef.current) {
-            try {
-                recognitionRef.current.stop();
-            } catch (e) {
-                console.error("Failed to stop recognition", e);
-            }
+        if (!recognitionRef.current || !recognitionActiveRef.current) return;
+
+        try {
+            recognitionRef.current.stop();
+        } catch (e) {
+            console.error("Failed to stop recognition", e);
+            setIsRecording(false);
+            isIntentionalRecordingRef.current = false;
+            recognitionActiveRef.current = false;
         }
     }, []);
 

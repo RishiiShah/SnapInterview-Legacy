@@ -50,7 +50,7 @@ export default async function AnalyticsPage() {
                 </SlideIn>
 
                 {/* Monthly Comparison */}
-                <FadeInStagger triggerOnView={false} className="grid gap-[14px] sm:grid-cols-3">
+                <FadeInStagger triggerOnView={false} className="grid gap-3.5 sm:grid-cols-3">
                     {[
                         { label: "Interviews", current: monthlyComparison[0].interviews, prev: monthlyComparison[1].interviews, suffix: "" },
                         { label: "Avg Score", current: monthlyComparison[0].avgScore, prev: monthlyComparison[1].avgScore, suffix: "/100" },
@@ -59,7 +59,7 @@ export default async function AnalyticsPage() {
                         const diff = stat.current - stat.prev;
                         const pct = stat.prev > 0 ? Math.round((diff / stat.prev) * 100) : 0;
                         return (
-                            <FadeInStaggerItem key={stat.label} className="rounded-2xl border border-zinc-200 bg-white p-[18px]">
+                            <FadeInStaggerItem key={stat.label} className="rounded-2xl border border-zinc-200 bg-white p-4.5">
                                 <p className="text-sm font-medium text-zinc-500">{stat.label}</p>
                                 <p className="mt-1 text-[1.75rem] font-bold tracking-tight text-zinc-900 leading-none">
                                     {stat.current}<span className="text-lg font-medium text-zinc-400">{stat.suffix}</span>
@@ -72,7 +72,7 @@ export default async function AnalyticsPage() {
                     })}
                 </FadeInStagger>
 
-                <div className="grid gap-[18px] lg:grid-cols-2">
+                <div className="grid gap-4.5 lg:grid-cols-2">
                     <PerformanceChart weeklyScores={weeklyScores} delay={0.2} />
                     <CategoryBreakdown categories={categoryBreakdown} delay={0.3} />
                 </div>

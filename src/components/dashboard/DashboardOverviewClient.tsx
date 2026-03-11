@@ -111,7 +111,7 @@ export default function DashboardOverviewClient({
           <div className="rounded-2xl border border-zinc-200 bg-white p-6 lg:col-span-2 flex flex-col">
             <h3 className="mb-1 text-sm font-semibold text-zinc-900">Performance</h3>
             <p className="mb-2 text-xs text-zinc-400">Last 7 sessions</p>
-            <div className="flex items-end gap-3 flex-1 min-h-[220px] pt-4 mt-2">
+            <div className="flex items-end gap-3 flex-1 min-h-55 pt-4 mt-2">
               {chartData.map((d, i) => (
                 <div key={d.label} className="group flex flex-1 flex-col justify-end items-center gap-2 h-full">
                   <div className="relative flex-1 w-full flex items-end">

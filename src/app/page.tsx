@@ -22,7 +22,7 @@ export default async function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-zinc-900 font-[family-name:var(--font-geist-sans)]">
+    <div className="min-h-screen bg-white text-zinc-900 font-(family-name:--font-geist-sans)">
       {/* ─── Navbar ─── */}
       <nav className="fixed inset-x-0 top-0 z-50 border-b border-zinc-100 bg-white/80 backdrop-blur-lg">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
@@ -84,7 +84,7 @@ export default async function LandingPage() {
           <h1 className="mx-auto max-w-3xl text-4xl font-bold leading-[1.15] tracking-tight sm:text-5xl lg:text-6xl">
             Interview prep that
             <br className="hidden sm:block" />
-            <span className="bg-gradient-to-r from-zinc-900 via-zinc-600 to-zinc-400 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-zinc-900 via-zinc-600 to-zinc-400 bg-clip-text text-transparent">
               actually works.
             </span>
           </h1>
@@ -105,7 +105,7 @@ export default async function LandingPage() {
               className="group relative overflow-hidden rounded-xl bg-zinc-900 px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-zinc-900/20 transition-all hover:bg-zinc-800 hover:shadow-xl hover:-translate-y-0.5"
             >
               <span className="relative z-10">Start Practicing — It&apos;s Free</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+              <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
             </Link>
             <a
               href="#how-it-works"

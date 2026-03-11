@@ -1,15 +1,21 @@
 import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { normalizeEmail } from "@/lib/security";
 
 export type SessionUserIdentity = {
   userId: string;
   email: string | null;
 };
 
+export async function getServerAuthSession() {
+  return getServerSession(authOptions);
+}
+
 export async function getSessionUserIdentity(): Promise<SessionUserIdentity | null> {
-  const session = await getServerSession();
+  const session = await getServerAuthSession();
   const sessionUserId = session?.user?.id;
-  const sessionEmail = session?.user?.email?.toLowerCase() ?? null;
+  const sessionEmail = session?.user?.email ? normalizeEmail(session.user.email) : null;
 
   if (sessionUserId) {
     return { userId: sessionUserId, email: sessionEmail };

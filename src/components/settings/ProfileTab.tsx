@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 type ProfileTabProps = {
   userName: string;
@@ -11,16 +13,50 @@ type ProfileTabProps = {
 };
 
 export default function ProfileTab({ userName, userEmail, userImage, initials }: ProfileTabProps) {
+  const router = useRouter();
+  const { update } = useSession();
   const [name, setName] = useState(userName);
+  const [savedName, setSavedName] = useState(userName);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   async function handleSaveProfile() {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setProfileError("Display name is required.");
+      return;
+    }
+
     setProfileSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    setProfileSaving(false);
-    setProfileSaved(true);
-    setTimeout(() => setProfileSaved(false), 2000);
+    setProfileSaved(false);
+    setProfileError(null);
+
+    try {
+      const res = await fetch("/api/settings/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmedName }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setProfileError(typeof data?.error === "string" ? data.error : "Failed to update profile.");
+        return;
+      }
+
+  const nextName = data?.user?.name ?? trimmedName;
+  setName(nextName);
+  setSavedName(nextName);
+  await update({ name: nextName });
+      router.refresh();
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 2000);
+    } catch {
+      setProfileError("Failed to update profile.");
+    } finally {
+      setProfileSaving(false);
+    }
   }
 
   return (
@@ -34,9 +70,9 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
         <div className="flex items-center gap-5">
           <div className="relative group">
             {userImage ? (
-              <Image src={userImage} alt={userName} width={72} height={72} className="h-[72px] w-[72px] rounded-full object-cover ring-4 ring-zinc-100" />
+              <Image src={userImage} alt={savedName} width={72} height={72} className="h-18 w-18 rounded-full object-cover ring-4 ring-zinc-100" />
             ) : (
-              <div className="grid h-[72px] w-[72px] place-items-center rounded-full bg-zinc-900 text-xl font-bold text-white ring-4 ring-zinc-100">{initials}</div>
+              <div className="grid h-18 w-18 place-items-center rounded-full bg-zinc-900 text-xl font-bold text-white ring-4 ring-zinc-100">{initials}</div>
             )}
             <div className="absolute inset-0 flex items-center justify-center rounded-full bg-zinc-900/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
               <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -46,7 +82,7 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
             </div>
           </div>
           <div>
-            <p className="text-base font-semibold text-zinc-900">{userName}</p>
+            <p className="text-base font-semibold text-zinc-900">{savedName}</p>
             <p className="text-sm text-zinc-400">{userEmail}</p>
             <p className="mt-1.5 text-xs text-zinc-400">Click avatar to upload a new photo</p>
           </div>
@@ -60,7 +96,10 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
             <input
               type="text"
               value={name}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) => {
+                setName(event.target.value);
+                if (profileError) setProfileError(null);
+              }}
               className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none transition-all focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100"
             />
           </div>
@@ -70,12 +109,13 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
             <p className="mt-1 text-xs text-zinc-400">Email cannot be changed.</p>
           </div>
         </div>
+        {profileError && <p className="text-sm text-red-600">{profileError}</p>}
       </div>
 
       <div className="flex items-center gap-3 border-t border-zinc-100 px-8 py-5">
         <button
           onClick={handleSaveProfile}
-          disabled={profileSaving}
+          disabled={profileSaving || name.trim() === savedName.trim()}
           className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-zinc-700 disabled:opacity-50"
         >
           {profileSaving ? "Saving…" : "Save Changes"}

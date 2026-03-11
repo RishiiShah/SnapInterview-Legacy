@@ -1,29 +1,17 @@
 import { prisma } from "@/lib/prisma";
+import { recordSecurityEvent } from "@/lib/account-security";
 import { sendOtpEmail } from "@/lib/email";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
-import crypto from "crypto";
 import { z } from "zod/v4";
 import { apiError, apiJson, internalServerError } from "@/lib/api-response";
+import { extractRequestContext, generateNumericCode, hashOneTimeCode, normalizeEmail } from "@/lib/security";
 
 const schema = z.object({
     email: z.email("Invalid email address"),
 });
 
-// Rate limit: 3 reset requests per email per 15 minutes
-const rateLimit = new Map<string, { count: number; resetTime: number }>();
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_REQUESTS = 3;
-
-function isRateLimited(key: string): boolean {
-    const now = Date.now();
-    const entry = rateLimit.get(key);
-    if (!entry || now > entry.resetTime) {
-        rateLimit.set(key, { count: 1, resetTime: now + WINDOW_MS });
-        return false;
-    }
-    entry.count++;
-    return entry.count > MAX_REQUESTS;
-}
 
 export async function POST(req: Request) {
     try {
@@ -37,35 +25,56 @@ export async function POST(req: Request) {
             return apiError("Invalid email address.", 400);
         }
 
-        const email = result.data.email.toLowerCase();
-
-        // Rate limit by email
-        if (isRateLimited(email)) {
-            return apiError("Too many reset requests. Please try again later.", 429);
-        }
+        const email = normalizeEmail(result.data.email);
+        const { ipHash, userAgent } = extractRequestContext(req.headers);
 
         // Always respond with success to prevent email enumeration
         const user = await prisma.user.findUnique({ where: { email } });
 
         if (user && user.passwordHash) {
+            const recentCount = await prisma.passwordResetCode.count({
+                where: {
+                    email,
+                    createdAt: {
+                        gte: new Date(Date.now() - WINDOW_MS),
+                    },
+                },
+            });
+
+            if (recentCount >= MAX_REQUESTS) {
+                return apiError("Too many reset requests. Please try again later.", 429);
+            }
+
             // Generate 6-digit OTP
-            const otp = crypto.randomInt(100000, 999999).toString();
+            const otp = generateNumericCode();
             const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-            // Store in VerificationToken (upsert pattern)
-            await prisma.verificationToken.deleteMany({
-                where: { identifier: `reset:${email}` },
+            await prisma.passwordResetCode.updateMany({
+                where: { email, usedAt: null },
+                data: { usedAt: new Date() },
             });
-            await prisma.verificationToken.create({
+
+            await prisma.passwordResetCode.create({
                 data: {
-                    identifier: `reset:${email}`,
-                    token: otp,
-                    expires: expiresAt,
+                    userId: user.id,
+                    email,
+                    codeHash: hashOneTimeCode(otp),
+                    expiresAt,
+                    ipHash,
+                    userAgent,
                 },
             });
 
             // Send email
             await sendOtpEmail(email, otp);
+
+            await recordSecurityEvent({
+                type: "PASSWORD_RESET_REQUESTED",
+                userId: user.id,
+                email,
+                ipHash,
+                userAgent,
+            });
         }
 
         // Always return success (prevent enumeration)

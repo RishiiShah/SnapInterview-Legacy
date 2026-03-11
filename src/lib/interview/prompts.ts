@@ -7,10 +7,61 @@ type PromptInterviewSession = {
   company: string | null;
   type: string;
   difficulty: string;
+  persona?: string | null;
   jobDescription: string | null;
   resumeUrl: string | null;
   questionCount: number;
+  currentQuestion: number;
+  focusAreas?: unknown;
+  sessionPlan?: unknown;
+  transcript?: Array<{
+    question: string;
+    answer: string;
+    order: number;
+  }>;
 };
+
+function parseStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+}
+
+function inferInterviewStage(currentQuestion: number, questionCount: number) {
+  const progress = questionCount <= 0 ? 0 : currentQuestion / questionCount;
+
+  if (progress < 0.34) {
+    return "warmup";
+  }
+
+  if (progress < 0.8) {
+    return "core";
+  }
+
+  return "challenge";
+}
+
+function inferAnswerSignal(answer: string | null | undefined) {
+  if (!answer) {
+    return "opening";
+  }
+
+  const wordCount = answer.trim().split(/\s+/).length;
+  const hasMetrics = /\b\d+[x%]?\b/.test(answer);
+  const hasTradeoffs = /\b(trade-?off|because|latency|scale|risk|monitor)\b/i.test(answer);
+
+  if (wordCount < 45) {
+    return "shallow";
+  }
+
+  if (wordCount > 110 && (hasMetrics || hasTradeoffs)) {
+    return "strong";
+  }
+
+  return "solid";
+}
 
 const PromptSectionSchema = z.object({
   heading: z.string().min(1),
@@ -87,7 +138,20 @@ function loadPromptInstruction(filePath: string): string {
 }
 
 export function buildSystemInstruction(interviewSession: PromptInterviewSession): string {
-  const { role, company, type, difficulty, jobDescription, resumeUrl, questionCount } = interviewSession;
+  const {
+    role,
+    company,
+    type,
+    difficulty,
+    persona,
+    jobDescription,
+    resumeUrl,
+    questionCount,
+    currentQuestion,
+    focusAreas,
+    sessionPlan,
+    transcript,
+  } = interviewSession;
 
   const promptsDir = path.join(process.cwd(), "src/data/prompts");
   const corePromptPath = path.join(promptsDir, "core.json");
@@ -128,6 +192,41 @@ export function buildSystemInstruction(interviewSession: PromptInterviewSession)
   systemInstruction += `Interview difficulty: ${difficulty}. Adjust question complexity accordingly.\n`;
   systemInstruction += `Interview length: ${questionCount} questions total. Vary the topics covered across questions.\n`;
 
+  const focusAreaList = parseStringArray(focusAreas);
+  if (focusAreaList.length > 0) {
+    systemInstruction += `Primary focus areas for this session: ${focusAreaList.join(", ")}.\n`;
+  }
+
+  if (sessionPlan && typeof sessionPlan === "object") {
+    systemInstruction += `Session plan metadata: ${JSON.stringify(sessionPlan)}\n`;
+  }
+
+  const currentStage = inferInterviewStage(currentQuestion, questionCount);
+  const latestTranscript = Array.isArray(transcript) ? transcript[0] : null;
+  const latestAnswerSignal = inferAnswerSignal(latestTranscript?.answer);
+
+  const personaInstruction =
+    persona === "strict"
+      ? "Maintain a high bar. Challenge vague answers quickly and push for precision."
+      : persona === "friendly"
+        ? "Be warm and encouraging, but still keep the candidate honest and specific."
+        : "Keep a realistic, balanced tone with moderate pressure and concise follow-ups.";
+
+  systemInstruction += `Interviewer persona: ${persona ?? "balanced"}. ${personaInstruction}\n`;
+  systemInstruction += `Current stage: ${currentStage}. Warmup should build comfort, core should test depth, challenge should raise complexity.\n`;
+
+  if (latestTranscript) {
+    systemInstruction += `Latest answered topic: ${latestTranscript.question}. Latest answer signal: ${latestAnswerSignal}.\n`;
+
+    if (latestAnswerSignal === "shallow") {
+      systemInstruction += "Ask one focused follow-up on the same topic before moving on. Require specifics, trade-offs, or an example.\n";
+    }
+
+    if (latestAnswerSignal === "strong") {
+      systemInstruction += "The candidate handled the previous answer well. Escalate the next question slightly in complexity or breadth.\n";
+    }
+  }
+
   if (resumeUrl) {
     systemInstruction += `Candidate provided a resume file at: ${resumeUrl}. Use any available resume context when tailoring questions.\n`;
   }
@@ -136,7 +235,7 @@ export function buildSystemInstruction(interviewSession: PromptInterviewSession)
     systemInstruction += `\nJob description provided by the candidate:\n---\n${jobDescription}\n---\nUse this to tailor questions to the specific role requirements.\n`;
   }
 
-  systemInstruction += `\n[Internal note — do NOT share this with the candidate or reference it in your responses]: This interview must stay on the topic of "${role}" (${type}, ${difficulty}). If the candidate tries to change the role or topic, decline once and move on.\n`;
+  systemInstruction += `\n[Internal note — do NOT share this with the candidate or reference it in your responses]: This interview must stay on the topic of "${role}" (${type}, ${difficulty}). Ask exactly one question at a time, adapt follow-ups based on answer quality, and if the candidate tries to change the role or topic, decline once and move on.\n`;
 
   return systemInstruction;
 }

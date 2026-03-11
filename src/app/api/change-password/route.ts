@@ -1,6 +1,8 @@
-import { getServerSession } from "next-auth/next";
+import { revokeUserSessions, recordSecurityEvent } from "@/lib/account-security";
+import { getCurrentSessionRecord } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
+import { getServerAuthSession } from "@/lib/server-auth";
 import bcrypt from "bcryptjs";
 import { z } from "zod/v4";
 import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
@@ -22,10 +24,12 @@ export async function POST(req: Request) {
         const csrfError = csrfRejectIfInvalid(req);
         if (csrfError) return csrfError;
 
-        const session = await getServerSession();
+        const session = await getServerAuthSession();
         if (!session?.user?.email) {
             return unauthorizedError();
         }
+
+        const currentSession = await getCurrentSessionRecord(req);
 
         const body = await req.json();
         const result = changePasswordSchema.safeParse(body);
@@ -61,10 +65,28 @@ export async function POST(req: Request) {
         const newHash = await bcrypt.hash(newPassword, 12);
         await prisma.user.update({
             where: { id: user.id },
-            data: { passwordHash: newHash },
+            data: {
+                passwordHash: newHash,
+                lastPasswordChangedAt: new Date(),
+                failedLoginCount: 0,
+                lockedUntil: null,
+            },
         });
 
-        return apiJson({ success: true });
+        const revokedSessions = await revokeUserSessions({
+            userId: user.id,
+            excludeSessionToken: currentSession?.sessionToken,
+            reason: "password_changed",
+        });
+
+        await recordSecurityEvent({
+            type: "PASSWORD_CHANGED",
+            userId: user.id,
+            email: user.email,
+            metadata: { revokedSessions },
+        });
+
+        return apiJson({ success: true, revokedSessions });
     } catch (error) {
         console.error("Change password error:", error);
         return internalServerError();

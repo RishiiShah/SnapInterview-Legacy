@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { getInitials } from "@/utils/helpers";
 import { FadeIn, SlideIn } from "@/components/ui/motion";
 import ProfileTab from "@/components/settings/ProfileTab";
-import PasswordTab from "@/components/settings/PasswordTab";
-import NotificationsTab, { type NotificationPrefs } from "@/components/settings/NotificationsTab";
+import SecurityTab from "@/components/settings/SecurityTab";
+import NotificationsTab from "@/components/settings/NotificationsTab";
+import InterviewPreferencesTab from "@/components/settings/InterviewPreferencesTab";
 import DangerZoneTab from "@/components/settings/DangerZoneTab";
+import { useSettingsBootstrap } from "@/hooks/useSettingsBootstrap";
 
 const tabs = [
   {
@@ -22,12 +24,22 @@ const tabs = [
     ),
   },
   {
-    id: "password" as const,
-    label: "Password",
-    desc: "Security settings",
+    id: "security" as const,
+    label: "Security",
+    desc: "Password & sessions",
     icon: (
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+      </svg>
+    ),
+  },
+  {
+    id: "preferences" as const,
+    label: "Interview Preferences",
+    desc: "Targets & defaults",
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3.172a.75.75 0 011.364 0l.854 1.744a.75.75 0 00.565.41l1.923.281a.75.75 0 01.416 1.278l-1.39 1.365a.75.75 0 00-.216.663l.328 1.907a.75.75 0 01-1.088.79L10.25 10.53a.75.75 0 00-.698 0L7.818 11.61a.75.75 0 01-1.088-.79l.327-1.907a.75.75 0 00-.216-.663l-1.39-1.365a.75.75 0 01.416-1.278l1.923-.281a.75.75 0 00.565-.41l.853-1.744zM4.5 15.75h15m-15 3h15" />
       </svg>
     ),
   },
@@ -55,62 +67,10 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"];
 
-const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
-  emailNotifs: true,
-  practiceReminders: true,
-  weeklyReport: true,
-  scoreAlerts: false,
-};
-
-function normalizePrefs(value: unknown): NotificationPrefs {
-  if (!value || typeof value !== "object") return DEFAULT_NOTIFICATION_PREFS;
-
-  const prefs = value as Partial<NotificationPrefs>;
-  if (
-    typeof prefs.emailNotifs !== "boolean" ||
-    typeof prefs.practiceReminders !== "boolean" ||
-    typeof prefs.weeklyReport !== "boolean" ||
-    typeof prefs.scoreAlerts !== "boolean"
-  ) {
-    return DEFAULT_NOTIFICATION_PREFS;
-  }
-
-  return {
-    emailNotifs: prefs.emailNotifs,
-    practiceReminders: prefs.practiceReminders,
-    weeklyReport: prefs.weeklyReport,
-    scoreAlerts: prefs.scoreAlerts,
-  };
-}
-
 export default function SettingsPage() {
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<TabId>("profile");
-  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>(DEFAULT_NOTIFICATION_PREFS);
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    const loadNotificationPrefs = async () => {
-      try {
-        const res = await fetch("/api/settings/notifications", { method: "GET" });
-        if (!res.ok || isCancelled) return;
-
-        const data = await res.json();
-        if (!isCancelled) {
-          setNotificationPrefs(normalizePrefs(data?.notificationPrefs));
-        }
-      } catch {
-        // Keep defaults when fetch fails.
-      }
-    };
-
-    void loadNotificationPrefs();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, []);
+  const { notificationPrefs, onboardingPrefs } = useSettingsBootstrap();
 
   const userName = session?.user?.name || "";
   const userEmail = session?.user?.email || "";
@@ -161,7 +121,8 @@ export default function SettingsPage() {
               {activeTab === "profile" && (
                 <ProfileTab userName={userName} userEmail={userEmail} userImage={userImage} initials={initials} />
               )}
-              {activeTab === "password" && <PasswordTab />}
+              {activeTab === "security" && <SecurityTab />}
+              {activeTab === "preferences" && <InterviewPreferencesTab initialValues={onboardingPrefs} />}
               {activeTab === "notifications" && <NotificationsTab initialPrefs={notificationPrefs} />}
               {activeTab === "danger" && <DangerZoneTab />}
             </div>

@@ -18,11 +18,22 @@ model User {
   image             String?
   passwordHash      String?
   isFirstLogin      Boolean            @default(true)
+  failedLoginCount  Int                @default(0)
+  lockedUntil       DateTime?
+  lastPasswordChangedAt DateTime?
+  onboardingCompletedAt DateTime?
+  onboardingRole    String?
+  onboardingLevel   String?
+  onboardingCompany String?
+  onboardingGoal    String?
+  preferredInterviewType String?
   notificationPrefs Json               @default("{\"emailNotifs\":true,\"practiceReminders\":true,\"weeklyReport\":true,\"scoreAlerts\":false}")
   accounts          Account[]
   sessions          Session[]
   interviewSessions InterviewSession[]
   solvedQuestions   SolvedQuestion[]
+  passwordResetCodes PasswordResetCode[]
+  securityEvents    SecurityEvent[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 }
@@ -51,8 +62,14 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
+  userAgent    String?
+  ipHash       String?
+  lastSeenAt   DateTime @default(now())
+  revokedAt    DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expires])
 }
 
 model VerificationToken {
@@ -68,11 +85,60 @@ model PendingUser {
   name         String
   email        String
   passwordHash String
-  otp          String
+  otpHash      String
+  attemptCount Int      @default(0)
+  lockedUntil  DateTime?
+  lastOtpSentAt DateTime?
   expiresAt    DateTime
   createdAt    DateTime @default(now())
 
   @@index([email])
+}
+
+enum SecurityEventType {
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  PASSWORD_CHANGED
+  PASSWORD_RESET_REQUESTED
+  PASSWORD_RESET_COMPLETED
+  SESSION_REVOKED
+  REGISTRATION_OTP_FAILED
+  REGISTRATION_OTP_VERIFIED
+}
+
+model PasswordResetCode {
+  id           String   @id @default(cuid())
+  userId       String
+  email        String
+  codeHash     String
+  attemptCount Int      @default(0)
+  lockedUntil  DateTime?
+  expiresAt    DateTime
+  usedAt       DateTime?
+  ipHash       String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([email, createdAt])
+}
+
+model SecurityEvent {
+  id        String            @id @default(cuid())
+  userId     String?
+  email      String?
+  type       SecurityEventType
+  ipHash     String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime         @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([email, createdAt])
 }
 
 // ─── Interview Sessions ───
@@ -90,12 +156,15 @@ model InterviewSession {
   company         String?
   type            String
   difficulty      String
+  persona         String?
   jobDescription  String?         @db.Text
   resumeUrl       String?
   videoUrl        String?
   status          InterviewStatus @default(IN_PROGRESS)
   questionCount   Int             @default(10)
   currentQuestion Int             @default(0)
+  focusAreas      Json?
+  sessionPlan     Json?
   evaluation      Json?
   createdAt       DateTime        @default(now())
 

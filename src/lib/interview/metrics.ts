@@ -34,6 +34,15 @@ type DashboardChartPoint = {
   value: number;
 };
 
+export type PracticeRecentSession = {
+  id: string;
+  role: string;
+  company: string;
+  type: string;
+  score: number;
+  date: string;
+};
+
 type AnalyticsMonthlyComparison = {
   label: string;
   interviews: number;
@@ -163,8 +172,14 @@ async function getUserSessions(email: string): Promise<SessionRecord[]> {
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail }, select: { id: true } });
   if (!user) return [];
 
+  return getUserSessionsByUserId(user.id);
+}
+
+async function getUserSessionsByUserId(userId: string): Promise<SessionRecord[]> {
+  if (!userId) return [];
+
   const sessions = await prisma.interviewSession.findMany({
-    where: { userId: user.id },
+    where: { userId },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -181,6 +196,22 @@ async function getUserSessions(email: string): Promise<SessionRecord[]> {
   });
 
   return sessions;
+}
+
+export async function getRecentPracticeSessionsByUserId(
+  userId: string,
+  limit = 5
+): Promise<PracticeRecentSession[]> {
+  const sessions = await getUserSessionsByUserId(userId);
+
+  return sessions.slice(0, limit).map((session) => ({
+    id: session.id,
+    role: session.role,
+    company: session.company || "Unknown",
+    type: session.type,
+    score: getSessionScore(session),
+    date: formatSessionDate(session.createdAt),
+  }));
 }
 
 async function getUserTranscripts(email: string): Promise<TranscriptRecord[]> {

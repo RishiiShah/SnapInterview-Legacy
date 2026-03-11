@@ -88,7 +88,7 @@ export default function PasswordTab() {
     <div>
       <div className="border-b border-zinc-100 px-8 py-6">
         <h2 className="text-lg font-semibold text-zinc-900">Change Password</h2>
-        <p className="mt-1 text-sm text-zinc-500">Update your password to keep your account secure.</p>
+        <p className="mt-1 text-sm text-zinc-500">Update your password to keep your account secure. Other active devices will be signed out.</p>
       </div>
 
       <div className="px-8 py-6 space-y-5">

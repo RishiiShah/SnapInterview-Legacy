@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { recordSecurityEvent, revokeUserSessions } from "@/lib/account-security";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
+import { hashOneTimeCode, normalizeEmail, verifyOneTimeCode } from "@/lib/security";
 import bcrypt from "bcryptjs";
 import { z } from "zod/v4";
 import { apiError, apiJson, badRequestError, internalServerError, notFoundError } from "@/lib/api-response";
@@ -17,8 +19,6 @@ const schema = z.object({
         .refine((pw) => /[^A-Za-z0-9]/.test(pw), "Password must contain a special character"),
 });
 
-// --- OTP Brute force prevention (module scope so state persists across requests) ---
-const resetRateLimit = new Map<string, { count: number; lockoutUntil: number }>();
 const MAX_OTP_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000; // 15 mins
 
@@ -36,11 +36,12 @@ export async function POST(req: Request) {
         }
 
         const { email, otp, newPassword } = result.data;
-        const normalizedEmail = email.toLowerCase();
+        const normalizedEmail = normalizeEmail(email);
 
         // Find the verification token
-        const token = await prisma.verificationToken.findFirst({
-            where: { identifier: `reset:${normalizedEmail}` },
+        const token = await prisma.passwordResetCode.findFirst({
+            where: { email: normalizedEmail, usedAt: null },
+            orderBy: { createdAt: "desc" },
         });
 
         if (!token) {
@@ -48,50 +49,39 @@ export async function POST(req: Request) {
         }
 
         // Check expiry
-        if (new Date() > token.expires) {
-            await prisma.verificationToken.deleteMany({
-                where: { identifier: `reset:${normalizedEmail}` },
+        if (new Date() > token.expiresAt) {
+            await prisma.passwordResetCode.updateMany({
+                where: { email: normalizedEmail, usedAt: null },
+                data: { usedAt: new Date() },
             });
             return apiError("Reset code has expired. Please request a new one.", 410);
         }
 
-        // --- OTP Brute force prevention ---
-
-        const now = Date.now();
-        let limitEntry = resetRateLimit.get(normalizedEmail);
-
-        if (limitEntry && now < limitEntry.lockoutUntil) {
+        if (token.lockedUntil && token.lockedUntil > new Date()) {
             return apiError("Too many failed attempts. Try again later.", 429);
         }
 
         // Validate OTP
-        if (token.token !== otp) {
-            // Increment failed attempts
-            if (!limitEntry || now > limitEntry.lockoutUntil) {
-                limitEntry = { count: 1, lockoutUntil: 0 };
-            } else {
-                limitEntry.count++;
-            }
+        if (!verifyOneTimeCode(otp, token.codeHash)) {
+            const attemptCount = token.attemptCount + 1;
+            const lockedUntil =
+                attemptCount >= MAX_OTP_ATTEMPTS ? new Date(Date.now() + LOCKOUT_MS) : null;
 
-            if (limitEntry.count >= MAX_OTP_ATTEMPTS) {
-                limitEntry.lockoutUntil = now + LOCKOUT_MS;
-                resetRateLimit.set(normalizedEmail, limitEntry);
+            await prisma.passwordResetCode.update({
+                where: { id: token.id },
+                data: {
+                    attemptCount,
+                    lockedUntil,
+                    ...(lockedUntil ? { usedAt: new Date() } : {}),
+                },
+            });
 
-                // Delete the verification token so they have to request a new one
-                await prisma.verificationToken.deleteMany({
-                    where: { identifier: `reset:${normalizedEmail}` },
-                });
-
+            if (lockedUntil) {
                 return apiError("Maximum attempts reached. Reset cancelled. Please request a new code.", 429);
             }
 
-            resetRateLimit.set(normalizedEmail, limitEntry);
-
-            return badRequestError(`Invalid code. ${MAX_OTP_ATTEMPTS - limitEntry.count} attempts left.`);
+            return badRequestError(`Invalid code. ${MAX_OTP_ATTEMPTS - attemptCount} attempts left.`);
         }
-
-        // On success, clear the rate limit
-        resetRateLimit.delete(normalizedEmail);
 
         // Find user
         const user = await prisma.user.findUnique({
@@ -106,12 +96,34 @@ export async function POST(req: Request) {
         const passwordHash = await bcrypt.hash(newPassword, 12);
         await prisma.user.update({
             where: { id: user.id },
-            data: { passwordHash },
+            data: {
+                passwordHash,
+                lastPasswordChangedAt: new Date(),
+                failedLoginCount: 0,
+                lockedUntil: null,
+            },
+        });
+
+        await revokeUserSessions({
+            userId: user.id,
+            reason: "password_reset",
         });
 
         // Clean up token
-        await prisma.verificationToken.deleteMany({
-            where: { identifier: `reset:${normalizedEmail}` },
+        await prisma.passwordResetCode.updateMany({
+            where: { email: normalizedEmail, usedAt: null },
+            data: { usedAt: new Date() },
+        });
+
+        await prisma.passwordResetCode.update({
+            where: { id: token.id },
+            data: { codeHash: hashOneTimeCode(otp), usedAt: new Date() },
+        });
+
+        await recordSecurityEvent({
+            type: "PASSWORD_RESET_COMPLETED",
+            userId: user.id,
+            email: normalizedEmail,
         });
 
         return apiJson({ success: true });

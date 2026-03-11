@@ -5,8 +5,13 @@ import type { NextAuthOptions } from "next-auth";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { recordSecurityEvent } from "@/lib/account-security";
+import { mapAuthUserFields } from "@/lib/auth-user";
+import { extractRequestContext, normalizeEmail } from "@/lib/security";
 
 const loginLimiter = createRateLimiter(60 * 1000, 5);
+const MAX_FAILED_LOGIN_ATTEMPTS = 5;
+const LOGIN_LOCK_MS = 15 * 60 * 1000;
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -26,13 +31,22 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Email and password are required");
         }
 
-        const emailKey = credentials.email.toLowerCase();
+        const emailKey = normalizeEmail(credentials.email);
+        const { ipHash, userAgent } = extractRequestContext(request?.headers);
+
         if (loginLimiter.isLimited(emailKey)) {
+          await recordSecurityEvent({
+            type: "LOGIN_FAILED",
+            email: emailKey,
+            ipHash,
+            userAgent,
+            metadata: { reason: "rate_limited" },
+          });
           throw new Error("Too many login attempts. Please try again later.");
         }
 
@@ -40,66 +54,112 @@ export const authOptions: NextAuthOptions = {
           where: { email: emailKey },
         });
 
+        if (user?.lockedUntil && user.lockedUntil > new Date()) {
+          await recordSecurityEvent({
+            type: "LOGIN_FAILED",
+            userId: user.id,
+            email: user.email,
+            ipHash,
+            userAgent,
+            metadata: { reason: "locked" },
+          });
+          throw new Error("Too many login attempts. Please try again later.");
+        }
+
         if (!user || !user.passwordHash) {
+          await recordSecurityEvent({
+            type: "LOGIN_FAILED",
+            email: emailKey,
+            ipHash,
+            userAgent,
+            metadata: { reason: "invalid_credentials" },
+          });
           throw new Error("Invalid email or password");
         }
 
         const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
 
         if (!isValid) {
+          const failedLoginCount = user.failedLoginCount + 1;
+          const lockedUntil =
+            failedLoginCount >= MAX_FAILED_LOGIN_ATTEMPTS
+              ? new Date(Date.now() + LOGIN_LOCK_MS)
+              : null;
+
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              failedLoginCount,
+              lockedUntil,
+            },
+          });
+
+          await recordSecurityEvent({
+            type: "LOGIN_FAILED",
+            userId: user.id,
+            email: user.email,
+            ipHash,
+            userAgent,
+            metadata: {
+              reason: "invalid_credentials",
+              remainingAttempts: Math.max(0, MAX_FAILED_LOGIN_ATTEMPTS - failedLoginCount),
+            },
+          });
+
           throw new Error("Invalid email or password");
         }
 
-        if (user.isFirstLogin) {
+        if (user.failedLoginCount !== 0 || user.lockedUntil) {
           await prisma.user.update({
             where: { id: user.id },
-            data: { isFirstLogin: false },
+            data: {
+              failedLoginCount: 0,
+              lockedUntil: null,
+            },
           });
         }
 
-        return {
-          id: user.id,
+        await recordSecurityEvent({
+          type: "LOGIN_SUCCESS",
+          userId: user.id,
           email: user.email,
-          name: user.name,
-          image: user.image,
-          isFirstLogin: user.isFirstLogin,
-        };
+          ipHash,
+          userAgent,
+          metadata: { provider: "credentials" },
+        });
+
+        return mapAuthUserFields(user);
       },
     }),
   ],
   session: {
-    strategy: "jwt",
+    strategy: "database",
     maxAge: 7 * 24 * 60 * 60,
   },
   pages: {
     signIn: "/login",
   },
   callbacks: {
-    async signIn({ user }) {
-      if (user?.id) {
-        const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
-
-        if (dbUser?.isFirstLogin) {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { isFirstLogin: false },
-          });
-        }
+    async signIn({ user, account }) {
+      if (user?.id && account?.provider === "google") {
+        await recordSecurityEvent({
+          type: "LOGIN_SUCCESS",
+          userId: user.id,
+          email: user.email,
+          metadata: { provider: account.provider },
+        });
       }
 
       return true;
     },
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.isFirstLogin = (user as { isFirstLogin?: boolean }).isFirstLogin ?? true;
-      }
-      return token;
-    },
-    async session({ session, token }) {
+    async session({ session, user, trigger, newSession }) {
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.isFirstLogin = token.isFirstLogin as boolean;
+        Object.assign(
+          session.user,
+          mapAuthUserFields(user as Parameters<typeof mapAuthUserFields>[0], {
+            name: trigger === "update" && typeof newSession?.name === "string" ? newSession.name : user.name,
+          })
+        );
       }
       return session;
     },

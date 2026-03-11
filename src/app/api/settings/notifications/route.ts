@@ -1,8 +1,8 @@
-import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { z } from "zod/v4";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
+import { getServerAuthSession } from "@/lib/server-auth";
 
 const prefsSchema = z.object({
   emailNotifs: z.boolean(),
@@ -27,7 +27,7 @@ function normalizePrefs(value: unknown): NotificationPrefs {
 }
 
 async function getAuthedEmail() {
-  const session = await getServerSession();
+  const session = await getServerAuthSession();
   return session?.user?.email?.toLowerCase() ?? null;
 }
 

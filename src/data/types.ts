@@ -34,6 +34,7 @@ export interface StatCard {
 /* ─────────────── Interviews ─────────────── */
 export type InterviewType = "behavioral" | "technical" | "system-design" | "leadership";
 export type Difficulty = "easy" | "medium" | "hard";
+export type InterviewPersona = "friendly" | "balanced" | "strict";
 
 export interface InterviewSession {
     id: string;

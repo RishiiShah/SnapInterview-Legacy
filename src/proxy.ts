@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { SESSION_COOKIE_NAMES } from "@/lib/auth-session";
 
 export async function proxy(request: NextRequest) {
     // 1. Setup headers for the request (e.g., nonce for CSP)
@@ -10,7 +10,7 @@ export async function proxy(request: NextRequest) {
     // 2. Auth checks
     // We only want to protect specific routes. The matcher is now set to run on all pages for the security headers,
     // so we handle the route protection manually.
-    const protectedPaths = ["/dashboard", "/practice", "/questions", "/analytics", "/recordings", "/settings"];
+    const protectedPaths = ["/dashboard", "/practice", "/questions", "/analytics", "/recordings", "/settings", "/onboarding"];
     const isProtectedPath = protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path));
 
     let response = NextResponse.next({
@@ -20,10 +20,9 @@ export async function proxy(request: NextRequest) {
     });
 
     if (isProtectedPath) {
-        const token = await getToken({
-            req: request,
-            secret: process.env.AUTH_SECRET,
-        });
+        const token = SESSION_COOKIE_NAMES
+            .map((cookieName) => request.cookies.get(cookieName)?.value)
+            .find(Boolean);
 
         if (!token) {
             const loginUrl = new URL("/login", request.url);

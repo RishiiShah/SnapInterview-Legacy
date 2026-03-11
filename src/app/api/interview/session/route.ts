@@ -55,7 +55,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { role, company, type, difficulty, jobDescription, resumeUrl, questionCount } = body;
+        const { role, company, type, difficulty, persona, jobDescription, resumeUrl, questionCount } = body;
 
         if (!role || !type || !difficulty) {
             return badRequestError("role, type, and difficulty are required");
@@ -74,6 +74,7 @@ export async function POST(req: Request) {
             company,
             type,
             difficulty,
+            persona,
             jobDescription,
             resumeUrl,
             questionCount,

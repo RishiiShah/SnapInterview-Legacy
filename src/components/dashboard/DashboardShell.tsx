@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, ReactNode, useMemo, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useSidebar } from "@/app/providers";
 import { getInitials } from "@/utils/helpers";
@@ -93,7 +93,7 @@ function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCollapsed
     }, []);
 
     return (
-        <aside className={`fixed inset-y-0 left-0 z-[60] flex ${collapsed ? "w-16" : "w-64"} flex-col border-r border-zinc-200 bg-white transition-all duration-300 ease-in-out`}>
+        <aside className={`fixed inset-y-0 left-0 z-60 flex ${collapsed ? "w-16" : "w-64"} flex-col border-r border-zinc-200 bg-white transition-all duration-300 ease-in-out`}>
             {/* Logo + Toggle */}
             <div className={`flex h-16 items-center border-b border-zinc-100 ${collapsed ? "justify-center px-2" : "justify-between px-3"}`}>
                 {collapsed ? (
@@ -401,6 +401,8 @@ function Header({ onSearchOpen }: { onSearchOpen: () => void }) {
    DASHBOARD SHELL
    ═══════════════════════════════════════════════════ */
 export default function DashboardShell({ children }: { children: ReactNode }) {
+    const router = useRouter();
+    const { data: session, status } = useSession();
     const { collapsed, setCollapsed } = useSidebar();
     const [searchOpen, setSearchOpen] = useState(false);
     const mainRef = useRef<HTMLElement>(null);
@@ -417,6 +419,25 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
 
     // Scroll restoration
     const pathname = usePathname();
+
+    useEffect(() => {
+        if (status !== "authenticated") {
+            return;
+        }
+
+        if (!session?.user?.onboardingCompleted) {
+            router.replace("/onboarding");
+        }
+    }, [router, session?.user?.onboardingCompleted, status]);
+
+    useEffect(() => {
+        if (status !== "authenticated") {
+            return;
+        }
+
+        void fetch("/api/settings/security", { method: "POST" });
+    }, [status]);
+
     useEffect(() => {
         if (mainRef.current) {
             mainRef.current.scrollTo({ top: 0, behavior: "auto" });
@@ -426,7 +447,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
     }, [pathname]);
 
     return (
-        <div className="flex h-screen overflow-hidden bg-zinc-50 font-[family-name:var(--font-geist-sans)]">
+        <div className="flex h-screen overflow-hidden bg-zinc-50 font-(family-name:--font-geist-sans)">
             <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
             <div className={`${collapsed ? "ml-16" : "ml-64"} flex h-screen flex-1 flex-col overflow-hidden transition-all duration-300 ease-in-out`}>
                 <Header onSearchOpen={() => setSearchOpen(true)} />

@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { recordSecurityEvent } from "@/lib/account-security";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
+import { normalizeEmail, verifyOneTimeCode } from "@/lib/security";
 import { z } from "zod/v4";
 import { apiError, apiJson, badRequestError, internalServerError, notFoundError } from "@/lib/api-response";
 
@@ -8,8 +10,6 @@ const verifySchema = z.object({
     otp: z.string().length(6, "OTP must be 6 digits"),
 });
 
-// --- OTP Brute force prevention (module scope so state persists across requests) ---
-const verifyRateLimit = new Map<string, { count: number; lockoutUntil: number }>();
 const MAX_OTP_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000; // 15 mins
 
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
         }
 
         const { email, otp } = result.data;
-        const normalizedEmail = email.toLowerCase();
+        const normalizedEmail = normalizeEmail(email);
 
         // Find the pending user record
         const pendingUser = await prisma.pendingUser.findFirst({
@@ -48,39 +48,36 @@ export async function POST(req: Request) {
 
         // --- OTP Brute force prevention ---
 
-        const now = Date.now();
-        let limitEntry = verifyRateLimit.get(normalizedEmail);
-
-        if (limitEntry && now < limitEntry.lockoutUntil) {
+        if (pendingUser.lockedUntil && pendingUser.lockedUntil > new Date()) {
             return apiError("Too many failed attempts. Try again later.", 429);
         }
 
         // Validate OTP
-        if (pendingUser.otp !== otp) {
-            // Increment failed attempts
-            if (!limitEntry || now > limitEntry.lockoutUntil) {
-                limitEntry = { count: 1, lockoutUntil: 0 };
-            } else {
-                limitEntry.count++;
-            }
+        if (!verifyOneTimeCode(otp, pendingUser.otpHash)) {
+            const attemptCount = pendingUser.attemptCount + 1;
+            const lockedUntil =
+                attemptCount >= MAX_OTP_ATTEMPTS ? new Date(Date.now() + LOCKOUT_MS) : null;
 
-            if (limitEntry.count >= MAX_OTP_ATTEMPTS) {
-                limitEntry.lockoutUntil = now + LOCKOUT_MS;
-                verifyRateLimit.set(normalizedEmail, limitEntry);
+            await prisma.pendingUser.update({
+                where: { id: pendingUser.id },
+                data: {
+                    attemptCount,
+                    lockedUntil,
+                },
+            });
 
-                // Delete the pending user so they have to restart the flow
-                await prisma.pendingUser.delete({ where: { id: pendingUser.id } });
+            await recordSecurityEvent({
+                type: "REGISTRATION_OTP_FAILED",
+                email: normalizedEmail,
+                metadata: { remainingAttempts: Math.max(0, MAX_OTP_ATTEMPTS - attemptCount) },
+            });
 
+            if (lockedUntil) {
                 return apiError("Maximum attempts reached. Registration cancelled. Please sign up again.", 429);
             }
 
-            verifyRateLimit.set(normalizedEmail, limitEntry);
-
-            return badRequestError(`Invalid OTP. ${MAX_OTP_ATTEMPTS - limitEntry.count} attempts left.`);
+            return badRequestError(`Invalid OTP. ${MAX_OTP_ATTEMPTS - attemptCount} attempts left.`);
         }
-
-        // On success, clear the rate limit
-        verifyRateLimit.delete(normalizedEmail);
 
         // Check if a user with this email was created in the meantime
         const existingUser = await prisma.user.findUnique({
@@ -102,6 +99,12 @@ export async function POST(req: Request) {
                 emailVerified: new Date(),
                 isFirstLogin: true,
             },
+        });
+
+        await recordSecurityEvent({
+            type: "REGISTRATION_OTP_VERIFIED",
+            userId: user.id,
+            email: user.email,
         });
 
         // Clean up all pending records for this email

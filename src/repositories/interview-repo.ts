@@ -14,10 +14,24 @@ const interviewSessionChatSelect = {
   company: true,
   type: true,
   difficulty: true,
+  persona: true,
   jobDescription: true,
   resumeUrl: true,
   questionCount: true,
   currentQuestion: true,
+  focusAreas: true,
+  sessionPlan: true,
+  transcript: {
+    select: {
+      question: true,
+      answer: true,
+      order: true,
+    },
+    orderBy: {
+      order: "desc",
+    },
+    take: 1,
+  },
 } satisfies Prisma.InterviewSessionSelect;
 
 const interviewSessionEvaluationSelect = {
@@ -26,9 +40,13 @@ const interviewSessionEvaluationSelect = {
   company: true,
   type: true,
   difficulty: true,
+  persona: true,
   jobDescription: true,
   resumeUrl: true,
   questionCount: true,
+  currentQuestion: true,
+  focusAreas: true,
+  sessionPlan: true,
   evaluation: true,
   transcript: {
     select: {
@@ -42,56 +60,33 @@ const interviewSessionEvaluationSelect = {
   },
 } satisfies Prisma.InterviewSessionSelect;
 
-type InterviewSessionState = Prisma.InterviewSessionGetPayload<{
-  select: typeof interviewSessionStateSelect;
-}>;
+const interviewSessionSelectByView = {
+  state: interviewSessionStateSelect,
+  chat: interviewSessionChatSelect,
+  evaluation: interviewSessionEvaluationSelect,
+} as const;
 
-type InterviewSessionChat = Prisma.InterviewSessionGetPayload<{
-  select: typeof interviewSessionChatSelect;
-}>;
+type InterviewSessionView = keyof typeof interviewSessionSelectByView;
 
-type InterviewSessionEvaluation = Prisma.InterviewSessionGetPayload<{
-  select: typeof interviewSessionEvaluationSelect;
-}>;
-
-type InterviewSessionView = "state" | "chat" | "evaluation";
-
-type InterviewSessionByView<TView extends InterviewSessionView> =
-  TView extends "state"
-    ? InterviewSessionState
-    : TView extends "chat"
-      ? InterviewSessionChat
-      : InterviewSessionEvaluation;
+type InterviewSessionByView = {
+  [TView in InterviewSessionView]: Prisma.InterviewSessionGetPayload<{
+    select: (typeof interviewSessionSelectByView)[TView];
+  }>;
+};
 
 export async function getInterviewSession<TView extends InterviewSessionView>(params: {
   interviewId: string;
   userId: string;
   view: TView;
-}): Promise<InterviewSessionByView<TView> | null> {
+}): Promise<InterviewSessionByView[TView] | null> {
   const { interviewId, userId, view } = params;
-
-  if (view === "state") {
-    const session = await prisma.interviewSession.findFirst({
-      where: { id: interviewId, userId },
-      select: interviewSessionStateSelect,
-    });
-    return session as InterviewSessionByView<TView> | null;
-  }
-
-  if (view === "chat") {
-    const session = await prisma.interviewSession.findFirst({
-      where: { id: interviewId, userId },
-      select: interviewSessionChatSelect,
-    });
-    return session as InterviewSessionByView<TView> | null;
-  }
 
   const session = await prisma.interviewSession.findFirst({
     where: { id: interviewId, userId },
-    select: interviewSessionEvaluationSelect,
+    select: interviewSessionSelectByView[view],
   });
 
-  return session as InterviewSessionByView<TView> | null;
+  return session as InterviewSessionByView[TView] | null;
 }
 
 export async function createInterviewSession(params: {
@@ -100,11 +95,26 @@ export async function createInterviewSession(params: {
   company?: string | null;
   type: string;
   difficulty: string;
+  persona?: string;
   jobDescription?: string | null;
   resumeUrl?: string | null;
   questionCount?: number;
+  focusAreas?: Prisma.InputJsonValue;
+  sessionPlan?: Prisma.InputJsonValue;
 }) {
-  const { userId, role, company, type, difficulty, jobDescription, resumeUrl, questionCount } = params;
+  const {
+    userId,
+    role,
+    company,
+    type,
+    difficulty,
+    persona,
+    jobDescription,
+    resumeUrl,
+    questionCount,
+    focusAreas,
+    sessionPlan,
+  } = params;
 
   return prisma.interviewSession.create({
     data: {
@@ -113,9 +123,12 @@ export async function createInterviewSession(params: {
       company: company ?? null,
       type,
       difficulty,
+      persona: persona ?? null,
       jobDescription: jobDescription ?? null,
       resumeUrl: resumeUrl ?? null,
       questionCount: questionCount ?? 10,
+      focusAreas: focusAreas ?? undefined,
+      sessionPlan: sessionPlan ?? undefined,
     },
     select: {
       id: true,

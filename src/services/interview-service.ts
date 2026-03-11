@@ -1,9 +1,10 @@
-import type { InterviewStatus } from "@/generated/prisma/client";
+import type { InterviewStatus, Prisma } from "@/generated/prisma/client";
 import { INTERVIEW_DONE_MESSAGE } from "@/lib/interview/constants";
 import { buildSystemInstruction } from "@/lib/interview/prompts";
 import { sanitizeChatMessages } from "@/lib/interview/chat-messages";
 import { saveLatestTranscriptEntry } from "@/lib/interview/transcript-service";
 import { groqClient } from "@/lib/ai/groq";
+import { prisma } from "@/lib/prisma";
 import {
   createInterviewSession,
   getInterviewSession,
@@ -13,6 +14,66 @@ import {
 
 export const ALLOWED_STATUSES = ["COMPLETED", "ABORTED"] as const;
 export const ALLOWED_QUESTION_COUNTS = [5, 10, 15] as const;
+
+function deriveAdaptiveFocusAreas(params: {
+  type: string;
+  difficulty: string;
+  onboardingGoal?: string | null;
+  onboardingLevel?: string | null;
+}) {
+  const { type, difficulty, onboardingGoal, onboardingLevel } = params;
+
+  const focusAreas = [
+    `${type} fundamentals`,
+    difficulty === "hard" ? "trade-off reasoning" : "structured communication",
+  ];
+
+  if (onboardingGoal === "land-first-role") {
+    focusAreas.push("clear storytelling", "confidence and pacing");
+  }
+
+  if (onboardingGoal === "switch-companies") {
+    focusAreas.push("impact quantification", "high-signal examples");
+  }
+
+  if (onboardingGoal === "prepare-for-promo") {
+    focusAreas.push("leadership scope", "decision rationale");
+  }
+
+  if (onboardingGoal === "sharpen-communication") {
+    focusAreas.push("concise answers", "structured follow-through");
+  }
+
+  if (onboardingLevel === "staff-plus") {
+    focusAreas.push("organizational trade-offs");
+  }
+
+  return Array.from(new Set(focusAreas)).slice(0, 5);
+}
+
+function buildAdaptiveSessionPlan(params: {
+  questionCount: number;
+  difficulty: string;
+  persona: string;
+  onboardingLevel?: string | null;
+  onboardingGoal?: string | null;
+}) {
+  const { questionCount, difficulty, persona, onboardingLevel, onboardingGoal } = params;
+
+  return {
+    pacing: ["warmup", "core", "challenge"],
+    targetLevel: onboardingLevel ?? difficulty,
+    goal: onboardingGoal ?? "switch-companies",
+    persona,
+    followUpBias:
+      persona === "strict"
+        ? "probe weak answers quickly"
+        : persona === "friendly"
+          ? "coach lightly before escalating"
+          : "balance encouragement with pressure",
+    questionCount,
+  };
+}
 
 export async function getInterviewSessionState(params: { userId: string; interviewId: string }) {
   return getInterviewSession({ ...params, view: "state" });
@@ -24,11 +85,50 @@ export async function startInterviewSession(params: {
   company?: string | null;
   type: string;
   difficulty: string;
+  persona?: string;
   jobDescription?: string | null;
   resumeUrl?: string | null;
   questionCount?: number;
 }) {
-  return createInterviewSession(params);
+  const user = await prisma.user.findUnique({
+    where: { id: params.userId },
+    select: {
+      onboardingGoal: true,
+      onboardingLevel: true,
+      onboardingRole: true,
+      onboardingCompany: true,
+    },
+  });
+
+  const questionCount = params.questionCount ?? 10;
+  const persona = params.persona ?? "balanced";
+  const role = params.role || user?.onboardingRole || "Generalist";
+  const company = params.company ?? user?.onboardingCompany ?? null;
+
+  const focusAreas = deriveAdaptiveFocusAreas({
+    type: params.type,
+    difficulty: params.difficulty,
+    onboardingGoal: user?.onboardingGoal,
+    onboardingLevel: user?.onboardingLevel,
+  });
+
+  const sessionPlan = buildAdaptiveSessionPlan({
+    questionCount,
+    difficulty: params.difficulty,
+    persona,
+    onboardingLevel: user?.onboardingLevel,
+    onboardingGoal: user?.onboardingGoal,
+  });
+
+  return createInterviewSession({
+    ...params,
+    role,
+    company,
+    persona,
+    questionCount,
+    focusAreas: focusAreas as unknown as Prisma.InputJsonValue,
+    sessionPlan: sessionPlan as unknown as Prisma.InputJsonValue,
+  });
 }
 
 export async function updateSessionStatusIfOwned(params: {

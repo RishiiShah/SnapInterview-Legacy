@@ -1,15 +1,15 @@
-import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { z } from "zod/v4";
 import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
+import { getServerAuthSession } from "@/lib/server-auth";
 
 const toggleSolvedSchema = z.object({
   questionId: z.number().int().positive(),
 });
 
 async function getAuthedUserId() {
-  const session = await getServerSession();
+  const session = await getServerAuthSession();
   const email = session?.user?.email?.toLowerCase();
   if (!email) return null;
 

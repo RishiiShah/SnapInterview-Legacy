@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
+import { getServerAuthSession } from "@/lib/server-auth";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 import {
   IconBookOpen,
@@ -14,11 +14,11 @@ import {
 
 export default async function LandingPage() {
   // Check if user has an active session
-  const session = await getServerSession();
+  const session = await getServerAuthSession();
 
   // If they do, redirect to dashboard
   if (session) {
-    redirect("/dashboard");
+    redirect(session.user.onboardingCompleted ? "/dashboard" : "/onboarding");
   }
 
   return (

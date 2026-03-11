@@ -4,8 +4,8 @@ import { sendOtpEmail } from "@/lib/email";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import bcrypt from "bcryptjs";
 import { z } from "zod/v4";
-import crypto from "crypto";
 import { apiError, apiJson, badRequestError, internalServerError } from "@/lib/api-response";
+import { generateNumericCode, hashOneTimeCode, normalizeEmail } from "@/lib/security";
 
 // ── Zod schema ──
 const registerSchema = z.object({
@@ -39,11 +39,6 @@ function isRateLimited(ip: string): boolean {
     return entry.count > RATE_LIMIT_MAX_REQUESTS;
 }
 
-/** Generate a cryptographically secure 6-digit OTP */
-function generateOtp(): string {
-    return crypto.randomInt(100000, 999999).toString();
-}
-
 export async function POST(req: Request) {
     try {
         const csrfError = csrfRejectIfInvalid(req);
@@ -67,7 +62,7 @@ export async function POST(req: Request) {
         }
 
         const { name, email, password } = result.data;
-        const normalizedEmail = email.toLowerCase();
+        const normalizedEmail = normalizeEmail(email);
 
         // Block disposable/temporary email services
         const emailCheck = await isDisposableEmail(normalizedEmail);
@@ -88,8 +83,22 @@ export async function POST(req: Request) {
         }
 
         // Generate OTP and store pending user (upsert to handle resends)
-        const otp = generateOtp();
+        const existingPendingUser = await prisma.pendingUser.findFirst({
+            where: { email: normalizedEmail },
+            orderBy: { createdAt: "desc" },
+            select: { lastOtpSentAt: true },
+        });
+
+        if (
+            existingPendingUser?.lastOtpSentAt &&
+            Date.now() - existingPendingUser.lastOtpSentAt.getTime() < 60 * 1000
+        ) {
+            return apiError("Please wait before requesting another verification code.", 429);
+        }
+
+        const otp = generateNumericCode();
         const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+        const otpHash = hashOneTimeCode(otp);
 
         // Delete any existing pending records for this email, then create new one
         await prisma.pendingUser.deleteMany({ where: { email: normalizedEmail } });
@@ -98,7 +107,10 @@ export async function POST(req: Request) {
                 name,
                 email: normalizedEmail,
                 passwordHash,
-                otp,
+                otpHash,
+                attemptCount: 0,
+                lockedUntil: null,
+                lastOtpSentAt: new Date(),
                 expiresAt,
             },
         });

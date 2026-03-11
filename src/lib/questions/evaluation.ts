@@ -41,5 +41,7 @@ export function buildQuestionEvaluationRoleContext(question: Question): string {
     jobDescription: pseudoJobDescription,
     resumeUrl: null,
     questionCount: 1,
+    currentQuestion: 0,
+    transcript: [],
   });
 }

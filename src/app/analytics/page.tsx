@@ -1,14 +1,14 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth/next";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 import PerformanceChart from "@/components/analytics/PerformanceChart";
 import CategoryBreakdown from "@/components/analytics/CategoryBreakdown";
 import { IconArrowRight } from "@/components/ui/icons";
 import { getAnalyticsOverviewData } from "@/lib/interview/metrics";
+import { getServerAuthSession } from "@/lib/server-auth";
 
 export default async function AnalyticsPage() {
-    const session = await getServerSession();
+    const session = await getServerAuthSession();
     const email = session?.user?.email || "";
 
     const {

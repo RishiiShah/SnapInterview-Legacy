@@ -1,4 +1,4 @@
-import { NavItem, SearchItem, Notification, Difficulty, InterviewType } from "./types";
+import { NavItem, SearchItem, Notification, Difficulty, InterviewType, InterviewPersona } from "./types";
 
 /* ─────────────── Navigation Items ─────────────── */
 export const NAV_ITEMS: NavItem[] = [
@@ -37,6 +37,26 @@ export const DIFFICULTIES: { value: Difficulty; label: string; color: string }[]
     { value: "easy", label: "Easy", color: "bg-green-100 text-green-700" },
     { value: "medium", label: "Medium", color: "bg-yellow-100 text-yellow-700" },
     { value: "hard", label: "Hard", color: "bg-red-100 text-red-700" },
+];
+
+export const EXPERIENCE_LEVELS = [
+    { value: "entry-level", label: "Entry Level" },
+    { value: "mid-level", label: "Mid Level" },
+    { value: "senior", label: "Senior" },
+    { value: "staff-plus", label: "Staff+" },
+];
+
+export const INTERVIEW_GOALS = [
+    { value: "land-first-role", label: "Land my first role" },
+    { value: "switch-companies", label: "Switch companies" },
+    { value: "prepare-for-promo", label: "Prepare for promotion" },
+    { value: "sharpen-communication", label: "Sharpen communication" },
+];
+
+export const INTERVIEW_PERSONAS: { value: InterviewPersona; label: string; description: string }[] = [
+    { value: "friendly", label: "Friendly Coach", description: "Warmer tone, confidence building, clear nudges." },
+    { value: "balanced", label: "Balanced Interviewer", description: "Default interviewer with realistic pacing and mixed follow-ups." },
+    { value: "strict", label: "Strict Panel", description: "Higher pressure, sharper follow-ups, more direct challenge." },
 ];
 
 /* ─────────────── Roles ─────────────── */

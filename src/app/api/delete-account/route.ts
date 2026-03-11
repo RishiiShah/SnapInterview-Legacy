@@ -1,14 +1,14 @@
-import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
+import { getServerAuthSession } from "@/lib/server-auth";
 
 export async function DELETE(req: Request) {
     try {
         const csrfError = csrfRejectIfInvalid(req);
         if (csrfError) return csrfError;
 
-        const session = await getServerSession();
+        const session = await getServerAuthSession();
         if (!session?.user?.email) {
             return unauthorizedError();
         }

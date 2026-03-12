@@ -7,6 +7,20 @@ import RecordingModal from "./RecordingModal";
 import type { VideoRecording } from "@/lib/s3/videos";
 import { extractInterviewIdFromVideoKey } from "@/lib/interview/recordings";
 
+const recordingDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: "UTC",
+});
+
+function formatRecordingDate(value: string | Date) {
+  return recordingDateFormatter.format(new Date(value));
+}
+
 type RecordingsListProps = {
   initialVideos: VideoRecording[];
 };
@@ -60,13 +74,7 @@ export default function RecordingsList({ initialVideos }: RecordingsListProps) {
     <>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {recordings.map((recording, idx) => {
-          const date = new Date(recording.lastModified).toLocaleDateString(undefined, {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          });
+          const date = formatRecordingDate(recording.lastModified);
           const formattedSize = `${(recording.size / (1024 * 1024)).toFixed(2)} MB`;
 
           const interviewId = extractInterviewIdFromVideoKey(recording.key);
@@ -90,7 +98,7 @@ export default function RecordingsList({ initialVideos }: RecordingsListProps) {
               }}
               aria-label={canOpen ? "Open recording details" : "Recording is unavailable"}
             >
-              <div className="relative aspect-video bg-zinc-900 flex-shrink-0">
+              <div className="relative aspect-video shrink-0 bg-zinc-900">
                 <video
                   src={`${recording.url}#t=0.001`}
                   crossOrigin="anonymous"

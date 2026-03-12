@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
-import { validateRequestOrigin } from "@/lib/csrf";
+import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { runInterviewChat } from "@/services/interview-service";
 
 vi.mock("@/lib/csrf", () => ({
-  validateRequestOrigin: vi.fn(() => ({ isValid: true })),
+  csrfRejectIfInvalid: vi.fn(() => null),
 }));
 
 vi.mock("@/lib/server-auth", () => ({
@@ -56,7 +56,7 @@ describe("POST /api/interview/chat", () => {
   });
 
   it("returns 403 when origin validation fails", async () => {
-    vi.mocked(validateRequestOrigin).mockReturnValue({ isValid: false, normalizedOrigin: null });
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 }));
 
     const request = new Request("http://localhost/api/interview/chat", {
       method: "POST",

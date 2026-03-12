@@ -48,6 +48,11 @@ vi.mock("@/lib/email", () => ({
   sendResetPasswordLinkEmail: vi.fn(),
 }));
 
+vi.mock("@/lib/password", () => ({
+  hashCredentialPassword: vi.fn(),
+  verifyCredentialPassword: vi.fn(),
+}));
+
 describe("auth reset password callback", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -63,9 +68,16 @@ describe("auth reset password callback", () => {
 
     const config = rawConfig as unknown as {
       emailAndPassword: {
+        password: {
+          hash: unknown;
+          verify: unknown;
+        };
         sendResetPassword: (params: { user: { email: string }; url: string }) => Promise<void>;
       };
     };
+
+    expect(config.emailAndPassword.password.hash).toBeDefined();
+    expect(config.emailAndPassword.password.verify).toBeDefined();
 
     await config.emailAndPassword.sendResetPassword({
       user: { email: "User@Example.com " },

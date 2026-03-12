@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { isDisposableEmail } from "@/lib/disposable-emails";
 import { sendOtpEmail } from "@/lib/email";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
-import bcrypt from "bcryptjs";
 import { z } from "zod/v4";
 import {
   apiError,
@@ -17,6 +16,7 @@ import {
   extractRequestContext,
 } from "@/lib/security";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { hashCredentialPassword } from "@/lib/password";
 
 // ── Zod schema ──
 const registerSchema = z.object({
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
     });
 
     // Prevent email enumeration — always hash (constant timing)
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash = await hashCredentialPassword(password);
 
     if (existingUser) {
       return apiError(

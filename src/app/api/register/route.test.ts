@@ -7,6 +7,10 @@ import { sendOtpEmail } from "@/lib/email";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { extractRequestContext } from "@/lib/security";
 
+vi.mock("@/lib/password", () => ({
+  hashCredentialPassword: vi.fn().mockResolvedValue("hashed-password"),
+}));
+
 vi.mock("@/lib/csrf", () => ({
   csrfRejectIfInvalid: vi.fn(() => null),
 }));
@@ -36,12 +40,6 @@ vi.mock("@/lib/prisma", () => ({
       deleteMany: vi.fn(),
       create: vi.fn(),
     },
-  },
-}));
-
-vi.mock("bcryptjs", () => ({
-  default: {
-    hash: vi.fn().mockResolvedValue("hashed-password"),
   },
 }));
 

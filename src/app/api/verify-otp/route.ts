@@ -111,7 +111,7 @@ export async function POST(req: Request) {
                 userId: user.id,
                 accountId: user.id,
                 providerId: "credential",
-                password: pendingUser.passwordHash, // already a bcrypt hash
+                password: pendingUser.passwordHash,
             },
         });
 

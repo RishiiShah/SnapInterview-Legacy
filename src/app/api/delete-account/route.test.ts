@@ -25,6 +25,10 @@ vi.mock("@/lib/account-security", () => ({
   recordSecurityEvent: vi.fn(),
 }));
 
+vi.mock("@/lib/password", () => ({
+  verifyCredentialPassword: vi.fn(),
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: {
@@ -34,12 +38,6 @@ vi.mock("@/lib/prisma", () => ({
     account: {
       findFirst: vi.fn(),
     },
-  },
-}));
-
-vi.mock("bcryptjs", () => ({
-  default: {
-    compare: vi.fn(),
   },
 }));
 
@@ -139,8 +137,8 @@ describe("DELETE /api/delete-account", () => {
       password: "hashed",
     } as never);
 
-    const bcrypt = (await import("bcryptjs")).default;
-    vi.mocked(bcrypt.compare).mockResolvedValue(false as never);
+    const { verifyCredentialPassword } = await import("@/lib/password");
+    vi.mocked(verifyCredentialPassword).mockResolvedValue(false as never);
 
     const request = new Request("http://localhost/api/delete-account", {
       method: "DELETE",
@@ -171,8 +169,8 @@ describe("DELETE /api/delete-account", () => {
       password: "hashed",
     } as never);
 
-    const bcrypt = (await import("bcryptjs")).default;
-    vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
+    const { verifyCredentialPassword } = await import("@/lib/password");
+    vi.mocked(verifyCredentialPassword).mockResolvedValue(true as never);
 
     const request = new Request("http://localhost/api/delete-account", {
       method: "DELETE",

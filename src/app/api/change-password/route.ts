@@ -3,7 +3,7 @@ import { recordSecurityEvent, revokeUserSessions } from "@/lib/account-security"
 import { getCurrentSession } from "@/lib/server-auth";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getServerAuthSession } from "@/lib/server-auth";
-import bcrypt from "bcryptjs";
+import { hashCredentialPassword, verifyCredentialPassword } from "@/lib/password";
 import { z } from "zod/v4";
 import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 
@@ -59,19 +59,25 @@ export async function POST(req: Request) {
         }
 
         // Verify current password
-        const isValid = await bcrypt.compare(currentPassword, account.password);
+        const isValid = await verifyCredentialPassword({
+            password: currentPassword,
+            hash: account.password,
+        });
         if (!isValid) {
             return badRequestError("Current password is incorrect.");
         }
 
         // Prevent reusing the same password
-        const isSame = await bcrypt.compare(newPassword, account.password);
+        const isSame = await verifyCredentialPassword({
+            password: newPassword,
+            hash: account.password,
+        });
         if (isSame) {
             return badRequestError("New password must be different from current password.");
         }
 
         // Hash and save new password in Account
-        const newHash = await bcrypt.hash(newPassword, 12);
+        const newHash = await hashCredentialPassword(newPassword);
         await prisma.account.update({
             where: { id: account.id },
             data: { password: newHash },

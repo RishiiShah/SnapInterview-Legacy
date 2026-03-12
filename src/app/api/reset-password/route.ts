@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { recordSecurityEvent, revokeUserSessions } from "@/lib/account-security";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { hashOneTimeCode, normalizeEmail, verifyOneTimeCode } from "@/lib/security";
-import bcrypt from "bcryptjs";
+import { hashCredentialPassword } from "@/lib/password";
 import { z } from "zod/v4";
 import { apiError, apiJson, badRequestError, internalServerError, notFoundError } from "@/lib/api-response";
 
@@ -102,7 +102,7 @@ export async function POST(req: Request) {
         }
 
         // Hash and update password in Account
-        const newPasswordHash = await bcrypt.hash(newPassword, 12);
+        const newPasswordHash = await hashCredentialPassword(newPassword);
         await prisma.account.update({
             where: { id: account.id },
             data: { password: newPasswordHash },

@@ -10,7 +10,7 @@ import {
 import { getServerAuthSession } from "@/lib/server-auth";
 import { recordSecurityEvent } from "@/lib/account-security";
 import { extractRequestContext } from "@/lib/security";
-import bcrypt from "bcryptjs";
+import { verifyCredentialPassword } from "@/lib/password";
 import { z } from "zod/v4";
 
 const deleteAccountSchema = z.object({
@@ -58,7 +58,10 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const isValid = await bcrypt.compare(currentPassword, account.password);
+    const isValid = await verifyCredentialPassword({
+      password: currentPassword,
+      hash: account.password,
+    });
     if (!isValid) {
       return badRequestError("Current password is incorrect.");
     }

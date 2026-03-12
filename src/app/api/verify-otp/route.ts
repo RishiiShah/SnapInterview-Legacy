@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { recordSecurityEvent } from "@/lib/account-security";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { normalizeEmail, verifyOneTimeCode } from "@/lib/security";
-import bcrypt from "bcryptjs";
 import { z } from "zod/v4";
 import { apiError, apiJson, badRequestError, internalServerError, notFoundError } from "@/lib/api-response";
 
@@ -87,9 +86,6 @@ export async function POST(req: Request) {
 
         // Create the real user from pending data
         // Better Auth stores passwords in the Account table (not User)
-        const newPasswordHash = await bcrypt.hash(pendingUser.passwordHash, 0); // passwordHash is already a bcrypt hash from /api/register
-        // Actually we just use the already-stored hash directly
-
         const user = await prisma.user.create({
             data: {
                 name: pendingUser.name,

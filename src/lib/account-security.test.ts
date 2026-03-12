@@ -6,7 +6,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     session: {
       findMany: vi.fn(),
-      updateMany: vi.fn(),
+      deleteMany: vi.fn(),
     },
     securityEvent: {
       create: vi.fn(),
@@ -52,13 +52,9 @@ describe("account-security helpers", () => {
     });
 
     expect(revokedCount).toBe(2);
-    expect(prisma.session.updateMany).toHaveBeenCalledWith({
+    expect(prisma.session.deleteMany).toHaveBeenCalledWith({
       where: {
         id: { in: ["s1", "s2"] },
-      },
-      data: {
-        revokedAt: expect.any(Date),
-        expires: expect.any(Date),
       },
     });
     expect(prisma.securityEvent.create).toHaveBeenCalledWith({
@@ -80,7 +76,7 @@ describe("account-security helpers", () => {
       })
     ).resolves.toBe(0);
 
-    expect(prisma.session.updateMany).not.toHaveBeenCalled();
+    expect(prisma.session.deleteMany).not.toHaveBeenCalled();
     expect(prisma.securityEvent.create).not.toHaveBeenCalled();
   });
 });

@@ -68,7 +68,7 @@ describe("PUT /api/settings/profile", () => {
       name: "Rishi Patel",
       email: "user@example.com",
       image: null,
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const request = new Request("http://localhost/api/settings/profile", {
       method: "PUT",

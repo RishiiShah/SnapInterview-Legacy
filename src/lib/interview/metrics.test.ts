@@ -35,7 +35,7 @@ describe("interview metrics scoring", () => {
       notificationPrefs: {},
       createdAt: now,
       updatedAt: now,
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
     vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([
       {
         id: "session-1",
@@ -57,7 +57,7 @@ describe("interview metrics scoring", () => {
           areasForImprovement: ["Add more metrics"],
         },
         createdAt: now,
-      } as any,
+      } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
     ]);
     vi.mocked(prisma.transcriptEntry.findMany).mockResolvedValue([]);
 

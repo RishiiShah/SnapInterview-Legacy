@@ -73,8 +73,12 @@ export async function POST(req: Request) {
                 },
             });
 
-            // Send email
-            await sendOtpEmail(email, otp);
+            // Keep a uniform response even if delivery fails to avoid account enumeration leaks.
+            try {
+                await sendOtpEmail(email, otp);
+            } catch (emailError) {
+                console.error("Failed to send password reset email:", emailError);
+            }
 
             await recordSecurityEvent({
                 type: "PASSWORD_RESET_REQUESTED",

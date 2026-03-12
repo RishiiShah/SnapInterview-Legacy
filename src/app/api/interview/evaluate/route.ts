@@ -2,6 +2,7 @@ import { z } from "zod/v4";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { evaluateInterviewTranscript } from "@/services/evaluation-service";
+import { csrfRejectIfInvalid } from "@/lib/csrf";
 
 const evaluateTranscriptSchema = z.object({
     interviewId: z.string().uuid(),
@@ -9,6 +10,9 @@ const evaluateTranscriptSchema = z.object({
 
 export async function POST(req: Request) {
     try {
+        const csrfError = csrfRejectIfInvalid(req);
+        if (csrfError) return csrfError;
+
         const authUser = await getSessionUserIdentity();
         if (!authUser) {
             return unauthorizedError();

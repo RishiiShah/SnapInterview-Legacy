@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { recordSecurityEvent } from "@/lib/account-security";
 import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 import { getSessionUserIdentity, getCurrentSession } from "@/lib/server-auth";
+import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { headers } from "next/headers";
 
 const securityActionSchema = z.discriminatedUnion("action", [
@@ -11,7 +12,7 @@ const securityActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("revokeOthers") }),
 ]);
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const authUser = await getSessionUserIdentity();
     if (!authUser) {
@@ -81,6 +82,9 @@ export async function GET(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
+    const csrfError = csrfRejectIfInvalid(req);
+    if (csrfError) return csrfError;
+
     const authUser = await getSessionUserIdentity();
     if (!authUser) {
       return unauthorizedError();

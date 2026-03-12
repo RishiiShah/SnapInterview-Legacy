@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
+import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { evaluateInterviewTranscript } from "@/services/evaluation-service";
+
+vi.mock("@/lib/csrf", () => ({
+  csrfRejectIfInvalid: vi.fn(() => null),
+}));
 
 vi.mock("@/lib/server-auth", () => ({
   getSessionUserIdentity: vi.fn(),
@@ -14,6 +19,20 @@ vi.mock("@/services/evaluation-service", () => ({
 describe("POST /api/interview/evaluate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("returns 403 when CSRF validation fails", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 }));
+
+    const request = new Request("http://localhost/api/interview/evaluate", {
+      method: "POST",
+      body: JSON.stringify({ interviewId: "11111111-1111-4111-8111-111111111111" }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: "Forbidden" });
   });
 
   it("returns 401 when user is unauthenticated", async () => {

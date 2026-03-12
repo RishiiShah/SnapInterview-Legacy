@@ -6,13 +6,26 @@ type FinalizeInterviewUploadOptions = {
   stopVideoRecording: () => Promise<Blob | null>;
 };
 
-async function uploadBlobToPresignedUrl(url: string, blob: Blob): Promise<string | undefined> {
+type PresignedPostPayload = {
+  url: string;
+  fields: Record<string, string>;
+  key: string;
+};
+
+async function uploadBlobToPresignedPost(
+  url: string,
+  fields: Record<string, string>,
+  blob: Blob
+): Promise<string | undefined> {
+  const formData = new FormData();
+  for (const [fieldKey, value] of Object.entries(fields)) {
+    formData.append(fieldKey, value);
+  }
+  formData.append("file", blob, "recording.webm");
+
   const uploadRes = await fetch(url, {
-    method: "PUT",
-    body: blob,
-    headers: {
-      "Content-Type": "video/webm",
-    },
+    method: "POST",
+    body: formData,
   });
 
   if (!uploadRes.ok) {
@@ -20,10 +33,11 @@ async function uploadBlobToPresignedUrl(url: string, blob: Blob): Promise<string
     return undefined;
   }
 
-  return url.split("?")[0];
+  // S3 presigned POST returns the object URL as Location header or we construct it
+  return `${url}${fields["key"] ?? ""}`;
 }
 
-async function createPresignedUploadUrl(interviewId: string): Promise<string | undefined> {
+async function createPresignedUploadUrl(interviewId: string): Promise<PresignedPostPayload | undefined> {
   const res = await fetch("/api/s3/upload", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -36,7 +50,8 @@ async function createPresignedUploadUrl(interviewId: string): Promise<string | u
   }
 
   const payload = await res.json();
-  return payload?.url;
+  if (!payload?.url || !payload?.fields) return undefined;
+  return payload as PresignedPostPayload;
 }
 
 export async function finalizeInterviewUpload({
@@ -48,9 +63,9 @@ export async function finalizeInterviewUpload({
   let videoUrl: string | undefined;
 
   if (blob && blob.size > 0) {
-    const presignedUrl = await createPresignedUploadUrl(interviewId);
-    if (presignedUrl) {
-      videoUrl = await uploadBlobToPresignedUrl(presignedUrl, blob);
+    const presigned = await createPresignedUploadUrl(interviewId);
+    if (presigned) {
+      videoUrl = await uploadBlobToPresignedPost(presigned.url, presigned.fields, blob);
     }
   }
 

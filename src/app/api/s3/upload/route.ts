@@ -1,5 +1,5 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { S3Client } from "@aws-sdk/client-s3";
+import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { prisma } from "@/lib/prisma";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
@@ -43,15 +43,18 @@ export async function POST(req: Request) {
 
         const key = `${authUser.userId}/interview-${interviewId}.webm`;
 
-        const command = new PutObjectCommand({
+        const { url, fields } = await createPresignedPost(s3Client, {
             Bucket: aws.bucketName,
             Key: key,
-            ContentType: "video/webm",
+            Conditions: [
+                ["content-length-range", 0, 500 * 1024 * 1024], // 500 MB max
+                ["eq", "$Content-Type", "video/webm"],
+            ],
+            Fields: { "Content-Type": "video/webm" },
+            Expires: 3600,
         });
 
-        const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // 1 hour
-
-        return apiJson({ url: presignedUrl, key });
+        return apiJson({ url, fields, key });
     } catch (error) {
         console.error("Error generating presigned URL:", error);
         return internalServerError("Failed to generate presigned URL");

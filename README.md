@@ -1,47 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SnapInterview
 
-## Getting Started
+AI-powered mock interview platform built with Next.js, Better Auth, Prisma, and Vitest.
 
-## After pulling
+## Tech Stack
+
+- Next.js 16 (App Router)
+- React 19
+- TypeScript
+- Prisma + PostgreSQL
+- Better Auth
+- Vitest + ESLint
+
+## Prerequisites
+
+- Node.js 22+
+- npm 10+
+- PostgreSQL database
+
+## Local Setup
+
+1. Install dependencies:
 
 ```bash
-npm install
-
-npx prisma migrate deploy
-
-npx prisma generate
-
+npm ci
 ```
 
-Then, run the development server:
+2. Copy environment variables:
+
+```bash
+cp .env.example .env
+```
+
+3. Generate Prisma client:
+
+```bash
+npx prisma generate
+```
+
+4. Apply migrations:
+
+```bash
+npx prisma migrate deploy
+```
+
+5. Start development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+See `.env.example` for the full list. The minimum required for core app startup:
 
-## Learn More
+- DATABASE_URL
+- AUTH_SECRET
+- BETTER_AUTH_URL
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `npm run dev`: Run dev server
+- `npm run build`: Create production build
+- `npm run start`: Start production server
+- `npm run lint`: Run ESLint
+- `npm test`: Run tests once
+- `npm run test:watch`: Run tests in watch mode
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## CI
 
-## Deploy on Vercel
+GitHub Actions workflow lives in `.github/workflows/ci.yml` and runs on push/PR to `main`:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. npm ci
+2. prisma generate
+3. lint
+4. test
+5. build
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Notes
+
+- Do not commit `.env`.
+- Use placeholder values only in CI for build-time checks.
+- Production secrets must come from your deployment provider secret manager.

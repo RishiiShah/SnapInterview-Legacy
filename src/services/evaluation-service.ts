@@ -98,6 +98,7 @@ Based on the transcript, return a JSON object with exactly these four keys:
 
   await updateEvaluation({
     interviewId: interviewSession.id,
+    userId,
     evaluation: parsedEvaluation as unknown as Prisma.InputJsonValue,
   });
 

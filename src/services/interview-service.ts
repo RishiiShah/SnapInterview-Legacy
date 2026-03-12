@@ -144,7 +144,7 @@ export async function updateSessionStatusIfOwned(params: {
     return { type: "not_found" as const };
   }
 
-  const updated = await updateInterviewSessionStatus({ interviewId, videoUrl, status });
+  const updated = await updateInterviewSessionStatus({ interviewId, userId, videoUrl, status });
   return { type: "ok" as const, data: updated };
 }
 

@@ -138,13 +138,14 @@ export async function createInterviewSession(params: {
 
 export async function updateInterviewSessionStatus(params: {
   interviewId: string;
+  userId: string;
   videoUrl?: string | null;
   status?: InterviewStatus;
 }) {
-  const { interviewId, videoUrl, status } = params;
+  const { interviewId, userId, videoUrl, status } = params;
 
   return prisma.interviewSession.update({
-    where: { id: interviewId },
+    where: { id: interviewId, userId },
     data: {
       videoUrl: videoUrl ?? null,
       ...(status ? { status } : {}),
@@ -158,12 +159,13 @@ export async function updateInterviewSessionStatus(params: {
 
 export async function updateEvaluation(params: {
   interviewId: string;
+  userId: string;
   evaluation: Prisma.InputJsonValue;
 }) {
-  const { interviewId, evaluation } = params;
+  const { interviewId, userId, evaluation } = params;
 
   return prisma.interviewSession.update({
-    where: { id: interviewId },
+    where: { id: interviewId, userId },
     data: { evaluation },
     select: {
       id: true,

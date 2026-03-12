@@ -39,16 +39,17 @@ describe("POST /api/interview/chat", () => {
     vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "u@example.com" });
     vi.mocked(runInterviewChat).mockResolvedValue({ type: "not_found" });
 
+    const validUuid = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
     const request = new Request("http://localhost/api/interview/chat", {
       method: "POST",
-      body: JSON.stringify({ interviewId: "session-1", messages: [] }),
+      body: JSON.stringify({ interviewId: validUuid, messages: [] }),
     });
 
     const response = await POST(request);
 
     expect(runInterviewChat).toHaveBeenCalledWith({
       userId: "user-1",
-      interviewId: "session-1",
+      interviewId: validUuid,
       rawMessages: [],
     });
     expect(response.status).toBe(404);

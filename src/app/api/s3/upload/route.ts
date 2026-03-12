@@ -4,12 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiError, apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
+import { requireAwsS3Env } from "@/lib/env";
+
+const aws = requireAwsS3Env();
 
 const s3Client = new S3Client({
-    region: process.env.AWS_REGION!,
+    region: aws.region,
     credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+        accessKeyId: aws.accessKeyId,
+        secretAccessKey: aws.secretAccessKey,
     },
 });
 
@@ -41,7 +44,7 @@ export async function POST(req: Request) {
         const key = `${authUser.userId}/interview-${interviewId}.webm`;
 
         const command = new PutObjectCommand({
-            Bucket: process.env.S3_BUCKET_NAME!,
+            Bucket: aws.bucketName,
             Key: key,
             ContentType: "video/webm",
         });

@@ -1,3 +1,4 @@
 import { Groq } from "groq-sdk";
+import { requireGroqApiKey } from "@/lib/env";
 
-export const groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
+export const groqClient = new Groq({ apiKey: requireGroqApiKey() });

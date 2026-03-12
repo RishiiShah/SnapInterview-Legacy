@@ -1,5 +1,6 @@
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { requireAwsS3Env } from "@/lib/env";
 
 export interface VideoRecording {
   key: string;
@@ -9,16 +10,18 @@ export interface VideoRecording {
 }
 
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION!,
+  region: requireAwsS3Env().region,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    accessKeyId: requireAwsS3Env().accessKeyId,
+    secretAccessKey: requireAwsS3Env().secretAccessKey,
   },
 });
 
+const { bucketName } = requireAwsS3Env();
+
 export async function listUserVideos(prefix: string): Promise<VideoRecording[]> {
   const listCommand = new ListObjectsV2Command({
-    Bucket: process.env.S3_BUCKET_NAME!,
+    Bucket: bucketName,
     Prefix: prefix,
   });
 
@@ -35,7 +38,7 @@ export async function listUserVideos(prefix: string): Promise<VideoRecording[]> 
   const videos = await Promise.all(
     sortedContents.map(async (item) => {
       const getCommand = new GetObjectCommand({
-        Bucket: process.env.S3_BUCKET_NAME!,
+        Bucket: bucketName,
         Key: item.Key!,
         ResponseContentDisposition: `attachment; filename="recording-${item.Key!.split("/").pop()}"`,
       });

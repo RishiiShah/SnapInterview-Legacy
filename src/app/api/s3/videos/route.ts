@@ -3,12 +3,15 @@ import { S3Client, ListObjectsV2Command, GetObjectCommand, DeleteObjectCommand }
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiError, apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
+import { requireAwsS3Env } from "@/lib/env";
+
+const aws = requireAwsS3Env();
 
 const s3Client = new S3Client({
-    region: process.env.AWS_REGION!,
+    region: aws.region,
     credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+        accessKeyId: aws.accessKeyId,
+        secretAccessKey: aws.secretAccessKey,
     },
 });
 
@@ -22,7 +25,7 @@ export async function GET() {
         const prefix = `${authUser.userId}/`;
 
         const listCommand = new ListObjectsV2Command({
-            Bucket: process.env.S3_BUCKET_NAME!,
+            Bucket: aws.bucketName,
             Prefix: prefix,
         });
 
@@ -40,7 +43,7 @@ export async function GET() {
         // Generate get signed URLs for each object
         const videoPromises = sortedContents.map(async (item) => {
             const getCommand = new GetObjectCommand({
-                Bucket: process.env.S3_BUCKET_NAME!,
+                Bucket: aws.bucketName,
                 Key: item.Key!,
                 ResponseContentDisposition: `attachment; filename="recording-${item.Key!.split('/').pop()}"`,
             });
@@ -84,7 +87,7 @@ export async function DELETE(req: Request) {
         }
 
         const deleteCommand = new DeleteObjectCommand({
-            Bucket: process.env.S3_BUCKET_NAME!,
+            Bucket: aws.bucketName,
             Key: key,
         });
 

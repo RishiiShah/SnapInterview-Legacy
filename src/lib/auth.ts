@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { recordSecurityEvent } from "@/lib/account-security";
 import { extractRequestContext, normalizeEmail } from "@/lib/security";
+import { sendResetPasswordLinkEmail } from "@/lib/email";
+import { env } from "@/lib/env";
 
 const loginLimiter = createRateLimiter(60 * 1000, 5);
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
@@ -30,16 +32,16 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 8,
     maxPasswordLength: 128,
-    async sendResetPassword() {
-      // TODO: wire up to an email provider
+    async sendResetPassword({ user, url }) {
+      await sendResetPasswordLinkEmail(normalizeEmail(user.email), url);
     },
   },
 
   // ─── Social OAuth ───
   socialProviders: {
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: env.GOOGLE_CLIENT_SECRET ?? "",
       prompt: "select_account",
     },
   },
@@ -156,6 +158,7 @@ export const auth = betterAuth({
         const email = body?.email ? normalizeEmail(body.email) : null;
         if (!email) return;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const isSuccess = !!(ctx as any).context?.session;
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) return;
@@ -203,6 +206,7 @@ export const auth = betterAuth({
       // ── Social sign-in success tracking ──
       if (ctx.path === "/sign-in/social") {
         const provider = (ctx.body as { provider?: string } | undefined)?.provider;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const sessionUser = (ctx as any).context?.session?.user;
         if (!sessionUser?.email || !provider) return;
         await recordSecurityEvent({
@@ -217,8 +221,8 @@ export const auth = betterAuth({
     }),
   },
 
-  secret: process.env.AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+  secret: env.AUTH_SECRET,
+  baseURL: env.BETTER_AUTH_URL,
 });
 
 export type Session = typeof auth.$Infer.Session;

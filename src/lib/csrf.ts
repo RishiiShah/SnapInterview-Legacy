@@ -51,8 +51,10 @@ function getAllowedOrigins(): Set<string> {
     }
   }
 
-  origins.add("http://localhost:3000");
-  origins.add("http://127.0.0.1:3000");
+  if (process.env.NODE_ENV !== "production") {
+    origins.add("http://localhost:3000");
+    origins.add("http://127.0.0.1:3000");
+  }
 
   return origins;
 }

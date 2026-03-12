@@ -1,12 +1,9 @@
 import crypto from "crypto";
+import { env } from "@/lib/env";
 
 type HeaderSource = Headers | Record<string, string | string[] | undefined>;
 
-const SECURITY_SECRET = process.env.AUTH_SECRET;
-
-if (!SECURITY_SECRET) {
-  throw new Error("Missing AUTH_SECRET environment variable");
-}
+const SECURITY_SECRET = env.AUTH_SECRET;
 
 function getHeaderValue(source: HeaderSource | null | undefined, name: string): string | null {
   if (!source) {

@@ -1,12 +1,14 @@
 import nodemailer from "nodemailer";
+import { env } from "@/lib/env";
 
 const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: Number(process.env.SMTP_PORT) || 587,
+    host: env.SMTP_HOST || "smtp.gmail.com",
+    port: Number(env.SMTP_PORT) || 587,
     secure: false,
+    requireTLS: true,
     auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: env.SMTP_USER,
+        pass: env.SMTP_PASS,
     },
 });
 
@@ -14,7 +16,7 @@ const transporter = nodemailer.createTransport({
  * Send a 6-digit OTP verification email.
  */
 export async function sendOtpEmail(to: string, otp: string): Promise<void> {
-    const from = process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@snapinterview.com";
+    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.com";
 
     await transporter.sendMail({
         from,
@@ -76,7 +78,7 @@ export async function sendOtpEmail(to: string, otp: string): Promise<void> {
 }
 
 export async function sendResetPasswordLinkEmail(to: string, resetUrl: string): Promise<void> {
-    const from = process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@snapinterview.com";
+    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.com";
 
     await transporter.sendMail({
         from,

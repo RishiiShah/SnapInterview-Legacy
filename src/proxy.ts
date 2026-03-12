@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { env } from "@/lib/env";
 
 // Better Auth sets this cookie on login
 const BETTER_AUTH_COOKIE = "better-auth.session_token";
@@ -26,8 +27,6 @@ export async function proxy(request: NextRequest) {
 
         if (!token) {
             const loginUrl = new URL("/login", request.url);
-            const callbackPath = request.nextUrl.pathname + request.nextUrl.search;
-            loginUrl.searchParams.set("callbackUrl", callbackPath);
             response = NextResponse.redirect(loginUrl);
         }
     } else if (request.nextUrl.pathname === "/") {
@@ -35,7 +34,7 @@ export async function proxy(request: NextRequest) {
         const token = request.cookies.get(BETTER_AUTH_COOKIE)?.value;
         if (token) {
             try {
-                const sessionRes = await fetch(`${request.nextUrl.origin}/api/auth/get-session`, {
+                const sessionRes = await fetch(`${env.BETTER_AUTH_URL}/api/auth/get-session`, {
                     headers: { cookie: request.headers.get("cookie") || "" },
                 });
                 if (sessionRes.ok) {
@@ -55,7 +54,7 @@ export async function proxy(request: NextRequest) {
     const isDev = process.env.NODE_ENV !== "production";
     const cspHeader = `
         default-src 'self';
-        script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval'" : ""};
+        script-src 'self' 'nonce-${nonce}' ${isDev ? "'unsafe-eval'" : ""};
         style-src 'self' 'unsafe-inline';
         img-src 'self' https://lh3.googleusercontent.com data: blob:;
         font-src 'self' data:;

@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { recordSecurityEvent } from "@/lib/account-security";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
-import { normalizeEmail, verifyOneTimeCode } from "@/lib/security";
+import { normalizeEmail, verifyOneTimeCode, extractRequestContext } from "@/lib/security";
 import { z } from "zod/v4";
 import { apiError, apiJson, badRequestError, internalServerError, notFoundError } from "@/lib/api-response";
+import { createRateLimiter } from "@/lib/rate-limit";
 
 const verifySchema = z.object({
     email: z.email("Invalid email address"),
@@ -13,10 +14,19 @@ const verifySchema = z.object({
 const MAX_OTP_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000; // 15 mins
 
+// IP-based rate limiter to prevent mass account enumeration / brute-force
+const otpVerifyLimiter = createRateLimiter(60 * 1000, 10); // 10 attempts per minute per IP
+
 export async function POST(req: Request) {
     try {
         const csrfError = csrfRejectIfInvalid(req);
         if (csrfError) return csrfError;
+
+        const { ipHash } = extractRequestContext(req.headers);
+        const rateLimitKey = ipHash ?? "unknown";
+        if (otpVerifyLimiter.isLimited(rateLimitKey)) {
+            return apiError("Too many requests. Please try again later.", 429);
+        }
 
         const body = await req.json();
         const result = verifySchema.safeParse(body);

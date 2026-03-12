@@ -1,5 +1,3 @@
-import { motion } from "framer-motion";
-
 type TranscriptEntry = {
     id: string;
     order: number;

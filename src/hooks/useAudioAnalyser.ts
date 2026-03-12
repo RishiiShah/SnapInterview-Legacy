@@ -7,6 +7,7 @@ export function useAudioAnalyser(stream: MediaStream | null, isEnabled: boolean)
 
     useEffect(() => {
         if (!stream || !isEnabled) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setAudioLevels([0, 0, 0]);
             return;
         }

@@ -1,5 +1,7 @@
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 
+const CHART_SKELETON_HEIGHTS = [45, 72, 38, 60, 55, 80, 42];
+
 export default function DashboardLoading() {
     return (
         <div className="space-y-4 pb-8 w-full animate-pulse">
@@ -40,8 +42,8 @@ export default function DashboardLoading() {
                     <div className="rounded-2xl border border-zinc-200 bg-white p-6 lg:col-span-2">
                         <div className="mb-6 h-5 w-32 rounded bg-zinc-100" />
                         <div className="flex h-48 items-end justify-between gap-2">
-                            {[...Array(7)].map((_, i) => (
-                                <div key={i} className="w-full rounded-t-sm bg-zinc-100" style={{ height: `${Math.random() * 60 + 20}%` }} />
+                            {CHART_SKELETON_HEIGHTS.map((h, i) => (
+                                <div key={i} className="w-full rounded-t-sm bg-zinc-100" style={{ height: `${h}%` }} />
                             ))}
                         </div>
                     </div>

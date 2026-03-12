@@ -1,5 +1,3 @@
-import { motion } from "framer-motion";
-
 type EvaluationResult = {
     score: number;
     feedback: string;

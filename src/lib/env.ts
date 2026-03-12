@@ -47,21 +47,24 @@ export function requireGroqApiKey(): string {
 }
 
 export function requireAwsS3Env() {
-  const missing: string[] = [];
+  const region = env.AWS_REGION;
+  const accessKeyId = env.AWS_ACCESS_KEY_ID;
+  const secretAccessKey = env.AWS_SECRET_ACCESS_KEY;
+  const bucketName = env.S3_BUCKET_NAME;
 
-  if (!env.AWS_REGION) missing.push("AWS_REGION");
-  if (!env.AWS_ACCESS_KEY_ID) missing.push("AWS_ACCESS_KEY_ID");
-  if (!env.AWS_SECRET_ACCESS_KEY) missing.push("AWS_SECRET_ACCESS_KEY");
-  if (!env.S3_BUCKET_NAME) missing.push("S3_BUCKET_NAME");
-
-  if (missing.length > 0) {
+  if (!region || !accessKeyId || !secretAccessKey || !bucketName) {
+    const missing: string[] = [];
+    if (!region) missing.push("AWS_REGION");
+    if (!accessKeyId) missing.push("AWS_ACCESS_KEY_ID");
+    if (!secretAccessKey) missing.push("AWS_SECRET_ACCESS_KEY");
+    if (!bucketName) missing.push("S3_BUCKET_NAME");
     throw new Error(`Missing AWS/S3 environment variables: ${missing.join(", ")}`);
   }
 
   return {
-    region: env.AWS_REGION,
-    accessKeyId: env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-    bucketName: env.S3_BUCKET_NAME,
+    region,
+    accessKeyId,
+    secretAccessKey,
+    bucketName,
   };
 }

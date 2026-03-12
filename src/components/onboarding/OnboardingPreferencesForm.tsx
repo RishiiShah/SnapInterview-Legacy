@@ -16,6 +16,7 @@ type OnboardingPreferencesFormProps = {
   submitLabel: string;
   title: string;
   description: string;
+  showInterviewTypeField?: boolean;
   redirectTo?: string;
   onSaved?: () => void;
 };
@@ -25,6 +26,7 @@ export default function OnboardingPreferencesForm({
   submitLabel,
   title,
   description,
+  showInterviewTypeField = true,
   redirectTo,
   onSaved,
 }: OnboardingPreferencesFormProps) {
@@ -130,17 +132,19 @@ export default function OnboardingPreferencesForm({
           />
         </div>
 
-        <SelectDropdown
-          label="Default interview type"
-          value={values.preferredInterviewType}
-          onChange={(preferredInterviewType) =>
-            setValues((previous) => ({
-              ...previous,
-              preferredInterviewType: preferredInterviewType as InterviewType,
-            }))
-          }
-          options={CATEGORIES.map((category) => ({ value: category.value, label: category.label }))}
-        />
+        {showInterviewTypeField && (
+          <SelectDropdown
+            label="Default interview type"
+            value={values.preferredInterviewType}
+            onChange={(preferredInterviewType) =>
+              setValues((previous) => ({
+                ...previous,
+                preferredInterviewType: preferredInterviewType as InterviewType,
+              }))
+            }
+            options={CATEGORIES.map((category) => ({ value: category.value, label: category.label }))}
+          />
+        )}
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -148,7 +152,7 @@ export default function OnboardingPreferencesForm({
           <button
             type="submit"
             disabled={isSaving}
-            className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="cursor-pointer rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSaving ? "Saving…" : submitLabel}
           </button>

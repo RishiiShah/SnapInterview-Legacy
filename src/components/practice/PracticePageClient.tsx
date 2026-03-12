@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import DashboardShell from "@/components/dashboard/DashboardShell";
+
 import SearchableDropdown from "@/components/SearchableDropdown";
 import SelectDropdown from "@/components/SelectDropdown";
 import { CATEGORIES, DIFFICULTIES, INTERVIEW_PERSONAS, ROLES, COMPANIES } from "@/data/constants";
@@ -107,7 +107,7 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
   }
 
   return (
-    <DashboardShell>
+    <>
       <div className="space-y-8 pb-8">
         <SlideIn>
           <div>
@@ -282,6 +282,6 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
           </FadeIn>
         </div>
       </div>
-    </DashboardShell>
+    </>
   );
 }

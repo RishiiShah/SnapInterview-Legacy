@@ -1,4 +1,4 @@
-import { signIn } from "next-auth/react";
+import { signIn } from "@/lib/auth-client";
 
 interface GoogleSignInButtonProps {
     text?: string;
@@ -12,7 +12,18 @@ export function GoogleSignInButton({
     return (
         <button
             type="button"
-            onClick={() => signIn("google", { callbackUrl })}
+            onClick={() => 
+                signIn.social({ 
+                    provider: "google", 
+                    callbackURL: callbackUrl,
+                },
+                {
+                    // Better Auth client fetch options to pass extra query params directly to the OAuth provider
+                    query: {
+                        prompt: "select_account"
+                    }
+                })
+            }
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-100 bg-white py-2.5 text-sm font-medium text-zinc-700 transition-all hover:border-zinc-200 hover:bg-zinc-50"
         >
             <svg className="h-4 w-4" viewBox="0 0 24 24">

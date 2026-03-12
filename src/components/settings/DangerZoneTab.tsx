@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { signOut } from "@/lib/auth-client";
 
 export default function DangerZoneTab() {
+  const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
 
@@ -17,7 +19,8 @@ export default function DangerZoneTab() {
         body: JSON.stringify({ confirm: "DELETE" }),
       });
       if (res.ok) {
-        await signOut({ callbackUrl: "/" });
+        await signOut();
+        router.push("/");
       }
     } catch {
       setDeleteOpen(false);

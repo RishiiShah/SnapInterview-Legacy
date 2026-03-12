@@ -14,9 +14,33 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "SnapInterview — Ace Your Next Interview",
+    title: {
+        template: "%s | SnapInterview",
+        default: "SnapInterview — Ace Your Next Interview",
+    },
     description:
         "Practice mock interviews with AI, get instant feedback, and land your dream job with confidence.",
+    openGraph: {
+        title: "SnapInterview — Ace Your Next Interview",
+        description: "Practice mock interviews with AI, get instant feedback, and land your dream job with confidence.",
+        url: "https://snapinterview.app",
+        siteName: "SnapInterview",
+        images: [
+            {
+                url: "/og-image.jpg",
+                width: 1200,
+                height: 630,
+                alt: "SnapInterview Preview",
+            },
+        ],
+        locale: "en_US",
+        type: "website",
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "SnapInterview — Ace Your Next Interview",
+        description: "Practice mock interviews with AI, get instant feedback, and land your dream job.",
+    },
 };
 
 export default function RootLayout({
@@ -33,6 +57,6 @@ export default function RootLayout({
                     </main>
                 </Providers>
             </body>
-        </html >
+        </html>
     );
 }

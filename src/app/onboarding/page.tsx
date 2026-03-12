@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import OnboardingPreferencesForm from "@/components/onboarding/OnboardingPreferencesForm";
 import { normalizeOnboardingFormValues } from "@/lib/onboarding/preferences";
 import { getServerAuthSession } from "@/lib/server-auth";
+import { prisma } from "@/lib/prisma";
 
 export default async function OnboardingPage() {
   const session = await getServerAuthSession();
@@ -10,7 +11,21 @@ export default async function OnboardingPage() {
     redirect("/login");
   }
 
-  if (session.user.onboardingCompleted) {
+  const user = session.user.email
+    ? await prisma.user.findUnique({
+        where: { email: session.user.email.toLowerCase() },
+        select: {
+          onboardingCompletedAt: true,
+          onboardingRole: true,
+          onboardingLevel: true,
+          onboardingCompany: true,
+          onboardingGoal: true,
+          preferredInterviewType: true,
+        },
+      })
+    : null;
+
+  if (user?.onboardingCompletedAt) {
     redirect("/dashboard");
   }
 
@@ -26,10 +41,11 @@ export default async function OnboardingPage() {
         </div>
 
         <OnboardingPreferencesForm
-          initialValues={normalizeOnboardingFormValues(session.user)}
+          initialValues={normalizeOnboardingFormValues(user ?? session.user)}
           submitLabel="Complete setup"
           title="Your interview profile"
           description="These defaults will personalize your dashboard and seed new mock interviews."
+          showInterviewTypeField={false}
           redirectTo="/dashboard"
         />
       </div>

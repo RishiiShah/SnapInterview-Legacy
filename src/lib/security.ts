@@ -2,7 +2,11 @@ import crypto from "crypto";
 
 type HeaderSource = Headers | Record<string, string | string[] | undefined>;
 
-const SECURITY_SECRET = process.env.AUTH_SECRET || "snap-interview-dev-secret";
+const SECURITY_SECRET = process.env.AUTH_SECRET;
+
+if (!SECURITY_SECRET) {
+  throw new Error("Missing AUTH_SECRET environment variable");
+}
 
 function getHeaderValue(source: HeaderSource | null | undefined, name: string): string | null {
   if (!source) {
@@ -22,7 +26,7 @@ function getHeaderValue(source: HeaderSource | null | undefined, name: string): 
 }
 
 function keyedHash(value: string) {
-  return crypto.createHmac("sha256", SECURITY_SECRET).update(value).digest("hex");
+  return crypto.createHmac("sha256", SECURITY_SECRET as string).update(value).digest("hex");
 }
 
 function constantTimeEqual(left: string, right: string) {

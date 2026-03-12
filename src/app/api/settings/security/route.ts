@@ -1,10 +1,10 @@
 import { z } from "zod/v4";
 import { prisma } from "@/lib/prisma";
-import { getCurrentSessionRecord } from "@/lib/auth-session";
-import { recordSecurityEvent, revokeUserSessions } from "@/lib/account-security";
-import { extractRequestContext } from "@/lib/security";
+import { auth } from "@/lib/auth";
+import { recordSecurityEvent } from "@/lib/account-security";
 import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
-import { getSessionUserIdentity } from "@/lib/server-auth";
+import { getSessionUserIdentity, getCurrentSession } from "@/lib/server-auth";
+import { headers } from "next/headers";
 
 const securityActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("revoke"), sessionId: z.string().min(1) }),
@@ -18,7 +18,7 @@ export async function GET(req: Request) {
       return unauthorizedError();
     }
 
-    const currentSession = await getCurrentSessionRecord(req);
+    const currentSession = await getCurrentSession();
     const now = new Date();
 
     const eventWhere = authUser.email
@@ -29,15 +29,16 @@ export async function GET(req: Request) {
       prisma.session.findMany({
         where: {
           userId: authUser.userId,
-          expires: { gt: now },
+          expiresAt: { gt: now },
         },
-        orderBy: [{ lastSeenAt: "desc" }, { expires: "desc" }],
+        orderBy: { expiresAt: "desc" },
         select: {
           id: true,
-          expires: true,
+          token: true,
+          expiresAt: true,
           userAgent: true,
-          lastSeenAt: true,
-          revokedAt: true,
+          ipAddress: true,
+          createdAt: true,
         },
       }),
       prisma.securityEvent.findMany({
@@ -57,11 +58,12 @@ export async function GET(req: Request) {
     return apiJson({
       sessions: sessions.map((session) => ({
         id: session.id,
-        current: currentSession?.id === session.id,
-        expiresAt: session.expires.toISOString(),
-        lastSeenAt: session.lastSeenAt.toISOString(),
-        revokedAt: session.revokedAt?.toISOString() ?? null,
+        token: session.token,
+        current: currentSession?.token === session.token,
+        expiresAt: session.expiresAt.toISOString(),
+        createdAt: session.createdAt.toISOString(),
         userAgent: session.userAgent,
+        ipAddress: session.ipAddress,
       })),
       events: events.map((event) => ({
         id: event.id,
@@ -77,36 +79,6 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
-  try {
-    const authUser = await getSessionUserIdentity();
-    if (!authUser) {
-      return unauthorizedError();
-    }
-
-    const currentSession = await getCurrentSessionRecord(req);
-    if (!currentSession) {
-      return apiJson({ success: true });
-    }
-
-    const { ipHash, userAgent } = extractRequestContext(req.headers);
-
-    await prisma.session.update({
-      where: { id: currentSession.id },
-      data: {
-        lastSeenAt: new Date(),
-        userAgent: userAgent ?? undefined,
-        ipHash: ipHash ?? undefined,
-      },
-    });
-
-    return apiJson({ success: true });
-  } catch (error) {
-    console.error("Touch current session error:", error);
-    return internalServerError();
-  }
-}
-
 export async function PATCH(req: Request) {
   try {
     const authUser = await getSessionUserIdentity();
@@ -114,7 +86,7 @@ export async function PATCH(req: Request) {
       return unauthorizedError();
     }
 
-    const currentSession = await getCurrentSessionRecord(req);
+    const currentSession = await getCurrentSession();
     const body = await req.json();
     const parsed = securityActionSchema.safeParse(body);
 
@@ -123,40 +95,44 @@ export async function PATCH(req: Request) {
     }
 
     if (parsed.data.action === "revokeOthers") {
-      const revokedCount = await revokeUserSessions({
-        userId: authUser.userId,
-        excludeSessionToken: currentSession?.sessionToken,
-        reason: "manual_revoke",
+      // Use Better Auth's built-in revokeOtherSessions endpoint
+      await auth.api.revokeOtherSessions({
+        headers: await headers(),
       });
 
-      return apiJson({ success: true, revokedCount });
+      const revokedCount = await recordSecurityEvent({
+        type: "SESSION_REVOKED",
+        userId: authUser.userId,
+        email: authUser.email,
+        metadata: { reason: "manual_revoke_others" },
+      });
+      void revokedCount;
+
+      return apiJson({ success: true });
     }
 
+    // Revoke a specific session
     if (currentSession?.id === parsed.data.sessionId) {
       return badRequestError("Use sign out to end your current session.");
     }
 
+    // Verify the session belongs to this user
     const targetSession = await prisma.session.findFirst({
       where: {
         id: parsed.data.sessionId,
         userId: authUser.userId,
       },
-      select: {
-        id: true,
-      },
+      select: { id: true, token: true },
     });
 
     if (!targetSession) {
       return badRequestError("Session not found.");
     }
 
-    const now = new Date();
-    await prisma.session.update({
-      where: { id: targetSession.id },
-      data: {
-        revokedAt: now,
-        expires: now,
-      },
+    // Use Better Auth's built-in revokeSession endpoint
+    await auth.api.revokeSession({
+      headers: await headers(),
+      body: { token: targetSession.token },
     });
 
     await recordSecurityEvent({

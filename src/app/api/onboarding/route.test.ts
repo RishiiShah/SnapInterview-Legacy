@@ -43,7 +43,7 @@ describe("/api/onboarding", () => {
       onboardingCompany: null,
       onboardingGoal: null,
       preferredInterviewType: null,
-    });
+    } as any);
 
     const response = await GET();
 
@@ -60,7 +60,7 @@ describe("/api/onboarding", () => {
 
   it("PUT validates and persists onboarding preferences", async () => {
     vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
-    vi.mocked(prisma.user.update).mockResolvedValue({ id: "user-1" });
+    vi.mocked(prisma.user.update).mockResolvedValue({ id: "user-1" } as any);
 
     const request = new Request("http://localhost/api/onboarding", {
       method: "PUT",

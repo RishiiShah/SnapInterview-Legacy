@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE_NAMES } from "@/lib/auth-session";
+
+// Better Auth sets this cookie on login
+const BETTER_AUTH_COOKIE = "better-auth.session_token";
 
 export async function proxy(request: NextRequest) {
     // 1. Setup headers for the request (e.g., nonce for CSP)
@@ -20,15 +22,32 @@ export async function proxy(request: NextRequest) {
     });
 
     if (isProtectedPath) {
-        const token = SESSION_COOKIE_NAMES
-            .map((cookieName) => request.cookies.get(cookieName)?.value)
-            .find(Boolean);
+        const token = request.cookies.get(BETTER_AUTH_COOKIE)?.value;
 
         if (!token) {
             const loginUrl = new URL("/login", request.url);
             const callbackPath = request.nextUrl.pathname + request.nextUrl.search;
             loginUrl.searchParams.set("callbackUrl", callbackPath);
             response = NextResponse.redirect(loginUrl);
+        }
+    } else if (request.nextUrl.pathname === "/") {
+        // Authenticated users shouldn't see the landing page
+        const token = request.cookies.get(BETTER_AUTH_COOKIE)?.value;
+        if (token) {
+            try {
+                const sessionRes = await fetch(`${request.nextUrl.origin}/api/auth/get-session`, {
+                    headers: { cookie: request.headers.get("cookie") || "" },
+                });
+                if (sessionRes.ok) {
+                    const sessionData = await sessionRes.json();
+                    if (sessionData && sessionData.user) {
+                        const hasOnboarding = !!sessionData.user.onboardingCompletedAt;
+                        response = NextResponse.redirect(new URL(hasOnboarding ? "/dashboard" : "/onboarding", request.url));
+                    }
+                }
+            } catch (err) {
+                console.warn("Proxy Landing Auth Check Failed:", err);
+            }
         }
     }
 

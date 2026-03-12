@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signIn, useSession } from "next-auth/react";
+import { signIn, useSession } from "@/lib/auth-client";
 import { AuthSidePanel } from "@/components/auth/AuthSidePanel";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
@@ -11,14 +11,14 @@ import { SubmitButton } from "@/components/auth/SubmitButton";
 
 export default function LoginPage() {
     const router = useRouter();
-    const { data: session, status } = useSession();
+    const { data: session, isPending } = useSession();
 
     // Redirect to dashboard if user is already logged in
     useEffect(() => {
-        if (status === "authenticated" && session) {
+        if (!isPending && session) {
             router.push("/dashboard");
         }
-    }, [session, status, router]);
+    }, [session, isPending, router]);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
@@ -35,15 +35,14 @@ export default function LoginPage() {
 
         setLoading(true);
 
-        const res = await signIn("credentials", {
+        const { error } = await signIn.email({
             email,
             password,
-            redirect: false,
         });
 
         setLoading(false);
 
-        if (res?.error) {
+        if (error) {
             setError("Invalid email or password.");
         } else {
             router.push("/dashboard");

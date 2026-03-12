@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { signIn, useSession } from "next-auth/react";
+import { signIn, useSession } from "@/lib/auth-client";
 import OtpDialog from "@/components/OtpDialog";
 import { AuthSidePanel } from "@/components/auth/AuthSidePanel";
 import { PasswordInput } from "@/components/auth/PasswordInput";
@@ -12,14 +12,14 @@ import { SubmitButton } from "@/components/auth/SubmitButton";
 
 export default function SignupPage() {
     const router = useRouter();
-    const { data: session, status } = useSession();
+    const { data: session, isPending } = useSession();
 
     // Redirect to dashboard if user is already logged in
     useEffect(() => {
-        if (status === "authenticated" && session) {
+        if (!isPending && session) {
             router.push("/dashboard");
         }
-    }, [session, status, router]);
+    }, [session, isPending, router]);
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -77,13 +77,12 @@ export default function SignupPage() {
 
     const handleOtpVerified = async () => {
         // OTP verified, user created — now auto sign-in
-        const signInRes = await signIn("credentials", {
+        const { error } = await signIn.email({
             email,
             password,
-            redirect: false,
         });
 
-        if (signInRes?.error) {
+        if (error) {
             setShowOtpDialog(false);
             setError("Account created but sign-in failed. Please log in manually.");
         } else {

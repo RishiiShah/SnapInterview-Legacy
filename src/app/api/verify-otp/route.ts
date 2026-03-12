@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { recordSecurityEvent } from "@/lib/account-security";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { normalizeEmail, verifyOneTimeCode } from "@/lib/security";
+import bcrypt from "bcryptjs";
 import { z } from "zod/v4";
 import { apiError, apiJson, badRequestError, internalServerError, notFoundError } from "@/lib/api-response";
 
@@ -41,13 +42,11 @@ export async function POST(req: Request) {
 
         // Check if OTP has expired
         if (new Date() > pendingUser.expiresAt) {
-            // Clean up expired record
             await prisma.pendingUser.delete({ where: { id: pendingUser.id } });
             return apiError("OTP has expired. Please sign up again.", 410);
         }
 
         // --- OTP Brute force prevention ---
-
         if (pendingUser.lockedUntil && pendingUser.lockedUntil > new Date()) {
             return apiError("Too many failed attempts. Try again later.", 429);
         }
@@ -60,10 +59,7 @@ export async function POST(req: Request) {
 
             await prisma.pendingUser.update({
                 where: { id: pendingUser.id },
-                data: {
-                    attemptCount,
-                    lockedUntil,
-                },
+                data: { attemptCount, lockedUntil },
             });
 
             await recordSecurityEvent({
@@ -85,19 +81,31 @@ export async function POST(req: Request) {
         });
 
         if (existingUser) {
-            // Clean up pending record
             await prisma.pendingUser.deleteMany({ where: { email: normalizedEmail } });
             return apiError("An account with this email already exists. Please log in.", 409);
         }
 
         // Create the real user from pending data
+        // Better Auth stores passwords in the Account table (not User)
+        const newPasswordHash = await bcrypt.hash(pendingUser.passwordHash, 0); // passwordHash is already a bcrypt hash from /api/register
+        // Actually we just use the already-stored hash directly
+
         const user = await prisma.user.create({
             data: {
                 name: pendingUser.name,
                 email: normalizedEmail,
-                passwordHash: pendingUser.passwordHash,
-                emailVerified: new Date(),
+                emailVerified: true, // Better Auth uses boolean (not Date)
                 isFirstLogin: true,
+            },
+        });
+
+        // Create credential Account record — this is where Better Auth stores passwords
+        await prisma.account.create({
+            data: {
+                userId: user.id,
+                accountId: user.id,
+                providerId: "credential",
+                password: pendingUser.passwordHash, // already a bcrypt hash
             },
         });
 

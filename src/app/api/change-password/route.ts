@@ -1,6 +1,6 @@
-import { revokeUserSessions, recordSecurityEvent } from "@/lib/account-security";
-import { getCurrentSessionRecord } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
+import { recordSecurityEvent, revokeUserSessions } from "@/lib/account-security";
+import { getCurrentSession } from "@/lib/server-auth";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getServerAuthSession } from "@/lib/server-auth";
 import bcrypt from "bcryptjs";
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
             return unauthorizedError();
         }
 
-        const currentSession = await getCurrentSessionRecord(req);
+        const currentSession = await getCurrentSession();
 
         const body = await req.json();
         const result = changePasswordSchema.safeParse(body);
@@ -45,28 +45,42 @@ export async function POST(req: Request) {
             where: { email: session.user.email },
         });
 
-        if (!user || !user.passwordHash) {
+        if (!user) {
+            return unauthorizedError();
+        }
+
+        // In Better Auth, passwords are stored in the Account table
+        const account = await prisma.account.findFirst({
+            where: { userId: user.id, providerId: "credential" },
+        });
+
+        if (!account?.password) {
             return badRequestError("Password change is not available for this account.");
         }
 
         // Verify current password
-        const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+        const isValid = await bcrypt.compare(currentPassword, account.password);
         if (!isValid) {
             return badRequestError("Current password is incorrect.");
         }
 
         // Prevent reusing the same password
-        const isSame = await bcrypt.compare(newPassword, user.passwordHash);
+        const isSame = await bcrypt.compare(newPassword, account.password);
         if (isSame) {
             return badRequestError("New password must be different from current password.");
         }
 
-        // Hash and save new password
+        // Hash and save new password in Account
         const newHash = await bcrypt.hash(newPassword, 12);
+        await prisma.account.update({
+            where: { id: account.id },
+            data: { password: newHash },
+        });
+
+        // Update user metadata
         await prisma.user.update({
             where: { id: user.id },
             data: {
-                passwordHash: newHash,
                 lastPasswordChangedAt: new Date(),
                 failedLoginCount: 0,
                 lockedUntil: null,
@@ -75,7 +89,7 @@ export async function POST(req: Request) {
 
         const revokedSessions = await revokeUserSessions({
             userId: user.id,
-            excludeSessionToken: currentSession?.sessionToken,
+            excludeSessionToken: currentSession?.token,
             reason: "password_changed",
         });
 

@@ -92,12 +92,25 @@ export async function POST(req: Request) {
             return notFoundError("Account not found.");
         }
 
-        // Hash and update password
-        const passwordHash = await bcrypt.hash(newPassword, 12);
+        // In Better Auth, passwords are stored in the Account table
+        const account = await prisma.account.findFirst({
+            where: { userId: user.id, providerId: "credential" },
+        });
+
+        if (!account) {
+            return notFoundError("Account not found.");
+        }
+
+        // Hash and update password in Account
+        const newPasswordHash = await bcrypt.hash(newPassword, 12);
+        await prisma.account.update({
+            where: { id: account.id },
+            data: { password: newPasswordHash },
+        });
+
         await prisma.user.update({
             where: { id: user.id },
             data: {
-                passwordHash,
                 lastPasswordChangedAt: new Date(),
                 failedLoginCount: 0,
                 lockedUntil: null,

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 
 type ProfileTabProps = {
   userName: string;
@@ -14,7 +13,6 @@ type ProfileTabProps = {
 
 export default function ProfileTab({ userName, userEmail, userImage, initials }: ProfileTabProps) {
   const router = useRouter();
-  const { update } = useSession();
   const [name, setName] = useState(userName);
   const [savedName, setSavedName] = useState(userName);
   const [profileSaving, setProfileSaving] = useState(false);
@@ -46,9 +44,8 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
       }
 
   const nextName = data?.user?.name ?? trimmedName;
-  setName(nextName);
-  setSavedName(nextName);
-  await update({ name: nextName });
+      setName(nextName);
+      setSavedName(nextName);
       router.refresh();
       setProfileSaved(true);
       setTimeout(() => setProfileSaved(false), 2000);

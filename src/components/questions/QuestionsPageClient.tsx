@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import DashboardShell from "@/components/dashboard/DashboardShell";
+
 import { CATEGORIES } from "@/data/constants";
 import { QUESTIONS } from "@/data/questions";
 import type { InterviewType, Difficulty, Question } from "@/data/types";
@@ -75,7 +75,7 @@ export default function QuestionsPageClient({ initialSolvedIds }: QuestionsPageC
   }));
 
   return (
-    <DashboardShell>
+    <>
       <div className="space-y-6 pb-8">
         <SlideIn>
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
@@ -124,6 +124,6 @@ export default function QuestionsPageClient({ initialSolvedIds }: QuestionsPageC
           />
         </FadeIn>
       </div>
-    </DashboardShell>
+    </>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { SessionProvider } from "next-auth/react";
 import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 
 // ─── SIDEBAR CONTEXT ─────────────────────────────────
@@ -50,10 +49,10 @@ function SidebarProvider({ children }: { children: ReactNode }) {
 }
 
 // ─── MAIN PROVIDER ───────────────────────────────────
+// Better Auth does not require a SessionProvider — it manages sessions via
+// its own cookie and client hooks (useSession from @/lib/auth-client).
 export default function Providers({ children }: { children: ReactNode }) {
     return (
-        <SessionProvider>
-            <SidebarProvider>{children}</SidebarProvider>
-        </SessionProvider>
+        <SidebarProvider>{children}</SidebarProvider>
     );
 }

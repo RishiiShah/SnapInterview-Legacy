@@ -31,7 +31,15 @@ export async function POST(req: Request) {
         // Always respond with success to prevent email enumeration
         const user = await prisma.user.findUnique({ where: { email } });
 
-        if (user && user.passwordHash) {
+        // In Better Auth, check if the user has a credential account (i.e., password-based)
+        const hasCredentialAccount = user
+            ? !!(await prisma.account.findFirst({
+                  where: { userId: user.id, providerId: "credential" },
+                  select: { id: true },
+              }))
+            : false;
+
+        if (user && hasCredentialAccount) {
             const recentCount = await prisma.passwordResetCode.count({
                 where: {
                     email,

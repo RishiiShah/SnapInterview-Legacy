@@ -20,8 +20,12 @@ export async function GET() {
       return unauthorizedError();
     }
 
+    const where = authUser.email
+      ? { email: authUser.email }
+      : { id: authUser.userId };
+
     const user = await prisma.user.findUnique({
-      where: { id: authUser.userId },
+      where,
       select: {
         onboardingCompletedAt: true,
         onboardingRole: true,
@@ -70,18 +74,38 @@ export async function PUT(req: Request) {
 
     const values = parsed.data;
 
-    await prisma.user.update({
-      where: { id: authUser.userId },
-      data: {
-        onboardingCompletedAt: new Date(),
-        onboardingRole: values.onboardingRole,
-        onboardingLevel: values.onboardingLevel,
-        onboardingCompany: values.onboardingCompany || null,
-        onboardingGoal: values.onboardingGoal,
-        preferredInterviewType: values.preferredInterviewType,
-        isFirstLogin: false,
-      },
+    const where = authUser.email
+      ? { email: authUser.email }
+      : { id: authUser.userId };
+
+    await prisma.user
+      .update({
+        where,
+        data: {
+          onboardingCompletedAt: new Date(),
+          onboardingRole: values.onboardingRole,
+          onboardingLevel: values.onboardingLevel,
+          onboardingCompany: values.onboardingCompany || null,
+          onboardingGoal: values.onboardingGoal,
+          preferredInterviewType: values.preferredInterviewType,
+          isFirstLogin: false,
+        },
+      })
+      .catch((error) => {
+        if (error instanceof Error && "code" in error && error.code === "P2025") {
+          return null;
+        }
+        throw error;
+      });
+
+    const updated = await prisma.user.findUnique({
+      where,
+      select: { id: true },
     });
+
+    if (!updated) {
+      return notFoundError("User not found");
+    }
 
     return apiJson({ success: true });
   } catch (error) {

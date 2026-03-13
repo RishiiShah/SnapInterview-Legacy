@@ -79,7 +79,16 @@ export async function PUT(req: Request) {
         notificationPrefs: parsed.data,
       },
       select: { notificationPrefs: true },
+    }).catch((error) => {
+      if (error instanceof Error && "code" in error && error.code === "P2025") {
+        return null;
+      }
+      throw error;
     });
+
+    if (!updated) {
+      return notFoundError("User not found");
+    }
 
     return apiJson({
       notificationPrefs: normalizePrefs(updated.notificationPrefs),

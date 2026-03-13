@@ -2,6 +2,7 @@ import type { InterviewStatus } from "@/generated/prisma/client";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
+import { z } from "zod/v4";
 import {
     ALLOWED_QUESTION_COUNTS,
     ALLOWED_STATUSES,
@@ -9,6 +10,20 @@ import {
     startInterviewSession,
     updateSessionStatusIfOwned,
 } from "@/services/interview-service";
+
+const createSessionSchema = z.object({
+    role: z.string().trim().min(1, "Role is required").max(200),
+    company: z.string().trim().max(200).optional().default(""),
+    type: z.string().trim().min(1, "Interview type is required"),
+    difficulty: z.string().trim().min(1, "Difficulty is required"),
+    persona: z.string().trim().max(50).optional(),
+    jobDescription: z.string().trim().max(10000).optional(),
+    resumeUrl: z.string().url().optional(),
+    questionCount: z.number().int().refine(
+        (val) => (ALLOWED_QUESTION_COUNTS as readonly number[]).includes(val),
+        "questionCount must be one of: 5, 10, 15"
+    ).optional(),
+});
 
 function csrfCheck(req: Request) {
     return csrfRejectIfInvalid(req);
@@ -55,23 +70,19 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { role, company, type, difficulty, persona, jobDescription, resumeUrl, questionCount } = body;
+        const parsed = createSessionSchema.safeParse(body);
 
-        if (!role || !type || !difficulty) {
-            return badRequestError("role, type, and difficulty are required");
+        if (!parsed.success) {
+            const firstError = parsed.error.issues[0]?.message || "Invalid input";
+            return badRequestError(firstError);
         }
 
-        if (
-            questionCount !== undefined &&
-            !ALLOWED_QUESTION_COUNTS.includes(questionCount)
-        ) {
-            return badRequestError("questionCount must be one of: 5, 10, 15");
-        }
+        const { role, company, type, difficulty, persona, jobDescription, resumeUrl, questionCount } = parsed.data;
 
         const interviewSession = await startInterviewSession({
             userId: authUser.userId,
             role,
-            company,
+            company: company || null,
             type,
             difficulty,
             persona,
@@ -87,6 +98,15 @@ export async function POST(req: Request) {
     }
 }
 
+const patchSessionSchema = z.object({
+    interviewId: z.string().uuid("interviewId must be a valid UUID"),
+    videoUrl: z.string().url().nullable().optional(),
+    status: z.string().refine(
+        (val) => (ALLOWED_STATUSES as readonly string[]).includes(val),
+        "Invalid status value"
+    ).optional(),
+});
+
 export async function PATCH(req: Request) {
     try {
         const csrfError = csrfCheck(req);
@@ -98,26 +118,20 @@ export async function PATCH(req: Request) {
         }
 
         const body = await req.json();
-        const { interviewId, videoUrl, status } = body as {
-            interviewId?: string;
-            videoUrl?: string | null;
-            status?: InterviewStatus;
-        };
+        const parsed = patchSessionSchema.safeParse(body);
 
-        if (!interviewId || typeof interviewId !== "string") {
-            return badRequestError("interviewId is required");
+        if (!parsed.success) {
+            const firstError = parsed.error.issues[0]?.message || "Invalid input";
+            return badRequestError(firstError);
         }
 
-        // Validate status if provided
-        if (status && !(ALLOWED_STATUSES as readonly string[]).includes(status)) {
-            return badRequestError("Invalid status value");
-        }
+        const { interviewId, videoUrl, status } = parsed.data;
 
         const updated = await updateSessionStatusIfOwned({
             userId: authUser.userId,
             interviewId,
             videoUrl,
-            status,
+            status: status as InterviewStatus | undefined,
         });
 
         if (updated.type === "not_found") {

@@ -5,6 +5,7 @@ import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiError, apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 import { requireAwsS3Env } from "@/lib/env";
+import { z } from "zod/v4";
 
 const aws = requireAwsS3Env();
 
@@ -14,6 +15,10 @@ const s3Client = new S3Client({
         accessKeyId: aws.accessKeyId,
         secretAccessKey: aws.secretAccessKey,
     },
+});
+
+const uploadSchema = z.object({
+    interviewId: z.string().uuid("interviewId must be a valid UUID"),
 });
 
 export async function POST(req: Request) {
@@ -26,11 +31,15 @@ export async function POST(req: Request) {
             return unauthorizedError();
         }
 
-        const { interviewId } = await req.json();
+        const body = await req.json();
+        const parsed = uploadSchema.safeParse(body);
 
-        if (!interviewId || typeof interviewId !== "string") {
-            return badRequestError("Interview ID is required");
+        if (!parsed.success) {
+            const firstError = parsed.error.issues[0]?.message || "Invalid input";
+            return badRequestError(firstError);
         }
+
+        const { interviewId } = parsed.data;
 
         // Verify the interview session belongs to this user
         const interviewSession = await prisma.interviewSession.findFirst({

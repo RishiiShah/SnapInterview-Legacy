@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextResponse } from "next/server";
 import { POST } from "./route";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
@@ -22,7 +23,7 @@ describe("POST /api/interview/evaluate", () => {
   });
 
   it("returns 403 when CSRF validation fails", async () => {
-    vi.mocked(csrfRejectIfInvalid).mockReturnValue(new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 }));
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(NextResponse.json({ error: "Forbidden" }, { status: 403 }));
 
     const request = new Request("http://localhost/api/interview/evaluate", {
       method: "POST",

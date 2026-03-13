@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextResponse } from "next/server";
 import { DELETE, GET } from "./route";
 
 import { csrfRejectIfInvalid } from "@/lib/csrf";
@@ -80,7 +81,7 @@ describe("DELETE /api/s3/videos", () => {
 
   it("short-circuits when CSRF validation fails", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(
-      new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 }),
+      NextResponse.json({ error: "Forbidden" }, { status: 403 }),
     );
 
     const req = new Request("http://localhost/api/s3/videos", {

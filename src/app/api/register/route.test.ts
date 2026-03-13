@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextResponse } from "next/server";
 import { POST } from "./route";
 
 import { prisma } from "@/lib/prisma";
@@ -50,7 +51,7 @@ describe("POST /api/register", () => {
 
   it("short-circuits when CSRF validation fails", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(
-      new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 }),
+      NextResponse.json({ error: "Forbidden" }, { status: 403 }),
     );
 
     const request = new Request("http://localhost/api/register", {

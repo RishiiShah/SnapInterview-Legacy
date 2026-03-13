@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextResponse } from "next/server";
 import { POST } from "./route";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
@@ -26,7 +27,7 @@ describe("POST /api/interview/chat", () => {
 
     const request = new Request("http://localhost/api/interview/chat", {
       method: "POST",
-      body: JSON.stringify({ interviewId: "abc", messages: [] }),
+      body: JSON.stringify({ interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", messages: [] }),
     });
 
     const response = await POST(request);
@@ -57,11 +58,11 @@ describe("POST /api/interview/chat", () => {
   });
 
   it("returns 403 when origin validation fails", async () => {
-    vi.mocked(csrfRejectIfInvalid).mockReturnValue(new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 }));
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(NextResponse.json({ error: "Forbidden" }, { status: 403 }));
 
     const request = new Request("http://localhost/api/interview/chat", {
       method: "POST",
-      body: JSON.stringify({ interviewId: "session-1", messages: [] }),
+      body: JSON.stringify({ interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", messages: [] }),
     });
 
     const response = await POST(request);

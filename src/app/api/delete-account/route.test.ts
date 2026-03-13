@@ -183,7 +183,7 @@ describe("DELETE /api/delete-account", () => {
     expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: "user-1" } });
     expect(recordSecurityEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "SESSION_REVOKED",
+        type: "ACCOUNT_DELETED",
         email: "user@example.com",
         metadata: expect.objectContaining({ reason: "account_deleted" }),
       }),

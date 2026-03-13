@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { recordSecurityEvent, revokeUserSessions } from "@/lib/account-security";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
-import { hashOneTimeCode, normalizeEmail, verifyOneTimeCode } from "@/lib/security";
+import { normalizeEmail, verifyOneTimeCode } from "@/lib/security";
 import { hashCredentialPassword } from "@/lib/password";
 import { z } from "zod/v4";
 import { apiError, apiJson, badRequestError, internalServerError, notFoundError } from "@/lib/api-response";
@@ -126,11 +126,6 @@ export async function POST(req: Request) {
         await prisma.passwordResetCode.updateMany({
             where: { email: normalizedEmail, usedAt: null },
             data: { usedAt: new Date() },
-        });
-
-        await prisma.passwordResetCode.update({
-            where: { id: token.id },
-            data: { codeHash: hashOneTimeCode(otp), usedAt: new Date() },
         });
 
         await recordSecurityEvent({

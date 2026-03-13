@@ -11,6 +11,7 @@ import {
 import { requireAwsS3Env } from "@/lib/env";
 import { listUserVideos } from "@/lib/s3/videos";
 import { S3Client } from "@aws-sdk/client-s3";
+import { z } from "zod/v4";
 
 const aws = requireAwsS3Env();
 
@@ -20,6 +21,10 @@ const s3Client = new S3Client({
     accessKeyId: aws.accessKeyId,
     secretAccessKey: aws.secretAccessKey,
   },
+});
+
+const deleteVideoSchema = z.object({
+  key: z.string().min(1, "Missing key"),
 });
 
 export async function GET() {
@@ -49,11 +54,15 @@ export async function DELETE(req: Request) {
       return unauthorizedError();
     }
 
-    const { key } = await req.json();
+    const body = await req.json();
+    const parsed = deleteVideoSchema.safeParse(body);
 
-    if (!key) {
-      return badRequestError("Missing key");
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || "Invalid input";
+      return badRequestError(firstError);
     }
+
+    const { key } = parsed.data;
 
     // Ensure user can only delete their own videos
     if (!key.startsWith(`${authUser.userId}/`)) {

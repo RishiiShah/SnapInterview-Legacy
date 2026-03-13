@@ -73,7 +73,7 @@ export async function DELETE(req: Request) {
     });
 
     await recordSecurityEvent({
-      type: "SESSION_REVOKED",
+      type: "ACCOUNT_DELETED",
       userId: null,
       email: user.email,
       ipHash,

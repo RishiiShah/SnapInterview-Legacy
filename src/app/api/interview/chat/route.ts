@@ -10,6 +10,16 @@ import { getSessionUserIdentity } from "@/lib/server-auth";
 import { runInterviewChat } from "@/services/interview-service";
 import { z } from "zod/v4";
 
+const chatSchema = z.object({
+  interviewId: z.string().uuid("interviewId must be a valid UUID"),
+  messages: z.array(
+    z.object({
+      role: z.string().min(1),
+      content: z.string(),
+    })
+  ),
+});
+
 export async function POST(req: Request) {
   try {
     const csrfError = csrfRejectIfInvalid(req);
@@ -21,11 +31,14 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { messages: rawMessages, interviewId } = body;
+    const parsed = chatSchema.safeParse(body);
 
-    if (!interviewId || !z.string().uuid().safeParse(interviewId).success) {
-      return badRequestError("interviewId must be a valid UUID");
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0]?.message || "Invalid input";
+      return badRequestError(firstError);
     }
+
+    const { interviewId, messages: rawMessages } = parsed.data;
 
     const result = await runInterviewChat({
       userId: authUser.userId,

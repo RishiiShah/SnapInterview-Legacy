@@ -3,11 +3,14 @@ import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { evaluatePracticeQuestion } from "@/services/evaluation-service";
+import { createRateLimiter } from "@/lib/rate-limit";
 
 const evaluateSchema = z.object({
   questionId: z.number().int().positive(),
   answer: z.string().trim().max(6000),
 });
+
+const questionEvaluateLimiter = createRateLimiter("questions-evaluate", 10 * 60 * 1000, 30);
 
 export async function POST(req: Request) {
   try {
@@ -17,6 +20,10 @@ export async function POST(req: Request) {
     const authUser = await getSessionUserIdentity();
     if (!authUser) {
       return unauthorizedError();
+    }
+
+    if (await questionEvaluateLimiter.isLimited(authUser.userId)) {
+      return badRequestError("Too many evaluation requests. Please try again later.");
     }
 
     const body = await req.json();

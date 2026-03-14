@@ -5,6 +5,7 @@ import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiError, apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 import { requireAwsS3Env } from "@/lib/env";
+import { createRateLimiter } from "@/lib/rate-limit";
 import { z } from "zod/v4";
 
 const aws = requireAwsS3Env();
@@ -21,6 +22,8 @@ const uploadSchema = z.object({
     interviewId: z.string().uuid("interviewId must be a valid UUID"),
 });
 
+const uploadLimiter = createRateLimiter("s3-upload", 10 * 60 * 1000, 20);
+
 export async function POST(req: Request) {
     try {
         const csrfError = csrfRejectIfInvalid(req);
@@ -29,6 +32,10 @@ export async function POST(req: Request) {
         const authUser = await getSessionUserIdentity();
         if (!authUser) {
             return unauthorizedError();
+        }
+
+        if (await uploadLimiter.isLimited(authUser.userId)) {
+            return apiError("Too many upload requests. Please try again later.", 429);
         }
 
         const body = await req.json();

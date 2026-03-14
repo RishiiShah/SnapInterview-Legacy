@@ -9,7 +9,7 @@ import { sendResetPasswordLinkEmail } from "@/lib/email";
 import { hashCredentialPassword, verifyCredentialPassword } from "@/lib/password";
 import { env } from "@/lib/env";
 
-const loginLimiter = createRateLimiter(60 * 1000, 5);
+const loginLimiter = createRateLimiter("login", 60 * 1000, 5);
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
 
@@ -118,8 +118,8 @@ export const auth = betterAuth({
         ? extractRequestContext(ctx.request.headers).userAgent
         : undefined;
 
-      // In-memory rate limit check
-      if (loginLimiter.isLimited(email)) {
+      // Distributed Postgres-backed rate limit check.
+      if (await loginLimiter.isLimited(email)) {
         await recordSecurityEvent({
           type: "LOGIN_FAILED",
           email,

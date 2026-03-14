@@ -114,7 +114,7 @@ export function QuestionRightPanel({
                             </div>
 
                             {/* Panel content */}
-                            <div className="h-[140px] overflow-y-auto px-5 py-3">
+                            <div className="h-35 overflow-y-auto px-5 py-3">
                                 {rightTab === "answer" ? (
                                     <div className="flex items-center gap-3">
                                         <button

@@ -14,8 +14,8 @@ const verifySchema = z.object({
 const MAX_OTP_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000; // 15 mins
 
-// IP-based rate limiter to prevent mass account enumeration / brute-force
-const otpVerifyLimiter = createRateLimiter(60 * 1000, 10); // 10 attempts per minute per IP
+// IP-based Postgres-backed distributed rate limiter
+const otpVerifyLimiter = createRateLimiter("otp-verify", 60 * 1000, 10); // 10 per minute per IP
 
 export async function POST(req: Request) {
     try {
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
         const { ipHash } = extractRequestContext(req.headers);
         const rateLimitKey = ipHash ?? "unknown";
-        if (otpVerifyLimiter.isLimited(rateLimitKey)) {
+        if (await otpVerifyLimiter.isLimited(rateLimitKey)) {
             return apiError("Too many requests. Please try again later.", 429);
         }
 

@@ -32,7 +32,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
-  createRateLimiter: vi.fn(() => ({ isLimited: vi.fn(() => false) })),
+  createRateLimiter: vi.fn(() => ({ isLimited: vi.fn(() => Promise.resolve(false)) })),
 }));
 
 vi.mock("@/lib/account-security", () => ({

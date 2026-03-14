@@ -75,7 +75,15 @@ export default function OnboardingPreferencesForm({
       onSaved?.();
 
       if (redirectTo) {
-        router.push(redirectTo);
+        // Only allow same-origin paths (no protocol, no //, no leading backslash)
+        const safePath =
+          typeof redirectTo === "string" &&
+          redirectTo.startsWith("/") &&
+          !redirectTo.startsWith("//") &&
+          !redirectTo.includes(":")
+            ? redirectTo
+            : "/dashboard";
+        router.push(safePath);
         router.refresh();
         return;
       }

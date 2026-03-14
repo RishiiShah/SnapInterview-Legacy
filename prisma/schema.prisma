@@ -153,6 +153,23 @@ model SecurityEvent {
   @@index([email, createdAt])
 }
 
+model RateLimitBucket {
+  id          String   @id @default(cuid())
+  namespace   String
+  keyHash     String
+  windowStart DateTime
+  windowMs    Int
+  count       Int      @default(1)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([namespace, keyHash, windowStart])
+  @@index([namespace, keyHash])
+  @@index([expiresAt])
+  @@map("rate_limit_buckets")
+}
+
 // ─── App: Interviews ─────────────────────────────────────────────────────────
 
 enum InterviewStatus {

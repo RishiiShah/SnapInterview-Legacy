@@ -74,9 +74,9 @@ export default function ActiveInterviewScreen({
       transition={{ duration: 0.6, ease: "easeOut" }}
       className="h-screen w-full overflow-hidden bg-[#1c1c1e] flex flex-col p-4 sm:p-6 font-sans gap-4 sm:gap-6 relative z-0"
     >
-      <div className="w-full h-full relative flex flex-col gap-4 sm:gap-6 overflow-hidden max-w-[1600px] mx-auto">
+      <div className="w-full h-full relative flex flex-col gap-4 sm:gap-6 overflow-hidden max-w-400 mx-auto">
         <div className="relative flex items-center justify-center pl-2 pr-4 h-12 shrink-0">
-          <div className="flex flex-col gap-2 w-full max-w-[400px]">
+          <div className="flex flex-col gap-2 w-full max-w-100">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold tracking-wider text-zinc-400">Question Progress</span>
               <span className="text-[11px] font-semibold tracking-wider text-zinc-400">Q{answeredQuestions} / {totalQuestions}</span>
@@ -108,13 +108,13 @@ export default function ActiveInterviewScreen({
               style={{ transform: "scaleX(-1)" }}
             />
             <div className="absolute right-5 top-5 flex items-center gap-2 rounded-full bg-zinc-800/80 px-3 py-1.5 backdrop-blur-md">
-              <div className={`h-[6px] w-[6px] rounded-full ${isRecordingVideo ? 'bg-red-500 animate-[pulse_1.5s_ease-in-out_infinite]' : 'bg-zinc-500'}`} />
+              <div className={`h-1.5 w-1.5 rounded-full ${isRecordingVideo ? 'bg-red-500 animate-[pulse_1.5s_ease-in-out_infinite]' : 'bg-zinc-500'}`} />
               <span className="text-[11px] font-semibold tracking-wide text-zinc-100">{isRecordingVideo ? 'Recording' : 'Not Recording'}</span>
             </div>
           </div>
 
           <div className="hidden lg:flex flex-col flex-1 bg-zinc-800/20 rounded-2xl border border-zinc-800/50 overflow-hidden relative">
-            <div className="absolute top-0 w-full h-8 bg-gradient-to-b from-[#1c1c1e] to-transparent z-10 pointer-events-none" />
+            <div className="absolute top-0 w-full h-8 bg-linear-to-b from-[#1c1c1e] to-transparent z-10 pointer-events-none" />
             <div ref={chatScrollContainerRef} className="flex-1 overflow-y-auto p-5 space-y-5 flex flex-col pt-8 pb-12">
               {messages.map((msg, idx) => (
                 <div key={idx} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -154,7 +154,7 @@ export default function ActiveInterviewScreen({
               )}
               <div ref={chatBottomRef} />
             </div>
-            <div className="absolute bottom-0 w-full h-12 bg-gradient-to-t from-[#1c1c1e] to-transparent z-10 pointer-events-none" />
+            <div className="absolute bottom-0 w-full h-12 bg-linear-to-t from-[#1c1c1e] to-transparent z-10 pointer-events-none" />
           </div>
         </div>
 
@@ -168,9 +168,9 @@ export default function ActiveInterviewScreen({
                 }`}
             >
               {hasPermission && isMicEnabled ? (
-                <IconMicrophoneSolid className="h-[22px] w-[22px] translate-y-[-1px]" />
+                <IconMicrophoneSolid className="h-5.5 w-5.5 -translate-y-px" />
               ) : (
-                <IconMicrophoneOffSolid className="h-[22px] w-[22px] translate-y-[-1px]" />
+                <IconMicrophoneOffSolid className="h-5.5 w-5.5 -translate-y-px" />
               )}
             </button>
             <button
@@ -181,9 +181,9 @@ export default function ActiveInterviewScreen({
                 }`}
             >
               {hasPermission && isCameraEnabled ? (
-                <IconVideoCamera className="h-[22px] w-[22px]" />
+                <IconVideoCamera className="h-5.5 w-5.5" />
               ) : (
-                <IconVideoCameraOff className="h-[22px] w-[22px]" />
+                <IconVideoCameraOff className="h-5.5 w-5.5" />
               )}
             </button>
             <button
@@ -196,7 +196,7 @@ export default function ActiveInterviewScreen({
                 : ''}`}
               title={!hasSpeechSupport ? 'Speech recognition is unavailable in this browser.' : undefined}
             >
-              <div className={`h-2.5 w-2.5 rounded-[2px] ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-white rounded-full'}`} />
+              <div className={`h-2.5 w-2.5 rounded-xs ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-white rounded-full'}`} />
               {isRecording ? 'Stop Speaking (Space)' : hasSpeechSupport ? 'Start Speaking' : 'Speech Unavailable'}
             </button>
           </div>

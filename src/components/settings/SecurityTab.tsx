@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import PasswordTab from "@/components/settings/PasswordTab";
-import { describeUserAgent } from "@/lib/security";
+import { describeUserAgent } from "@/lib/describe-user-agent";
 
 type SecuritySession = {
   id: string;

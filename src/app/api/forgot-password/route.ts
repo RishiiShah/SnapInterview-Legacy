@@ -5,6 +5,7 @@ import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { z } from "zod/v4";
 import { apiError, apiJson, internalServerError } from "@/lib/api-response";
 import { extractRequestContext, generateNumericCode, hashOneTimeCode, normalizeEmail } from "@/lib/security";
+import { createRateLimiter } from "@/lib/rate-limit";
 
 const schema = z.object({
     email: z.email("Invalid email address"),
@@ -12,6 +13,7 @@ const schema = z.object({
 
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_REQUESTS = 3;
+const forgotPasswordLimiter = createRateLimiter("forgot-password", 60 * 1000, 6);
 
 export async function POST(req: Request) {
     try {
@@ -27,6 +29,11 @@ export async function POST(req: Request) {
 
         const email = normalizeEmail(result.data.email);
         const { ipHash, userAgent } = extractRequestContext(req.headers);
+        const limiterKey = `${email}:${ipHash ?? "unknown"}`;
+
+        if (await forgotPasswordLimiter.isLimited(limiterKey)) {
+            return apiError("Too many reset requests. Please try again later.", 429);
+        }
 
         // Always respond with success to prevent email enumeration
         const user = await prisma.user.findUnique({ where: { email } });

@@ -29,7 +29,7 @@ async function uploadBlobToPresignedPost(
   });
 
   if (!uploadRes.ok) {
-    console.error("Failed to upload video blob to S3", await uploadRes.text());
+    console.error("Failed to upload video blob to S3", { status: uploadRes.status });
     return undefined;
   }
 
@@ -45,7 +45,7 @@ async function createPresignedUploadUrl(interviewId: string): Promise<PresignedP
   });
 
   if (!res.ok) {
-    console.error("Failed to get presigned URL", await res.text());
+    console.error("Failed to get presigned URL", { status: res.status });
     return undefined;
   }
 

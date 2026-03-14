@@ -6,6 +6,7 @@ import { getServerAuthSession } from "@/lib/server-auth";
 import { hashCredentialPassword, verifyCredentialPassword } from "@/lib/password";
 import { z } from "zod/v4";
 import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
+import { createRateLimiter } from "@/lib/rate-limit";
 
 const changePasswordSchema = z.object({
     currentPassword: z.string().min(1, "Current password is required"),
@@ -19,6 +20,8 @@ const changePasswordSchema = z.object({
         .refine((pw) => /[^A-Za-z0-9]/.test(pw), "Password must contain a special character"),
 });
 
+const changePasswordLimiter = createRateLimiter("change-password", 15 * 60 * 1000, 5);
+
 export async function POST(req: Request) {
     try {
         const csrfError = csrfRejectIfInvalid(req);
@@ -27,6 +30,10 @@ export async function POST(req: Request) {
         const session = await getServerAuthSession();
         if (!session?.user?.email) {
             return unauthorizedError();
+        }
+
+        if (await changePasswordLimiter.isLimited(session.user.id)) {
+            return badRequestError("Too many password change attempts. Please try again later.");
         }
 
         const currentSession = await getCurrentSession();

@@ -35,11 +35,9 @@ export async function GET() {
         orderBy: { expiresAt: "desc" },
         select: {
           id: true,
-          token: true,
           expiresAt: true,
+          updatedAt: true,
           userAgent: true,
-          ipAddress: true,
-          createdAt: true,
         },
       }),
       prisma.securityEvent.findMany({
@@ -59,12 +57,11 @@ export async function GET() {
     return apiJson({
       sessions: sessions.map((session) => ({
         id: session.id,
-        token: session.token,
-        current: currentSession?.token === session.token,
+        current: currentSession?.id === session.id,
         expiresAt: session.expiresAt.toISOString(),
-        createdAt: session.createdAt.toISOString(),
+        lastSeenAt: session.updatedAt.toISOString(),
+        revokedAt: null,
         userAgent: session.userAgent,
-        ipAddress: session.ipAddress,
       })),
       events: events.map((event) => ({
         id: event.id,

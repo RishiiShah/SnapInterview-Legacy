@@ -5,6 +5,7 @@ import { normalizeEmail, verifyOneTimeCode } from "@/lib/security";
 import { hashCredentialPassword } from "@/lib/password";
 import { z } from "zod/v4";
 import { apiError, apiJson, badRequestError, internalServerError, notFoundError } from "@/lib/api-response";
+import { createRateLimiter } from "@/lib/rate-limit";
 
 const schema = z.object({
     email: z.email("Invalid email address"),
@@ -21,6 +22,7 @@ const schema = z.object({
 
 const MAX_OTP_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000; // 15 mins
+const resetPasswordLimiter = createRateLimiter("reset-password", 60 * 1000, 10);
 
 export async function POST(req: Request) {
     try {
@@ -37,6 +39,10 @@ export async function POST(req: Request) {
 
         const { email, otp, newPassword } = result.data;
         const normalizedEmail = normalizeEmail(email);
+
+        if (await resetPasswordLimiter.isLimited(normalizedEmail)) {
+            return apiError("Too many requests. Please try again later.", 429);
+        }
 
         // Find the verification token
         const token = await prisma.passwordResetCode.findFirst({

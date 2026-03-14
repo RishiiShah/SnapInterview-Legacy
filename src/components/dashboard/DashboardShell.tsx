@@ -38,7 +38,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
     }, [pathname]);
 
     return (
-        <div className="flex h-screen overflow-hidden bg-zinc-50 font-(family-name:--font-geist-sans)">
+        <div className="flex h-screen overflow-hidden bg-zinc-50 font-sans">
             <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
             <div className={`${collapsed ? "ml-16" : "ml-64"} flex h-screen flex-1 flex-col overflow-hidden transition-all duration-300 ease-in-out`}>
                 <Header onSearchOpen={() => setSearchOpen(true)} />

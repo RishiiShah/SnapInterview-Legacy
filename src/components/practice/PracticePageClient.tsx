@@ -108,7 +108,7 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
 
   return (
     <>
-      <div className="space-y-8 pb-8">
+      <div className="mx-auto w-full max-w-350 space-y-8 pb-8">
         <SlideIn>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Practice Interview</h1>
@@ -116,8 +116,8 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
           </div>
         </SlideIn>
 
-        <div className="grid gap-8 lg:grid-cols-3">
-          <FadeIn delay={0.2} direction="up" className="lg:col-span-2 space-y-6">
+        <div className="grid gap-8 xl:grid-cols-3">
+          <FadeIn delay={0.2} direction="up" className="space-y-6 xl:col-span-2">
             <div className="rounded-2xl border border-zinc-200 bg-white p-6">
               <h2 className="mb-6 text-lg font-semibold text-zinc-900">Interview Setup</h2>
               <div className="space-y-5">
@@ -140,7 +140,7 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
                   />
                 </div>
 
-                <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-5">
                   <SelectDropdown
                     label="Interview Type"
                     value={type}
@@ -169,7 +169,7 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
                     options={INTERVIEW_PERSONAS.map((item) => ({ value: item.value, label: item.label }))}
                   />
 
-                  <div>
+                  <div className="md:col-span-2 2xl:col-span-1">
                     <label className="mb-1.5 block text-sm font-medium text-zinc-700">
                       Resume <span className="text-zinc-400 font-normal">(optional)</span>
                     </label>

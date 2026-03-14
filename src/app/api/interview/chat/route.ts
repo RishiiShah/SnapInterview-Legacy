@@ -8,6 +8,7 @@ import {
 } from "@/lib/api-response";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { runInterviewChat } from "@/services/interview-service";
+import { createRateLimiter } from "@/lib/rate-limit";
 import { z } from "zod/v4";
 
 const chatSchema = z.object({
@@ -20,6 +21,8 @@ const chatSchema = z.object({
   ),
 });
 
+const interviewChatLimiter = createRateLimiter("interview-chat", 60 * 1000, 30);
+
 export async function POST(req: Request) {
   try {
     const csrfError = csrfRejectIfInvalid(req);
@@ -28,6 +31,10 @@ export async function POST(req: Request) {
     const authUser = await getSessionUserIdentity();
     if (!authUser) {
       return unauthorizedError();
+    }
+
+    if (await interviewChatLimiter.isLimited(authUser.userId)) {
+      return new Response("Too many chat requests. Please try again later.", { status: 429 });
     }
 
     const body = await req.json();

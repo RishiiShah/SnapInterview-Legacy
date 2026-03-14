@@ -32,8 +32,8 @@ const registerSchema = z.object({
     .refine((pw) => /[^A-Za-z0-9]/.test(pw), "Password must contain a special character"),
 });
 
-// ── In-memory rate limiter (per hashed IP) ──
-const registerLimiter = createRateLimiter(60 * 1000, 5); // 5 registrations per minute per IP
+// ── Postgres-backed distributed rate limiter (per hashed IP) ──
+const registerLimiter = createRateLimiter("register", 60 * 1000, 5); // 5 per minute per IP
 
 export async function POST(req: Request) {
   try {
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     const { ipHash } = extractRequestContext(req.headers);
     const rateLimitKey = ipHash ?? "unknown";
 
-    if (registerLimiter.isLimited(rateLimitKey)) {
+    if (await registerLimiter.isLimited(rateLimitKey)) {
       return apiError("Too many requests. Please try again later.", 429);
     }
 

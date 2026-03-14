@@ -158,7 +158,7 @@ export default function ForgotPasswordPage() {
 
 
     return (
-        <div className="flex min-h-screen bg-white font-[family-name:var(--font-geist-sans)]">
+        <div className="flex min-h-screen bg-white font-sans">
             <AuthSidePanel
                 title="Reset your password"
                 subtitle="We'll send a verification code to your email so you can securely set a new password and get back to practicing."

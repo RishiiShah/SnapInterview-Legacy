@@ -67,32 +67,4 @@ export function extractRequestContext(source: HeaderSource | null | undefined) {
   };
 }
 
-export function describeUserAgent(userAgent: string | null | undefined) {
-  if (!userAgent) {
-    return "Unknown device";
-  }
-
-  const source = userAgent.toLowerCase();
-
-  const browser = source.includes("edg/")
-    ? "Edge"
-    : source.includes("chrome/")
-      ? "Chrome"
-      : source.includes("safari/") && !source.includes("chrome/")
-        ? "Safari"
-        : source.includes("firefox/")
-          ? "Firefox"
-          : "Browser";
-
-  const operatingSystem = source.includes("mac os x")
-    ? "macOS"
-    : source.includes("windows")
-      ? "Windows"
-      : source.includes("iphone") || source.includes("ipad")
-        ? "iOS"
-        : source.includes("android")
-          ? "Android"
-          : "Unknown OS";
-
-  return `${browser} on ${operatingSystem}`;
-}
+// describeUserAgent moved to @/lib/describe-user-agent (client-safe); do not re-export here to avoid pulling server code into client bundle.

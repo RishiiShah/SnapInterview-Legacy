@@ -58,26 +58,60 @@ function consumeInMemoryFixedWindow(
 }
 
 function shouldFallbackToInMemory(error: unknown): boolean {
+  const transientNetworkCodes = new Set([
+    "ECONNREFUSED",
+    "ECONNRESET",
+    "ETIMEDOUT",
+    "ENOTFOUND",
+    "EHOSTUNREACH",
+  ]);
+
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    const code = String(error.code ?? "").toUpperCase();
+
     // P1001/P1002/P2028 are transient connection/timeout issues.
-    if (error.code === "P1001" || error.code === "P1002" || error.code === "P2028") {
+    if (code === "P1001" || code === "P1002" || code === "P2028") {
+      return true;
+    }
+
+    // Some adapters surface node-style socket errors in code.
+    if (transientNetworkCodes.has(code)) {
       return true;
     }
 
     // P2010 raw query failure can happen when the table is not migrated yet.
-    if (error.code === "P2010") {
+    if (code === "P2010") {
       const meta = error.meta as { message?: string; driverAdapterError?: { message?: string } } | undefined;
       const message = `${meta?.message ?? ""} ${meta?.driverAdapterError?.message ?? ""}`.toLowerCase();
       if (message.includes("rate_limit_buckets") || message.includes("tabledoesnotexist")) {
         // Fail closed in production so missing schema cannot silently degrade security.
         return process.env.NODE_ENV !== "production";
       }
+
+      if (
+        message.includes("econnrefused") ||
+        message.includes("connection refused") ||
+        message.includes("timeout")
+      ) {
+        return true;
+      }
     }
+  }
+
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    return true;
   }
 
   if (error instanceof TypeError) {
     const message = String(error.message).toLowerCase();
-    if (message.includes("$queryraw") || message.includes("$executeraw")) {
+    if (
+      message.includes("$queryraw") ||
+      message.includes("$executeraw") ||
+      message.includes("econnrefused") ||
+      message.includes("connection refused") ||
+      message.includes("fetch failed") ||
+      message.includes("timeout")
+    ) {
       return true;
     }
   }

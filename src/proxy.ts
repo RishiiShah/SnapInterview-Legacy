@@ -4,19 +4,6 @@ import { env } from "@/lib/env";
 // Better Auth sets this cookie on login
 const BETTER_AUTH_COOKIE = "better-auth.session_token";
 
-async function hasValidSession(request: NextRequest): Promise<boolean> {
-    const sessionRes = await fetch(`${env.BETTER_AUTH_URL}/api/auth/get-session`, {
-        headers: { cookie: request.headers.get("cookie") || "" },
-    });
-
-    if (!sessionRes.ok) {
-        return false;
-    }
-
-    const sessionData = await sessionRes.json();
-    return !!sessionData?.user;
-}
-
 export async function proxy(request: NextRequest) {
     // 1. Setup headers for the request (e.g., nonce for CSP)
     const requestHeaders = new Headers(request.headers);
@@ -41,16 +28,6 @@ export async function proxy(request: NextRequest) {
         if (!token) {
             const loginUrl = new URL("/login", request.url);
             response = NextResponse.redirect(loginUrl);
-        } else {
-            try {
-                const authenticated = await hasValidSession(request);
-                if (!authenticated) {
-                    response = NextResponse.redirect(new URL("/login", request.url));
-                }
-            } catch (err) {
-                console.warn("Proxy Protected Route Auth Check Failed:", err);
-                response = NextResponse.redirect(new URL("/login", request.url));
-            }
         }
     } else if (request.nextUrl.pathname === "/") {
         // Authenticated users shouldn't see the landing page

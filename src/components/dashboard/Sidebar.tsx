@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "@/lib/auth-client";
+import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/utils/helpers";
 import {
     IconArrowLeft,
@@ -18,6 +18,14 @@ import {
     IconMicrophone,
     IconSettings,
 } from "@/components/ui/icons";
+
+type DashboardSession = {
+    user?: {
+        name?: string | null;
+        email?: string | null;
+        image?: string | null;
+    } | null;
+} | null;
 
 export const navItems = [
     {
@@ -42,9 +50,16 @@ export const navItems = [
     },
 ];
 
-export function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCollapsed: (v: boolean) => void }) {
+export function Sidebar({
+    collapsed,
+    setCollapsed,
+    session,
+}: {
+    collapsed: boolean;
+    setCollapsed: (v: boolean) => void;
+    session: DashboardSession;
+}) {
     const pathname = usePathname();
-    const { data: session } = useSession();
     const userName = session?.user?.name || "User";
     const userEmail = session?.user?.email || "";
     const userImage = session?.user?.image;

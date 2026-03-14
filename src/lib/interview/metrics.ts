@@ -1,5 +1,46 @@
 import { prisma } from "@/lib/prisma";
 
+const DASHBOARD_CACHE_TTL_MS = 15_000;
+const ANALYTICS_CACHE_TTL_MS = 15_000;
+
+type CacheEntry<T> = {
+  expiresAtMs: number;
+  value: T;
+};
+
+const dashboardCache = new Map<string, CacheEntry<DashboardOverviewData>>();
+const analyticsCache = new Map<string, CacheEntry<AnalyticsOverviewData>>();
+
+function isTestEnv() {
+  return process.env.NODE_ENV === "test";
+}
+
+function readCache<T>(cache: Map<string, CacheEntry<T>>, key: string): T | null {
+  if (isTestEnv()) return null;
+
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (entry.expiresAtMs <= Date.now()) {
+    cache.delete(key);
+    return null;
+  }
+
+  return entry.value;
+}
+
+function writeCache<T>(
+  cache: Map<string, CacheEntry<T>>,
+  key: string,
+  value: T,
+  ttlMs: number
+) {
+  if (isTestEnv()) return;
+  cache.set(key, {
+    value,
+    expiresAtMs: Date.now() + ttlMs,
+  });
+}
+
 type SessionRecord = {
   id: string;
   role: string;
@@ -308,7 +349,13 @@ function deriveStrengthsAndImprovementsFromTranscripts(transcripts: TranscriptRe
 }
 
 export async function getDashboardOverviewData(email: string): Promise<DashboardOverviewData> {
-  const sessions = await getUserSessions(email);
+  const normalizedEmail = email.toLowerCase();
+  const cached = readCache(dashboardCache, normalizedEmail);
+  if (cached) {
+    return cached;
+  }
+
+  const sessions = await getUserSessions(normalizedEmail);
   const now = new Date();
   const last7Days = addDays(now, -7);
 
@@ -386,7 +433,7 @@ export async function getDashboardOverviewData(email: string): Promise<Dashboard
     };
   });
 
-  return {
+  const result: DashboardOverviewData = {
     stats: [
       {
         label: "Interviews Completed",
@@ -419,6 +466,9 @@ export async function getDashboardOverviewData(email: string): Promise<Dashboard
     recentSessions,
     chartData: lastSevenDays,
   };
+
+  writeCache(dashboardCache, normalizedEmail, result, DASHBOARD_CACHE_TTL_MS);
+  return result;
 }
 
 const prettifyCategory = (value: string): string => {
@@ -430,8 +480,14 @@ const prettifyCategory = (value: string): string => {
 };
 
 export async function getAnalyticsOverviewData(email: string): Promise<AnalyticsOverviewData> {
-  const sessions = await getUserSessions(email);
-  const transcripts = await getUserTranscripts(email);
+  const normalizedEmail = email.toLowerCase();
+  const cached = readCache(analyticsCache, normalizedEmail);
+  if (cached) {
+    return cached;
+  }
+
+  const sessions = await getUserSessions(normalizedEmail);
+  const transcripts = await getUserTranscripts(normalizedEmail);
   const now = new Date();
 
   const thisMonthRange = getMonthRange(now);
@@ -505,7 +561,7 @@ export async function getAnalyticsOverviewData(email: string): Promise<Analytics
   const resolvedCategories = categoryBreakdown.length > 0 ? categoryBreakdown : fallbackCategories;
   const { strengths, improvements } = deriveStrengthsAndImprovementsFromTranscripts(transcripts);
 
-  return {
+  const result: AnalyticsOverviewData = {
     weeklyScores,
     monthlyComparison: [
       { label: "This Month", ...thisMonth },
@@ -515,4 +571,7 @@ export async function getAnalyticsOverviewData(email: string): Promise<Analytics
     strengths,
     improvements,
   };
+
+  writeCache(analyticsCache, normalizedEmail, result, ANALYTICS_CACHE_TTL_MS);
+  return result;
 }

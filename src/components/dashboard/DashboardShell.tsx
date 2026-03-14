@@ -9,9 +9,7 @@ import { Header } from "./Header";
 import { SearchModal } from "./SearchModal";
 
 export default function DashboardShell({ children }: { children: ReactNode }) {
-    const { isPending } = useSession();
-    // isPending satisfies the lint; we use data inside child components
-    void isPending;
+    const { data: session } = useSession();
     const { collapsed, setCollapsed } = useSidebar();
     const [searchOpen, setSearchOpen] = useState(false);
     const mainRef = useRef<HTMLElement>(null);
@@ -39,9 +37,9 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
 
     return (
         <div className="flex h-screen overflow-hidden bg-zinc-50 font-sans">
-            <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+            <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} session={session} />
             <div className={`${collapsed ? "ml-16" : "ml-64"} flex h-screen flex-1 flex-col overflow-hidden transition-all duration-300 ease-in-out`}>
-                <Header onSearchOpen={() => setSearchOpen(true)} />
+                <Header onSearchOpen={() => setSearchOpen(true)} session={session} />
                 <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto p-6 pb-2">{children}</main>
             </div>
             <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />

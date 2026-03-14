@@ -4,12 +4,20 @@ import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "@/lib/auth-client";
+import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/utils/helpers";
 import { DEFAULT_NOTIFICATIONS } from "@/data/constants";
 import { Notification } from "@/data/types";
 import { IconBell, IconLogout, IconSearch, IconSettings } from "@/components/ui/icons";
 import { navItems } from "./Sidebar";
+
+type DashboardSession = {
+    user?: {
+        name?: string | null;
+        email?: string | null;
+        image?: string | null;
+    } | null;
+} | null;
 
 function getNotificationStorageKey(email?: string | null): string {
     return `snapinterview.notifications.read.${(email || "anon").toLowerCase()}`;
@@ -54,10 +62,17 @@ function NotificationPanel({ open, notifications, onMarkAllRead }: { open: boole
     );
 }
 
-function AvatarDropdown({ open, onClose }: { open: boolean; onClose: () => void }) {
-    const { data: session } = useSession();
-    const userName = session?.user?.name || "User";
-    const userEmail = session?.user?.email || "";
+function AvatarDropdown({
+    open,
+    onClose,
+    userName,
+    userEmail,
+}: {
+    open: boolean;
+    onClose: () => void;
+    userName: string;
+    userEmail: string;
+}) {
     if (!open) return null;
 
     return (
@@ -80,9 +95,8 @@ function AvatarDropdown({ open, onClose }: { open: boolean; onClose: () => void 
     );
 }
 
-export function Header({ onSearchOpen }: { onSearchOpen: () => void }) {
+export function Header({ onSearchOpen, session }: { onSearchOpen: () => void; session: DashboardSession }) {
     const pathname = usePathname();
-    const { data: session } = useSession();
     const userName = session?.user?.name || "User";
     const userEmail = session?.user?.email || null;
     const userImage = session?.user?.image;
@@ -162,7 +176,12 @@ export function Header({ onSearchOpen }: { onSearchOpen: () => void }) {
                             <div className="grid h-full w-full place-items-center bg-zinc-900 text-xs font-bold text-white">{initials}</div>
                         )}
                     </button>
-                    <AvatarDropdown open={avatarOpen} onClose={() => setAvatarOpen(false)} />
+                    <AvatarDropdown
+                        open={avatarOpen}
+                        onClose={() => setAvatarOpen(false)}
+                        userName={userName}
+                        userEmail={userEmail || ""}
+                    />
                 </div>
             </div>
         </header>

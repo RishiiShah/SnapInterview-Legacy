@@ -1,27 +1,20 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { QUESTIONS } from "@/data/questions";
 import { buildSystemInstruction } from "@/lib/interview/prompts";
+import { normalizePromptInterviewSession } from "@/lib/interview/domain";
+import {
+  normalizeTranscriptEvaluation,
+  parseQuestionEvaluationResponse,
+  parseTranscriptEvaluationResponse,
+  type QuestionEvaluationResponse,
+  type TranscriptEvaluationResponse,
+} from "@/lib/interview/evaluation";
+import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 import { buildQuestionEvaluationRoleContext } from "@/lib/questions/evaluation";
 import { groqClient } from "@/lib/ai/groq";
 import { withRetry } from "@/utils/retry";
 import { logger } from "@/utils/logger";
 import { getInterviewSession, updateEvaluation } from "@/repositories/interview-repo";
-import { z } from "zod/v4";
-
-const transcriptEvaluationResponseSchema = z.object({
-  score: z.number().int().min(0).max(100),
-  feedback: z.string(),
-  strengths: z.array(z.string()),
-  areasForImprovement: z.array(z.string()),
-});
-
-const questionEvaluationResponseSchema = z.object({
-  score: z.number().int().min(0).max(100),
-  feedback: z.string(),
-});
-
-export type TranscriptEvaluationResponse = z.infer<typeof transcriptEvaluationResponseSchema>;
-export type QuestionEvaluationResponse = z.infer<typeof questionEvaluationResponseSchema>;
+import { getPracticeQuestionById } from "@/repositories/question-repo";
 
 export async function evaluateInterviewTranscript(params: {
   userId: string;
@@ -42,9 +35,9 @@ export async function evaluateInterviewTranscript(params: {
   const { transcript, evaluation } = interviewSession;
 
   if (evaluation) {
-    const cached = transcriptEvaluationResponseSchema.safeParse(evaluation);
-    if (cached.success) {
-      return { type: "ok", data: cached.data };
+    const cached = normalizeTranscriptEvaluation(evaluation);
+    if (cached) {
+      return { type: "ok", data: cached };
     }
   }
 
@@ -52,7 +45,13 @@ export async function evaluateInterviewTranscript(params: {
     return { type: "no_transcript" };
   }
 
-  const roleContext = await buildSystemInstruction(interviewSession);
+  const promptInterviewSession = normalizePromptInterviewSession(interviewSession);
+  if (!promptInterviewSession) {
+    logger.error("Interview evaluation received invalid domain values", { interviewId });
+    return { type: "error", message: "Interview session is invalid. Please start a new session." };
+  }
+
+  const roleContext = await buildSystemInstruction(promptInterviewSession);
   const formattedTranscript = transcript
     .map((entry, index) => `Q${index + 1}: ${entry.question}\nCandidate: ${entry.answer}`)
     .join("\n\n");
@@ -100,13 +99,14 @@ Based on the transcript, return a JSON object with exactly these four keys:
       return { type: "error", message: "Empty response from evaluation service" };
     }
 
-    const parsedEvaluation = transcriptEvaluationResponseSchema.parse(JSON.parse(responseContent));
+    const parsedEvaluation = parseTranscriptEvaluationResponse(responseContent);
 
     await updateEvaluation({
       interviewId: interviewSession.id,
       userId,
       evaluation: parsedEvaluation as unknown as Prisma.InputJsonValue,
     });
+    invalidateInterviewMetricsCache(userId);
 
     return { type: "ok", data: parsedEvaluation };
   } catch (error) {
@@ -126,7 +126,7 @@ export async function evaluatePracticeQuestion(params: {
 > {
   const { questionId, answer } = params;
 
-  const question = QUESTIONS.find((item) => item.id === questionId);
+  const question = await getPracticeQuestionById(questionId);
   if (!question) {
     return { type: "not_found" };
   }
@@ -189,7 +189,7 @@ Return your evaluation as a JSON object with exactly these two keys:
       return { type: "error", message: "Empty response from evaluation service" };
     }
 
-    const parsedEvaluation = questionEvaluationResponseSchema.parse(JSON.parse(responseContent));
+    const parsedEvaluation = parseQuestionEvaluationResponse(responseContent);
     return { type: "ok", data: parsedEvaluation };
   } catch (error) {
     logger.error("Practice question evaluation error", { error, questionId });

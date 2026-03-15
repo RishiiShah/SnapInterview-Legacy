@@ -84,9 +84,8 @@ export async function POST(req: Request) {
     }
 
     // Generate OTP and store pending user (upsert to handle resends)
-    const existingPendingUser = await prisma.pendingUser.findFirst({
+    const existingPendingUser = await prisma.pendingUser.findUnique({
       where: { email: normalizedEmail },
-      orderBy: { createdAt: "desc" },
       select: { lastOtpSentAt: true },
     });
 
@@ -104,10 +103,19 @@ export async function POST(req: Request) {
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
     const otpHash = hashOneTimeCode(otp);
 
-    // Delete any existing pending records for this email, then create new one
-    await prisma.pendingUser.deleteMany({ where: { email: normalizedEmail } });
-    await prisma.pendingUser.create({
-      data: {
+    await prisma.pendingUser.upsert({
+      where: { email: normalizedEmail },
+      update: {
+        name,
+        passwordHash,
+        otpHash,
+        attemptCount: 0,
+        lockedUntil: null,
+        lastOtpSentAt: new Date(),
+        expiresAt,
+        userId: null,
+      },
+      create: {
         name,
         email: normalizedEmail,
         passwordHash,

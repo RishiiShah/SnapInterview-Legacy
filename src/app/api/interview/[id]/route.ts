@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { z } from "zod/v4";
+import { normalizeTranscriptEvaluation } from "@/lib/interview/evaluation";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { logger } from "@/utils/logger";
@@ -53,7 +54,10 @@ export async function GET(
             return notFoundError("Interview session not found");
         }
 
-        return apiJson(interviewSession);
+        return apiJson({
+            ...interviewSession,
+            evaluation: normalizeTranscriptEvaluation(interviewSession.evaluation),
+        });
     } catch (error) {
         logger.error("Get interview session error:", {
             error: error instanceof Error ? error.message : String(error),

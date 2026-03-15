@@ -2,7 +2,6 @@
 import { SlideIn } from "@/components/ui/motion";
 import RecordingsList from "@/components/recordings/RecordingsList";
 import { listUserVideos } from "@/lib/s3/videos";
-import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/server-auth";
 
 export default async function RecordingsPage() {

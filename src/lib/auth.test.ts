@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { sendResetPasswordLinkEmail } from "@/lib/email";
 
 const betterAuthMock = vi.fn(() => ({
   $Infer: {
@@ -44,49 +43,36 @@ vi.mock("@/lib/security", () => ({
   normalizeEmail: vi.fn((value: string) => value.trim().toLowerCase()),
 }));
 
-vi.mock("@/lib/email", () => ({
-  sendResetPasswordLinkEmail: vi.fn(),
-}));
-
 vi.mock("@/lib/password", () => ({
   hashCredentialPassword: vi.fn(),
   verifyCredentialPassword: vi.fn(),
 }));
 
-describe("auth reset password callback", () => {
+describe("auth configuration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
   });
 
-  it("wires Better Auth reset callback to email helper", async () => {
+  it("keeps credential hashing configured without Better Auth reset-link wiring", async () => {
     await import("./auth");
 
     const calls = (betterAuthMock as unknown as { mock: { calls: unknown[][] } }).mock.calls;
     const rawConfig = calls[0]?.[0];
     expect(rawConfig).toBeDefined();
 
-    const config = rawConfig as unknown as {
+    const config = rawConfig as {
       emailAndPassword: {
         password: {
           hash: unknown;
           verify: unknown;
         };
-        sendResetPassword: (params: { user: { email: string }; url: string }) => Promise<void>;
+        sendResetPassword?: unknown;
       };
     };
 
     expect(config.emailAndPassword.password.hash).toBeDefined();
     expect(config.emailAndPassword.password.verify).toBeDefined();
-
-    await config.emailAndPassword.sendResetPassword({
-      user: { email: "User@Example.com " },
-      url: "https://snapinterview.app/reset?token=abc",
-    });
-
-    expect(sendResetPasswordLinkEmail).toHaveBeenCalledWith(
-      "user@example.com",
-      "https://snapinterview.app/reset?token=abc"
-    );
+    expect(config.emailAndPassword.sendResetPassword).toBeUndefined();
   });
 });

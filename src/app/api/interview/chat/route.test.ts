@@ -27,7 +27,7 @@ describe("POST /api/interview/chat", () => {
 
     const request = new Request("http://localhost/api/interview/chat", {
       method: "POST",
-      body: JSON.stringify({ interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", messages: [] }),
+      body: JSON.stringify({ interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", expectedCurrentQuestion: 0, messages: [] }),
     });
 
     const response = await POST(request);
@@ -43,17 +43,18 @@ describe("POST /api/interview/chat", () => {
     const validUuid = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
     const request = new Request("http://localhost/api/interview/chat", {
       method: "POST",
-      body: JSON.stringify({ interviewId: validUuid, messages: [] }),
+      body: JSON.stringify({ interviewId: validUuid, expectedCurrentQuestion: 0, messages: [] }),
     });
 
     const response = await POST(request);
 
     expect(runInterviewChat).toHaveBeenCalledWith({
-      userId: "user-1",
-      interviewId: validUuid,
-      rawMessages: [],
-      abortSignal: expect.any(AbortSignal),
-    });
+        userId: "user-1",
+        interviewId: validUuid,
+        rawMessages: [],
+        expectedCurrentQuestion: 0,
+        abortSignal: expect.any(AbortSignal),
+      });
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({ error: "Interview session not found" });
   });
@@ -63,12 +64,37 @@ describe("POST /api/interview/chat", () => {
 
     const request = new Request("http://localhost/api/interview/chat", {
       method: "POST",
-      body: JSON.stringify({ interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", messages: [] }),
+      body: JSON.stringify({ interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", expectedCurrentQuestion: 0, messages: [] }),
     });
 
     const response = await POST(request);
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({ error: "Forbidden" });
+  });
+
+  it("returns 409 when the interview state is stale", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "u@example.com" });
+    vi.mocked(runInterviewChat).mockResolvedValue({
+      type: "conflict",
+      message: "Interview state changed. Please wait for the current question to finish loading and try again.",
+      currentQuestion: 1,
+    });
+
+    const request = new Request("http://localhost/api/interview/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+        expectedCurrentQuestion: 0,
+        messages: [],
+      }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      error: "Interview state changed. Please wait for the current question to finish loading and try again.",
+    });
   });
 });

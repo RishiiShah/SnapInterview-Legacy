@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import SearchableDropdown from "@/components/SearchableDropdown";
 import SelectDropdown from "@/components/SelectDropdown";
 import { CATEGORIES, DIFFICULTIES, INTERVIEW_PERSONAS, ROLES, COMPANIES } from "@/data/constants";
-import type { InterviewPersona, InterviewType, Difficulty } from "@/data/types";
+import type { Difficulty, InterviewPersona, InterviewType } from "@/lib/interview/domain";
 import { getDefaultDifficultyForOnboardingLevel, normalizeOnboardingFormValues } from "@/lib/onboarding/preferences";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 import { IconCheckCircle, IconPlay, IconSpinner, IconUploadArrow, IconXMark } from "@/components/ui/icons";
@@ -15,7 +15,7 @@ type RecentPracticeSession = {
   id: string;
   role: string;
   company: string;
-  type: string;
+  type: InterviewType;
   score: number;
   date: string;
 };

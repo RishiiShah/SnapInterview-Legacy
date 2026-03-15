@@ -29,6 +29,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     onConfirm?: () => void;
     variant?: "danger" | "info" | "warning";
     confirmLabel?: string;
+    cancelLabel?: string;
   }>({
     isOpen: false,
     title: "",
@@ -203,7 +204,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
         isExitingRef.current = false;
       }
     },
-    [interviewId, media, router, speech, videoRecording.stopVideoRecording]
+    [interviewId, media, router, speech, videoRecording.stopVideoRecording, closeModal]
   );
 
   useEffect(() => {

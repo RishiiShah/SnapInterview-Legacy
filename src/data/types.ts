@@ -1,4 +1,10 @@
 import { ReactNode } from "react";
+import type {
+    Difficulty,
+    InterviewType,
+} from "@/lib/interview/domain";
+
+export type { Difficulty, InterviewPersona, InterviewType } from "@/lib/interview/domain";
 
 /* ─────────────── Navigation ─────────────── */
 export interface NavItem {
@@ -30,11 +36,6 @@ export interface StatCard {
     suffix?: string;
     icon: ReactNode;
 }
-
-/* ─────────────── Interviews ─────────────── */
-export type InterviewType = "behavioral" | "technical" | "system-design" | "leadership";
-export type Difficulty = "easy" | "medium" | "hard";
-export type InterviewPersona = "friendly" | "balanced" | "strict";
 
 export interface InterviewSession {
     id: string;

@@ -8,8 +8,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "backfill:video-keys": "tsx src/lib/maintenance/backfill-video-keys.ts",
+    "cleanup:evaluations:preview": "npx prisma db execute --file src/lib/maintenance/sql/preview-invalid-evaluations.sql",
+    "cleanup:evaluations": "npx prisma db execute --file src/lib/maintenance/sql/cleanup-invalid-evaluations.sql"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.995.0",
@@ -31,6 +36,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
@@ -41,6 +47,7 @@
     "eslint-config-next": "16.1.6",
     "prisma": "^7.5.0",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^3.2.4"
   },

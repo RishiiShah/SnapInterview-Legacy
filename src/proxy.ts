@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
+import { decodeE2ETestIdentity, E2E_TEST_AUTH_COOKIE, isTestAuthEnabled } from "@/lib/test-auth";
 import { logger } from "@/utils/logger";
 
 // Better Auth sets this cookie on login
@@ -37,21 +38,29 @@ export async function proxy(request: NextRequest) {
     const isProtectedPath = protectedPaths.some((path) => pathname.startsWith(path));
 
     const token = request.cookies.get(BETTER_AUTH_COOKIE)?.value;
+    const testIdentity = isTestAuthEnabled()
+        ? await decodeE2ETestIdentity(request.cookies.get(E2E_TEST_AUTH_COOKIE)?.value)
+        : null;
 
     if (isProtectedPath) {
-        if (!token) {
+        if (!token && !testIdentity) {
             return NextResponse.redirect(new URL("/login", request.url));
         }
 
-        const session = await getSession(request);
+        const session = testIdentity
+            ? { user: { id: testIdentity.userId, email: testIdentity.email, onboardingCompletedAt: testIdentity.onboardingCompletedAt ?? null } }
+            : await getSession(request);
         if (!session) {
             const response = NextResponse.redirect(new URL("/login", request.url));
             response.cookies.delete(BETTER_AUTH_COOKIE);
+            response.cookies.delete(E2E_TEST_AUTH_COOKIE);
             return response;
         }
     } else if (pathname === "/" || pathname === "/login" || pathname === "/signup") {
-        if (token) {
-            const session = await getSession(request);
+        if (token || testIdentity) {
+            const session = testIdentity
+                ? { user: { id: testIdentity.userId, email: testIdentity.email, onboardingCompletedAt: testIdentity.onboardingCompletedAt ?? null } }
+                : await getSession(request);
             if (session?.user) {
                 const hasOnboarding = !!session.user.onboardingCompletedAt;
                 return NextResponse.redirect(new URL(hasOnboarding ? "/dashboard" : "/onboarding", request.url));
@@ -59,14 +68,14 @@ export async function proxy(request: NextRequest) {
         }
     }
 
-    let response = NextResponse.next({
+    const response = NextResponse.next({
         request: {
             headers: requestHeaders,
         },
     });
 
     // 3. Apply Security Headers
-    const isDev = process.env.NODE_ENV !== "production";
+    const isDev = env.NODE_ENV !== "production";
     const cspHeader = `
         default-src 'self';
         script-src 'self' 'nonce-${nonce}' ${isDev ? "'unsafe-eval'" : ""};

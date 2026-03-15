@@ -1,10 +1,12 @@
 import type { InterviewStatus, Prisma } from "@/generated/prisma/client";
+import type { Difficulty, InterviewPersona, InterviewType } from "@/lib/interview/domain";
 import { prisma } from "@/lib/prisma";
 
 const interviewSessionStateSelect = {
   id: true,
   status: true,
   videoUrl: true,
+  videoKey: true,
   questionCount: true,
   currentQuestion: true,
 } satisfies Prisma.InterviewSessionSelect;
@@ -94,9 +96,9 @@ export async function createInterviewSession(params: {
   userId: string;
   role: string;
   company?: string | null;
-  type: string;
-  difficulty: string;
-  persona?: string;
+  type: InterviewType;
+  difficulty: Difficulty;
+  persona?: InterviewPersona;
   jobDescription?: string | null;
   resumeUrl?: string | null;
   questionCount?: number;
@@ -141,19 +143,22 @@ export async function updateInterviewSessionStatus(params: {
   interviewId: string;
   userId: string;
   videoUrl?: string | null;
+  videoKey?: string | null;
   status?: InterviewStatus;
 }) {
-  const { interviewId, userId, videoUrl, status } = params;
+  const { interviewId, userId, videoUrl, videoKey, status } = params;
 
   return prisma.interviewSession.update({
     where: { id: interviewId, userId },
     data: {
-      videoUrl: videoUrl ?? null,
+      ...(videoUrl !== undefined ? { videoUrl } : {}),
+      ...(videoKey !== undefined ? { videoKey } : {}),
       ...(status ? { status } : {}),
     },
     select: {
       id: true,
       videoUrl: true,
+      videoKey: true,
       status: true,
     },
   });
@@ -181,4 +186,28 @@ export async function incrementCurrentQuestion(interviewId: string) {
     data: { currentQuestion: { increment: 1 } },
     select: { id: true },
   });
+}
+
+export async function advanceInterviewCurrentQuestion(params: {
+  interviewId: string;
+  userId: string;
+  expectedCurrentQuestion: number;
+}) {
+  const { interviewId, userId, expectedCurrentQuestion } = params;
+
+  const result = await prisma.interviewSession.updateMany({
+    where: {
+      id: interviewId,
+      userId,
+      status: "IN_PROGRESS",
+      currentQuestion: expectedCurrentQuestion,
+    },
+    data: {
+      currentQuestion: {
+        increment: 1,
+      },
+    },
+  });
+
+  return result.count === 1;
 }

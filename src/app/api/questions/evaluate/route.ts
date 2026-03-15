@@ -41,6 +41,10 @@ export async function POST(req: Request) {
     if (result.type === "not_found") {
       return notFoundError("Question not found");
     }
+    
+    if (result.type === "error") {
+      return badRequestError(result.message);
+    }
 
     return apiJson(result.data);
   } catch (error) {

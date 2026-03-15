@@ -6,7 +6,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useAudioAnalyser } from "@/hooks/useAudioAnalyser";
 import type { MediaDeviceInfo } from "@/lib/useMediaPermissions";
 import {
-  IconCheckCircle,
   IconMicrophoneOffSolid,
   IconMicrophoneSolid,
   IconSpinner,

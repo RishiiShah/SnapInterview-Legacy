@@ -1,14 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { INTERVIEW_DONE_MESSAGE } from "@/lib/interview/constants";
-import { runInterviewChat, startInterviewSession } from "./interview-service";
-import { createInterviewSession, getInterviewSession, incrementCurrentQuestion } from "@/repositories/interview-repo";
+import { Prisma } from "@/generated/prisma/client";
+import { runInterviewChat, startInterviewSession, updateSessionStatusIfOwned } from "./interview-service";
+import { advanceInterviewCurrentQuestion, createInterviewSession, getInterviewSession, updateInterviewSessionStatus } from "@/repositories/interview-repo";
 import { saveLatestTranscriptEntry } from "@/lib/interview/transcript-service";
 import { prisma } from "@/lib/prisma";
 
 vi.mock("@/repositories/interview-repo", () => ({
   getInterviewSession: vi.fn(),
   createInterviewSession: vi.fn(),
-  incrementCurrentQuestion: vi.fn(),
+  advanceInterviewCurrentQuestion: vi.fn(),
   updateInterviewSessionStatus: vi.fn(),
 }));
 
@@ -65,6 +66,7 @@ describe("runInterviewChat", () => {
       userId: "user-1",
       interviewId: "int-1",
       rawMessages,
+      expectedCurrentQuestion: 5,
     });
 
     expect(saveLatestTranscriptEntry).toHaveBeenCalledWith({
@@ -72,7 +74,7 @@ describe("runInterviewChat", () => {
       currentQuestion: 5,
       messages: rawMessages,
     });
-    expect(incrementCurrentQuestion).not.toHaveBeenCalled();
+    expect(advanceInterviewCurrentQuestion).not.toHaveBeenCalled();
     expect(result).toEqual({
       type: "done",
       data: {
@@ -80,6 +82,38 @@ describe("runInterviewChat", () => {
         currentQuestion: 5,
         doneMessage: INTERVIEW_DONE_MESSAGE,
       },
+      });
+  });
+
+  it("returns a conflict when the client question index is stale", async () => {
+    vi.mocked(getInterviewSession).mockResolvedValue({
+      id: "int-2",
+      role: "Frontend Engineer",
+      company: null,
+      type: "behavioral",
+      difficulty: "medium",
+      persona: null,
+      jobDescription: null,
+      resumeUrl: null,
+      questionCount: 5,
+      currentQuestion: 1,
+      focusAreas: null,
+      sessionPlan: null,
+      transcript: [],
+    });
+
+    const result = await runInterviewChat({
+      userId: "user-1",
+      interviewId: "int-2",
+      rawMessages: [],
+      expectedCurrentQuestion: 0,
+    });
+
+    expect(saveLatestTranscriptEntry).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      type: "conflict",
+      message: "Interview state changed. Please wait for the current question to finish loading and try again.",
+      currentQuestion: 1,
     });
   });
 });
@@ -167,5 +201,41 @@ describe("startInterviewSession", () => {
         },
       })
     );
+  });
+});
+
+describe("updateSessionStatusIfOwned", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns a conflict when videoKey uniqueness is violated", async () => {
+    vi.mocked(getInterviewSession).mockResolvedValue({
+      id: "int-4",
+      status: "IN_PROGRESS",
+      videoUrl: null,
+      videoKey: null,
+      questionCount: 10,
+      currentQuestion: 0,
+    });
+    vi.mocked(updateInterviewSessionStatus).mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
+        code: "P2002",
+        clientVersion: "test",
+        meta: { target: ["videoKey"] },
+      }),
+    );
+
+    const result = await updateSessionStatusIfOwned({
+      userId: "user-1",
+      interviewId: "int-4",
+      videoKey: "user-1/interview-duplicate.webm",
+      status: "COMPLETED",
+    });
+
+    expect(result).toEqual({
+      type: "conflict",
+      message: "Video recording is already linked to another interview session.",
+    });
   });
 });

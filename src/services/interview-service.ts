@@ -1,5 +1,14 @@
-import type { InterviewStatus, Prisma } from "@/generated/prisma/client";
+import { Prisma, type InterviewStatus } from "@/generated/prisma/client";
 import { INTERVIEW_DONE_MESSAGE } from "@/lib/interview/constants";
+import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
+import {
+  normalizePromptInterviewSession,
+  type Difficulty,
+  type InterviewPersona,
+  type InterviewQuestionCount,
+  type InterviewType,
+  type StartInterviewSessionInput,
+} from "@/lib/interview/domain";
 import { buildSystemInstruction } from "@/lib/interview/prompts";
 import { sanitizeChatMessages } from "@/lib/interview/chat-messages";
 import { saveLatestTranscriptEntry } from "@/lib/interview/transcript-service";
@@ -8,18 +17,18 @@ import { prisma } from "@/lib/prisma";
 import { withRetry } from "@/utils/retry";
 import { logger } from "@/utils/logger";
 import {
+  advanceInterviewCurrentQuestion,
   createInterviewSession,
   getInterviewSession,
-  incrementCurrentQuestion,
   updateInterviewSessionStatus,
 } from "@/repositories/interview-repo";
 
 export const ALLOWED_STATUSES = ["COMPLETED", "ABORTED"] as const;
-export const ALLOWED_QUESTION_COUNTS = [5, 10, 15] as const;
+export const ALLOWED_QUESTION_COUNTS = [5, 10, 15] as const satisfies readonly InterviewQuestionCount[];
 
 function deriveAdaptiveFocusAreas(params: {
-  type: string;
-  difficulty: string;
+  type: InterviewType;
+  difficulty: Difficulty;
   onboardingGoal?: string | null;
   onboardingLevel?: string | null;
 }) {
@@ -54,9 +63,9 @@ function deriveAdaptiveFocusAreas(params: {
 }
 
 function buildAdaptiveSessionPlan(params: {
-  questionCount: number;
-  difficulty: string;
-  persona: string;
+  questionCount: InterviewQuestionCount;
+  difficulty: Difficulty;
+  persona: InterviewPersona;
   onboardingLevel?: string | null;
   onboardingGoal?: string | null;
 }) {
@@ -81,17 +90,7 @@ export async function getInterviewSessionState(params: { userId: string; intervi
   return getInterviewSession({ ...params, view: "state" });
 }
 
-export async function startInterviewSession(params: {
-  userId: string;
-  role: string;
-  company?: string | null;
-  type: string;
-  difficulty: string;
-  persona?: string;
-  jobDescription?: string | null;
-  resumeUrl?: string | null;
-  questionCount?: number;
-}) {
+export async function startInterviewSession(params: StartInterviewSessionInput) {
   const user = await prisma.user.findUnique({
     where: { id: params.userId },
     select: {
@@ -102,8 +101,8 @@ export async function startInterviewSession(params: {
     },
   });
 
-  const questionCount = params.questionCount ?? 10;
-  const persona = params.persona ?? "balanced";
+  const questionCount: InterviewQuestionCount = params.questionCount ?? 10;
+  const persona: InterviewPersona = params.persona ?? "balanced";
   const role = params.role || user?.onboardingRole || "Generalist";
   const company = params.company ?? user?.onboardingCompany ?? null;
 
@@ -122,7 +121,7 @@ export async function startInterviewSession(params: {
     onboardingGoal: user?.onboardingGoal,
   });
 
-  return createInterviewSession({
+  const session = await createInterviewSession({
     ...params,
     role,
     company,
@@ -131,15 +130,19 @@ export async function startInterviewSession(params: {
     focusAreas: focusAreas as unknown as Prisma.InputJsonValue,
     sessionPlan: sessionPlan as unknown as Prisma.InputJsonValue,
   });
+
+  invalidateInterviewMetricsCache(params.userId);
+  return session;
 }
 
 export async function updateSessionStatusIfOwned(params: {
   userId: string;
   interviewId: string;
   videoUrl?: string | null;
+  videoKey?: string | null;
   status?: InterviewStatus;
 }) {
-  const { userId, interviewId, videoUrl, status } = params;
+  const { userId, interviewId, videoUrl, videoKey, status } = params;
   const existing = await getInterviewSession({ interviewId, userId, view: "state" });
 
   if (!existing) {
@@ -148,29 +151,59 @@ export async function updateSessionStatusIfOwned(params: {
 
   // Idempotency: If already finalized, only allow updating videoUrl if it's currently null.
   if (existing.status !== "IN_PROGRESS") {
-    if (videoUrl && !existing.videoUrl) {
-      const updated = await updateInterviewSessionStatus({ interviewId, userId, videoUrl });
-      return { type: "ok" as const, data: updated };
+    if ((videoUrl && !existing.videoUrl) || (videoKey && !existing.videoKey)) {
+      try {
+        const updated = await updateInterviewSessionStatus({ interviewId, userId, videoUrl, videoKey });
+        invalidateInterviewMetricsCache(userId);
+        return { type: "ok" as const, data: updated };
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002" &&
+          Array.isArray(error.meta?.target) &&
+          error.meta.target.includes("videoKey")
+        ) {
+          return { type: "conflict" as const, message: "Video recording is already linked to another interview session." };
+        }
+
+        throw error;
+      }
     }
     return { type: "ok" as const, data: existing };
   }
 
-  const updated = await updateInterviewSessionStatus({ interviewId, userId, videoUrl, status });
-  return { type: "ok" as const, data: updated };
+  try {
+    const updated = await updateInterviewSessionStatus({ interviewId, userId, videoUrl, videoKey, status });
+    invalidateInterviewMetricsCache(userId);
+    return { type: "ok" as const, data: updated };
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002" &&
+      Array.isArray(error.meta?.target) &&
+      error.meta.target.includes("videoKey")
+    ) {
+      return { type: "conflict" as const, message: "Video recording is already linked to another interview session." };
+    }
+
+    throw error;
+  }
 }
 
 export async function runInterviewChat(params: {
   userId: string;
   interviewId: string;
   rawMessages: unknown;
+  expectedCurrentQuestion: number;
   abortSignal?: AbortSignal;
 }): Promise<
   | { type: "not_found" }
   | { type: "error"; message: string }
+  | { type: "conflict"; message: string; currentQuestion: number }
   | { type: "done"; data: { done: true; currentQuestion: number; doneMessage: string } }
   | { type: "stream"; data: ReadableStream<Uint8Array> }
 > {
-  const { userId, interviewId, rawMessages, abortSignal } = params;
+  const { userId, interviewId, rawMessages, expectedCurrentQuestion, abortSignal } = params;
   const messages = sanitizeChatMessages(rawMessages);
 
   const interviewSession = await getInterviewSession({ interviewId, userId, view: "chat" });
@@ -179,8 +212,17 @@ export async function runInterviewChat(params: {
   }
 
   const { questionCount, currentQuestion } = interviewSession;
+  if (currentQuestion !== expectedCurrentQuestion) {
+    return {
+      type: "conflict",
+      message: "Interview state changed. Please wait for the current question to finish loading and try again.",
+      currentQuestion,
+    };
+  }
+
   if (currentQuestion >= questionCount) {
     await saveLatestTranscriptEntry({ interviewId, currentQuestion, messages });
+    invalidateInterviewMetricsCache(userId);
 
     return {
       type: "done",
@@ -188,7 +230,13 @@ export async function runInterviewChat(params: {
     };
   }
 
-  const systemInstructionPromise = buildSystemInstruction(interviewSession);
+  const promptInterviewSession = normalizePromptInterviewSession(interviewSession);
+  if (!promptInterviewSession) {
+    logger.error("Interview session contains invalid domain values", { interviewId });
+    return { type: "error", message: "Interview session is invalid. Please start a new session." };
+  }
+
+  const systemInstructionPromise = buildSystemInstruction(promptInterviewSession);
 
   const [, systemInstruction] = await Promise.all([
     saveLatestTranscriptEntry({ interviewId, currentQuestion, messages }),
@@ -216,7 +264,7 @@ export async function runInterviewChat(params: {
         const onAbort = () => {
           try {
             controller.error(new Error("Operation aborted"));
-          } catch (e) {
+          } catch {
             // Already closed
           }
         };
@@ -237,9 +285,19 @@ export async function runInterviewChat(params: {
               controller.enqueue(new TextEncoder().encode(content));
             }
           }
-          
+
           if (!abortSignal?.aborted) {
-            await incrementCurrentQuestion(interviewId);
+            const advanced = await advanceInterviewCurrentQuestion({
+              interviewId,
+              userId,
+              expectedCurrentQuestion: currentQuestion,
+            });
+
+            if (!advanced) {
+              throw new Error("Interview state out of date");
+            }
+
+            invalidateInterviewMetricsCache(userId);
             controller.close();
           }
         } catch (error) {
@@ -251,14 +309,14 @@ export async function runInterviewChat(params: {
     });
 
     return { type: "stream", data: stream };
-  } catch (error: any) {
-    if (error.name === "AbortError" || abortSignal?.aborted) {
+  } catch (error: unknown) {
+    if (error instanceof Error && (error.name === "AbortError" || abortSignal?.aborted)) {
       logger.info("Interview chat request cancelled", { interviewId });
       // We still need to return something or the API route will throw.
       // But since the request is aborted, the response won't reach the client.
       return { type: "error", message: "Request cancelled" };
     }
-    logger.error("Interview chat error after retries", { error, interviewId });
+    logger.error("Interview chat error after retries", { error: error instanceof Error ? error.message : String(error), interviewId });
     return { type: "error", message: "Failed to connect to the interview AI. Please try again." };
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { FadeIn } from "@/components/ui/motion";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 import Modal from "@/components/ui/Modal";

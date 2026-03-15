@@ -52,10 +52,18 @@ export async function POST(req: Request) {
         // Verify the interview session belongs to this user
         const interviewSession = await prisma.interviewSession.findFirst({
             where: { id: interviewId, userId: authUser.userId },
+            select: {
+                id: true,
+                videoKey: true,
+            },
         });
 
         if (!interviewSession) {
             return apiError("Interview session not found", 403);
+        }
+
+        if (interviewSession.videoKey) {
+            return apiError("Recording already exists for this interview session.", 409);
         }
 
         const key = `${authUser.userId}/interview-${interviewId}.webm`;

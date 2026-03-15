@@ -151,4 +151,33 @@ describe("POST /api/s3/upload", () => {
       key: "user-1/interview-a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.webm",
     });
   });
+
+  it("returns 409 when a recording already exists for the interview", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({
+      userId: "user-1",
+      email: "user@example.com",
+    });
+    vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue({
+      id: "int-1",
+      videoKey: "user-1/interview-int-1.webm",
+    } as never);
+
+    const req = new Request("http://localhost/api/s3/upload", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: JSON.stringify({ interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" }),
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(409);
+    await expect(res.json()).resolves.toEqual({
+      error: "Recording already exists for this interview session.",
+    });
+    expect(mockCreatePresignedPost).not.toHaveBeenCalled();
+  });
 });

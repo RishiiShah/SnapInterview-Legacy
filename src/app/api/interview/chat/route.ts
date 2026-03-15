@@ -1,5 +1,6 @@
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import {
+  apiError,
   apiJson,
   badRequestError,
   internalServerError,
@@ -14,6 +15,7 @@ import { logger } from "@/utils/logger";
 
 const chatSchema = z.object({
   interviewId: z.string().uuid("interviewId must be a valid UUID"),
+  expectedCurrentQuestion: z.number().int().min(0),
   messages: z.array(
     z.object({
       role: z.string().min(1),
@@ -46,12 +48,13 @@ export async function POST(req: Request) {
       return badRequestError(firstError);
     }
 
-    const { interviewId, messages: rawMessages } = parsed.data;
+    const { interviewId, messages: rawMessages, expectedCurrentQuestion } = parsed.data;
 
     const result = await runInterviewChat({
       userId: authUser.userId,
       interviewId,
       rawMessages,
+      expectedCurrentQuestion,
       abortSignal: req.signal,
     });
 
@@ -61,6 +64,10 @@ export async function POST(req: Request) {
 
     if (result.type === "error") {
       return badRequestError(result.message);
+    }
+
+    if (result.type === "conflict") {
+      return apiError(result.message, 409);
     }
 
     if (result.type === "done") {

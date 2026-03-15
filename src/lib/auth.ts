@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { recordSecurityEvent } from "@/lib/account-security";
 import { extractRequestContext, normalizeEmail } from "@/lib/security";
-import { sendResetPasswordLinkEmail } from "@/lib/email";
 import { hashCredentialPassword, verifyCredentialPassword } from "@/lib/password";
 import { env } from "@/lib/env";
 
@@ -36,9 +35,6 @@ export const auth = betterAuth({
     password: {
       hash: hashCredentialPassword,
       verify: verifyCredentialPassword,
-    },
-    async sendResetPassword({ user, url }) {
-      await sendResetPasswordLinkEmail(normalizeEmail(user.email), url);
     },
   },
 

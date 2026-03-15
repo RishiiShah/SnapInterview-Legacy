@@ -1,6 +1,8 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { prisma } from "@/lib/prisma";
 import { normalizeEmail } from "@/lib/security";
+import { getE2ETestIdentity } from "@/lib/test-auth";
 
 export type SessionUserIdentity = {
   userId: string;
@@ -11,6 +13,55 @@ export type SessionUserIdentity = {
  * Returns the full Better Auth session for use in Server Components/Route Handlers.
  */
 export async function getServerAuthSession() {
+  const testIdentity = await getE2ETestIdentity();
+  if (testIdentity) {
+    const user = await prisma.user.findUnique({
+      where: { id: testIdentity.userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        createdAt: true,
+        updatedAt: true,
+        emailVerified: true,
+        isFirstLogin: true,
+        notificationPrefs: true,
+        onboardingCompletedAt: true,
+        onboardingRole: true,
+        onboardingLevel: true,
+        onboardingCompany: true,
+        onboardingGoal: true,
+        preferredInterviewType: true,
+      },
+    });
+
+    return {
+      user: {
+        id: user?.id ?? testIdentity.userId,
+        name: user?.name ?? "E2E User",
+        email: normalizeEmail(user?.email ?? testIdentity.email),
+        image: user?.image ?? null,
+        createdAt: user?.createdAt ?? new Date(0),
+        updatedAt: user?.updatedAt ?? new Date(0),
+        emailVerified: user?.emailVerified ?? true,
+        isFirstLogin: user?.isFirstLogin ?? false,
+        notificationPrefs: typeof user?.notificationPrefs === "string" ? user.notificationPrefs : JSON.stringify(user?.notificationPrefs ?? {}),
+        onboardingCompletedAt: user?.onboardingCompletedAt ?? testIdentity.onboardingCompletedAt ?? null,
+        onboardingRole: user?.onboardingRole ?? null,
+        onboardingLevel: user?.onboardingLevel ?? null,
+        onboardingCompany: user?.onboardingCompany ?? null,
+        onboardingGoal: user?.onboardingGoal ?? null,
+        preferredInterviewType: user?.preferredInterviewType ?? null,
+      },
+      session: {
+        id: `e2e-session-${user?.id ?? testIdentity.userId}`,
+        token: null,
+        userId: user?.id ?? testIdentity.userId,
+      },
+    };
+  }
+
   return auth.api.getSession({
     headers: await headers(),
   });

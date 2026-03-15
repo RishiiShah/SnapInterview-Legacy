@@ -1,4 +1,5 @@
 import type { Difficulty, InterviewType } from "@/data/types";
+import { interviewTypeSchema } from "@/lib/interview/domain";
 
 export type OnboardingPreferencesFormValues = {
   onboardingRole: string;
@@ -30,7 +31,7 @@ export const DEFAULT_ONBOARDING_FORM_VALUES: OnboardingPreferencesFormValues = {
 };
 
 function isInterviewType(value: string | null | undefined): value is InterviewType {
-  return value === "behavioral" || value === "technical" || value === "system-design" || value === "leadership";
+  return interviewTypeSchema.safeParse(value).success;
 }
 
 export function normalizeOnboardingFormValues(

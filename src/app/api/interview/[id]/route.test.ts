@@ -62,4 +62,29 @@ describe("GET /api/interview/[id]", () => {
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({ error: "Interview session not found" });
   });
+
+  it("sanitizes invalid persisted evaluation payloads before returning them", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
+    vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue({
+      id: "11111111-1111-4111-8111-111111111111",
+      role: "Frontend Engineer",
+      type: "technical",
+      difficulty: "medium",
+      evaluation: { score: "bad-data", feedback: 123 },
+      createdAt: new Date("2026-03-15T00:00:00.000Z"),
+      transcript: [],
+    } as never);
+
+    const interviewId = "11111111-1111-4111-8111-111111111111";
+    const request = new Request(`http://localhost/api/interview/${interviewId}`);
+    const response = await GET(request, {
+      params: Promise.resolve({ id: interviewId }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      id: interviewId,
+      evaluation: null,
+    });
+  });
 });

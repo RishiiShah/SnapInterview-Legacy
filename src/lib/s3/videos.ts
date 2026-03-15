@@ -2,6 +2,12 @@ import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/clien
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { requireAwsS3Env } from "@/lib/env";
 
+type S3ListItem = {
+  Key?: string;
+  LastModified?: Date;
+  Size?: number;
+};
+
 export interface VideoRecording {
   key: string;
   url?: string; // Optional because we might only sign on demand
@@ -12,6 +18,21 @@ export interface VideoRecording {
 export interface PaginatedVideos {
   videos: VideoRecording[];
   nextContinuationToken?: string;
+}
+
+function isPlayableRecordingObject(item: S3ListItem): item is Required<Pick<S3ListItem, "Key">> & S3ListItem {
+  return Boolean(item.Key && item.Key.endsWith(".webm") && (item.Size ?? 0) > 0);
+}
+
+export function normalizeListedVideoObjects(contents: S3ListItem[]): VideoRecording[] {
+  return contents
+    .filter(isPlayableRecordingObject)
+    .sort((a, b) => (b.LastModified?.getTime() || 0) - (a.LastModified?.getTime() || 0))
+    .map((item) => ({
+      key: item.Key,
+      lastModified: item.LastModified?.toISOString() || new Date(0).toISOString(),
+      size: item.Size || 0,
+    }));
 }
 
 const s3Client = new S3Client({
@@ -47,18 +68,7 @@ export async function listUserVideos(
     return { videos: [] };
   }
 
-  // S3 doesn't guarantee global sort by date in ListObjectsV2, 
-  // but for a single user prefix, it's often sufficient.
-  // We sort locally just in case.
-  const sortedContents = listData.Contents.sort((a, b) => {
-    return (b.LastModified?.getTime() || 0) - (a.LastModified?.getTime() || 0);
-  });
-
-  const videos: VideoRecording[] = sortedContents.map((item) => ({
-    key: item.Key!,
-    lastModified: item.LastModified?.toISOString() || new Date(0).toISOString(),
-    size: item.Size || 0,
-  }));
+  const videos = normalizeListedVideoObjects(listData.Contents);
 
   return {
     videos,

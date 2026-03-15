@@ -11,7 +11,7 @@ env:
 
 jobs:
   ci:
-    name: Lint · Test · Build
+    name: Lint · Typecheck · Test · Build · E2E
     runs-on: ubuntu-latest
 
     steps:
@@ -38,6 +38,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Test
         run: npm test
 
@@ -48,6 +51,23 @@ jobs:
           DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
           AUTH_SECRET: ci-placeholder-secret-32-chars-min
           BETTER_AUTH_URL: http://localhost:3000
+          GOOGLE_CLIENT_ID: placeholder
+          GOOGLE_CLIENT_SECRET: placeholder
+          GROQ_API_KEY: placeholder
+          AWS_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: placeholder
+          AWS_SECRET_ACCESS_KEY: placeholder
+          S3_BUCKET_NAME: placeholder
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E smoke tests
+        run: npm run test:e2e
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+          AUTH_SECRET: ci-placeholder-secret-32-chars-min
+          BETTER_AUTH_URL: http://127.0.0.1:3000
           GOOGLE_CLIENT_ID: placeholder
           GOOGLE_CLIENT_SECRET: placeholder
           GROQ_API_KEY: placeholder

@@ -1,3 +1,5 @@
+import { logger } from "@/utils/logger";
+
 /**
  * Simple utility for retrying async operations with exponential backoff.
  */
@@ -19,7 +21,7 @@ export async function withRetry<T>(
     signal,
   } = options;
 
-  let lastError: any;
+  let lastError: unknown;
   let delay = initialDelayMs;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -29,20 +31,26 @@ export async function withRetry<T>(
 
     try {
       return await operation();
-    } catch (error: any) {
+    } catch (error: unknown) {
       lastError = error;
       
-      const status = error?.status || error?.statusCode || error?.code;
-      const isRetryable = retryableErrorCodes.has(status) || 
-                         (error?.message && error.message.toLowerCase().includes("timeout"));
+      // Use type assertion internally for checking typical error properties
+      const err = error as Record<string, unknown>;
+      const status = (err?.status || err?.statusCode || err?.code) as number | string | undefined;
+      const msg = err?.message as string | undefined;
+      const isRetryable = (status !== undefined && retryableErrorCodes.has(status)) || 
+                         (msg && msg.toLowerCase().includes("timeout"));
 
       if (!isRetryable || attempt === maxRetries || signal?.aborted) {
         throw error;
       }
 
-      console.warn(`Operation failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`, {
+      logger.warn("Retrying failed operation", {
+        attempt: attempt + 1,
+        maxAttempts: maxRetries + 1,
+        delayMs: delay,
         status,
-        message: error?.message,
+        message: msg,
       });
 
       await new Promise((resolve, reject) => {

@@ -1,7 +1,9 @@
+import { env } from "@/lib/env";
+
 type LogLevel = "info" | "warn" | "error" | "debug";
 
 interface LogContext {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 class Logger {
@@ -14,7 +16,7 @@ class Logger {
       ...(context || {}),
     };
 
-    if (process.env.NODE_ENV === "test") {
+    if (env.NODE_ENV === "test") {
       // In tests, maybe we don't want noisy logs unless they are errors
       if (level === "error") {
         console.error(`[${level.toUpperCase()}] ${message}`, context || "");
@@ -32,7 +34,7 @@ class Logger {
         console.warn(output);
         break;
       case "debug":
-        if (process.env.NODE_ENV === "development") {
+        if (env.NODE_ENV === "development") {
           console.debug(output);
         }
         break;

@@ -15,11 +15,32 @@ type PresignedPostPayload = {
   key: string;
 };
 
+async function readErrorMessage(response: Response): Promise<string | undefined> {
+  try {
+    const payload = (await response.json()) as { error?: string } | null;
+    return payload?.error;
+  } catch {
+    return undefined;
+  }
+}
+
+async function cleanupUploadedVideo(videoKey: string): Promise<void> {
+  const response = await fetch("/api/s3/videos", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key: videoKey }),
+  });
+
+  if (!response.ok) {
+    throw new Error((await readErrorMessage(response)) || `Cleanup failed with status ${response.status}`);
+  }
+}
+
 async function uploadBlobToPresignedPost(
   url: string,
   fields: Record<string, string>,
   blob: Blob
-): Promise<string | undefined> {
+): Promise<boolean> {
   const formData = new FormData();
   for (const [fieldKey, value] of Object.entries(fields)) {
     formData.append(fieldKey, value);
@@ -36,11 +57,10 @@ async function uploadBlobToPresignedPost(
       status: uploadRes.status,
       url 
     });
-    return undefined;
+    return false;
   }
 
-  // S3 presigned POST returns the object URL as Location header or we construct it
-  return `${url}${fields["key"] ?? ""}`;
+  return true;
 }
 
 async function createPresignedUploadUrl(interviewId: string): Promise<PresignedPostPayload | undefined> {
@@ -64,7 +84,7 @@ async function createPresignedUploadUrl(interviewId: string): Promise<PresignedP
 }
 
 export type FinalizeResult = 
-  | { type: "ok"; videoUrl?: string }
+  | { type: "ok"; videoKey?: string }
   | { type: "error"; message: string; stage: "recording" | "upload" | "metadata" };
 
 export async function finalizeInterviewUpload({
@@ -80,7 +100,7 @@ export async function finalizeInterviewUpload({
     return { type: "error", message: "Failed to stop video recording", stage: "recording" };
   }
 
-  let videoUrl: string | undefined;
+  let videoKey: string | undefined;
 
   if (blob && blob.size > 0) {
     const presigned = await createPresignedUploadUrl(interviewId);
@@ -88,10 +108,12 @@ export async function finalizeInterviewUpload({
       return { type: "error", message: "Failed to prepare video upload", stage: "upload" };
     }
 
-    videoUrl = await uploadBlobToPresignedPost(presigned.url, presigned.fields, blob);
-    if (!videoUrl) {
+    const uploaded = await uploadBlobToPresignedPost(presigned.url, presigned.fields, blob);
+    if (!uploaded) {
       return { type: "error", message: "Failed to upload video recording", stage: "upload" };
     }
+
+    videoKey = presigned.key;
   }
 
   try {
@@ -100,26 +122,43 @@ export async function finalizeInterviewUpload({
       const res = await fetch("/api/interview/session", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ interviewId, videoUrl, status }),
+        body: JSON.stringify({ interviewId, videoKey, status }),
       });
 
       if (!res.ok) {
-        throw new Error(`Metadata update failed with status ${res.status}`);
+        throw Object.assign(
+          new Error((await readErrorMessage(res)) || `Metadata update failed with status ${res.status}`),
+          { status: res.status },
+        );
       }
 
-      const payload = await res.json();
-      
-      // Verify that the backend actually persisted what we sent
-      const isStatusMatch = payload.status === status;
-      const isVideoMatch = !videoUrl || payload.videoUrl === videoUrl;
+       const payload = await res.json();
+       
+       // Verify that the backend actually persisted what we sent
+       const isStatusMatch = payload.status === status;
+       const isVideoMatch = !videoKey || payload.videoKey === videoKey;
 
-      if (!isStatusMatch || !isVideoMatch) {
-        throw new Error("Metadata mismatch: backend state does not match expected final state");
+       if (!isStatusMatch || !isVideoMatch) {
+         throw new Error("Metadata mismatch: backend state does not match expected final state");
       }
     }, { maxRetries: 3 });
 
-    return { type: "ok", videoUrl };
+    return { type: "ok", videoKey };
   } catch (error) {
+    if (videoKey) {
+      try {
+        await cleanupUploadedVideo(videoKey);
+        logger.warn("Cleaned up uploaded video after metadata failure", { interviewId, videoKey, status });
+      } catch (cleanupError) {
+        logger.error("Failed to clean up uploaded video after metadata failure", {
+          interviewId,
+          videoKey,
+          status,
+          error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+        });
+      }
+    }
+
     logger.error("Failed to update interview session metadata after retries", { 
       error: error instanceof Error ? error.message : String(error), 
       interviewId,

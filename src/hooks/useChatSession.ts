@@ -1,12 +1,17 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import type { ChatSessionMessage, InterviewType, Difficulty } from "@/data/types";
-import { INTERVIEW_DONE_MESSAGE } from "@/data/constants";
+
+export interface ChatSessionMessage {
+  role: "user" | "ai";
+  text: string;
+  isSystem?: boolean;
+}
 
 interface UseChatSessionOptions {
   interviewId: string;
-  interviewType: InterviewType;
-  difficulty: Difficulty;
   interviewStarted: boolean;
+  interviewDone: boolean;
+  finalTranscriptBlock: string;
+  setInterviewDone: (done: boolean) => void;
 }
 
 export function shouldProcessFinalTranscriptBlock(options: {
@@ -23,14 +28,27 @@ export function shouldProcessFinalTranscriptBlock(options: {
 export function useChatSession({
   interviewId,
   interviewStarted,
+  interviewDone: externalInterviewDone,
+  finalTranscriptBlock,
+  setInterviewDone: externalSetInterviewDone,
 }: UseChatSessionOptions) {
   const [messages, setMessages] = useState<ChatSessionMessage[]>([]);
   const [currentStreamedText, setCurrentStreamedText] = useState("");
   const [isThinking, setIsThinking] = useState(false);
-  const [interviewDone, setInterviewDone] = useState(false);
+  const [internalInterviewDone, setInternalInterviewDone] = useState(false);
+
+  const interviewDone = externalInterviewDone || internalInterviewDone;
+
+  const setInterviewDone = useCallback((done: boolean) => {
+    setInternalInterviewDone(done);
+    externalSetInterviewDone(done);
+  }, [externalSetInterviewDone]);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesRef = useRef<ChatSessionMessage[]>([]);
+  const processedTranscriptRef = useRef<string>("");
+  const activeRequestRef = useRef(false);
+  const queuedTranscriptRef = useRef<string | null>(null);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -46,12 +64,11 @@ export function useChatSession({
 
   const askGroq = useCallback(
     async (chatHistory: ChatSessionMessage[]) => {
-      if (interviewDone) return;
-
-      // Abort any existing request
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+      if (interviewDone || activeRequestRef.current) {
+        return;
       }
+
+      activeRequestRef.current = true;
       abortControllerRef.current = new AbortController();
       const signal = abortControllerRef.current.signal;
 
@@ -64,6 +81,7 @@ export function useChatSession({
           role: message.role === "ai" ? "assistant" : "user",
           content: message.text,
         }));
+      const expectedCurrentQuestion = formattedMessages.filter((message) => message.role === "assistant").length;
 
       try {
         const response = await fetch("/api/interview/chat", {
@@ -72,6 +90,7 @@ export function useChatSession({
           body: JSON.stringify({
             messages: formattedMessages,
             interviewId,
+            expectedCurrentQuestion,
           }),
           signal,
         });
@@ -116,7 +135,7 @@ export function useChatSession({
         while (true) {
           const { value, done: readerDone } = await reader.read();
           if (readerDone || signal.aborted) {
-            if (signal.aborted) try { await reader.cancel(); } catch (e) {}
+            if (signal.aborted) try { await reader.cancel(); } catch {}
             break;
           }
 
@@ -131,8 +150,8 @@ export function useChatSession({
 
         setMessages((previous) => [...previous, { role: "ai", text: aiResponseText }]);
         setCurrentStreamedText("");
-      } catch (error: any) {
-        if (error.name === "AbortError" || error.message === "AbortError") {
+      } catch (error: unknown) {
+        if (error instanceof Error && (error.name === "AbortError" || error.message === "AbortError")) {
           return;
         }
         console.error("AI Chat Error:", error);
@@ -141,10 +160,11 @@ export function useChatSession({
           { role: "ai", text: "Sorry, I encountered an error. Please try again.", isSystem: true },
         ]);
       } finally {
+        activeRequestRef.current = false;
         setIsThinking(false);
       }
     },
-    [interviewId, interviewDone]
+    [interviewId, interviewDone, setInterviewDone]
   );
 
   useEffect(() => {
@@ -157,13 +177,52 @@ export function useChatSession({
 
   const sendMessage = useCallback(
     async (text: string) => {
-      const newUserMessage: ChatSessionMessage = { role: "user", text };
+      const trimmedText = text.trim();
+      if (!trimmedText || interviewDone) {
+        return;
+      }
+
+      if (activeRequestRef.current) {
+        queuedTranscriptRef.current = trimmedText;
+        return;
+      }
+
+      const newUserMessage: ChatSessionMessage = { role: "user", text: trimmedText };
       const updatedHistory = [...messagesRef.current, newUserMessage];
       setMessages(updatedHistory);
       await askGroq(updatedHistory);
     },
-    [askGroq]
+    [askGroq, interviewDone]
   );
+
+  useEffect(() => {
+    if (interviewDone || isThinking || activeRequestRef.current) {
+      return;
+    }
+
+    const queuedTranscript = queuedTranscriptRef.current;
+    if (!queuedTranscript) {
+      return;
+    }
+
+    queuedTranscriptRef.current = null;
+    void sendMessage(queuedTranscript);
+  }, [interviewDone, isThinking, sendMessage]);
+
+  useEffect(() => {
+    if (
+      !shouldProcessFinalTranscriptBlock({
+        finalTranscriptBlock,
+        interviewDone,
+        processedTranscriptBlock: processedTranscriptRef.current,
+      })
+    ) {
+      return;
+    }
+
+    processedTranscriptRef.current = finalTranscriptBlock;
+    void sendMessage(finalTranscriptBlock);
+  }, [finalTranscriptBlock, interviewDone, sendMessage]);
 
   return {
     messages,

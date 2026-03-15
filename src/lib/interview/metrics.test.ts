@@ -74,4 +74,55 @@ describe("interview metrics scoring", () => {
     expect(analytics.weeklyScores.some((point) => point.value === 92)).toBe(true);
     expect(analytics.categoryBreakdown[0]?.score).toBe(92);
   });
+
+  it("prefers persisted evaluation strengths and improvements over transcript keyword fallbacks", async () => {
+    const now = new Date();
+
+    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([
+      {
+        id: "session-1",
+        role: "Frontend Engineer",
+        company: "Acme",
+        type: "behavioral",
+        status: "COMPLETED",
+        questionCount: 5,
+        currentQuestion: 5,
+        evaluation: {
+          score: 90,
+          feedback: "Strong interview.",
+          strengths: ["Structured storytelling", "Impact orientation"],
+          areasForImprovement: ["Stronger quantification", "Technical depth"],
+        },
+        createdAt: now,
+      },
+      {
+        id: "session-2",
+        role: "Frontend Engineer",
+        company: "Acme",
+        type: "behavioral",
+        status: "COMPLETED",
+        questionCount: 5,
+        currentQuestion: 5,
+        evaluation: {
+          score: 87,
+          feedback: "Good interview.",
+          strengths: ["Structured storytelling"],
+          areasForImprovement: ["Technical depth"],
+        },
+        createdAt: now,
+      },
+    ] as never);
+    vi.mocked(prisma.transcriptEntry.findMany).mockResolvedValue([
+      {
+        question: "Tell me about leadership",
+        answer: "Um, maybe I led the project.",
+        createdAt: now,
+      },
+    ] as never);
+
+    const analytics = await getAnalyticsOverviewData("user-1");
+
+    expect(analytics.strengths[0]).toBe("Structured storytelling");
+    expect(analytics.improvements[0]).toBe("Technical depth");
+  });
 });

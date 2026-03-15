@@ -1,25 +1,10 @@
 import { promises as fs, existsSync } from "fs";
 import path from "path";
 import { z } from "zod";
+import type { PromptInterviewSession } from "@/lib/interview/domain";
+import { logger } from "@/utils/logger";
 
-type PromptInterviewSession = {
-  role: string;
-  company: string | null;
-  type: string;
-  difficulty: string;
-  persona?: string | null;
-  jobDescription: string | null;
-  resumeUrl: string | null;
-  questionCount: number;
-  currentQuestion: number;
-  focusAreas?: unknown;
-  sessionPlan?: unknown;
-  transcript?: Array<{
-    question: string;
-    answer: string;
-    order: number;
-  }>;
-};
+const DEFAULT_CORE_PROMPT = "You are a realistic mock interviewer. Ask exactly one question at a time, keep responses concise, and adapt follow-ups to the candidate's last answer.";
 
 function parseStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) {
@@ -124,7 +109,10 @@ async function loadPromptInstruction(filePath: string): Promise<string> {
   // existsSync is fine for synchronous check as it's very fast, 
   // but we'll use access for consistency if we wanted to be purely async.
   // Given Next.js environment, existsSync is often used in server components.
-  if (!existsSync(filePath)) return "";
+  if (!existsSync(filePath)) {
+    logger.warn("Prompt instruction file missing", { filePath });
+    return "";
+  }
 
   try {
     const raw = await fs.readFile(filePath, "utf-8");
@@ -134,8 +122,11 @@ async function loadPromptInstruction(filePath: string): Promise<string> {
     promptInstructionCache.set(filePath, instruction);
     return instruction;
   } catch (error) {
-    console.error(`Invalid prompt file at ${filePath}:`, error);
-    return ""; // Fallback to empty to not crash the whole interview
+    logger.error("Invalid prompt instruction file", {
+      filePath,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return "";
   }
 }
 
@@ -175,6 +166,9 @@ export async function buildSystemInstruction(interviewSession: PromptInterviewSe
 
   if (coreInstruction) {
     systemInstruction += `${coreInstruction}\n\n`;
+  } else {
+    logger.warn("Core interview prompt missing; using fallback prompt text", { corePromptPath });
+    systemInstruction += `${DEFAULT_CORE_PROMPT}\n\n`;
   }
 
   if (roleInstruction) {

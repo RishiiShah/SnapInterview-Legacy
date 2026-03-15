@@ -1,4 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { normalizeTranscriptEvaluation } from "@/lib/interview/evaluation";
+import { interviewTypeSchema, type InterviewType } from "@/lib/interview/domain";
+
+import { env } from "@/lib/env";
 
 const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000;
 const ANALYTICS_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -11,8 +15,18 @@ type CacheEntry<T> = {
 const dashboardCache = new Map<string, CacheEntry<DashboardOverviewData>>();
 const analyticsCache = new Map<string, CacheEntry<AnalyticsOverviewData>>();
 
+export function invalidateInterviewMetricsCache(userId: string) {
+  dashboardCache.delete(userId);
+  analyticsCache.delete(userId);
+}
+
+export function invalidateAllInterviewMetricsCaches() {
+  dashboardCache.clear();
+  analyticsCache.clear();
+}
+
 function isTestEnv() {
-  return process.env.NODE_ENV === "test";
+  return env.NODE_ENV === "test";
 }
 
 function readCache<T>(cache: Map<string, CacheEntry<T>>, key: string): T | null {
@@ -79,7 +93,7 @@ export type PracticeRecentSession = {
   id: string;
   role: string;
   company: string;
-  type: string;
+  type: InterviewType;
   score: number;
   date: string;
 };
@@ -150,17 +164,53 @@ const deriveSessionScore = (session: SessionRecord): number => {
 };
 
 const getEvaluationScore = (evaluation: unknown): number | null => {
-  if (!evaluation || typeof evaluation !== "object") {
+  const normalized = normalizeTranscriptEvaluation(evaluation);
+  if (!normalized) {
     return null;
   }
 
-  const candidate = (evaluation as { score?: unknown }).score;
-  if (typeof candidate !== "number" || !Number.isFinite(candidate)) {
-    return null;
-  }
-
-  return clamp(Math.round(candidate), 0, 100);
+  return normalized.score;
 };
+
+function deriveStrengthsAndImprovementsFromEvaluations(sessions: SessionRecord[]): {
+  strengths: string[];
+  improvements: string[];
+} | null {
+  const strengthCounts = new Map<string, number>();
+  const improvementCounts = new Map<string, number>();
+
+  for (const session of sessions) {
+    const evaluation = normalizeTranscriptEvaluation(session.evaluation);
+    if (!evaluation) {
+      continue;
+    }
+
+    for (const item of evaluation.strengths) {
+      strengthCounts.set(item, (strengthCounts.get(item) ?? 0) + 1);
+    }
+
+    for (const item of evaluation.areasForImprovement) {
+      improvementCounts.set(item, (improvementCounts.get(item) ?? 0) + 1);
+    }
+  }
+
+  if (strengthCounts.size === 0 && improvementCounts.size === 0) {
+    return null;
+  }
+
+  return {
+    strengths: rankKeywordEntries(Array.from(strengthCounts.entries()), [
+      "Communication clarity",
+      "STAR method structure",
+      "Leadership examples",
+    ]),
+    improvements: rankKeywordEntries(Array.from(improvementCounts.entries()), [
+      "System scalability",
+      "Time complexity analysis",
+      "Edge case handling",
+    ]),
+  };
+}
 
 const getSessionScore = (session: SessionRecord): number => {
   const evaluationScore = getEvaluationScore(session.evaluation);
@@ -241,14 +291,24 @@ export async function getRecentPracticeSessionsByUserId(
 ): Promise<PracticeRecentSession[]> {
   const sessions = await getUserSessionsByUserId(userId);
 
-  return sessions.slice(0, limit).map((session) => ({
-    id: session.id,
-    role: session.role,
-    company: session.company || "Unknown",
-    type: session.type,
-    score: getSessionScore(session),
-    date: formatSessionDate(session.createdAt),
-  }));
+  return sessions
+    .slice(0, limit)
+    .map((session) => {
+      const parsedType = interviewTypeSchema.safeParse(session.type);
+      if (!parsedType.success) {
+        return null;
+      }
+
+      return {
+        id: session.id,
+        role: session.role,
+        company: session.company || "Unknown",
+        type: parsedType.data,
+        score: getSessionScore(session),
+        date: formatSessionDate(session.createdAt),
+      } satisfies PracticeRecentSession;
+    })
+    .filter((session): session is PracticeRecentSession => session !== null);
 }
 
 async function getUserTranscripts(userId: string): Promise<TranscriptRecord[]> {
@@ -551,7 +611,8 @@ export async function getAnalyticsOverviewData(userId: string): Promise<Analytic
   ];
 
   const resolvedCategories = categoryBreakdown.length > 0 ? categoryBreakdown : fallbackCategories;
-  const { strengths, improvements } = deriveStrengthsAndImprovementsFromTranscripts(transcripts);
+  const evaluationInsights = deriveStrengthsAndImprovementsFromEvaluations(sessions);
+  const { strengths, improvements } = evaluationInsights ?? deriveStrengthsAndImprovementsFromTranscripts(transcripts);
 
   const result: AnalyticsOverviewData = {
     weeklyScores,

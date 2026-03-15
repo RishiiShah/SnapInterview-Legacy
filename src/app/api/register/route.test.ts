@@ -37,9 +37,8 @@ vi.mock("@/lib/prisma", () => ({
       findUnique: vi.fn(),
     },
     pendingUser: {
-      findFirst: vi.fn(),
-      deleteMany: vi.fn(),
-      create: vi.fn(),
+      findUnique: vi.fn(),
+      upsert: vi.fn(),
     },
   },
 }));
@@ -95,9 +94,8 @@ describe("POST /api/register", () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
     vi.mocked(isDisposableEmail).mockResolvedValue({ disposable: false } as never);
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null as never);
-    vi.mocked(prisma.pendingUser.findFirst).mockResolvedValue(null as never);
-    vi.mocked(prisma.pendingUser.deleteMany).mockResolvedValue({ count: 0 } as never);
-    vi.mocked(prisma.pendingUser.create).mockResolvedValue({ id: "pending-1" } as never);
+    vi.mocked(prisma.pendingUser.findUnique).mockResolvedValue(null as never);
+    vi.mocked(prisma.pendingUser.upsert).mockResolvedValue({ id: "pending-1" } as never);
     vi.mocked(sendOtpEmail).mockResolvedValue(undefined as never);
 
     const makeRequest = () =>
@@ -147,7 +145,7 @@ describe("POST /api/register", () => {
       userAgent: "agent",
     } as never);
 
-    vi.mocked(prisma.pendingUser.findFirst).mockResolvedValue({
+    vi.mocked(prisma.pendingUser.findUnique).mockResolvedValue({
       lastOtpSentAt: new Date(Date.now() - 30 * 1000),
     } as never);
 
@@ -171,5 +169,47 @@ describe("POST /api/register", () => {
       error: expect.stringContaining("Please wait before requesting another verification code"),
     });
   });
-});
 
+  it("upserts a single pending registration record per email", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+    vi.mocked(isDisposableEmail).mockResolvedValue({ disposable: false } as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null as never);
+    vi.mocked(extractRequestContext).mockReturnValue({
+      ipHash: "upsert-hash",
+      userAgent: "agent",
+    } as never);
+    vi.mocked(prisma.pendingUser.findUnique).mockResolvedValue(null as never);
+    vi.mocked(prisma.pendingUser.upsert).mockResolvedValue({ id: "pending-1" } as never);
+    vi.mocked(sendOtpEmail).mockResolvedValue(undefined as never);
+
+    const res = await POST(
+      new Request("http://localhost/api/register", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "http://localhost:3000",
+        },
+        body: JSON.stringify({
+          name: "Test User",
+          email: "user@example.com",
+          password: "Password1!",
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(prisma.pendingUser.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { email: "user@example.com" },
+        update: expect.objectContaining({
+          name: "Test User",
+          userId: null,
+        }),
+        create: expect.objectContaining({
+          name: "Test User",
+          email: "user@example.com",
+        }),
+      }),
+    );
+  });
+});

@@ -1,3 +1,5 @@
+import type { InterviewType } from "@/lib/interview/domain";
+
 type AuthUserSource = {
   id: string;
   name?: string | null;
@@ -10,7 +12,7 @@ type AuthUserSource = {
   onboardingLevel?: string | null;
   onboardingCompany?: string | null;
   onboardingGoal?: string | null;
-  preferredInterviewType?: string | null;
+  preferredInterviewType?: InterviewType | null;
 };
 
 type AuthUserOverrides = {

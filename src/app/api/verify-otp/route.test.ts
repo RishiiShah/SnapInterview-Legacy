@@ -22,17 +22,32 @@ vi.mock("@/lib/account-security", () => ({
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
+    $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => callback({
+      user: {
+        findUnique: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+      },
+      account: {
+        findFirst: vi.fn(),
+        create: vi.fn(),
+      },
+      pendingUser: {
+        delete: vi.fn(),
+      },
+    })),
     pendingUser: {
-      findFirst: vi.fn(),
+      findUnique: vi.fn(),
       delete: vi.fn(),
       update: vi.fn(),
-      deleteMany: vi.fn(),
     },
     user: {
       findUnique: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
     },
     account: {
+      findFirst: vi.fn(),
       create: vi.fn(),
     },
   },
@@ -41,6 +56,7 @@ vi.mock("@/lib/prisma", () => ({
 describe("POST /api/verify-otp", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(prisma.$transaction).mockImplementation(async (callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma));
   });
 
   it("short-circuits when CSRF validation fails", async () => {
@@ -76,7 +92,7 @@ describe("POST /api/verify-otp", () => {
 
   it("returns 404 when no pending user exists", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
-    vi.mocked(prisma.pendingUser.findFirst).mockResolvedValue(null as never);
+    vi.mocked(prisma.pendingUser.findUnique).mockResolvedValue(null as never);
 
     const req = new Request("http://localhost/api/verify-otp", {
       method: "POST",
@@ -93,7 +109,7 @@ describe("POST /api/verify-otp", () => {
 
   it("returns 410 when OTP has expired", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
-    vi.mocked(prisma.pendingUser.findFirst).mockResolvedValue({
+    vi.mocked(prisma.pendingUser.findUnique).mockResolvedValue({
       id: "pending-1",
       email: "user@example.com",
       expiresAt: new Date(Date.now() - 60000),
@@ -118,7 +134,7 @@ describe("POST /api/verify-otp", () => {
 
   it("returns 429 when user is locked out", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
-    vi.mocked(prisma.pendingUser.findFirst).mockResolvedValue({
+    vi.mocked(prisma.pendingUser.findUnique).mockResolvedValue({
       id: "pending-1",
       email: "user@example.com",
       expiresAt: new Date(Date.now() + 300000),
@@ -142,7 +158,7 @@ describe("POST /api/verify-otp", () => {
 
   it("increments attempt count on invalid OTP", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
-    vi.mocked(prisma.pendingUser.findFirst).mockResolvedValue({
+    vi.mocked(prisma.pendingUser.findUnique).mockResolvedValue({
       id: "pending-1",
       email: "user@example.com",
       expiresAt: new Date(Date.now() + 300000),
@@ -178,7 +194,7 @@ describe("POST /api/verify-otp", () => {
 
   it("creates user on valid OTP", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
-    vi.mocked(prisma.pendingUser.findFirst).mockResolvedValue({
+    vi.mocked(prisma.pendingUser.findUnique).mockResolvedValue({
       id: "pending-1",
       name: "Test User",
       email: "user@example.com",
@@ -198,7 +214,7 @@ describe("POST /api/verify-otp", () => {
       email: "user@example.com",
     } as never);
     vi.mocked(prisma.account.create).mockResolvedValue({} as never);
-    vi.mocked(prisma.pendingUser.deleteMany).mockResolvedValue({ count: 1 } as never);
+    vi.mocked(prisma.pendingUser.delete).mockResolvedValue({} as never);
 
     const req = new Request("http://localhost/api/verify-otp", {
       method: "POST",
@@ -220,6 +236,69 @@ describe("POST /api/verify-otp", () => {
     );
     expect(recordSecurityEvent).toHaveBeenCalledWith(
       expect.objectContaining({ type: "REGISTRATION_OTP_VERIFIED" }),
+    );
+  });
+
+  it("recovers an existing user missing a credential account", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+    vi.mocked(prisma.pendingUser.findUnique).mockResolvedValue({
+      id: "pending-1",
+      name: "Recovered User",
+      email: "user@example.com",
+      passwordHash: "hashed-pw",
+      expiresAt: new Date(Date.now() + 300000),
+      otpHash: "hash",
+      attemptCount: 0,
+      lockedUntil: null,
+    } as never);
+
+    const { verifyOneTimeCode } = await import("@/lib/security");
+    vi.mocked(verifyOneTimeCode).mockReturnValue(true);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: "user-1",
+      name: "Recovered User",
+      email: "user@example.com",
+    } as never);
+    vi.mocked(prisma.account.findFirst).mockResolvedValue(null as never);
+    vi.mocked(prisma.user.update).mockResolvedValue({
+      id: "user-1",
+      name: "Recovered User",
+      email: "user@example.com",
+    } as never);
+    vi.mocked(prisma.account.create).mockResolvedValue({} as never);
+    vi.mocked(prisma.pendingUser.delete).mockResolvedValue({} as never);
+
+    const req = new Request("http://localhost/api/verify-otp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: JSON.stringify({ email: "user@example.com", otp: "123456" }),
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(201);
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "user-1" },
+      })
+    );
+    expect(prisma.account.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: "user-1",
+          providerId: "credential",
+          password: "hashed-pw",
+        }),
+      })
+    );
+    expect(recordSecurityEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "REGISTRATION_OTP_VERIFIED",
+        metadata: { recoveredCredentialAccount: true },
+      })
     );
   });
 });

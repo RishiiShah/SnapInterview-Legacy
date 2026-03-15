@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import type { Difficulty, InterviewType } from "@/lib/interview/domain";
 import { RecordingEvaluation } from "./RecordingEvaluation";
 import { RecordingTranscript } from "./RecordingTranscript";
 
@@ -30,8 +31,8 @@ type EvaluationResult = {
 type InterviewData = {
     id: string;
     role: string;
-    type: string;
-    difficulty: string;
+    type: InterviewType;
+    difficulty: Difficulty;
     transcript: TranscriptEntry[];
     evaluation: EvaluationResult | null;
     createdAt: string;

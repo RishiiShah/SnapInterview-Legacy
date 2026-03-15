@@ -1,10 +1,15 @@
 import type { InterviewStatus } from "@/generated/prisma/client";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
+import {
+    interviewDifficultySchema,
+    interviewPersonaSchema,
+    interviewQuestionCountSchema,
+    interviewTypeSchema,
+} from "@/lib/interview/domain";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { z } from "zod/v4";
 import {
-    ALLOWED_QUESTION_COUNTS,
     ALLOWED_STATUSES,
     getInterviewSessionState,
     startInterviewSession,
@@ -15,15 +20,12 @@ import { logger } from "@/utils/logger";
 const createSessionSchema = z.object({
     role: z.string().trim().min(1, "Role is required").max(200),
     company: z.string().trim().max(200).optional().default(""),
-    type: z.string().trim().min(1, "Interview type is required"),
-    difficulty: z.string().trim().min(1, "Difficulty is required"),
-    persona: z.string().trim().max(50).optional(),
+    type: interviewTypeSchema,
+    difficulty: interviewDifficultySchema,
+    persona: interviewPersonaSchema.optional(),
     jobDescription: z.string().trim().max(10000).optional(),
     resumeUrl: z.string().url().optional(),
-    questionCount: z.number().int().refine(
-        (val) => (ALLOWED_QUESTION_COUNTS as readonly number[]).includes(val),
-        "questionCount must be one of: 5, 10, 15"
-    ).optional(),
+    questionCount: interviewQuestionCountSchema.optional(),
 });
 
 function csrfCheck(req: Request) {
@@ -108,6 +110,7 @@ export async function POST(req: Request) {
 const patchSessionSchema = z.object({
     interviewId: z.string().uuid("interviewId must be a valid UUID"),
     videoUrl: z.string().url().nullable().optional(),
+    videoKey: z.string().trim().min(1).nullable().optional(),
     status: z.string().refine(
         (val) => (ALLOWED_STATUSES as readonly string[]).includes(val),
         "Invalid status value"
@@ -132,12 +135,13 @@ export async function PATCH(req: Request) {
             return badRequestError(firstError);
         }
 
-        const { interviewId, videoUrl, status } = parsed.data;
+        const { interviewId, videoUrl, videoKey, status } = parsed.data;
 
         const updated = await updateSessionStatusIfOwned({
             userId: authUser.userId,
             interviewId,
             videoUrl,
+            videoKey,
             status: status as InterviewStatus | undefined,
         });
 
@@ -145,9 +149,14 @@ export async function PATCH(req: Request) {
             return notFoundError("Interview session not found");
         }
 
+        if (updated.type === "conflict") {
+            return apiJson({ error: updated.message }, 409);
+        }
+
         return apiJson({
             id: updated.data.id,
             videoUrl: updated.data.videoUrl,
+            videoKey: updated.data.videoKey,
             status: updated.data.status,
         });
     } catch (error) {

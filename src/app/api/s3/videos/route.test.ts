@@ -5,6 +5,11 @@ import { DELETE, GET } from "./route";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { listUserVideos } from "@/lib/s3/videos";
+import { prisma } from "@/lib/prisma";
+
+const { s3SendMock } = vi.hoisted(() => ({
+  s3SendMock: vi.fn().mockResolvedValue({}),
+}));
 
 vi.mock("@/lib/csrf", () => ({
   csrfRejectIfInvalid: vi.fn(() => null),
@@ -27,13 +32,23 @@ vi.mock("@/lib/env", () => ({
   })),
 }));
 
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    interviewSession: {
+      updateMany: vi.fn(),
+    },
+  },
+}));
+
 vi.mock("@aws-sdk/client-s3", () => {
   const actual = vi.importActual<typeof import("@aws-sdk/client-s3")>(
     "@aws-sdk/client-s3",
   );
   return {
     ...actual,
-    S3Client: vi.fn().mockImplementation(() => ({})),
+    S3Client: vi.fn().mockImplementation(() => ({
+      send: s3SendMock,
+    })),
     DeleteObjectCommand: vi.fn().mockImplementation((input) => input),
   };
 });
@@ -41,6 +56,7 @@ vi.mock("@aws-sdk/client-s3", () => {
 describe("GET /api/s3/videos", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    s3SendMock.mockResolvedValue({});
   });
 
   it("returns 401 when user is not authenticated", async () => {
@@ -66,6 +82,7 @@ describe("GET /api/s3/videos", () => {
           size: 123,
         }
       ]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
     const req = new Request("http://localhost/api/s3/videos");
@@ -133,5 +150,32 @@ describe("DELETE /api/s3/videos", () => {
     const body = await res.json();
     expect(body.error).toBe("Unauthorized access to key");
   });
-});
 
+  it("deletes the video and clears linked interview metadata", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({
+      userId: "user-1",
+    } as never);
+    vi.mocked(prisma.interviewSession.updateMany).mockResolvedValue({ count: 1 } as never);
+
+    const req = new Request("http://localhost/api/s3/videos", {
+      method: "DELETE",
+      body: JSON.stringify({ key: "user-1/interview-1.webm" }),
+    });
+
+    const res = await DELETE(req);
+
+    expect(res.status).toBe(200);
+    expect(s3SendMock).toHaveBeenCalled();
+    expect(prisma.interviewSession.updateMany).toHaveBeenCalledWith({
+      where: {
+        userId: "user-1",
+        videoKey: "user-1/interview-1.webm",
+      },
+      data: {
+        videoKey: null,
+        videoUrl: null,
+      },
+    });
+  });
+});

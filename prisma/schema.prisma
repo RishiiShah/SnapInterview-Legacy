@@ -92,7 +92,7 @@ model Verification {
 model PendingUser {
   id            String    @id @default(cuid())
   name          String
-  email         String
+  email         String    @unique
   passwordHash  String
   otpHash       String
   attemptCount  Int       @default(0)
@@ -102,8 +102,6 @@ model PendingUser {
   createdAt     DateTime  @default(now())
   userId        String?
   user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([email])
 }
 
 // ─── App: Security & Auth Events ─────────────────────────────────────────────
@@ -189,6 +187,7 @@ model InterviewSession {
   jobDescription  String?         @db.Text
   resumeUrl       String?
   videoUrl        String?
+  videoKey        String?         @unique
   status          InterviewStatus @default(IN_PROGRESS)
   questionCount   Int             @default(10)
   currentQuestion Int             @default(0)
@@ -212,6 +211,7 @@ model TranscriptEntry {
   interviewSession   InterviewSession @relation(fields: [interviewSessionId], references: [id], onDelete: Cascade)
 
   @@index([interviewSessionId])
+  @@unique([interviewSessionId, order])
 }
 
 // ─── App: Practice Questions ─────────────────────────────────────────────────

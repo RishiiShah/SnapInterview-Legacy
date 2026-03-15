@@ -14,21 +14,38 @@ export async function saveLatestTranscriptEntry(params: {
   }
 
   const transcriptOrder = currentQuestion - 1;
+  const transcriptData = {
+    question: latestAnsweredPair.question,
+    answer: latestAnsweredPair.answer,
+  };
 
-  await prisma.$transaction([
-    prisma.transcriptEntry.deleteMany({
+  const updateResult = await prisma.transcriptEntry.updateMany({
+    where: {
+      interviewSessionId: interviewId,
+      order: transcriptOrder,
+    },
+    data: transcriptData,
+  });
+
+  if (updateResult.count > 0) {
+    return;
+  }
+
+  try {
+    await prisma.transcriptEntry.create({
+      data: {
+        interviewSessionId: interviewId,
+        order: transcriptOrder,
+        ...transcriptData,
+      },
+    });
+  } catch {
+    await prisma.transcriptEntry.updateMany({
       where: {
         interviewSessionId: interviewId,
         order: transcriptOrder,
       },
-    }),
-    prisma.transcriptEntry.create({
-      data: {
-        interviewSessionId: interviewId,
-        order: transcriptOrder,
-        question: latestAnsweredPair.question,
-        answer: latestAnsweredPair.answer,
-      },
-    }),
-  ]);
+      data: transcriptData,
+    });
+  }
 }

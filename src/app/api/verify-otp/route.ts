@@ -41,9 +41,8 @@ export async function POST(req: Request) {
         const normalizedEmail = normalizeEmail(email);
 
         // Find the pending user record
-        const pendingUser = await prisma.pendingUser.findFirst({
+        const pendingUser = await prisma.pendingUser.findUnique({
             where: { email: normalizedEmail },
-            orderBy: { createdAt: "desc" },
         });
 
         if (!pendingUser) {
@@ -52,7 +51,7 @@ export async function POST(req: Request) {
 
         // Check if OTP has expired
         if (new Date() > pendingUser.expiresAt) {
-            await prisma.pendingUser.delete({ where: { id: pendingUser.id } });
+            await prisma.pendingUser.delete({ where: { email: normalizedEmail } });
             return apiError("OTP has expired. Please sign up again.", 410);
         }
 
@@ -85,45 +84,86 @@ export async function POST(req: Request) {
             return badRequestError(`Invalid OTP. ${MAX_OTP_ATTEMPTS - attemptCount} attempts left.`);
         }
 
-        // Check if a user with this email was created in the meantime
-        const existingUser = await prisma.user.findUnique({
-            where: { email: normalizedEmail },
+        const { user, recoveredCredentialAccount } = await prisma.$transaction(async (tx) => {
+            const existingUser = await tx.user.findUnique({
+                where: { email: normalizedEmail },
+            });
+
+            if (existingUser) {
+                const existingCredentialAccount = await tx.account.findFirst({
+                    where: { userId: existingUser.id, providerId: "credential" },
+                    select: { id: true },
+                });
+
+                if (existingCredentialAccount) {
+                    await tx.pendingUser.delete({ where: { email: normalizedEmail } });
+                    return { user: null, recoveredCredentialAccount: false };
+                }
+
+                const updatedUser = await tx.user.update({
+                    where: { id: existingUser.id },
+                    data: {
+                        name: existingUser.name || pendingUser.name,
+                        emailVerified: true,
+                        isFirstLogin: true,
+                    },
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                });
+
+                await tx.account.create({
+                    data: {
+                        userId: updatedUser.id,
+                        accountId: updatedUser.id,
+                        providerId: "credential",
+                        password: pendingUser.passwordHash,
+                    },
+                });
+
+                await tx.pendingUser.delete({ where: { email: normalizedEmail } });
+                return { user: updatedUser, recoveredCredentialAccount: true };
+            }
+
+            const createdUser = await tx.user.create({
+                data: {
+                    name: pendingUser.name,
+                    email: normalizedEmail,
+                    emailVerified: true,
+                    isFirstLogin: true,
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                },
+            });
+
+            await tx.account.create({
+                data: {
+                    userId: createdUser.id,
+                    accountId: createdUser.id,
+                    providerId: "credential",
+                    password: pendingUser.passwordHash,
+                },
+            });
+
+            await tx.pendingUser.delete({ where: { email: normalizedEmail } });
+            return { user: createdUser, recoveredCredentialAccount: false };
         });
 
-        if (existingUser) {
-            await prisma.pendingUser.deleteMany({ where: { email: normalizedEmail } });
+        if (!user) {
             return apiError("An account with this email already exists. Please log in.", 409);
         }
-
-        // Create the real user from pending data
-        // Better Auth stores passwords in the Account table (not User)
-        const user = await prisma.user.create({
-            data: {
-                name: pendingUser.name,
-                email: normalizedEmail,
-                emailVerified: true, // Better Auth uses boolean (not Date)
-                isFirstLogin: true,
-            },
-        });
-
-        // Create credential Account record — this is where Better Auth stores passwords
-        await prisma.account.create({
-            data: {
-                userId: user.id,
-                accountId: user.id,
-                providerId: "credential",
-                password: pendingUser.passwordHash,
-            },
-        });
 
         await recordSecurityEvent({
             type: "REGISTRATION_OTP_VERIFIED",
             userId: user.id,
             email: user.email,
+            metadata: recoveredCredentialAccount ? { recoveredCredentialAccount: true } : undefined,
         });
-
-        // Clean up all pending records for this email
-        await prisma.pendingUser.deleteMany({ where: { email: normalizedEmail } });
 
         return apiJson({ id: user.id, name: user.name, email: user.email }, 201);
     } catch (error) {

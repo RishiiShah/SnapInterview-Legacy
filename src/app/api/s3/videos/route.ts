@@ -1,6 +1,7 @@
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSessionUserIdentity } from "@/lib/server-auth";
+import { prisma } from "@/lib/prisma";
 import {
   apiError,
   apiJson,
@@ -124,6 +125,17 @@ export async function DELETE(req: Request) {
     });
 
     await s3Client.send(deleteCommand);
+
+    await prisma.interviewSession.updateMany({
+      where: {
+        userId: authUser.userId,
+        videoKey: key,
+      },
+      data: {
+        videoKey: null,
+        videoUrl: null,
+      },
+    });
 
     return apiJson({ success: true });
   } catch (error) {

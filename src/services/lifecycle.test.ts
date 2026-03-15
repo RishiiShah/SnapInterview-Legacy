@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { startInterviewSession, runInterviewChat } from "./interview-service";
 import { evaluateInterviewTranscript } from "./evaluation-service";
@@ -67,6 +68,7 @@ describe("Interview Lifecycle Integration", () => {
       difficulty: "medium",
       transcript: [],
     } as any);
+    vi.mocked(interviewRepo.advanceInterviewCurrentQuestion).mockResolvedValue(true);
 
     // Mock Groq stream
     const mockStream = (async function* () {
@@ -79,6 +81,7 @@ describe("Interview Lifecycle Integration", () => {
       userId,
       interviewId,
       rawMessages: [{ role: "user", content: "I'm ready." }],
+      expectedCurrentQuestion: 0,
     });
 
     expect(chatResult.type).toBe("stream");
@@ -95,17 +98,30 @@ describe("Interview Lifecycle Integration", () => {
 
     // Verify transcript was saved and question incremented
     expect(transcriptService.saveLatestTranscriptEntry).toHaveBeenCalled();
-    expect(interviewRepo.incrementCurrentQuestion).toHaveBeenCalledWith(interviewId);
+    expect(interviewRepo.advanceInterviewCurrentQuestion).toHaveBeenCalledWith({
+      interviewId,
+      userId,
+      expectedCurrentQuestion: 0,
+    });
 
     // 3. Finalize and Evaluate
     vi.mocked(interviewRepo.getInterviewSession).mockResolvedValue({
       id: interviewId,
       status: "COMPLETED",
+      type: "technical",
+      company: null,
       transcript: [
         { question: "Tell me about React.", answer: "It's a library." }
       ],
       evaluation: null,
       difficulty: "medium",
+      persona: "balanced",
+      jobDescription: null,
+      resumeUrl: null,
+      questionCount: 5,
+      currentQuestion: 5,
+      focusAreas: null,
+      sessionPlan: null,
       role: "Software Engineer"
     } as any);
 

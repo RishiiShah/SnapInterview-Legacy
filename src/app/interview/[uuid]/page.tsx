@@ -107,6 +107,7 @@ export default function InterviewPage() {
       description={modal.description}
       variant={modal.variant}
       confirmLabel={modal.confirmLabel}
+      cancelLabel={modal.cancelLabel}
     />
     </>
   );

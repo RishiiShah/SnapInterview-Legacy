@@ -5,6 +5,8 @@ import { sanitizeChatMessages } from "@/lib/interview/chat-messages";
 import { saveLatestTranscriptEntry } from "@/lib/interview/transcript-service";
 import { groqClient } from "@/lib/ai/groq";
 import { prisma } from "@/lib/prisma";
+import { withRetry } from "@/utils/retry";
+import { logger } from "@/utils/logger";
 import {
   createInterviewSession,
   getInterviewSession,
@@ -161,12 +163,14 @@ export async function runInterviewChat(params: {
   userId: string;
   interviewId: string;
   rawMessages: unknown;
+  abortSignal?: AbortSignal;
 }): Promise<
   | { type: "not_found" }
+  | { type: "error"; message: string }
   | { type: "done"; data: { done: true; currentQuestion: number; doneMessage: string } }
   | { type: "stream"; data: ReadableStream<Uint8Array> }
 > {
-  const { userId, interviewId, rawMessages } = params;
+  const { userId, interviewId, rawMessages, abortSignal } = params;
   const messages = sanitizeChatMessages(rawMessages);
 
   const interviewSession = await getInterviewSession({ interviewId, userId, view: "chat" });
@@ -184,9 +188,7 @@ export async function runInterviewChat(params: {
     };
   }
 
-  const systemInstructionPromise = Promise.resolve().then(() =>
-    buildSystemInstruction(interviewSession)
-  );
+  const systemInstructionPromise = buildSystemInstruction(interviewSession);
 
   const [, systemInstruction] = await Promise.all([
     saveLatestTranscriptEntry({ interviewId, currentQuestion, messages }),
@@ -197,31 +199,66 @@ export async function runInterviewChat(params: {
     ...messages.map((message) => ({ role: message.role, content: message.content })),
   ];
 
-  const chatCompletion = await groqClient.chat.completions.create({
-    messages: formattedMessages,
-    model: "llama-3.3-70b-versatile",
-    temperature: 0.7,
-    max_completion_tokens: 1024,
-    top_p: 1,
-    stream: true,
-  });
+  try {
+    const chatCompletion = await withRetry(async () => {
+      return groqClient.chat.completions.create({
+        messages: formattedMessages,
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.7,
+        max_completion_tokens: 1024,
+        top_p: 1,
+        stream: true,
+      }, { signal: abortSignal });
+    }, { signal: abortSignal });
 
-  const stream = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      try {
-        for await (const chunk of chatCompletion) {
-          const content = chunk.choices[0]?.delta?.content ?? "";
-          if (content) {
-            controller.enqueue(new TextEncoder().encode(content));
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const onAbort = () => {
+          try {
+            controller.error(new Error("Operation aborted"));
+          } catch (e) {
+            // Already closed
           }
-        }
-        await incrementCurrentQuestion(interviewId);
-        controller.close();
-      } catch (error) {
-        controller.error(error);
-      }
-    },
-  });
+        };
 
-  return { type: "stream", data: stream };
+        if (abortSignal?.aborted) {
+          onAbort();
+          return;
+        }
+
+        abortSignal?.addEventListener("abort", onAbort, { once: true });
+
+        try {
+          for await (const chunk of chatCompletion) {
+            if (abortSignal?.aborted) break;
+
+            const content = chunk.choices[0]?.delta?.content ?? "";
+            if (content) {
+              controller.enqueue(new TextEncoder().encode(content));
+            }
+          }
+          
+          if (!abortSignal?.aborted) {
+            await incrementCurrentQuestion(interviewId);
+            controller.close();
+          }
+        } catch (error) {
+          controller.error(error);
+        } finally {
+          abortSignal?.removeEventListener("abort", onAbort);
+        }
+      },
+    });
+
+    return { type: "stream", data: stream };
+  } catch (error: any) {
+    if (error.name === "AbortError" || abortSignal?.aborted) {
+      logger.info("Interview chat request cancelled", { interviewId });
+      // We still need to return something or the API route will throw.
+      // But since the request is aborted, the response won't reach the client.
+      return { type: "error", message: "Request cancelled" };
+    }
+    logger.error("Interview chat error after retries", { error, interviewId });
+    return { type: "error", message: "Failed to connect to the interview AI. Please try again." };
+  }
 }

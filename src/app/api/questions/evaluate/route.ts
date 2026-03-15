@@ -4,6 +4,7 @@ import { apiJson, badRequestError, internalServerError, notFoundError, unauthori
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { evaluatePracticeQuestion } from "@/services/evaluation-service";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { logger } from "@/utils/logger";
 
 const evaluateSchema = z.object({
   questionId: z.number().int().positive(),
@@ -43,7 +44,9 @@ export async function POST(req: Request) {
 
     return apiJson(result.data);
   } catch (error) {
-    console.error("Question evaluation error:", error);
+    logger.error("Question evaluation error:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalServerError();
   }
 }

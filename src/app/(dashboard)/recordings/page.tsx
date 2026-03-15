@@ -26,12 +26,8 @@ export default async function RecordingsPage() {
     );
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true },
-  });
-
-  const initialVideos = user ? await listUserVideos(`${user.id}/`) : [];
+  const userId = session.user.id;
+  const initialData = userId ? await listUserVideos(`${userId}/`, { maxKeys: 12 }) : { videos: [] };
 
   return (
     <>
@@ -43,7 +39,10 @@ export default async function RecordingsPage() {
           </div>
         </SlideIn>
 
-        <RecordingsList initialVideos={initialVideos} />
+        <RecordingsList 
+          initialVideos={initialData.videos} 
+          initialNextToken={initialData.nextContinuationToken}
+        />
       </div>
     </>
   );

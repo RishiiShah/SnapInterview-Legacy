@@ -6,6 +6,7 @@ import { apiJson, badRequestError, internalServerError, unauthorizedError } from
 import { getSessionUserIdentity, getCurrentSession } from "@/lib/server-auth";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { headers } from "next/headers";
+import { logger } from "@/utils/logger";
 
 const securityActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("revoke"), sessionId: z.string().min(1) }),
@@ -72,7 +73,9 @@ export async function GET() {
       })),
     });
   } catch (error) {
-    console.error("Get security settings error:", error);
+    logger.error("Get security settings error:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalServerError();
   }
 }
@@ -145,7 +148,9 @@ export async function PATCH(req: Request) {
 
     return apiJson({ success: true, revokedCount: 1 });
   } catch (error) {
-    console.error("Update security settings error:", error);
+    logger.error("Update security settings error:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalServerError();
   }
 }

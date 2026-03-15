@@ -7,6 +7,7 @@ import { apiError, apiJson, badRequestError, internalServerError, unauthorizedEr
 import { requireAwsS3Env } from "@/lib/env";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { z } from "zod/v4";
+import { logger } from "@/utils/logger";
 
 const aws = requireAwsS3Env();
 
@@ -72,8 +73,10 @@ export async function POST(req: Request) {
 
         return apiJson({ url, fields, key });
     } catch (error) {
-        console.error("Error generating presigned URL:", error);
+        logger.error("Error generating presigned URL", {
+            error: error instanceof Error ? error.message : String(error),
+            route: "POST /api/s3/upload",
+        });
         return internalServerError("Failed to generate presigned URL");
     }
 }
-

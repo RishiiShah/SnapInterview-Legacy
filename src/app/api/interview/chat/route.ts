@@ -10,6 +10,7 @@ import { getSessionUserIdentity } from "@/lib/server-auth";
 import { runInterviewChat } from "@/services/interview-service";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { z } from "zod/v4";
+import { logger } from "@/utils/logger";
 
 const chatSchema = z.object({
   interviewId: z.string().uuid("interviewId must be a valid UUID"),
@@ -51,10 +52,15 @@ export async function POST(req: Request) {
       userId: authUser.userId,
       interviewId,
       rawMessages,
+      abortSignal: req.signal,
     });
 
     if (result.type === "not_found") {
       return notFoundError("Interview session not found");
+    }
+
+    if (result.type === "error") {
+      return badRequestError(result.message);
     }
 
     if (result.type === "done") {
@@ -69,7 +75,10 @@ export async function POST(req: Request) {
       },
     });
   } catch (error) {
-    console.error("Groq API Error:", error);
+    logger.error("Chat API route error", {
+      error: error instanceof Error ? error.message : String(error),
+      route: "POST /api/interview/chat",
+    });
     return internalServerError();
   }
 }

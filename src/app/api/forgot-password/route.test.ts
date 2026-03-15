@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
 import { prisma } from "@/lib/prisma";
 import { sendOtpEmail } from "@/lib/email";
+import { logger } from "@/utils/logger";
 
 vi.mock("@/lib/csrf", () => ({
   csrfRejectIfInvalid: vi.fn(() => null),
@@ -44,7 +45,7 @@ describe("POST /api/forgot-password", () => {
   });
 
   it("returns success even when OTP email delivery fails", async () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const errorSpy = vi.spyOn(logger, "error").mockImplementation(() => {});
 
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "user-1", email: "user@example.com" } as never);
     vi.mocked(prisma.account.findFirst).mockResolvedValue({ id: "acct-1" } as never);
@@ -70,6 +71,8 @@ describe("POST /api/forgot-password", () => {
       message: "If an account with that email exists, a reset code has been sent.",
     });
 
-    expect(errorSpy).toHaveBeenCalledWith("Failed to send password reset email:", expect.any(Error));
+    expect(errorSpy).toHaveBeenCalledWith("Failed to send password reset email:", expect.objectContaining({
+      error: "smtp down"
+    }));
   });
 });

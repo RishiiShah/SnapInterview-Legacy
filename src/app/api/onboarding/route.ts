@@ -4,6 +4,7 @@ import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { normalizeOnboardingResponse } from "@/lib/onboarding/preferences";
 import { getSessionUserIdentity } from "@/lib/server-auth";
+import { logger } from "@/utils/logger";
 
 const onboardingSchema = z.object({
   onboardingRole: z.string().trim().min(1, "Target role is required"),
@@ -51,7 +52,9 @@ export async function GET() {
       })
     );
   } catch (error) {
-    console.error("Get onboarding preferences error:", error);
+    logger.error("Get onboarding preferences error:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalServerError();
   }
 }
@@ -109,7 +112,9 @@ export async function PUT(req: Request) {
 
     return apiJson({ success: true });
   } catch (error) {
-    console.error("Update onboarding preferences error:", error);
+    logger.error("Update onboarding preferences error:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalServerError();
   }
-}
+  }

@@ -4,43 +4,14 @@ import { requireAwsS3Env } from "@/lib/env";
 
 export interface VideoRecording {
   key: string;
-  url: string;
+  url?: string; // Optional because we might only sign on demand
   lastModified: string;
   size: number;
 }
 
-const VIDEO_LIST_CACHE_TTL_MS = 10_000;
-
-type VideoListCacheEntry = {
-  expiresAtMs: number;
-  value: VideoRecording[];
-};
-
-const videoListCache = new Map<string, VideoListCacheEntry>();
-
-function isTestEnv() {
-  return process.env.NODE_ENV === "test";
-}
-
-function readVideoListCache(prefix: string): VideoRecording[] | null {
-  if (isTestEnv()) return null;
-
-  const entry = videoListCache.get(prefix);
-  if (!entry) return null;
-  if (entry.expiresAtMs <= Date.now()) {
-    videoListCache.delete(prefix);
-    return null;
-  }
-
-  return entry.value;
-}
-
-function writeVideoListCache(prefix: string, value: VideoRecording[]) {
-  if (isTestEnv()) return;
-  videoListCache.set(prefix, {
-    value,
-    expiresAtMs: Date.now() + VIDEO_LIST_CACHE_TTL_MS,
-  });
+export interface PaginatedVideos {
+  videos: VideoRecording[];
+  nextContinuationToken?: string;
 }
 
 const s3Client = new S3Client({
@@ -53,46 +24,57 @@ const s3Client = new S3Client({
 
 const { bucketName } = requireAwsS3Env();
 
-export async function listUserVideos(prefix: string): Promise<VideoRecording[]> {
-  const cached = readVideoListCache(prefix);
-  if (cached) {
-    return cached;
-  }
+/**
+ * Lists user videos with pagination support.
+ * Does NOT sign URLs by default to improve performance and scalability.
+ */
+export async function listUserVideos(
+  prefix: string,
+  options: { maxKeys?: number; continuationToken?: string } = {}
+): Promise<PaginatedVideos> {
+  const { maxKeys = 12, continuationToken } = options;
 
   const listCommand = new ListObjectsV2Command({
     Bucket: bucketName,
     Prefix: prefix,
+    MaxKeys: maxKeys,
+    ContinuationToken: continuationToken,
   });
 
   const listData = await s3Client.send(listCommand);
 
   if (!listData.Contents || listData.Contents.length === 0) {
-    return [];
+    return { videos: [] };
   }
 
+  // S3 doesn't guarantee global sort by date in ListObjectsV2, 
+  // but for a single user prefix, it's often sufficient.
+  // We sort locally just in case.
   const sortedContents = listData.Contents.sort((a, b) => {
     return (b.LastModified?.getTime() || 0) - (a.LastModified?.getTime() || 0);
   });
 
-  const videos = await Promise.all(
-    sortedContents.map(async (item) => {
-      const getCommand = new GetObjectCommand({
-        Bucket: bucketName,
-        Key: item.Key!,
-        ResponseContentDisposition: `attachment; filename="recording-${item.Key!.split("/").pop()}"`,
-      });
+  const videos: VideoRecording[] = sortedContents.map((item) => ({
+    key: item.Key!,
+    lastModified: item.LastModified?.toISOString() || new Date(0).toISOString(),
+    size: item.Size || 0,
+  }));
 
-      const url = await getSignedUrl(s3Client, getCommand, { expiresIn: 3600 });
+  return {
+    videos,
+    nextContinuationToken: listData.NextContinuationToken,
+  };
+}
 
-      return {
-        key: item.Key!,
-        url,
-        lastModified: item.LastModified?.toISOString() || new Date(0).toISOString(),
-        size: item.Size || 0,
-      };
-    })
-  );
+/**
+ * Generates a signed URL for a specific video key.
+ */
+export async function getSignedVideoUrl(key: string, expiresIn = 3600): Promise<string> {
+  const getCommand = new GetObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+    ResponseContentDisposition: `attachment; filename="recording-${key.split("/").pop()}"`,
+  });
 
-  writeVideoListCache(prefix, videos);
-  return videos;
+  return getSignedUrl(s3Client, getCommand, { expiresIn });
 }

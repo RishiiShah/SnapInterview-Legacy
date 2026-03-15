@@ -21,7 +21,7 @@ function inferPracticeRole(question: Question): string {
   return "Software Engineer";
 }
 
-export function buildQuestionEvaluationRoleContext(question: Question): string {
+export async function buildQuestionEvaluationRoleContext(question: Question): Promise<string> {
   const role = inferPracticeRole(question);
   const pseudoJobDescription = [
     `Practice question category: ${question.category}`,

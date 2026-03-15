@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from "fs";
+import { promises as fs, existsSync } from "fs";
 import path from "path";
 import { z } from "zod";
 
@@ -115,29 +115,31 @@ function buildInstructionText(prompt: PromptInstructionFile): string {
   return parts.join("\n\n").trim();
 }
 
-function loadPromptInstruction(filePath: string): string {
+async function loadPromptInstruction(filePath: string): Promise<string> {
   const cached = promptInstructionCache.get(filePath);
   if (cached !== undefined) {
     return cached;
   }
 
+  // existsSync is fine for synchronous check as it's very fast, 
+  // but we'll use access for consistency if we wanted to be purely async.
+  // Given Next.js environment, existsSync is often used in server components.
   if (!existsSync(filePath)) return "";
 
   try {
-    const raw = readFileSync(filePath, "utf-8");
+    const raw = await fs.readFile(filePath, "utf-8");
     const json = JSON.parse(raw);
     const parsed = PromptInstructionFileSchema.parse(json);
     const instruction = buildInstructionText(parsed);
     promptInstructionCache.set(filePath, instruction);
     return instruction;
   } catch (error) {
-    throw new Error(
-      `Invalid prompt file at ${filePath}: ${error instanceof Error ? error.message : "Unknown error"}`
-    );
+    console.error(`Invalid prompt file at ${filePath}:`, error);
+    return ""; // Fallback to empty to not crash the whole interview
   }
 }
 
-export function buildSystemInstruction(interviewSession: PromptInterviewSession): string {
+export async function buildSystemInstruction(interviewSession: PromptInterviewSession): Promise<string> {
   const {
     role,
     company,
@@ -165,19 +167,20 @@ export function buildSystemInstruction(interviewSession: PromptInterviewSession)
 
   let systemInstruction = "";
 
-  const coreInstruction = loadPromptInstruction(corePromptPath);
+  const [coreInstruction, roleInstruction, defaultRoleInstruction] = await Promise.all([
+    loadPromptInstruction(corePromptPath),
+    loadPromptInstruction(specificRolePath),
+    loadPromptInstruction(defaultRolePath),
+  ]);
+
   if (coreInstruction) {
     systemInstruction += `${coreInstruction}\n\n`;
   }
 
-  if (existsSync(specificRolePath)) {
-    const roleInstruction = loadPromptInstruction(specificRolePath);
-    if (roleInstruction) {
-      systemInstruction += `${roleInstruction}\n\n`;
-    }
-  } else if (existsSync(defaultRolePath)) {
-    let defaultText = loadPromptInstruction(defaultRolePath);
-    defaultText = defaultText.replace(/{{ROLE}}/g, role);
+  if (roleInstruction) {
+    systemInstruction += `${roleInstruction}\n\n`;
+  } else if (defaultRoleInstruction) {
+    const defaultText = defaultRoleInstruction.replace(/{{ROLE}}/g, role);
     if (defaultText) {
       systemInstruction += `${defaultText}\n\n`;
     }

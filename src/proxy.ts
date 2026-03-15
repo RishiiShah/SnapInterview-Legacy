@@ -1,8 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
+import { logger } from "@/utils/logger";
 
 // Better Auth sets this cookie on login
 const BETTER_AUTH_COOKIE = "better-auth.session_token";
+
+/**
+ * Validates the session with the Better Auth server.
+ */
+async function getSession(request: NextRequest) {
+    try {
+        const sessionRes = await fetch(`${env.BETTER_AUTH_URL}/api/auth/get-session`, {
+            headers: { cookie: request.headers.get("cookie") || "" },
+        });
+        if (!sessionRes.ok) return null;
+        const sessionData = await sessionRes.json();
+        return sessionData && sessionData.user ? sessionData : null;
+    } catch (err) {
+        logger.warn("Proxy session validation failed", {
+            error: err instanceof Error ? err.message : String(err),
+        });
+        return null;
+    }
+}
 
 export async function proxy(request: NextRequest) {
     // 1. Setup headers for the request (e.g., nonce for CSP)
@@ -10,45 +30,40 @@ export async function proxy(request: NextRequest) {
     const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
     requestHeaders.set("x-nonce", nonce);
 
+    const { pathname } = request.nextUrl;
+
     // 2. Auth checks
-    // We only want to protect specific routes. The matcher is now set to run on all pages for the security headers,
-    // so we handle the route protection manually.
-    const protectedPaths = ["/dashboard", "/practice", "/questions", "/analytics", "/recordings", "/settings", "/onboarding"];
-    const isProtectedPath = protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path));
+    const protectedPaths = ["/dashboard", "/practice", "/questions", "/analytics", "/recordings", "/settings", "/onboarding", "/interview"];
+    const isProtectedPath = protectedPaths.some((path) => pathname.startsWith(path));
+
+    const token = request.cookies.get(BETTER_AUTH_COOKIE)?.value;
+
+    if (isProtectedPath) {
+        if (!token) {
+            return NextResponse.redirect(new URL("/login", request.url));
+        }
+
+        const session = await getSession(request);
+        if (!session) {
+            const response = NextResponse.redirect(new URL("/login", request.url));
+            response.cookies.delete(BETTER_AUTH_COOKIE);
+            return response;
+        }
+    } else if (pathname === "/" || pathname === "/login" || pathname === "/signup") {
+        if (token) {
+            const session = await getSession(request);
+            if (session?.user) {
+                const hasOnboarding = !!session.user.onboardingCompletedAt;
+                return NextResponse.redirect(new URL(hasOnboarding ? "/dashboard" : "/onboarding", request.url));
+            }
+        }
+    }
 
     let response = NextResponse.next({
         request: {
             headers: requestHeaders,
         },
     });
-
-    if (isProtectedPath) {
-        const token = request.cookies.get(BETTER_AUTH_COOKIE)?.value;
-
-        if (!token) {
-            const loginUrl = new URL("/login", request.url);
-            response = NextResponse.redirect(loginUrl);
-        }
-    } else if (request.nextUrl.pathname === "/") {
-        // Authenticated users shouldn't see the landing page
-        const token = request.cookies.get(BETTER_AUTH_COOKIE)?.value;
-        if (token) {
-            try {
-                const sessionRes = await fetch(`${env.BETTER_AUTH_URL}/api/auth/get-session`, {
-                    headers: { cookie: request.headers.get("cookie") || "" },
-                });
-                if (sessionRes.ok) {
-                    const sessionData = await sessionRes.json();
-                    if (sessionData && sessionData.user) {
-                        const hasOnboarding = !!sessionData.user.onboardingCompletedAt;
-                        response = NextResponse.redirect(new URL(hasOnboarding ? "/dashboard" : "/onboarding", request.url));
-                    }
-                }
-            } catch (err) {
-                console.warn("Proxy Landing Auth Check Failed:", err);
-            }
-        }
-    }
 
     // 3. Apply Security Headers
     const isDev = process.env.NODE_ENV !== "production";

@@ -4,6 +4,7 @@ import { apiJson, badRequestError, internalServerError, notFoundError, unauthori
 import { evaluateInterviewTranscript } from "@/services/evaluation-service";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { logger } from "@/utils/logger";
 
 const evaluateTranscriptSchema = z.object({
     interviewId: z.string().uuid(),
@@ -54,7 +55,10 @@ export async function POST(req: Request) {
 
         return apiJson(result.data);
     } catch (error) {
-        console.error("Transcript evaluation error:", error);
+        logger.error("Transcript evaluation API error", {
+            error: error instanceof Error ? error.message : String(error),
+            route: "POST /api/interview/evaluate",
+        });
         return internalServerError();
     }
 }

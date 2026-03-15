@@ -1,53 +1,59 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import type { ChatSessionMessage, InterviewType, Difficulty } from "@/data/types";
+import { INTERVIEW_DONE_MESSAGE } from "@/data/constants";
 
-export type ChatSessionMessage = {
-  role: "ai" | "user";
-  text: string;
-  isSystem?: boolean;
-};
-
-type UseChatSessionOptions = {
+interface UseChatSessionOptions {
   interviewId: string;
+  interviewType: InterviewType;
+  difficulty: Difficulty;
   interviewStarted: boolean;
-  interviewDone: boolean;
-  finalTranscriptBlock: string;
-  setInterviewDone: (value: boolean) => void;
-};
+}
 
-export function shouldProcessFinalTranscriptBlock(params: {
+export function shouldProcessFinalTranscriptBlock(options: {
   finalTranscriptBlock: string;
   interviewDone: boolean;
   processedTranscriptBlock: string;
-}) {
-  const { finalTranscriptBlock, interviewDone, processedTranscriptBlock } = params;
-
-  if (!finalTranscriptBlock || interviewDone) {
-    return false;
-  }
-
-  return processedTranscriptBlock !== finalTranscriptBlock;
+}): boolean {
+  if (!options.finalTranscriptBlock.trim()) return false;
+  if (options.interviewDone) return false;
+  if (options.finalTranscriptBlock === options.processedTranscriptBlock) return false;
+  return true;
 }
 
 export function useChatSession({
   interviewId,
   interviewStarted,
-  interviewDone,
-  finalTranscriptBlock,
-  setInterviewDone,
 }: UseChatSessionOptions) {
   const [messages, setMessages] = useState<ChatSessionMessage[]>([]);
   const [currentStreamedText, setCurrentStreamedText] = useState("");
   const [isThinking, setIsThinking] = useState(false);
+  const [interviewDone, setInterviewDone] = useState(false);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
   const messagesRef = useRef<ChatSessionMessage[]>([]);
-  const processedTranscriptRef = useRef("");
 
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   const askGroq = useCallback(
     async (chatHistory: ChatSessionMessage[]) => {
       if (interviewDone) return;
+
+      // Abort any existing request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+      const signal = abortControllerRef.current.signal;
 
       setIsThinking(true);
       setCurrentStreamedText("");
@@ -67,31 +73,27 @@ export function useChatSession({
             messages: formattedMessages,
             interviewId,
           }),
+          signal,
         });
 
-        const contentType = response.headers.get("content-type") || "";
-
         if (!response.ok) {
+          if (signal.aborted) throw new Error("AbortError");
           let errorMessage = `Chat request failed (${response.status})`;
+          const contentType = response.headers.get("content-type") || "";
 
           if (contentType.includes("application/json")) {
             const errorPayload = await response.json();
-            if (errorPayload?.error) {
-              errorMessage = errorPayload.error;
-            }
+            errorMessage = errorPayload?.error || errorMessage;
           } else {
             const errorText = await response.text();
-            if (errorText) {
-              errorMessage = errorText;
-            }
+            errorMessage = errorText || errorMessage;
           }
-
           throw new Error(errorMessage);
         }
 
+        const contentType = response.headers.get("content-type") || "";
         if (contentType.includes("application/json")) {
           const payload = await response.json();
-
           if (payload?.done) {
             setInterviewDone(true);
             if (typeof payload.doneMessage === "string" && payload.doneMessage.trim()) {
@@ -102,41 +104,47 @@ export function useChatSession({
             }
             return;
           }
-
-          throw new Error(payload?.error || "Unexpected JSON response from interview chat API.");
+          throw new Error(payload?.error || "Unexpected JSON response");
         }
 
         if (!response.body) throw new Error("No response body");
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
-        let done = false;
         let aiResponseText = "";
 
-        while (!done) {
+        while (true) {
           const { value, done: readerDone } = await reader.read();
-          done = readerDone;
+          if (readerDone || signal.aborted) {
+            if (signal.aborted) try { await reader.cancel(); } catch (e) {}
+            break;
+          }
 
           if (value) {
             const chunk = decoder.decode(value, { stream: true });
             aiResponseText += chunk;
-            setCurrentStreamedText((previous) => previous + chunk);
+            setCurrentStreamedText(aiResponseText);
           }
         }
 
+        if (signal.aborted) throw new Error("AbortError");
+
         setMessages((previous) => [...previous, { role: "ai", text: aiResponseText }]);
         setCurrentStreamedText("");
-      } catch (error) {
+      } catch (error: any) {
+        if (error.name === "AbortError" || error.message === "AbortError") {
+          return;
+        }
         console.error("AI Chat Error:", error);
         setMessages((previous) => [
           ...previous,
-          { role: "ai", text: "I'm having trouble connecting right now. Let's pause for a moment." },
+          { role: "ai", text: "Sorry, I encountered an error. Please try again.", isSystem: true },
         ]);
       } finally {
         setIsThinking(false);
       }
     },
-    [interviewDone, interviewId, setInterviewDone]
+    [interviewId, interviewDone]
   );
 
   useEffect(() => {
@@ -147,33 +155,21 @@ export function useChatSession({
     void askGroq([]);
   }, [interviewStarted, interviewDone, askGroq]);
 
-  useEffect(() => {
-    if (
-      !shouldProcessFinalTranscriptBlock({
-        finalTranscriptBlock,
-        interviewDone,
-        processedTranscriptBlock: processedTranscriptRef.current,
-      })
-    ) {
-      return;
-    }
-
-    processedTranscriptRef.current = finalTranscriptBlock;
-
-    const newMessages: ChatSessionMessage[] = [
-      ...messagesRef.current,
-      { role: "user", text: finalTranscriptBlock },
-    ];
-
-    setMessages(newMessages);
-    void askGroq(newMessages);
-  }, [finalTranscriptBlock, interviewDone, askGroq]);
+  const sendMessage = useCallback(
+    async (text: string) => {
+      const newUserMessage: ChatSessionMessage = { role: "user", text };
+      const updatedHistory = [...messagesRef.current, newUserMessage];
+      setMessages(updatedHistory);
+      await askGroq(updatedHistory);
+    },
+    [askGroq]
+  );
 
   return {
     messages,
     currentStreamedText,
     isThinking,
-    askGroq,
-    setMessages,
+    sendMessage,
+    interviewDone,
   };
 }

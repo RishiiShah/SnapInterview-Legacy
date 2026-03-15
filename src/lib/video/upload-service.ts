@@ -1,3 +1,6 @@
+import { withRetry } from "@/utils/retry";
+import { logger } from "@/utils/logger";
+
 export type InterviewCompletionStatus = "COMPLETED" | "ABORTED";
 
 type FinalizeInterviewUploadOptions = {
@@ -29,7 +32,10 @@ async function uploadBlobToPresignedPost(
   });
 
   if (!uploadRes.ok) {
-    console.error("Failed to upload video blob to S3", { status: uploadRes.status });
+    logger.error("Failed to upload video blob to S3", { 
+      status: uploadRes.status,
+      url 
+    });
     return undefined;
   }
 
@@ -45,7 +51,10 @@ async function createPresignedUploadUrl(interviewId: string): Promise<PresignedP
   });
 
   if (!res.ok) {
-    console.error("Failed to get presigned URL", { status: res.status });
+    logger.error("Failed to get presigned URL", { 
+      status: res.status, 
+      interviewId 
+    });
     return undefined;
   }
 
@@ -54,24 +63,68 @@ async function createPresignedUploadUrl(interviewId: string): Promise<PresignedP
   return payload as PresignedPostPayload;
 }
 
+export type FinalizeResult = 
+  | { type: "ok"; videoUrl?: string }
+  | { type: "error"; message: string; stage: "recording" | "upload" | "metadata" };
+
 export async function finalizeInterviewUpload({
   interviewId,
   status,
   stopVideoRecording,
-}: FinalizeInterviewUploadOptions) {
-  const blob = await stopVideoRecording();
+}: FinalizeInterviewUploadOptions): Promise<FinalizeResult> {
+  let blob: Blob | null = null;
+  try {
+    blob = await stopVideoRecording();
+  } catch (error) {
+    logger.error("Failed to stop video recording", { error, interviewId });
+    return { type: "error", message: "Failed to stop video recording", stage: "recording" };
+  }
+
   let videoUrl: string | undefined;
 
   if (blob && blob.size > 0) {
     const presigned = await createPresignedUploadUrl(interviewId);
-    if (presigned) {
-      videoUrl = await uploadBlobToPresignedPost(presigned.url, presigned.fields, blob);
+    if (!presigned) {
+      return { type: "error", message: "Failed to prepare video upload", stage: "upload" };
+    }
+
+    videoUrl = await uploadBlobToPresignedPost(presigned.url, presigned.fields, blob);
+    if (!videoUrl) {
+      return { type: "error", message: "Failed to upload video recording", stage: "upload" };
     }
   }
 
-  await fetch("/api/interview/session", {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ interviewId, videoUrl, status }),
-  });
+  try {
+    // Retry metadata update as it is critical for session consistency
+    await withRetry(async () => {
+      const res = await fetch("/api/interview/session", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ interviewId, videoUrl, status }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Metadata update failed with status ${res.status}`);
+      }
+
+      const payload = await res.json();
+      
+      // Verify that the backend actually persisted what we sent
+      const isStatusMatch = payload.status === status;
+      const isVideoMatch = !videoUrl || payload.videoUrl === videoUrl;
+
+      if (!isStatusMatch || !isVideoMatch) {
+        throw new Error("Metadata mismatch: backend state does not match expected final state");
+      }
+    }, { maxRetries: 3 });
+
+    return { type: "ok", videoUrl };
+  } catch (error) {
+    logger.error("Failed to update interview session metadata after retries", { 
+      error: error instanceof Error ? error.message : String(error), 
+      interviewId,
+      status 
+    });
+    return { type: "error", message: "Interview saved, but failed to update status. Please contact support.", stage: "metadata" };
+  }
 }

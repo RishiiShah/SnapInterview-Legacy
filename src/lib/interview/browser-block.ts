@@ -4,28 +4,38 @@ type BraveNavigator = Navigator & {
   };
 };
 
-export async function getInterviewBlockReason(): Promise<string | null> {
+export type BrowserBlockResult = {
+  severity: "block" | "warning";
+  reason: string;
+} | null;
+
+export async function getInterviewBlockReason(): Promise<BrowserBlockResult> {
   if (typeof navigator === "undefined") return null;
 
   const userAgent = navigator.userAgent.toLowerCase();
+  
   if (userAgent.includes("firefox")) {
-    return "Firefox is currently not supported for starting interviews.";
+    return {
+      severity: "warning",
+      reason: "Firefox has limited support for speech recognition and screen recording. For the best experience, we recommend using Chrome or Edge.",
+    };
   }
 
   const braveNavigator = navigator as BraveNavigator;
+  let isBrave = false;
   try {
     if (typeof braveNavigator.brave?.isBrave === "function") {
-      const isBrave = await braveNavigator.brave.isBrave();
-      if (isBrave) {
-        return "Brave is currently not supported for starting interviews.";
-      }
+      isBrave = await braveNavigator.brave.isBrave();
     }
   } catch {
     // Ignore Brave detection errors and continue.
   }
 
-  if (userAgent.includes("brave")) {
-    return "Brave is currently not supported for starting interviews.";
+  if (isBrave || userAgent.includes("brave")) {
+    return {
+      severity: "warning",
+      reason: "Brave's aggressive privacy settings can sometimes interfere with microphone and screen recording permissions. If you encounter issues, please disable shields for this site or use Chrome.",
+    };
   }
 
   return null;

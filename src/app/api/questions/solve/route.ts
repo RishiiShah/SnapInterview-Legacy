@@ -3,6 +3,7 @@ import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { z } from "zod/v4";
 import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 import { getServerAuthSession } from "@/lib/server-auth";
+import { logger } from "@/utils/logger";
 
 const toggleSolvedSchema = z.object({
   questionId: z.number().int().positive(),
@@ -36,7 +37,9 @@ export async function GET() {
 
     return apiJson({ solvedQuestionIds: solved.map((item) => item.questionId) });
   } catch (error) {
-    console.error("Get solved questions error:", error);
+    logger.error("Get solved questions error:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalServerError();
   }
 }
@@ -85,7 +88,9 @@ export async function POST(req: Request) {
 
     return apiJson({ solved: true, questionId });
   } catch (error) {
-    console.error("Toggle solved question error:", error);
+    logger.error("Toggle solved question error:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalServerError();
   }
 }

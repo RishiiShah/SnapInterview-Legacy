@@ -124,14 +124,34 @@ export function useSpeechRecognition() {
                 };
 
                 recognition.onerror = (event: RecognitionErrorEvent) => {
-                    console.error("Speech recognition error", event.error);
-                    setSpeechError(getSpeechErrorMessage(event?.error));
+                    const errorCode = event?.error;
+                    console.error("Speech recognition error", errorCode);
+                    
+                    // "no-speech" often happens if the user pauses.
+                    // We don't want to stop the UI recording state for this if it's intentional.
+                    if (errorCode === "no-speech") {
+                      return;
+                    }
+
+                    setSpeechError(getSpeechErrorMessage(errorCode));
                     setIsRecording(false);
                     isIntentionalRecordingRef.current = false;
                     recognitionActiveRef.current = false;
                 };
 
                 recognition.onend = () => {
+                    // If the user didn't stop it intentionally, and it's not a hard error,
+                    // we try to restart it (e.g., after "no-speech" or transient network dip).
+                    if (isIntentionalRecordingRef.current && recognitionRef.current) {
+                      try {
+                        recognitionRef.current.start();
+                        recognitionActiveRef.current = true;
+                        return;
+                      } catch (err) {
+                        console.error("Auto-restart failed:", err);
+                      }
+                    }
+
                     const shouldPublishTranscript = isIntentionalRecordingRef.current;
                     isIntentionalRecordingRef.current = false;
                     recognitionActiveRef.current = false;
@@ -195,13 +215,13 @@ export function useSpeechRecognition() {
 
     const stopRecording = useCallback(() => {
         if (!recognitionRef.current || !recognitionActiveRef.current) return;
+        isIntentionalRecordingRef.current = false;
 
         try {
             recognitionRef.current.stop();
         } catch (e) {
             console.error("Failed to stop recognition", e);
             setIsRecording(false);
-            isIntentionalRecordingRef.current = false;
             recognitionActiveRef.current = false;
         }
     }, []);

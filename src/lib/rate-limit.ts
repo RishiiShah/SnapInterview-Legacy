@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/utils/logger";
 
 interface RateLimitResult {
   limited: boolean;
@@ -132,7 +133,7 @@ function sampleCleanupExpiredBuckets(now: Date) {
     .$executeRaw`DELETE FROM "rate_limit_buckets" WHERE "expiresAt" < ${now}`
     .catch((error) => {
       if (!shouldFallbackToInMemory(error)) {
-        console.error("Rate limiter cleanup failed:", error);
+        logger.error("Rate limiter cleanup failed", { error: error instanceof Error ? error.message : String(error) });
       }
     });
 }
@@ -193,7 +194,24 @@ async function consumeFixedWindow(
       resetAt: expiresAt,
     };
   } catch (error) {
+    const isProduction = process.env.NODE_ENV === "production";
+    
+    if (isProduction) {
+      logger.error("Rate limiter database error - FAILING CLOSED (LIMITING)", {
+        namespace,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return {
+        limited: true,
+        resetAt: new Date(Date.now() + 60000), // Default 1m reset
+      };
+    }
+
     if (shouldFallbackToInMemory(error)) {
+      logger.warn("Rate limiter falling back to in-memory storage due to database error", {
+        namespace,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return consumeInMemoryFixedWindow(namespace, safeRawKey, windowMs, maxRequests);
     }
 

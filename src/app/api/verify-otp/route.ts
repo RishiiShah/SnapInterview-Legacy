@@ -5,6 +5,7 @@ import { normalizeEmail, verifyOneTimeCode, extractRequestContext } from "@/lib/
 import { z } from "zod/v4";
 import { apiError, apiJson, badRequestError, internalServerError, notFoundError } from "@/lib/api-response";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { logger } from "@/utils/logger";
 
 const verifySchema = z.object({
     email: z.email("Invalid email address"),
@@ -126,7 +127,9 @@ export async function POST(req: Request) {
 
         return apiJson({ id: user.id, name: user.name, email: user.email }, 201);
     } catch (error) {
-        console.error("OTP verification error:", error);
+        logger.error("OTP verification error:", {
+            error: error instanceof Error ? error.message : String(error),
+        });
         return internalServerError();
     }
 }

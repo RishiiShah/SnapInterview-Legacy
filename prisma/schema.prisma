@@ -216,12 +216,29 @@ model TranscriptEntry {
 
 // ─── App: Practice Questions ─────────────────────────────────────────────────
 
+model PracticeQuestion {
+  id            Int      @id @default(autoincrement())
+  slug          String   @unique
+  text          String   @db.Text
+  category      String
+  difficulty    String
+  estimatedTime String?
+  tags          String[]
+  hint          String?  @db.Text
+  sampleAnswer  String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  solvedBy      SolvedQuestion[]
+}
+
 model SolvedQuestion {
   id         String   @id @default(cuid())
   userId     String
   questionId Int
   solvedAt   DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question   PracticeQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([userId, questionId])
   @@index([userId])

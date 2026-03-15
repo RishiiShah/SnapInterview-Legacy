@@ -46,7 +46,8 @@ describe("GET /api/s3/videos", () => {
   it("returns 401 when user is not authenticated", async () => {
     vi.mocked(getSessionUserIdentity).mockResolvedValue(null as never);
 
-    const res = await GET();
+    const req = new Request("http://localhost/api/s3/videos");
+    const res = await GET(req);
 
     expect(res.status).toBe(401);
   });
@@ -56,21 +57,27 @@ describe("GET /api/s3/videos", () => {
       userId: "user-1",
     } as never);
 
-    vi.mocked(listUserVideos).mockResolvedValue([
-      {
-        key: "user-1/interview-1.webm",
-        url: "https://example.com/1",
-        lastModified: new Date().toISOString(),
-        size: 123,
-      },
-    ]);
+    vi.mocked(listUserVideos).mockResolvedValue({
+      videos: [
+        {
+          key: "user-1/interview-1.webm",
+          url: "https://example.com/1",
+          lastModified: new Date(),
+          size: 123,
+        }
+      ]
+    } as any);
 
-    const res = await GET();
+    const req = new Request("http://localhost/api/s3/videos");
+    const res = await GET(req);
 
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.videos).toHaveLength(1);
-    expect(listUserVideos).toHaveBeenCalledWith("user-1/");
+    expect(listUserVideos).toHaveBeenCalledWith("user-1/", {
+      maxKeys: 12,
+      continuationToken: undefined
+    });
   });
 });
 

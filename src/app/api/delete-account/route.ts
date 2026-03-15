@@ -12,6 +12,7 @@ import { recordSecurityEvent } from "@/lib/account-security";
 import { extractRequestContext } from "@/lib/security";
 import { verifyCredentialPassword } from "@/lib/password";
 import { z } from "zod/v4";
+import { logger } from "@/utils/logger";
 
 const deleteAccountSchema = z.object({
   confirm: z.literal("DELETE"),
@@ -83,7 +84,9 @@ export async function DELETE(req: Request) {
 
     return apiJson({ success: true });
   } catch (error) {
-    console.error("Delete account error:", error);
+    logger.error("Delete account error:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalServerError();
   }
 }

@@ -6,6 +6,7 @@ import { z } from "zod/v4";
 import { apiError, apiJson, internalServerError } from "@/lib/api-response";
 import { extractRequestContext, generateNumericCode, hashOneTimeCode, normalizeEmail } from "@/lib/security";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { logger } from "@/utils/logger";
 
 const schema = z.object({
     email: z.email("Invalid email address"),
@@ -84,7 +85,9 @@ export async function POST(req: Request) {
             try {
                 await sendOtpEmail(email, otp);
             } catch (emailError) {
-                console.error("Failed to send password reset email:", emailError);
+                logger.error("Failed to send password reset email:", {
+                    error: emailError instanceof Error ? emailError.message : String(emailError),
+                });
             }
 
             await recordSecurityEvent({
@@ -102,7 +105,9 @@ export async function POST(req: Request) {
             message: "If an account with that email exists, a reset code has been sent.",
         });
     } catch (error) {
-        console.error("Forgot password error:", error);
+        logger.error("Forgot password error:", {
+            error: error instanceof Error ? error.message : String(error),
+        });
         return internalServerError();
     }
 }

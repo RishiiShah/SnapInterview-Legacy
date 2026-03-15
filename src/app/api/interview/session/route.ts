@@ -10,6 +10,7 @@ import {
     startInterviewSession,
     updateSessionStatusIfOwned,
 } from "@/services/interview-service";
+import { logger } from "@/utils/logger";
 
 const createSessionSchema = z.object({
     role: z.string().trim().min(1, "Role is required").max(200),
@@ -54,7 +55,10 @@ export async function GET(req: Request) {
 
         return apiJson(interviewSession);
     } catch (error) {
-        console.error("Get interview session error:", error);
+        logger.error("Get interview session error", {
+            error: error instanceof Error ? error.message : String(error),
+            route: "GET /api/interview/session",
+        });
         return internalServerError();
     }
 }
@@ -93,7 +97,10 @@ export async function POST(req: Request) {
 
         return apiJson({ id: interviewSession.id }, 201);
     } catch (error) {
-        console.error("Create interview session error:", error);
+        logger.error("Create interview session error", {
+            error: error instanceof Error ? error.message : String(error),
+            route: "POST /api/interview/session",
+        });
         return internalServerError();
     }
 }
@@ -138,9 +145,16 @@ export async function PATCH(req: Request) {
             return notFoundError("Interview session not found");
         }
 
-        return apiJson({ id: updated.data.id, videoUrl: updated.data.videoUrl });
+        return apiJson({
+            id: updated.data.id,
+            videoUrl: updated.data.videoUrl,
+            status: updated.data.status,
+        });
     } catch (error) {
-        console.error("Update interview session error:", error);
+        logger.error("Update interview session error", {
+            error: error instanceof Error ? error.message : String(error),
+            route: "PATCH /api/interview/session",
+        });
         return internalServerError();
     }
 }

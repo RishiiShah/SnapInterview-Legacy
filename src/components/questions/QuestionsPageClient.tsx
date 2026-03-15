@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react";
 
 import { CATEGORIES } from "@/data/constants";
-import { QUESTIONS } from "@/data/questions";
 import type { InterviewType, Difficulty, Question } from "@/data/types";
 import { FadeIn, SlideIn } from "@/components/ui/motion";
 import QuestionsFilterBar from "@/components/questions/QuestionsFilterBar";
@@ -14,6 +13,7 @@ type SortDir = "asc" | "desc";
 
 type QuestionsPageClientProps = {
   initialSolvedIds: number[];
+  questions: Question[];
 };
 
 const DIFFICULTY_ORDER: Record<Difficulty, number> = { easy: 0, medium: 1, hard: 2 };
@@ -32,7 +32,7 @@ function compareFn(a: Question, b: Question, key: SortKey, dir: SortDir): number
   return dir === "asc" ? cmp : -cmp;
 }
 
-export default function QuestionsPageClient({ initialSolvedIds }: QuestionsPageClientProps) {
+export default function QuestionsPageClient({ initialSolvedIds, questions }: QuestionsPageClientProps) {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<InterviewType | "all">("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | "all">("all");
@@ -45,7 +45,7 @@ export default function QuestionsPageClient({ initialSolvedIds }: QuestionsPageC
   const activeFilterCount = (selectedCategory !== "all" ? 1 : 0) + (selectedDifficulty !== "all" ? 1 : 0);
 
   const filtered = useMemo(() => {
-    let result = QUESTIONS.filter((q) => {
+    let result = questions.filter((q) => {
       if (selectedCategory !== "all" && q.category !== selectedCategory) return false;
       if (selectedDifficulty !== "all" && q.difficulty !== selectedDifficulty) return false;
       if (search && !q.text.toLowerCase().includes(search.toLowerCase())) return false;
@@ -53,7 +53,7 @@ export default function QuestionsPageClient({ initialSolvedIds }: QuestionsPageC
     });
     if (sortKey) result = [...result].sort((a, b) => compareFn(a, b, sortKey, sortDir));
     return result;
-  }, [search, selectedCategory, selectedDifficulty, sortKey, sortDir]);
+  }, [search, selectedCategory, selectedDifficulty, sortKey, sortDir, questions]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -71,7 +71,7 @@ export default function QuestionsPageClient({ initialSolvedIds }: QuestionsPageC
 
   const stats = CATEGORIES.map((cat) => ({
     ...cat,
-    count: QUESTIONS.filter((q) => q.category === cat.value).length,
+    count: questions.filter((q) => q.category === cat.value).length,
   }));
 
   return (
@@ -82,7 +82,7 @@ export default function QuestionsPageClient({ initialSolvedIds }: QuestionsPageC
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Question Bank</h1>
               <p className="mt-1 text-sm text-zinc-500">
-                {QUESTIONS.length} questions across {CATEGORIES.length} categories
+                {questions.length} questions across {CATEGORIES.length} categories
               </p>
             </div>
           </div>
@@ -93,7 +93,7 @@ export default function QuestionsPageClient({ initialSolvedIds }: QuestionsPageC
             search={search}
             setSearch={setSearch}
             solvedCount={solvedCount}
-            totalQuestions={QUESTIONS.length}
+            totalQuestions={questions.length}
             showFilters={showFilters}
             setShowFilters={setShowFilters}
             activeFilterCount={activeFilterCount}
@@ -107,14 +107,14 @@ export default function QuestionsPageClient({ initialSolvedIds }: QuestionsPageC
 
         <FadeIn delay={0.25} direction="up" className="relative z-10">
           <p className="text-xs text-zinc-400">
-            Showing {filtered.length} of {QUESTIONS.length} question{filtered.length !== 1 ? "s" : ""}
+            Showing {filtered.length} of {questions.length} question{filtered.length !== 1 ? "s" : ""}
           </p>
         </FadeIn>
 
         <FadeIn delay={0.3} direction="up" className="relative z-0">
           <QuestionsTable
             filtered={filtered}
-            totalQuestions={QUESTIONS.length}
+            totalQuestions={questions.length}
             setSearch={setSearch}
             setSelectedCategory={setSelectedCategory}
             setSelectedDifficulty={setSelectedDifficulty}

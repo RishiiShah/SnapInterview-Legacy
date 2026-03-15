@@ -6,6 +6,7 @@ import { hashCredentialPassword } from "@/lib/password";
 import { z } from "zod/v4";
 import { apiError, apiJson, badRequestError, internalServerError, notFoundError } from "@/lib/api-response";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { logger } from "@/utils/logger";
 
 const schema = z.object({
     email: z.email("Invalid email address"),
@@ -142,7 +143,9 @@ export async function POST(req: Request) {
 
         return apiJson({ success: true });
     } catch (error) {
-        console.error("Reset password error:", error);
+        logger.error("Reset password error:", {
+            error: error instanceof Error ? error.message : String(error),
+        });
         return internalServerError();
     }
 }

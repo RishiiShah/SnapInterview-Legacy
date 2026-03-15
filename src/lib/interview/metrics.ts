@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 
-const DASHBOARD_CACHE_TTL_MS = 15_000;
-const ANALYTICS_CACHE_TTL_MS = 15_000;
+const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000;
+const ANALYTICS_CACHE_TTL_MS = 5 * 60 * 1000;
 
 type CacheEntry<T> = {
   expiresAtMs: number;

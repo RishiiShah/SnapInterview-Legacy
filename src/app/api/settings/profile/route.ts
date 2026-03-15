@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { getSessionUserIdentity } from "@/lib/server-auth";
+import { logger } from "@/utils/logger";
 
 const profileSchema = z.object({
   name: z.string().trim().min(1, "Display name is required").max(100, "Display name is too long"),
@@ -55,7 +56,9 @@ export async function PUT(req: Request) {
       },
     });
   } catch (error) {
-    console.error("Update profile error:", error);
+    logger.error("Update profile error:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalServerError();
   }
 }

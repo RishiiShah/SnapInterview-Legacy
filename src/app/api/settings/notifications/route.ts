@@ -3,6 +3,7 @@ import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { z } from "zod/v4";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { getServerAuthSession } from "@/lib/server-auth";
+import { logger } from "@/utils/logger";
 
 const prefsSchema = z.object({
   emailNotifs: z.boolean(),
@@ -51,7 +52,9 @@ export async function GET() {
       notificationPrefs: normalizePrefs(user.notificationPrefs),
     });
   } catch (error) {
-    console.error("Get notification preferences error:", error);
+    logger.error("Get notification preferences error:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalServerError();
   }
 }
@@ -94,7 +97,9 @@ export async function PUT(req: Request) {
       notificationPrefs: normalizePrefs(updated.notificationPrefs),
     });
   } catch (error) {
-    console.error("Update notification preferences error:", error);
+    logger.error("Update notification preferences error:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalServerError();
   }
 }

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod/v4";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
+import { logger } from "@/utils/logger";
 
 const interviewIdSchema = z.string().uuid();
 
@@ -54,7 +55,9 @@ export async function GET(
 
         return apiJson(interviewSession);
     } catch (error) {
-        console.error("Get interview session error:", error);
+        logger.error("Get interview session error:", {
+            error: error instanceof Error ? error.message : String(error),
+        });
         return internalServerError();
     }
 }

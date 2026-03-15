@@ -232,20 +232,25 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
   };
 
   const toggleCamera = () => {
+    const previousState = isCameraEnabled;
     const newState = !isCameraEnabled;
+    setIsCameraEnabled(newState);
     setError(null);
-    void requestMediaStream({ withVideo: newState, withAudio: true }).catch((err) => {
-      setError(newState ? "Failed to re-enable camera." : "Failed to switch to microphone-only mode.");
+
+    requestMediaStream({ withVideo: newState, withAudio: true }).catch((err) => {
+      setIsCameraEnabled(previousState);
+      setError(newState ? "Failed to re-enable camera. Reverting to microphone only." : "Failed to switch to microphone-only mode.");
       console.error("Camera toggle error:", err);
     });
   };
 
   const selectAudioInput = (deviceId: string) => {
+    const previousId = selectedAudioInputId;
     setSelectedAudioInputId(deviceId);
     if (!streamRef.current) return;
 
     setError(null);
-    void navigator.mediaDevices
+    navigator.mediaDevices
       .getUserMedia({
         audio: { deviceId: { exact: deviceId } },
         video: isCameraEnabled
@@ -261,7 +266,8 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
         });
       })
       .catch((err) => {
-        setError("Failed to switch microphone.");
+        setSelectedAudioInputId(previousId);
+        setError("Failed to switch microphone. Reverting to previous device.");
         console.error("Audio input switch error:", err);
       });
   };
@@ -272,11 +278,12 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
   };
 
   const selectVideoInput = (deviceId: string) => {
+    const previousId = selectedVideoInputId;
     setSelectedVideoInputId(deviceId);
     if (!streamRef.current || !isCameraEnabled) return;
 
     setError(null);
-    void navigator.mediaDevices
+    navigator.mediaDevices
       .getUserMedia({
         audio: selectedAudioInputId ? { deviceId: { exact: selectedAudioInputId } } : true,
         video: { deviceId: { exact: deviceId } },
@@ -288,7 +295,8 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
         });
       })
       .catch((err) => {
-        setError("Failed to switch camera.");
+        setSelectedVideoInputId(previousId);
+        setError("Failed to switch camera. Reverting to previous device.");
         console.error("Video input switch error:", err);
       });
   };

@@ -17,6 +17,7 @@ import {
 } from "@/lib/security";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { hashCredentialPassword } from "@/lib/password";
+import { logger } from "@/utils/logger";
 
 // ── Zod schema ──
 const registerSchema = z.object({
@@ -126,7 +127,9 @@ export async function POST(req: Request) {
       200
     );
   } catch (error) {
-    console.error("Registration error:", error);
+    logger.error("Registration error:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return internalServerError();
   }
 }

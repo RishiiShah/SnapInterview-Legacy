@@ -7,6 +7,7 @@ import { hashCredentialPassword, verifyCredentialPassword } from "@/lib/password
 import { z } from "zod/v4";
 import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { logger } from "@/utils/logger";
 
 const changePasswordSchema = z.object({
     currentPassword: z.string().min(1, "Current password is required"),
@@ -115,7 +116,9 @@ export async function POST(req: Request) {
 
         return apiJson({ success: true, revokedSessions });
     } catch (error) {
-        console.error("Change password error:", error);
+        logger.error("Change password error:", {
+            error: error instanceof Error ? error.message : String(error),
+        });
         return internalServerError();
     }
 }

@@ -4,7 +4,7 @@ import { useMediaPermissions } from "@/lib/useMediaPermissions";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useVideoRecording } from "@/hooks/useVideoRecording";
 import { useChatSession } from "@/hooks/useChatSession";
-import { getInterviewBlockReason } from "@/lib/interview/browser-block";
+import { getInterviewBlockReason, type BrowserBlockResult } from "@/lib/interview/browser-block";
 import { finalizeInterviewUpload, type InterviewCompletionStatus } from "@/lib/video/upload-service";
 
 type UseInterviewPageControllerOptions = {
@@ -20,7 +20,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   const [nativeShareStopped, setNativeShareStopped] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [totalQuestions, setTotalQuestions] = useState(10);
-  const [joinBlockedReason, setJoinBlockedReason] = useState<string | null>(null);
+  const [joinBlockedReason, setJoinBlockedReason] = useState<BrowserBlockResult>(null);
 
   const [modal, setModal] = useState<{
     isOpen: boolean;
@@ -39,6 +39,38 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
 
   const interviewDoneRef = useRef(false);
   const isExitingRef = useRef(false);
+  const hasCheckedResumeRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || hasCheckedResumeRef.current) return;
+    hasCheckedResumeRef.current = true;
+
+    const activeId = localStorage.getItem("active_interview_id");
+    if (activeId && activeId !== interviewId) {
+      setModal({
+        isOpen: true,
+        title: "Active Interview Found",
+        description: "You have another interview in progress. Would you like to resume it or start this new one?",
+        confirmLabel: "Resume Other",
+        cancelLabel: "Start New",
+        onConfirm: () => {
+          closeModal();
+          router.push(`/interview/${activeId}`);
+        },
+        variant: "info",
+      });
+    } else if (activeId === interviewId) {
+      // Auto-resume logic: if it was started, we should probably skip pre-join
+      // But we need media permissions again anyway, so maybe just stay on pre-join
+      // and let the user click "Join Now" again.
+    }
+  }, [interviewId, router, closeModal]);
+
+  useEffect(() => {
+    if (interviewStarted) {
+      localStorage.setItem("active_interview_id", interviewId);
+    }
+  }, [interviewStarted, interviewId]);
   const chatScrollContainerRef = useRef<HTMLDivElement | null>(null);
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -64,9 +96,9 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     let isCancelled = false;
 
     const detectUnsupportedBrowser = async () => {
-      const reason = await getInterviewBlockReason();
+      const result = await getInterviewBlockReason();
       if (!isCancelled) {
-        setJoinBlockedReason(reason);
+        setJoinBlockedReason(result);
       }
     };
 
@@ -82,9 +114,9 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   }, [interviewDone]);
 
   const handlePermissionsGranted = useCallback(async () => {
-    const blockReason = await getInterviewBlockReason();
-    if (blockReason) {
-      setJoinBlockedReason(blockReason);
+    const blockResult = await getInterviewBlockReason();
+    if (blockResult?.severity === "block") {
+      setJoinBlockedReason(blockResult);
       return;
     }
 
@@ -130,17 +162,45 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
       const interviewStatus: InterviewCompletionStatus = interviewDoneRef.current ? "COMPLETED" : "ABORTED";
 
       try {
-        await finalizeInterviewUpload({
+        const result = await finalizeInterviewUpload({
           interviewId,
           status: interviewStatus,
           stopVideoRecording: videoRecording.stopVideoRecording,
         });
+
+        if (result.type === "error") {
+          setModal({
+            isOpen: true,
+            title: "Upload Failed",
+            description: `${result.message}. Would you like to try again?`,
+            onConfirm: () => {
+              closeModal();
+              void handleExitInterview({ skipConfirmation: true });
+            },
+            variant: "danger",
+            confirmLabel: "Retry Upload",
+          });
+          return;
+        }
+
+        localStorage.removeItem("active_interview_id");
+        router.push("/practice");
       } catch (error) {
         console.error("Error finalizing interview upload:", error);
+        setModal({
+          isOpen: true,
+          title: "Critical Error",
+          description: "An unexpected error occurred during upload. Please try again.",
+          onConfirm: () => {
+            closeModal();
+            void handleExitInterview({ skipConfirmation: true });
+          },
+          variant: "danger",
+          confirmLabel: "Retry",
+        });
       } finally {
         setIsUploading(false);
         isExitingRef.current = false;
-        router.push("/practice");
       }
     },
     [interviewId, media, router, speech, videoRecording.stopVideoRecording]

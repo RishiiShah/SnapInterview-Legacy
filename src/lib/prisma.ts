@@ -7,8 +7,17 @@ const connectionString = env.DATABASE_URL;
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
+// In development, the PrismaClient instance might be cached in globalThis.
+// If the schema changes and the client is regenerated, the cached instance
+// will be stale and missing new models. We check if a reliable model (like User)
+// and new models (like PracticeQuestion) are available.
+const isStale = 
+  globalForPrisma.prisma && 
+  (!("user" in globalForPrisma.prisma) || !("practiceQuestion" in globalForPrisma.prisma));
+
 const prisma =
-    globalForPrisma.prisma ||
+    (globalForPrisma.prisma && !isStale) ?
+    globalForPrisma.prisma :
     new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;

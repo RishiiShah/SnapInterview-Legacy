@@ -3,6 +3,8 @@ import { QUESTIONS } from "@/data/questions";
 import { buildSystemInstruction } from "@/lib/interview/prompts";
 import { buildQuestionEvaluationRoleContext } from "@/lib/questions/evaluation";
 import { groqClient } from "@/lib/ai/groq";
+import { withRetry } from "@/utils/retry";
+import { logger } from "@/utils/logger";
 import { getInterviewSession, updateEvaluation } from "@/repositories/interview-repo";
 import { z } from "zod/v4";
 
@@ -50,17 +52,18 @@ export async function evaluateInterviewTranscript(params: {
     return { type: "no_transcript" };
   }
 
-  const roleContext = buildSystemInstruction(interviewSession);
+  const roleContext = await buildSystemInstruction(interviewSession);
   const formattedTranscript = transcript
     .map((entry, index) => `Q${index + 1}: ${entry.question}\nCandidate: ${entry.answer}`)
     .join("\n\n");
 
   try {
-    const chatCompletion = await groqClient.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert technical interviewer evaluating a completely finished interview transcript.
+    const chatCompletion = await withRetry(async () => {
+      return groqClient.chat.completions.create({
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert technical interviewer evaluating a completely finished interview transcript.
 Your goal is to provide a fair, objective final score (0-100) and actionable feedback based on the candidate's overall performance.
 
 Here is the context and criteria for the role the candidate was interviewing for:
@@ -79,16 +82,17 @@ Based on the transcript, return a JSON object with exactly these four keys:
 - "feedback": A concise 2-3 paragraph summary of their performance, highlighting key takeaways.
 - "strengths": An array of 2-4 strings, each being a short bullet point of something they did exceptionally well.
 - "areasForImprovement": An array of 2-4 strings, each being a short bullet point of a specific area they need to work on.`,
-        },
-        {
-          role: "user",
-          content: `Interview Transcript:\n\n${formattedTranscript}`,
-        },
-      ],
-      model: "llama-3.3-70b-versatile",
-      temperature: 0.1,
-      max_completion_tokens: 1500,
-      response_format: { type: "json_object" },
+          },
+          {
+            role: "user",
+            content: `Interview Transcript:\n\n${formattedTranscript}`,
+          },
+        ],
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.1,
+        max_completion_tokens: 1500,
+        response_format: { type: "json_object" },
+      });
     });
 
     const responseContent = chatCompletion.choices[0]?.message?.content;
@@ -106,7 +110,7 @@ Based on the transcript, return a JSON object with exactly these four keys:
 
     return { type: "ok", data: parsedEvaluation };
   } catch (error) {
-    console.error("Interview evaluation error:", error);
+    logger.error("Interview evaluation error", { error, interviewId });
     return { type: "error", message: "Failed to generate interview evaluation" };
   }
 }
@@ -138,13 +142,14 @@ export async function evaluatePracticeQuestion(params: {
     };
   }
 
-  const roleContext = buildQuestionEvaluationRoleContext(question);
+  const roleContext = await buildQuestionEvaluationRoleContext(question);
   try {
-    const chatCompletion = await groqClient.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert technical interviewer evaluating a candidate's answer to a practice question.
+    const chatCompletion = await withRetry(async () => {
+      return groqClient.chat.completions.create({
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert technical interviewer evaluating a candidate's answer to a practice question.
 Your goal is to provide a fair, objective score (0-100) and actionable feedback.
 
 Here is the role-aligned context and criteria reference:
@@ -167,15 +172,16 @@ Evaluation Criteria:
 Return your evaluation as a JSON object with exactly these two keys:
 - "score": A number between 0 and 100 representing the overall quality of the answer.
 - "feedback": A concise paragraph highlighting what was good and specific areas for improvement.`,
-        },
-        {
-          role: "user",
-          content: `Candidate's Answer:\n"${trimmed}"`,
-        },
-      ],
-      model: "llama-3.3-70b-versatile",
-      temperature: 0.1,
-      response_format: { type: "json_object" },
+          },
+          {
+            role: "user",
+            content: `Candidate's Answer:\n"${trimmed}"`,
+          },
+        ],
+        model: "llama-3.3-70b-versatile",
+        temperature: 0.1,
+        response_format: { type: "json_object" },
+      });
     });
 
     const responseContent = chatCompletion.choices[0]?.message?.content;
@@ -186,7 +192,7 @@ Return your evaluation as a JSON object with exactly these two keys:
     const parsedEvaluation = questionEvaluationResponseSchema.parse(JSON.parse(responseContent));
     return { type: "ok", data: parsedEvaluation };
   } catch (error) {
-    console.error("Practice question evaluation error:", error);
+    logger.error("Practice question evaluation error", { error, questionId });
     return { type: "error", message: "Failed to generate answer evaluation" };
   }
 }

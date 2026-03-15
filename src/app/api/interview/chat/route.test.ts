@@ -52,6 +52,7 @@ describe("POST /api/interview/chat", () => {
       userId: "user-1",
       interviewId: validUuid,
       rawMessages: [],
+      abortSignal: expect.any(AbortSignal),
     });
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({ error: "Interview session not found" });

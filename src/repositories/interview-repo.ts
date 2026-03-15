@@ -154,6 +154,7 @@ export async function updateInterviewSessionStatus(params: {
     select: {
       id: true,
       videoUrl: true,
+      status: true,
     },
   });
 }

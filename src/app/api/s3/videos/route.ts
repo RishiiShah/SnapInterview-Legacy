@@ -9,9 +9,10 @@ import {
   unauthorizedError,
 } from "@/lib/api-response";
 import { requireAwsS3Env } from "@/lib/env";
-import { listUserVideos } from "@/lib/s3/videos";
+import { listUserVideos, getSignedVideoUrl } from "@/lib/s3/videos";
 import { S3Client } from "@aws-sdk/client-s3";
 import { z } from "zod/v4";
+import { logger } from "@/utils/logger";
 
 const aws = requireAwsS3Env();
 
@@ -27,20 +28,68 @@ const deleteVideoSchema = z.object({
   key: z.string().min(1, "Missing key"),
 });
 
-export async function GET() {
+const signVideoSchema = z.object({
+  key: z.string().min(1, "Missing key"),
+});
+
+export async function GET(req: Request) {
   try {
     const authUser = await getSessionUserIdentity();
     if (!authUser) {
       return unauthorizedError();
     }
 
-    const prefix = `${authUser.userId}/`;
-    const videos = await listUserVideos(prefix);
+    const { searchParams } = new URL(req.url);
+    const continuationToken = searchParams.get("cursor") || undefined;
+    const limit = parseInt(searchParams.get("limit") || "12", 10);
 
-    return apiJson({ videos });
+    const prefix = `${authUser.userId}/`;
+    const result = await listUserVideos(prefix, { 
+      maxKeys: limit, 
+      continuationToken 
+    });
+
+    return apiJson(result);
   } catch (error) {
-    console.error("Error fetching videos from S3:", error);
+    logger.error("S3 list videos error", {
+      error: error instanceof Error ? error.message : String(error),
+      route: "GET /api/s3/videos",
+    });
     return internalServerError("Failed to fetch videos");
+  }
+}
+
+/**
+ * Endpoint to get a signed URL for a specific video on-demand.
+ */
+export async function POST(req: Request) {
+  try {
+    const authUser = await getSessionUserIdentity();
+    if (!authUser) {
+      return unauthorizedError();
+    }
+
+    const body = await req.json();
+    const parsed = signVideoSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return badRequestError("Invalid request body");
+    }
+
+    const { key } = parsed.data;
+
+    if (!key.startsWith(`${authUser.userId}/`)) {
+      return apiError("Unauthorized access to key", 403);
+    }
+
+    const url = await getSignedVideoUrl(key);
+    return apiJson({ url });
+  } catch (error) {
+    logger.error("S3 sign video URL error", {
+      error: error instanceof Error ? error.message : String(error),
+      route: "POST /api/s3/videos",
+    });
+    return internalServerError("Failed to sign video URL");
   }
 }
 
@@ -78,7 +127,10 @@ export async function DELETE(req: Request) {
 
     return apiJson({ success: true });
   } catch (error) {
-    console.error("Error deleting video from S3:", error);
+    logger.error("S3 delete video error", {
+      error: error instanceof Error ? error.message : String(error),
+      route: "DELETE /api/s3/videos",
+    });
     return internalServerError("Failed to delete video");
   }
 }

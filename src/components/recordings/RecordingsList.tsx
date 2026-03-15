@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { FadeIn } from "@/components/ui/motion";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 import Modal from "@/components/ui/Modal";
 import RecordingModal from "./RecordingModal";
 import type { VideoRecording } from "@/lib/s3/videos";
 import { extractInterviewIdFromVideoKey } from "@/lib/interview/recordings";
+import { IconSpinner } from "@/components/ui/icons";
 
 const recordingDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -24,10 +25,15 @@ function formatRecordingDate(value: string | Date) {
 
 type RecordingsListProps = {
   initialVideos: VideoRecording[];
+  initialNextToken?: string;
 };
 
-export default function RecordingsList({ initialVideos }: RecordingsListProps) {
+export default function RecordingsList({ initialVideos, initialNextToken }: RecordingsListProps) {
   const [recordings, setRecordings] = useState<VideoRecording[]>(initialVideos);
+  const [nextToken, setNextToken] = useState<string | undefined>(initialNextToken);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isOpening, setIsOpening] = useState<string | null>(null);
+  
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
   const [recordingToDelete, setRecordingToDelete] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<{ url: string; interviewId: string; date: string } | null>(null);
@@ -41,14 +47,68 @@ export default function RecordingsList({ initialVideos }: RecordingsListProps) {
     description: "",
   });
 
-  const openRecording = (recording: VideoRecording, date: string) => {
+  const loadMore = async () => {
+    if (isLoadingMore || !nextToken) return;
+
+    setIsLoadingMore(true);
+    try {
+      const res = await fetch(`/api/s3/videos?cursor=${encodeURIComponent(nextToken)}&limit=12`);
+      if (!res.ok) throw new Error("Failed to load more recordings");
+      
+      const data = await res.json();
+      setRecordings((prev) => [...prev, ...data.videos]);
+      setNextToken(data.nextContinuationToken);
+    } catch (error) {
+      console.error("Load more error:", error);
+      setErrorModal({
+        isOpen: true,
+        title: "Error",
+        description: "Failed to load more recordings. Please try again.",
+      });
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  const openRecording = async (recording: VideoRecording, date: string) => {
     const interviewId = extractInterviewIdFromVideoKey(recording.key);
     if (!interviewId) return;
-    setSelectedVideo({
-      url: recording.url,
-      interviewId,
-      date,
-    });
+
+    if (recording.url) {
+      setSelectedVideo({ url: recording.url, interviewId, date });
+      return;
+    }
+
+    // Sign on demand
+    setIsOpening(recording.key);
+    try {
+      const res = await fetch("/api/s3/videos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: recording.key }),
+      });
+
+      if (!res.ok) throw new Error("Failed to get video access");
+      
+      const { url } = await res.json();
+      setSelectedVideo({
+        url,
+        interviewId,
+        date,
+      });
+      
+      // Cache the URL locally for this session
+      setRecordings(prev => prev.map(r => r.key === recording.key ? { ...r, url } : r));
+    } catch (error) {
+      console.error("Error opening recording:", error);
+      setErrorModal({
+        isOpen: true,
+        title: "Access Denied",
+        description: "Unable to retrieve the video. Please try again later.",
+      });
+    } finally {
+      setIsOpening(null);
+    }
   };
 
   const handleDeleteRecording = async () => {
@@ -84,7 +144,7 @@ export default function RecordingsList({ initialVideos }: RecordingsListProps) {
     }
   };
 
-  if (recordings.length === 0) {
+  if (recordings.length === 0 && !isLoadingMore) {
     return (
       <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 py-12 text-center text-sm text-zinc-500">
         No recordings found. Complete an interview to save your session.
@@ -101,6 +161,7 @@ export default function RecordingsList({ initialVideos }: RecordingsListProps) {
 
           const interviewId = extractInterviewIdFromVideoKey(recording.key);
           const canOpen = Boolean(interviewId);
+          const isProcessing = isOpening === recording.key;
 
           return (
             <FadeIn
@@ -110,9 +171,9 @@ export default function RecordingsList({ initialVideos }: RecordingsListProps) {
               className={`group overflow-hidden rounded-2xl border border-zinc-200 bg-white transition-all hover:border-blue-200 hover:shadow-lg flex flex-col ${canOpen ? "cursor-pointer" : "cursor-not-allowed opacity-80"}`}
               role={canOpen ? "button" : undefined}
               tabIndex={canOpen ? 0 : -1}
-              onClick={() => canOpen && openRecording(recording, date)}
+              onClick={() => canOpen && !isProcessing && openRecording(recording, date)}
               onKeyDown={(event) => {
-                if (!canOpen) return;
+                if (!canOpen || isProcessing) return;
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
                   openRecording(recording, date);
@@ -120,18 +181,32 @@ export default function RecordingsList({ initialVideos }: RecordingsListProps) {
               }}
               aria-label={canOpen ? "Open recording details" : "Recording is unavailable"}
             >
-              <div className="relative aspect-video shrink-0 bg-zinc-900">
-                <video
-                  src={`${recording.url}#t=0.001`}
-                  crossOrigin="anonymous"
-                  preload="metadata"
-                  className="h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
-                />
+              <div className="relative aspect-video shrink-0 bg-zinc-900 flex items-center justify-center">
+                {recording.url ? (
+                  <video
+                    src={`${recording.url}#t=0.001`}
+                    crossOrigin="anonymous"
+                    preload="metadata"
+                    className="h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-zinc-500">
+                    <svg className="h-8 w-8 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v7.764a1 1 0 01-1.447.894L15 15M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-[10px] uppercase tracking-widest font-semibold opacity-40">Ready to play</span>
+                  </div>
+                )}
+                
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 bg-black/20">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-md">
-                    <svg className="h-6 w-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
+                    {isProcessing ? (
+                      <IconSpinner className="h-6 w-6 text-white" />
+                    ) : (
+                      <svg className="h-6 w-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    )}
                   </div>
                 </div>
               </div>
@@ -168,6 +243,25 @@ export default function RecordingsList({ initialVideos }: RecordingsListProps) {
           );
         })}
       </div>
+
+      {nextToken && (
+        <div className="mt-12 flex justify-center">
+          <button
+            onClick={loadMore}
+            disabled={isLoadingMore}
+            className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-8 py-2.5 text-sm font-semibold text-zinc-900 transition-all hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoadingMore ? (
+              <>
+                <IconSpinner className="h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              "Load more recordings"
+            )}
+          </button>
+        </div>
+      )}
 
       <DeleteConfirmationModal
         isOpen={recordingToDelete !== null}

@@ -15,7 +15,7 @@ export default async function AnalyticsPage() {
         redirect("/login");
     }
 
-    const email = session.user.email || "";
+    const userId = session.user.id;
 
     const {
         weeklyScores,
@@ -23,8 +23,8 @@ export default async function AnalyticsPage() {
         categoryBreakdown,
         strengths,
         improvements,
-    } = email
-        ? await getAnalyticsOverviewData(email)
+    } = userId
+        ? await getAnalyticsOverviewData(userId)
         : {
             weeklyScores: [],
             monthlyComparison: [

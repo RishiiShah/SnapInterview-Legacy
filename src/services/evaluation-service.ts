@@ -27,6 +27,7 @@ export async function evaluateInterviewTranscript(params: {
 }): Promise<
   | { type: "not_found" }
   | { type: "no_transcript" }
+  | { type: "error"; message: string }
   | { type: "ok"; data: TranscriptEvaluationResponse }
 > {
   const { userId, interviewId } = params;
@@ -54,11 +55,12 @@ export async function evaluateInterviewTranscript(params: {
     .map((entry, index) => `Q${index + 1}: ${entry.question}\nCandidate: ${entry.answer}`)
     .join("\n\n");
 
-  const chatCompletion = await groqClient.chat.completions.create({
-    messages: [
-      {
-        role: "system",
-        content: `You are an expert technical interviewer evaluating a completely finished interview transcript.
+  try {
+    const chatCompletion = await groqClient.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert technical interviewer evaluating a completely finished interview transcript.
 Your goal is to provide a fair, objective final score (0-100) and actionable feedback based on the candidate's overall performance.
 
 Here is the context and criteria for the role the candidate was interviewing for:
@@ -77,32 +79,36 @@ Based on the transcript, return a JSON object with exactly these four keys:
 - "feedback": A concise 2-3 paragraph summary of their performance, highlighting key takeaways.
 - "strengths": An array of 2-4 strings, each being a short bullet point of something they did exceptionally well.
 - "areasForImprovement": An array of 2-4 strings, each being a short bullet point of a specific area they need to work on.`,
-      },
-      {
-        role: "user",
-        content: `Interview Transcript:\n\n${formattedTranscript}`,
-      },
-    ],
-    model: "llama-3.3-70b-versatile",
-    temperature: 0.1,
-    max_completion_tokens: 1500,
-    response_format: { type: "json_object" },
-  });
+        },
+        {
+          role: "user",
+          content: `Interview Transcript:\n\n${formattedTranscript}`,
+        },
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.1,
+      max_completion_tokens: 1500,
+      response_format: { type: "json_object" },
+    });
 
-  const responseContent = chatCompletion.choices[0]?.message?.content;
-  if (!responseContent) {
-    throw new Error("No response from Groq API");
+    const responseContent = chatCompletion.choices[0]?.message?.content;
+    if (!responseContent) {
+      return { type: "error", message: "Empty response from evaluation service" };
+    }
+
+    const parsedEvaluation = transcriptEvaluationResponseSchema.parse(JSON.parse(responseContent));
+
+    await updateEvaluation({
+      interviewId: interviewSession.id,
+      userId,
+      evaluation: parsedEvaluation as unknown as Prisma.InputJsonValue,
+    });
+
+    return { type: "ok", data: parsedEvaluation };
+  } catch (error) {
+    console.error("Interview evaluation error:", error);
+    return { type: "error", message: "Failed to generate interview evaluation" };
   }
-
-  const parsedEvaluation = transcriptEvaluationResponseSchema.parse(JSON.parse(responseContent));
-
-  await updateEvaluation({
-    interviewId: interviewSession.id,
-    userId,
-    evaluation: parsedEvaluation as unknown as Prisma.InputJsonValue,
-  });
-
-  return { type: "ok", data: parsedEvaluation };
 }
 
 export async function evaluatePracticeQuestion(params: {
@@ -110,6 +116,7 @@ export async function evaluatePracticeQuestion(params: {
   answer: string;
 }): Promise<
   | { type: "not_found" }
+  | { type: "error"; message: string }
   | { type: "empty"; data: QuestionEvaluationResponse }
   | { type: "ok"; data: QuestionEvaluationResponse }
 > {
@@ -132,11 +139,12 @@ export async function evaluatePracticeQuestion(params: {
   }
 
   const roleContext = buildQuestionEvaluationRoleContext(question);
-  const chatCompletion = await groqClient.chat.completions.create({
-    messages: [
-      {
-        role: "system",
-        content: `You are an expert technical interviewer evaluating a candidate's answer to a practice question.
+  try {
+    const chatCompletion = await groqClient.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert technical interviewer evaluating a candidate's answer to a practice question.
 Your goal is to provide a fair, objective score (0-100) and actionable feedback.
 
 Here is the role-aligned context and criteria reference:
@@ -159,22 +167,26 @@ Evaluation Criteria:
 Return your evaluation as a JSON object with exactly these two keys:
 - "score": A number between 0 and 100 representing the overall quality of the answer.
 - "feedback": A concise paragraph highlighting what was good and specific areas for improvement.`,
-      },
-      {
-        role: "user",
-        content: `Candidate's Answer:\n"${trimmed}"`,
-      },
-    ],
-    model: "llama-3.3-70b-versatile",
-    temperature: 0.1,
-    response_format: { type: "json_object" },
-  });
+        },
+        {
+          role: "user",
+          content: `Candidate's Answer:\n"${trimmed}"`,
+        },
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.1,
+      response_format: { type: "json_object" },
+    });
 
-  const responseContent = chatCompletion.choices[0]?.message?.content;
-  if (!responseContent) {
-    throw new Error("No response from Groq API");
+    const responseContent = chatCompletion.choices[0]?.message?.content;
+    if (!responseContent) {
+      return { type: "error", message: "Empty response from evaluation service" };
+    }
+
+    const parsedEvaluation = questionEvaluationResponseSchema.parse(JSON.parse(responseContent));
+    return { type: "ok", data: parsedEvaluation };
+  } catch (error) {
+    console.error("Practice question evaluation error:", error);
+    return { type: "error", message: "Failed to generate answer evaluation" };
   }
-
-  const parsedEvaluation = questionEvaluationResponseSchema.parse(JSON.parse(responseContent));
-  return { type: "ok", data: parsedEvaluation };
 }

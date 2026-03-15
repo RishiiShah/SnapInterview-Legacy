@@ -22,6 +22,21 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   const [totalQuestions, setTotalQuestions] = useState(10);
   const [joinBlockedReason, setJoinBlockedReason] = useState<string | null>(null);
 
+  const [modal, setModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    onConfirm?: () => void;
+    variant?: "danger" | "info" | "warning";
+    confirmLabel?: string;
+  }>({
+    isOpen: false,
+    title: "",
+    description: "",
+  });
+
+  const closeModal = useCallback(() => setModal((prev) => ({ ...prev, isOpen: false })), []);
+
   const interviewDoneRef = useRef(false);
   const isExitingRef = useRef(false);
   const chatScrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -75,7 +90,12 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
 
     const started = await videoRecording.startScreenRecording(media.stream || undefined);
     if (!started) {
-      alert("Please allow screen recording to start the interview.");
+      setModal({
+        isOpen: true,
+        title: "Screen Recording Required",
+        description: "Please allow screen recording to start the interview. This is used to capture your session for analysis.",
+        variant: "warning",
+      });
       return;
     }
 
@@ -86,8 +106,18 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   const handleExitInterview = useCallback(
     async ({ skipConfirmation = false }: { skipConfirmation?: boolean } = {}) => {
       if (!skipConfirmation && !interviewDoneRef.current) {
-        const confirmed = window.confirm("Are you sure you want to exit? Your recording will be saved.");
-        if (!confirmed) return;
+        setModal({
+          isOpen: true,
+          title: "Exit Interview",
+          description: "Are you sure you want to exit? Your recording will be saved and you can view it later.",
+          onConfirm: () => {
+            closeModal();
+            void handleExitInterview({ skipConfirmation: true });
+          },
+          variant: "warning",
+          confirmLabel: "Exit Interview",
+        });
+        return;
       }
 
       if (isExitingRef.current) return;
@@ -160,10 +190,19 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   useEffect(() => {
     if (!nativeShareStopped) return;
 
-    alert("Screen sharing was stopped. The interview will now exit and save what was recorded.");
-    void handleExitInterview({ skipConfirmation: true });
+    setModal({
+      isOpen: true,
+      title: "Recording Stopped",
+      description: "Screen sharing was stopped manually. The interview will now exit and save what was recorded.",
+      onConfirm: () => {
+        closeModal();
+        void handleExitInterview({ skipConfirmation: true });
+      },
+      variant: "danger",
+      confirmLabel: "Exit",
+    });
     setNativeShareStopped(false);
-  }, [handleExitInterview, nativeShareStopped]);
+  }, [handleExitInterview, nativeShareStopped, closeModal]);
 
   const answeredQuestions = Math.min(
     chat.messages.filter((message) => message.role === "user").length,
@@ -201,5 +240,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     handlePermissionsGranted,
     handleExitInterview,
     handleVideoMount,
+    modal,
+    closeModal,
   };
 }

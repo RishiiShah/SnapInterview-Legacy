@@ -84,8 +84,8 @@ function shouldFallbackToInMemory(error: unknown): boolean {
       const meta = error.meta as { message?: string; driverAdapterError?: { message?: string } } | undefined;
       const message = `${meta?.message ?? ""} ${meta?.driverAdapterError?.message ?? ""}`.toLowerCase();
       if (message.includes("rate_limit_buckets") || message.includes("tabledoesnotexist")) {
-        // Fail closed in production so missing schema cannot silently degrade security.
-        return process.env.NODE_ENV !== "production";
+        // Fail closed: missing schema cannot silently degrade security by falling back.
+        return false;
       }
 
       if (

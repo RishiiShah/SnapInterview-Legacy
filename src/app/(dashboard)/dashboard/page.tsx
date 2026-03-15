@@ -12,22 +12,20 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const user = session.user.email
-    ? await prisma.user.findUnique({
-        where: { email: session.user.email.toLowerCase() },
-        select: { onboardingCompletedAt: true },
-      })
-    : null;
+  const userId = session.user.id;
+  const onboardingUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { onboardingCompletedAt: true },
+  });
 
-  if (!user?.onboardingCompletedAt) {
+  if (!onboardingUser?.onboardingCompletedAt) {
     redirect("/onboarding");
   }
   const firstName = session?.user?.name?.split(" ")[0] || "there";
   const isFirstLogin = session?.user?.isFirstLogin ?? false;
-  const email = session?.user?.email || "";
 
-  const { stats, recentSessions, chartData } = email
-    ? await getDashboardOverviewData(email)
+  const { stats, recentSessions, chartData } = userId
+    ? await getDashboardOverviewData(userId)
     : { stats: [], recentSessions: [], chartData: [] };
 
   return (

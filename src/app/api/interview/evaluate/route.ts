@@ -48,6 +48,10 @@ export async function POST(req: Request) {
             return badRequestError("No transcript found for this interview");
         }
 
+        if (result.type === "error") {
+            return badRequestError(result.message);
+        }
+
         return apiJson(result.data);
     } catch (error) {
         console.error("Transcript evaluation error:", error);

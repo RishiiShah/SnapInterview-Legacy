@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 const interviewSessionStateSelect = {
   id: true,
   status: true,
+  videoUrl: true,
   questionCount: true,
   currentQuestion: true,
 } satisfies Prisma.InterviewSessionSelect;

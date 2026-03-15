@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { FadeIn } from "@/components/ui/motion";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
+import Modal from "@/components/ui/Modal";
 import RecordingModal from "./RecordingModal";
 import type { VideoRecording } from "@/lib/s3/videos";
 import { extractInterviewIdFromVideoKey } from "@/lib/interview/recordings";
@@ -30,11 +31,24 @@ export default function RecordingsList({ initialVideos }: RecordingsListProps) {
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
   const [recordingToDelete, setRecordingToDelete] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<{ url: string; interviewId: string; date: string } | null>(null);
+  const [errorModal, setErrorModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+  }>({
+    isOpen: false,
+    title: "",
+    description: "",
+  });
 
   const openRecording = (recording: VideoRecording, date: string) => {
     const interviewId = extractInterviewIdFromVideoKey(recording.key);
     if (!interviewId) return;
-    setSelectedVideo({ url: recording.url, interviewId, date });
+    setSelectedVideo({
+      url: recording.url,
+      interviewId,
+      date,
+    });
   };
 
   const handleDeleteRecording = async () => {
@@ -52,11 +66,19 @@ export default function RecordingsList({ initialVideos }: RecordingsListProps) {
         setRecordings((prev) => prev.filter((recording) => recording.key !== recordingToDelete));
         setRecordingToDelete(null);
       } else {
-        alert("Failed to delete recording.");
+        setErrorModal({
+          isOpen: true,
+          title: "Delete Failed",
+          description: "Failed to delete recording. Please try again later.",
+        });
       }
     } catch (error) {
       console.error("Error deleting recording:", error);
-      alert("Error deleting recording.");
+      setErrorModal({
+        isOpen: true,
+        title: "Delete Error",
+        description: "An unexpected error occurred while deleting the recording.",
+      });
     } finally {
       setDeletingKey(null);
     }
@@ -152,6 +174,15 @@ export default function RecordingsList({ initialVideos }: RecordingsListProps) {
         onClose={() => setRecordingToDelete(null)}
         onConfirm={handleDeleteRecording}
         isDeleting={deletingKey !== null}
+      />
+
+      <Modal
+        isOpen={errorModal.isOpen}
+        onClose={() => setErrorModal((prev) => ({ ...prev, isOpen: false }))}
+        title={errorModal.title}
+        description={errorModal.description}
+        variant="danger"
+        confirmLabel="OK"
       />
 
       {selectedVideo && (

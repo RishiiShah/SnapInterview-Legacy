@@ -61,14 +61,14 @@ describe("interview metrics scoring", () => {
     ]);
     vi.mocked(prisma.transcriptEntry.findMany).mockResolvedValue([]);
 
-    const dashboard = await getDashboardOverviewData("user@example.com");
+    const dashboard = await getDashboardOverviewData("user-1");
     const avgStat = dashboard.stats.find((item) => item.label === "Average Score");
 
     expect(avgStat?.value).toBe("92");
     expect(dashboard.recentSessions[0]?.score).toBe(92);
     expect(dashboard.chartData.some((point) => point.value === 92)).toBe(true);
 
-    const analytics = await getAnalyticsOverviewData("user@example.com");
+    const analytics = await getAnalyticsOverviewData("user-1");
 
     expect(analytics.monthlyComparison[0]?.avgScore).toBe(92);
     expect(analytics.weeklyScores.some((point) => point.value === 92)).toBe(true);

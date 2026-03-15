@@ -10,13 +10,13 @@ export default async function QuestionsPage() {
     redirect("/login");
   }
 
-  const email = session.user.email?.toLowerCase();
+  const userId = session.user.id;
 
   let initialSolvedIds: number[] = [];
 
-  if (email) {
+  if (userId) {
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { id: userId },
       select: {
         solvedQuestions: {
           select: { questionId: true },

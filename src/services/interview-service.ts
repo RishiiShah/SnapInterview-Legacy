@@ -144,6 +144,15 @@ export async function updateSessionStatusIfOwned(params: {
     return { type: "not_found" as const };
   }
 
+  // Idempotency: If already finalized, only allow updating videoUrl if it's currently null.
+  if (existing.status !== "IN_PROGRESS") {
+    if (videoUrl && !existing.videoUrl) {
+      const updated = await updateInterviewSessionStatus({ interviewId, userId, videoUrl });
+      return { type: "ok" as const, data: updated };
+    }
+    return { type: "ok" as const, data: existing };
+  }
+
   const updated = await updateInterviewSessionStatus({ interviewId, userId, videoUrl, status });
   return { type: "ok" as const, data: updated };
 }
@@ -197,8 +206,6 @@ export async function runInterviewChat(params: {
     stream: true,
   });
 
-  await incrementCurrentQuestion(interviewId);
-
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
@@ -208,6 +215,7 @@ export async function runInterviewChat(params: {
             controller.enqueue(new TextEncoder().encode(content));
           }
         }
+        await incrementCurrentQuestion(interviewId);
         controller.close();
       } catch (error) {
         controller.error(error);

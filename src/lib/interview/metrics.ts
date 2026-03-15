@@ -208,12 +208,8 @@ function calculateStreak(sessions: SessionRecord[], now: Date): number {
   return streak;
 }
 
-async function getUserSessions(email: string): Promise<SessionRecord[]> {
-  const normalizedEmail = email.toLowerCase();
-  const user = await prisma.user.findUnique({ where: { email: normalizedEmail }, select: { id: true } });
-  if (!user) return [];
-
-  return getUserSessionsByUserId(user.id);
+async function getUserSessions(userId: string): Promise<SessionRecord[]> {
+  return getUserSessionsByUserId(userId);
 }
 
 async function getUserSessionsByUserId(userId: string): Promise<SessionRecord[]> {
@@ -255,15 +251,13 @@ export async function getRecentPracticeSessionsByUserId(
   }));
 }
 
-async function getUserTranscripts(email: string): Promise<TranscriptRecord[]> {
-  const normalizedEmail = email.toLowerCase();
-  const user = await prisma.user.findUnique({ where: { email: normalizedEmail }, select: { id: true } });
-  if (!user) return [];
+async function getUserTranscripts(userId: string): Promise<TranscriptRecord[]> {
+  if (!userId) return [];
 
   const transcripts = await prisma.transcriptEntry.findMany({
     where: {
       interviewSession: {
-        userId: user.id,
+        userId: userId,
       },
     },
     select: {
@@ -348,14 +342,13 @@ function deriveStrengthsAndImprovementsFromTranscripts(transcripts: TranscriptRe
   return { strengths, improvements };
 }
 
-export async function getDashboardOverviewData(email: string): Promise<DashboardOverviewData> {
-  const normalizedEmail = email.toLowerCase();
-  const cached = readCache(dashboardCache, normalizedEmail);
+export async function getDashboardOverviewData(userId: string): Promise<DashboardOverviewData> {
+  const cached = readCache(dashboardCache, userId);
   if (cached) {
     return cached;
   }
 
-  const sessions = await getUserSessions(normalizedEmail);
+  const sessions = await getUserSessions(userId);
   const now = new Date();
   const last7Days = addDays(now, -7);
 
@@ -467,7 +460,7 @@ export async function getDashboardOverviewData(email: string): Promise<Dashboard
     chartData: lastSevenDays,
   };
 
-  writeCache(dashboardCache, normalizedEmail, result, DASHBOARD_CACHE_TTL_MS);
+  writeCache(dashboardCache, userId, result, DASHBOARD_CACHE_TTL_MS);
   return result;
 }
 
@@ -479,15 +472,14 @@ const prettifyCategory = (value: string): string => {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-export async function getAnalyticsOverviewData(email: string): Promise<AnalyticsOverviewData> {
-  const normalizedEmail = email.toLowerCase();
-  const cached = readCache(analyticsCache, normalizedEmail);
+export async function getAnalyticsOverviewData(userId: string): Promise<AnalyticsOverviewData> {
+  const cached = readCache(analyticsCache, userId);
   if (cached) {
     return cached;
   }
 
-  const sessions = await getUserSessions(normalizedEmail);
-  const transcripts = await getUserTranscripts(normalizedEmail);
+  const sessions = await getUserSessions(userId);
+  const transcripts = await getUserTranscripts(userId);
   const now = new Date();
 
   const thisMonthRange = getMonthRange(now);
@@ -572,6 +564,6 @@ export async function getAnalyticsOverviewData(email: string): Promise<Analytics
     improvements,
   };
 
-  writeCache(analyticsCache, normalizedEmail, result, ANALYTICS_CACHE_TTL_MS);
+  writeCache(analyticsCache, userId, result, ANALYTICS_CACHE_TTL_MS);
   return result;
 }

@@ -5,6 +5,7 @@ import { AnimatePresence } from "framer-motion";
 import PreJoinScreen from "@/components/interview/PreJoinScreen";
 import ActiveInterviewScreen from "@/components/interview/ActiveInterviewScreen";
 import { useInterviewPageController } from "@/hooks/useInterviewPageController";
+import Modal from "@/components/ui/Modal";
 
 export default function InterviewPage() {
   const params = useParams();
@@ -28,9 +29,12 @@ export default function InterviewPage() {
     handlePermissionsGranted,
     handleExitInterview,
     handleVideoMount,
+    modal,
+    closeModal,
   } = useInterviewPageController({ interviewId });
 
   return (
+    <>
     <AnimatePresence mode="wait">
       {showPreJoin && (
         <PreJoinScreen
@@ -94,5 +98,16 @@ export default function InterviewPage() {
         />
       )}
     </AnimatePresence>
+
+    <Modal
+      isOpen={modal.isOpen}
+      onClose={closeModal}
+      onConfirm={modal.onConfirm}
+      title={modal.title}
+      description={modal.description}
+      variant={modal.variant}
+      confirmLabel={modal.confirmLabel}
+    />
+    </>
   );
 }

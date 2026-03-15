@@ -88,7 +88,7 @@ export default function QuestionsPageClient({ initialSolvedIds }: QuestionsPageC
           </div>
         </SlideIn>
 
-        <FadeIn delay={0.1} direction="up">
+        <FadeIn delay={0.1} direction="up" className="relative z-30">
           <QuestionsFilterBar
             search={search}
             setSearch={setSearch}
@@ -105,13 +105,13 @@ export default function QuestionsPageClient({ initialSolvedIds }: QuestionsPageC
           />
         </FadeIn>
 
-        <FadeIn delay={0.25} direction="up">
+        <FadeIn delay={0.25} direction="up" className="relative z-10">
           <p className="text-xs text-zinc-400">
             Showing {filtered.length} of {QUESTIONS.length} question{filtered.length !== 1 ? "s" : ""}
           </p>
         </FadeIn>
 
-        <FadeIn delay={0.3} direction="up">
+        <FadeIn delay={0.3} direction="up" className="relative z-0">
           <QuestionsTable
             filtered={filtered}
             totalQuestions={QUESTIONS.length}

@@ -8,14 +8,14 @@ import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/utils/helpers";
 import {
     IconArrowLeft,
-    IconBookOpen,
-    IconCamera,
     IconChartBars,
     IconChevronRight,
     IconChevronUp,
     IconDashboard,
     IconLogout,
-    IconMicrophone,
+    IconPractice,
+    IconQuestionBank,
+    IconRecordings,
     IconSettings,
 } from "@/components/ui/icons";
 
@@ -34,11 +34,11 @@ export const navItems = [
     },
     {
         label: "Practice", href: "/practice",
-        icon: <IconMicrophone className="h-5 w-5 shrink-0" />,
+        icon: <IconPractice className="h-5 w-5 shrink-0" />,
     },
     {
         label: "Question Bank", href: "/questions",
-        icon: <IconBookOpen className="h-5 w-5 shrink-0" />,
+        icon: <IconQuestionBank className="h-5 w-5 shrink-0" />,
     },
     {
         label: "Analytics", href: "/analytics",
@@ -46,7 +46,7 @@ export const navItems = [
     },
     {
         label: "Recordings", href: "/recordings",
-        icon: <IconCamera className="h-5 w-5 shrink-0" />,
+        icon: <IconRecordings className="h-5 w-5 shrink-0" />,
     },
 ];
 

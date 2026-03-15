@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import PermissionRequest, { type PermissionRequestProps } from "@/components/interview/PermissionRequest";
-import { IconArrowLeft } from "@/components/ui/icons";
+import { IconChevronLeft } from "@/components/ui/icons";
 
 type PreJoinScreenProps = {
   onBack: () => void;
@@ -49,7 +49,7 @@ export default function PreJoinScreen({
             onClick={onBack}
             className="mb-4 flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:border-zinc-300"
           >
-            <IconArrowLeft className="h-4 w-4" />
+            <IconChevronLeft className="h-4 w-4" />
             Back
           </button>
         </div>

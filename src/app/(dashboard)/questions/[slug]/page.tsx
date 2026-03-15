@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, use } from "react";
 import Link from "next/link";
 
 import { getQuestionBySlug, QUESTIONS } from "@/data/questions";
-import { IconArrowLeft, IconChevronRight } from "@/components/ui/icons";
+import { IconChevronLeft, IconChevronRight } from "@/components/ui/icons";
 import { QuestionLeftPanel, type LeftTab } from "@/components/questions/QuestionLeftPanel";
 import { QuestionRightPanel, type RightTab } from "@/components/questions/QuestionRightPanel";
 
@@ -187,14 +187,14 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ slug:
             <div className="flex h-10 shrink-0 items-center justify-between border-b border-[#ffffff0f] px-4">
                 <div className="flex items-center gap-3">
                     <Link href="/questions" className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 transition-colors hover:text-white">
-                        <IconArrowLeft className="h-3.5 w-3.5" />
+                        <IconChevronLeft className="h-3.5 w-3.5" />
                         Problem List
                     </Link>
                 </div>
                 <div className="flex items-center gap-2">
                     {prevQuestion && (
                         <Link href={`/questions/${prevQuestion.slug}`} className="grid h-7 w-7 place-items-center rounded text-zinc-400 transition-colors hover:bg-[#ffffff0f] hover:text-white">
-                            <IconArrowLeft className="h-4 w-4" />
+                            <IconChevronLeft className="h-4 w-4" />
                         </Link>
                     )}
                     <span className="text-xs text-zinc-500">{currentIndex + 1} / {QUESTIONS.length}</span>

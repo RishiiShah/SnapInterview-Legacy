@@ -1,8 +1,8 @@
 import { FadeIn, FadeInStagger, FadeInStaggerItem } from "@/components/ui/motion";
 import {
-  IconBookOpen,
   IconChartBars,
   IconClock,
+  IconQuestionBank,
   IconStarBurst,
   IconTrendingUp,
   IconVideoCamera,
@@ -38,7 +38,7 @@ export default function FeaturesSection() {
               desc: "Get a detailed scorecard after every session — strengths, weak spots, and how to improve.",
             },
             {
-              icon: <IconBookOpen className="h-5 w-5" />,
+              icon: <IconQuestionBank className="h-5 w-5" />,
               title: "Question Library",
               desc: "Thousands of curated questions across industries — behavioral, technical, and case study.",
             },

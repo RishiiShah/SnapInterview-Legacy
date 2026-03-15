@@ -5,11 +5,11 @@ import { getScoreColor, getScoreLabel } from "@/utils/helpers";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 import { motion } from "framer-motion";
 import {
-  IconBookOpen,
   IconCheckCircle,
   IconClock,
   IconFlame,
-  IconPlus,
+  IconPractice,
+  IconQuestionBank,
   IconStarBurst,
 } from "@/components/ui/icons";
 
@@ -96,11 +96,11 @@ export default function DashboardOverviewClient({
       <SlideIn delay={0.2}>
         <div className="flex flex-wrap gap-3 py-1">
           <Link href="/practice" className="flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-zinc-700 hover:shadow-lg hover:-translate-y-0.5">
-            <IconPlus className="h-4 w-4" />
+            <IconPractice className="h-4 w-4" />
             Start New Interview
           </Link>
           <Link href="/questions" className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-5 py-2 text-sm font-semibold text-zinc-700 transition-all hover:border-zinc-300 hover:bg-zinc-50 hover:-translate-y-0.5">
-            <IconBookOpen className="h-4 w-4" />
+            <IconQuestionBank className="h-4 w-4" />
             Browse Questions
           </Link>
         </div>

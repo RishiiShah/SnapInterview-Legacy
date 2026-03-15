@@ -5,7 +5,7 @@ import {
     IconChartBars,
     IconClock,
     IconPencilSquare,
-    IconPlay,
+    IconPractice,
     IconSpinner,
 } from "@/components/ui/icons";
 
@@ -55,7 +55,7 @@ export function QuestionRightPanel({
                     /* Start state */
                     <div className="flex flex-1 flex-col items-center justify-center text-center px-8">
                         <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#ffffff08] text-zinc-500">
-                            <IconPlay className="h-7 w-7" strokeWidth={1.5} />
+                            <IconPractice className="h-7 w-7" strokeWidth={1.5} />
                         </div>
                         <p className="mb-1 text-sm font-medium text-zinc-300">Ready to practice?</p>
                         <p className="mb-5 text-xs text-zinc-500">

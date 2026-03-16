@@ -77,7 +77,7 @@ export default function PermissionRequest({
   if (!isOpen) return null;
 
   return (
-    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
       {/* Left: preview rectangle + options below */}
       <div className="flex flex-1 flex-col gap-4">
         {joinBlockedReason?.severity === "warning" && (
@@ -266,16 +266,18 @@ export default function PermissionRequest({
       </div>
 
       {/* Right: Ready to join + Join now below */}
-      <div className="w-full rounded-2xl bg-white p-6 lg:w-80 lg:shrink-0 lg:translate-x-10">
-        <h2 className="text-center text-lg font-semibold text-zinc-900">Ready to join?</h2>
-        <button
-          type="button"
-          onClick={handleJoinNow}
-          disabled={hasPermission !== true}
-          className="mt-6 w-full rounded-lg bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Join now
-        </button>
+      <div className="w-full rounded-2xl bg-white p-6 lg:w-80 lg:shrink-0 lg:self-center lg:-translate-y-12">
+        <div className="lg:pl-8">
+          <h2 className="text-center text-lg font-semibold text-zinc-900">Ready to join?</h2>
+          <button
+            type="button"
+            onClick={handleJoinNow}
+            disabled={hasPermission !== true}
+            className="mt-6 w-full cursor-pointer rounded-lg bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Join now
+          </button>
+        </div>
       </div>
 
       <AnimatePresence>

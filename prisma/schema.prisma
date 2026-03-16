@@ -194,11 +194,13 @@ model InterviewSession {
   focusAreas      Json?
   sessionPlan     Json?
   evaluation      Json?
+  deletedAt       DateTime?
   createdAt       DateTime        @default(now())
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   transcript      TranscriptEntry[]
 
   @@index([userId])
+  @@index([userId, deletedAt])
 }
 
 model TranscriptEntry {

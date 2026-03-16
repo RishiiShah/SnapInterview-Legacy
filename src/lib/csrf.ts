@@ -5,6 +5,11 @@ type OriginValidationResult = {
   normalizedOrigin: string | null;
 };
 
+function getEnv(name: string): string | undefined {
+  // eslint-disable-next-line no-process-env
+  return process.env[name];
+}
+
 function normalizeOrigin(value: string | null | undefined): string | null {
   if (!value) return null;
   try {
@@ -15,7 +20,7 @@ function normalizeOrigin(value: string | null | undefined): string | null {
 }
 
 function getTrustedOriginSuffixes(): string[] {
-  const raw = env.CSRF_TRUSTED_ORIGIN_SUFFIXES as string | undefined;
+  const raw = getEnv("CSRF_TRUSTED_ORIGIN_SUFFIXES");
   if (!raw) return [];
 
   return raw
@@ -29,9 +34,9 @@ function getAllowedOrigins(): Set<string> {
   const origins = new Set<string>();
 
   const candidateOrigins = [
-    env.BETTER_AUTH_URL,
-    env.NEXT_PUBLIC_APP_URL,
-    env.APP_URL,
+    getEnv("BETTER_AUTH_URL"),
+    getEnv("NEXT_PUBLIC_APP_URL"),
+    getEnv("APP_URL"),
   ];
 
   for (const origin of candidateOrigins) {
@@ -43,14 +48,7 @@ function getAllowedOrigins(): Set<string> {
     }
   }
 
-  for (const origin of configuredOrigins) {
-    const normalized = normalizeOrigin(origin);
-    if (normalized) {
-      origins.add(normalized);
-    }
-  }
-
-  const extraTrustedOrigins = env.CSRF_TRUSTED_ORIGINS as string | undefined;
+  const extraTrustedOrigins = getEnv("CSRF_TRUSTED_ORIGINS");
   if (extraTrustedOrigins) {
     for (const origin of extraTrustedOrigins.split(",")) {
       const normalized = normalizeOrigin(origin.trim());
@@ -60,7 +58,7 @@ function getAllowedOrigins(): Set<string> {
     }
   }
 
-  if (env.NODE_ENV !== "production") {
+  if (getEnv("NODE_ENV") !== "production") {
     origins.add("http://localhost:3000");
     origins.add("http://127.0.0.1:3000");
   }

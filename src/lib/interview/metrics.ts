@@ -59,6 +59,7 @@ type SessionRecord = {
   id: string;
   role: string;
   company: string | null;
+  videoKey: string | null;
   type: string;
   status: "IN_PROGRESS" | "COMPLETED" | "ABORTED";
   questionCount: number;
@@ -266,12 +267,16 @@ async function getUserSessionsByUserId(userId: string): Promise<SessionRecord[]>
   if (!userId) return [];
 
   const sessions = await prisma.interviewSession.findMany({
-    where: { userId },
+    where: {
+      userId,
+      deletedAt: null,
+    },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
       role: true,
       company: true,
+      videoKey: true,
       type: true,
       status: true,
       questionCount: true,
@@ -289,10 +294,34 @@ export async function getRecentPracticeSessionsByUserId(
   userId: string,
   limit = 5
 ): Promise<PracticeRecentSession[]> {
-  const sessions = await getUserSessionsByUserId(userId);
+  if (!userId) return [];
+
+  const sessions = await prisma.interviewSession.findMany({
+    where: {
+      userId,
+      deletedAt: null,
+      videoKey: {
+        not: null,
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      id: true,
+      role: true,
+      company: true,
+      type: true,
+      status: true,
+      questionCount: true,
+      currentQuestion: true,
+      evaluation: true,
+      createdAt: true,
+    },
+    take: Math.max(limit * 3, limit),
+  });
 
   return sessions
-    .slice(0, limit)
     .map((session) => {
       const parsedType = interviewTypeSchema.safeParse(session.type);
       if (!parsedType.success) {
@@ -308,7 +337,8 @@ export async function getRecentPracticeSessionsByUserId(
         date: formatSessionDate(session.createdAt),
       } satisfies PracticeRecentSession;
     })
-    .filter((session): session is PracticeRecentSession => session !== null);
+    .filter((session): session is PracticeRecentSession => session !== null)
+    .slice(0, limit);
 }
 
 async function getUserTranscripts(userId: string): Promise<TranscriptRecord[]> {
@@ -318,6 +348,7 @@ async function getUserTranscripts(userId: string): Promise<TranscriptRecord[]> {
     where: {
       interviewSession: {
         userId: userId,
+        deletedAt: null,
       },
     },
     select: {
@@ -460,7 +491,10 @@ export async function getDashboardOverviewData(userId: string): Promise<Dashboar
 
   const streak = calculateStreak(sessions, now);
 
-  const recentSessions = sessions.slice(0, 5).map((session) => ({
+  const recentSessions = sessions
+    .filter((session) => Boolean(session.videoKey))
+    .slice(0, 5)
+    .map((session) => ({
     id: session.id,
     role: session.role,
     company: session.company || "Unknown",

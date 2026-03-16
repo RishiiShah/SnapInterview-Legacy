@@ -9,6 +9,7 @@ import {
   internalServerError,
   unauthorizedError,
 } from "@/lib/api-response";
+import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 import { requireAwsS3Env } from "@/lib/env";
 import { listUserVideos, getSignedVideoUrl } from "@/lib/s3/videos";
 import { S3Client } from "@aws-sdk/client-s3";
@@ -27,6 +28,7 @@ const s3Client = new S3Client({
 
 const deleteVideoSchema = z.object({
   key: z.string().min(1, "Missing key"),
+  deleteInterviewData: z.boolean().optional().default(false),
 });
 
 const signVideoSchema = z.object({
@@ -77,7 +79,7 @@ export async function POST(req: Request) {
       return badRequestError("Invalid request body");
     }
 
-    const { key } = parsed.data;
+    const { key, deleteInterviewData } = parsed.data;
 
     if (!key.startsWith(`${authUser.userId}/`)) {
       return apiError("Unauthorized access to key", 403);
@@ -112,7 +114,7 @@ export async function DELETE(req: Request) {
       return badRequestError(firstError);
     }
 
-    const { key } = parsed.data;
+    const { key, deleteInterviewData } = parsed.data;
 
     // Ensure user can only delete their own videos
     if (!key.startsWith(`${authUser.userId}/`)) {
@@ -126,16 +128,27 @@ export async function DELETE(req: Request) {
 
     await s3Client.send(deleteCommand);
 
-    await prisma.interviewSession.updateMany({
-      where: {
-        userId: authUser.userId,
-        videoKey: key,
-      },
-      data: {
-        videoKey: null,
-        videoUrl: null,
-      },
-    });
+    if (deleteInterviewData) {
+      await prisma.interviewSession.deleteMany({
+        where: {
+          userId: authUser.userId,
+          videoKey: key,
+        },
+      });
+    } else {
+      await prisma.interviewSession.updateMany({
+        where: {
+          userId: authUser.userId,
+          videoKey: key,
+        },
+        data: {
+          videoKey: null,
+          videoUrl: null,
+        },
+      });
+    }
+
+    invalidateInterviewMetricsCache(authUser.userId);
 
     return apiJson({ success: true });
   } catch (error) {

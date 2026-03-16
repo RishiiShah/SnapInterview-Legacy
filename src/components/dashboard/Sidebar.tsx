@@ -7,8 +7,8 @@ import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/utils/helpers";
 import {
-    IconArrowLeft,
     IconChartBars,
+    IconChevronLeft,
     IconChevronRight,
     IconChevronUp,
     IconDashboard,
@@ -82,7 +82,7 @@ export function Sidebar({
             {/* Logo + Toggle */}
             <div className={`flex h-16 items-center border-b border-zinc-100 ${collapsed ? "justify-center px-2" : "justify-between px-3"}`}>
                 {collapsed ? (
-                    <button onClick={() => setCollapsed(false)} className="group/logo relative grid h-8 w-8 place-items-center rounded-lg bg-zinc-900 transition-colors hover:bg-zinc-700" aria-label="Open sidebar" title="Open sidebar">
+                    <button onClick={() => setCollapsed(false)} className="group/logo relative grid h-8 w-8 cursor-pointer place-items-center rounded-lg bg-zinc-900 transition-colors hover:bg-zinc-700" aria-label="Open sidebar" title="Open sidebar">
                         <span className="text-[11px] font-bold leading-none tracking-tighter text-white transition-opacity group-hover/logo:opacity-0">SI</span>
                         <IconChevronRight className="absolute inset-0 m-auto h-4 w-4 text-white opacity-0 transition-opacity group-hover/logo:opacity-100" />
                     </button>
@@ -92,8 +92,8 @@ export function Sidebar({
                             <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-zinc-900 text-[11px] font-bold leading-none tracking-tighter text-white">SI</div>
                             <span className="whitespace-nowrap text-lg font-semibold tracking-tight text-zinc-900">SnapInterview</span>
                         </Link>
-                        <button onClick={() => setCollapsed(true)} className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600" aria-label="Collapse sidebar">
-                            <IconArrowLeft className="h-4 w-4" />
+                        <button onClick={() => setCollapsed(true)} className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600" aria-label="Collapse sidebar">
+                            <IconChevronLeft className="h-4 w-4" />
                         </button>
                     </>
                 )}

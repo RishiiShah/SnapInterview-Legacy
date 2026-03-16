@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
+import type { ReactNode } from "react";
 
 interface DeleteConfirmationModalProps {
     isOpen: boolean;
@@ -7,6 +8,8 @@ interface DeleteConfirmationModalProps {
     isDeleting: boolean;
     title?: string;
     description?: string;
+    confirmLabel?: string;
+    extraContent?: ReactNode;
 }
 
 export default function DeleteConfirmationModal({
@@ -15,7 +18,9 @@ export default function DeleteConfirmationModal({
     onConfirm,
     isDeleting,
     title = "Delete Recording",
-    description = "Are you sure you want to delete this recording? This action cannot be undone."
+    description = "Are you sure you want to delete this recording? This action cannot be undone.",
+    confirmLabel = "Delete",
+    extraContent,
 }: DeleteConfirmationModalProps) {
     return (
         <AnimatePresence>
@@ -50,6 +55,7 @@ export default function DeleteConfirmationModal({
                                         <p className="mt-2 text-sm text-zinc-500">
                                             {description}
                                         </p>
+                                        {extraContent ? <div className="mt-4">{extraContent}</div> : null}
                                     </div>
                                 </div>
                             </div>
@@ -69,7 +75,7 @@ export default function DeleteConfirmationModal({
                                     {isDeleting ? (
                                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                                     ) : (
-                                        "Delete"
+                                        confirmLabel
                                     )}
                                 </button>
                             </div>

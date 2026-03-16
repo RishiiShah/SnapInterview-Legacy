@@ -24,6 +24,9 @@ vi.mock("@/lib/s3/videos", () => ({
 }));
 
 vi.mock("@/lib/env", () => ({
+  env: {
+    NODE_ENV: "test",
+  },
   requireAwsS3Env: vi.fn(() => ({
     region: "us-east-1",
     accessKeyId: "test",
@@ -36,6 +39,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     interviewSession: {
       updateMany: vi.fn(),
+      deleteMany: vi.fn(),
     },
   },
 }));
@@ -151,7 +155,7 @@ describe("DELETE /api/s3/videos", () => {
     expect(body.error).toBe("Unauthorized access to key");
   });
 
-  it("deletes the video and clears linked interview metadata", async () => {
+  it("deletes only the recording by default and keeps interview data", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
     vi.mocked(getSessionUserIdentity).mockResolvedValue({
       userId: "user-1",
@@ -175,6 +179,30 @@ describe("DELETE /api/s3/videos", () => {
       data: {
         videoKey: null,
         videoUrl: null,
+      },
+    });
+    expect(prisma.interviewSession.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("deletes recording and interview data when deleteInterviewData is true", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({
+      userId: "user-1",
+    } as never);
+    vi.mocked(prisma.interviewSession.deleteMany).mockResolvedValue({ count: 1 } as never);
+
+    const req = new Request("http://localhost/api/s3/videos", {
+      method: "DELETE",
+      body: JSON.stringify({ key: "user-1/interview-1.webm", deleteInterviewData: true }),
+    });
+
+    const res = await DELETE(req);
+
+    expect(res.status).toBe(200);
+    expect(prisma.interviewSession.deleteMany).toHaveBeenCalledWith({
+      where: {
+        userId: "user-1",
+        videoKey: "user-1/interview-1.webm",
       },
     });
   });

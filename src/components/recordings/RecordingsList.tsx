@@ -36,6 +36,7 @@ export default function RecordingsList({ initialVideos, initialNextToken }: Reco
   
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
   const [recordingToDelete, setRecordingToDelete] = useState<string | null>(null);
+  const [deleteInterviewData, setDeleteInterviewData] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<{ url: string; interviewId: string; date: string } | null>(null);
   const [errorModal, setErrorModal] = useState<{
     isOpen: boolean;
@@ -119,12 +120,13 @@ export default function RecordingsList({ initialVideos, initialNextToken }: Reco
       const res = await fetch("/api/s3/videos", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: recordingToDelete }),
+        body: JSON.stringify({ key: recordingToDelete, deleteInterviewData }),
       });
 
       if (res.ok) {
         setRecordings((prev) => prev.filter((recording) => recording.key !== recordingToDelete));
         setRecordingToDelete(null);
+        setDeleteInterviewData(false);
       } else {
         setErrorModal({
           isOpen: true,
@@ -216,6 +218,7 @@ export default function RecordingsList({ initialVideos, initialNextToken }: Reco
                   <button
                     onClick={(event) => {
                       event.stopPropagation();
+                      setDeleteInterviewData(false);
                       setRecordingToDelete(recording.key);
                     }}
                     disabled={deletingKey === recording.key}
@@ -265,9 +268,30 @@ export default function RecordingsList({ initialVideos, initialNextToken }: Reco
 
       <DeleteConfirmationModal
         isOpen={recordingToDelete !== null}
-        onClose={() => setRecordingToDelete(null)}
+        onClose={() => {
+          setRecordingToDelete(null);
+          setDeleteInterviewData(false);
+        }}
         onConfirm={handleDeleteRecording}
         isDeleting={deletingKey !== null}
+        title="Delete Recording"
+        description={deleteInterviewData
+          ? "This will permanently delete the recording and all interview data (score, transcript, and feedback)."
+          : "This will delete only the recording. Your score and feedback will stay available for learning progress."}
+        confirmLabel={deleteInterviewData ? "Delete Everything" : "Delete Recording"}
+        extraContent={
+          <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-left">
+            <input
+              type="checkbox"
+              checked={deleteInterviewData}
+              onChange={(event) => setDeleteInterviewData(event.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-red-600 focus:ring-red-500"
+            />
+            <span className="text-xs text-zinc-600">
+              Also delete interview data (score, transcript, and feedback)
+            </span>
+          </label>
+        }
       />
 
       <Modal

@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { env } from "@/lib/env";
 
 export const E2E_TEST_AUTH_COOKIE = "snapinterview.e2e-auth";
 
@@ -44,7 +45,7 @@ async function getHmacKey() {
 }
 
 export function isTestAuthEnabled(): boolean {
-return env.NODE_ENV === "test" && env.ENABLE_TEST_AUTH === "1";
+  return env.NODE_ENV === "test" && env.ENABLE_TEST_AUTH === "1";
 }
 export async function encodeE2ETestIdentity(identity: E2ETestIdentity) {
   const payload = bytesToBase64Url(new TextEncoder().encode(JSON.stringify(identity)));

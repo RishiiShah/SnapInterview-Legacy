@@ -2,13 +2,13 @@ import { FadeIn, FadeInStagger, FadeInStaggerItem } from "@/components/ui/motion
 
 export default function HowItWorksSection() {
   return (
-    <section id="how-it-works" className="bg-zinc-50 py-28 px-6 border-y border-zinc-100">
-      <div className="mx-auto max-w-6xl">
+    <section id="how-it-works" className="bg-zinc-50 py-24 px-6 md:px-12 border-y border-zinc-100">
+      <div className="mx-auto max-w-7xl">
         <FadeIn direction="up">
           <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-zinc-400">
             How It Works
           </p>
-          <h2 className="mx-auto max-w-2xl text-center text-3xl font-bold tracking-tight sm:text-4xl">
+          <h2 className="mx-auto max-w-3xl text-center text-[clamp(2rem,4vw,3rem)] font-bold tracking-tight">
             Three steps to interview confidence
           </h2>
         </FadeIn>

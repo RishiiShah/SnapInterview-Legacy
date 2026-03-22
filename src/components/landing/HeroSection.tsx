@@ -4,7 +4,7 @@ import { IconChevronRight } from "@/components/ui/icons";
 
 export default function HeroSection() {
   return (
-    <section className="relative flex flex-col items-center px-6 pt-36 pb-24 text-center overflow-hidden">
+    <section className="relative flex min-h-[90vh] flex-col justify-center items-center px-6 md:px-12 pt-32 pb-20 text-center overflow-hidden">
       {/* Badge */}
       <SlideIn delay={0.1}>
         <span className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-600 shadow-sm">
@@ -17,7 +17,7 @@ export default function HeroSection() {
       </SlideIn>
 
       <SlideIn delay={0.2}>
-        <h1 className="mx-auto max-w-3xl text-4xl font-bold leading-[1.15] tracking-tight sm:text-5xl lg:text-6xl">
+        <h1 className="mx-auto max-w-4xl text-[clamp(2.5rem,6vw,4.5rem)] font-bold leading-[1.1] tracking-tight">
           Interview prep that
           <br className="hidden sm:block" />
           <span className="bg-linear-to-r from-zinc-900 via-zinc-600 to-zinc-400 bg-clip-text text-transparent">
@@ -27,7 +27,7 @@ export default function HeroSection() {
       </SlideIn>
 
       <SlideIn delay={0.3}>
-        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-zinc-500">
+        <p className="mx-auto mt-6 max-w-2xl text-[clamp(1.125rem,2vw,1.375rem)] leading-relaxed text-zinc-500">
           Practice realistic mock interviews, receive instant AI feedback, and
           track your progress — so you walk in confident on the day that
           matters.
@@ -40,7 +40,7 @@ export default function HeroSection() {
             href="/signup"
             className="group relative overflow-hidden rounded-xl bg-zinc-900 px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-zinc-900/20 transition-all hover:bg-zinc-800 hover:shadow-xl hover:-translate-y-0.5"
           >
-            <span className="relative z-10">Start Practicing — It&apos;s Free</span>
+            <span className="relative z-10">Start Practicing</span>
             <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
           </Link>
           <a
@@ -58,7 +58,7 @@ export default function HeroSection() {
 
       {/* Hero visual — a minimal browser mockup */}
       <FadeIn delay={0.6} direction="up" className="w-full relative z-10">
-        <div className="mx-auto mt-20 w-full max-w-4xl overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50 shadow-2xl shadow-zinc-200/60 ring-1 ring-zinc-900/5 transition-transform hover:scale-[1.01] duration-500">
+        <div className="mx-auto mt-16 w-full max-w-5xl overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50 shadow-2xl shadow-zinc-200/60 ring-1 ring-zinc-900/5 transition-transform hover:scale-[1.01] duration-500">
           {/* Browser chrome */}
           <div className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3 bg-white/50 backdrop-blur-sm">
             <span className="h-3 w-3 rounded-full bg-zinc-200" />

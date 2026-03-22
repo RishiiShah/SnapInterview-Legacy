@@ -22,9 +22,6 @@ export default function LandingNavbar() {
           <a href="#how-it-works" className="transition-colors hover:text-zinc-900">
             How It Works
           </a>
-          <a href="#pricing" className="transition-colors hover:text-zinc-900">
-            Pricing
-          </a>
         </div>
 
         {/* Auth Buttons */}

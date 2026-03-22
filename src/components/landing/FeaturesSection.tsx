@@ -10,16 +10,16 @@ import {
 
 export default function FeaturesSection() {
   return (
-    <section id="features" className="py-28 px-6">
-      <div className="mx-auto max-w-6xl">
+    <section id="features" className="py-24 px-6 md:px-12">
+      <div className="mx-auto max-w-7xl">
         <FadeIn direction="up">
           <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-zinc-400">
             Features
           </p>
-          <h2 className="mx-auto max-w-2xl text-center text-3xl font-bold tracking-tight sm:text-4xl">
+          <h2 className="mx-auto max-w-3xl text-center text-[clamp(2rem,4vw,3rem)] font-bold tracking-tight">
             Everything you need to prepare
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-center text-zinc-500">
+          <p className="mx-auto mt-4 max-w-2xl text-center text-[clamp(1rem,1.5vw,1.125rem)] text-zinc-500 leading-relaxed">
             From AI mock interviews to detailed analytics — we give you the
             full toolkit to outperform the competition.
           </p>

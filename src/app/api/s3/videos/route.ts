@@ -79,7 +79,7 @@ export async function POST(req: Request) {
       return badRequestError("Invalid request body");
     }
 
-    const { key, deleteInterviewData } = parsed.data;
+    const { key } = parsed.data;
 
     if (!key.startsWith(`${authUser.userId}/`)) {
       return apiError("Unauthorized access to key", 403);

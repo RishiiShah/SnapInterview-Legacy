@@ -18,6 +18,7 @@ import {
 import { logger } from "@/utils/logger";
 
 const createSessionSchema = z.object({
+    id: z.string().uuid().optional(),
     role: z.string().trim().min(1, "Role is required").max(200),
     company: z.string().trim().max(200).optional().default(""),
     type: interviewTypeSchema,
@@ -83,9 +84,10 @@ export async function POST(req: Request) {
             return badRequestError(firstError);
         }
 
-        const { role, company, type, difficulty, persona, jobDescription, resumeUrl, questionCount } = parsed.data;
+        const { id, role, company, type, difficulty, persona, jobDescription, resumeUrl, questionCount } = parsed.data;
 
         const interviewSession = await startInterviewSession({
+            id,
             userId: authUser.userId,
             role,
             company: company || null,

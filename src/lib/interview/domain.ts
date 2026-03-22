@@ -73,6 +73,7 @@ export function normalizePromptInterviewSession(session: {
 }
 
 export type StartInterviewSessionInput = {
+  id?: string;
   userId: string;
   role: string;
   company?: string | null;

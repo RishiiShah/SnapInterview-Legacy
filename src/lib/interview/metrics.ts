@@ -311,6 +311,7 @@ export async function getRecentPracticeSessionsByUserId(
       id: true,
       role: true,
       company: true,
+      videoKey: true,
       type: true,
       status: true,
       questionCount: true,

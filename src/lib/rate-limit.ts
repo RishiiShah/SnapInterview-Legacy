@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/utils/logger";
+import { env } from "@/lib/env";
 
 interface RateLimitResult {
   limited: boolean;

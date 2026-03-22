@@ -80,30 +80,19 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
     setCreateError(null);
 
     try {
-      const res = await fetch("/api/interview/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          role,
-          company: company || undefined,
-          type,
-          difficulty,
-          persona,
-          jobDescription: jobDescription || undefined,
-          questionCount: interviewLength,
-        }),
-      });
+      const interviewId = crypto.randomUUID();
+      const payload = {
+        role,
+        company: company || undefined,
+        type,
+        difficulty,
+        persona,
+        jobDescription: jobDescription || undefined,
+        questionCount: interviewLength,
+      };
 
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        const message = body?.error || "Could not create session. Please check your inputs and try again.";
-        setCreateError(message);
-        console.error("Failed to create session", { status: res.status, message });
-        setStarted(false);
-        return;
-      }
-
-      const { id: interviewId } = await res.json();
+      // Defer DB creation: store config and pass ID to route
+      sessionStorage.setItem(`pending_interview_${interviewId}`, JSON.stringify(payload));
       router.push(`/interview/${interviewId}`);
     } catch (err) {
       console.error("Error creating interview session:", err);

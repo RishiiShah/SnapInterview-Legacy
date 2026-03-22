@@ -132,9 +132,34 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
       return;
     }
 
+    const pendingRaw = sessionStorage.getItem(`pending_interview_${interviewId}`);
+    if (pendingRaw) {
+      try {
+        const payload = JSON.parse(pendingRaw);
+        payload.id = interviewId;
+        const res = await fetch("/api/interview/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error("Server rejected session creation");
+        sessionStorage.removeItem(`pending_interview_${interviewId}`);
+      } catch (err) {
+        console.error("Failed to persist session to DB", err);
+        setModal({
+          isOpen: true,
+          title: "Connection Error",
+          description: "Failed to establish interview session. Please try again.",
+          variant: "danger",
+        });
+        void videoRecording.stopVideoRecording();
+        return;
+      }
+    }
+
     setShowPreJoin(false);
     setInterviewStarted(true);
-  }, [media.stream, videoRecording]);
+  }, [media.stream, videoRecording, interviewId, closeModal]);
 
   const handleExitInterview = useCallback(
     async ({ skipConfirmation = false }: { skipConfirmation?: boolean } = {}) => {
@@ -230,7 +255,16 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     const loadSessionMeta = async () => {
       try {
         const res = await fetch(`/api/interview/session?interviewId=${encodeURIComponent(interviewId)}`);
-        if (!res.ok) return;
+        if (!res.ok) {
+          const pendingRaw = sessionStorage.getItem(`pending_interview_${interviewId}`);
+          if (pendingRaw && !isCancelled) {
+            const data = JSON.parse(pendingRaw);
+            if (typeof data?.questionCount === "number" && data.questionCount > 0) {
+              setTotalQuestions(data.questionCount);
+            }
+          }
+          return;
+        }
 
         const data = await res.json();
         if (!isCancelled && typeof data?.questionCount === "number" && data.questionCount > 0) {

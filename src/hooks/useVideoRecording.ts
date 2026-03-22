@@ -16,8 +16,14 @@ export function useVideoRecording(options?: UseVideoRecordingOptions) {
     const startScreenRecording = useCallback(async (micStream?: MediaStream) => {
         try {
             const screenStream = await navigator.mediaDevices.getDisplayMedia({
-                video: true,
+                video: {
+                    displaySurface: "monitor", // Prefer entire screen for interviews
+                    frameRate: { ideal: 60, max: 60 },
+                },
                 audio: false, // Don't capture system audio, we will use the mic
+                // @ts-expect-error - Chrome-specific options for including the current tab
+                selfBrowserSurface: "include",
+                surfaceSwitching: "include",
             });
 
             const combinedStream = new MediaStream();
@@ -59,8 +65,13 @@ export function useVideoRecording(options?: UseVideoRecordingOptions) {
             setIsRecordingVideo(true);
 
             return true;
-        } catch (err) {
-            console.error("Failed to start screen recording:", err);
+        } catch (err: unknown) {
+            if (err instanceof DOMException && err.name === "NotAllowedError") {
+                // User intentionally cancelled the browser popup
+                console.warn("Screen recording was cancelled by the user.");
+            } else {
+                console.error("Failed to start screen recording:", err);
+            }
             return false;
         }
     }, [options]);

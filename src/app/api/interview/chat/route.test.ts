@@ -95,6 +95,7 @@ describe("POST /api/interview/chat", () => {
     expect(response.status).toBe(409);
     await expect(response.json()).resolves.toEqual({
       error: "Interview state changed. Please wait for the current question to finish loading and try again.",
+      currentQuestion: 1,
     });
   });
 });

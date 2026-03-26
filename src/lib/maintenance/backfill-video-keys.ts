@@ -3,7 +3,6 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../../generated/prisma/client";
 
 const prisma = new PrismaClient({
-  // eslint-disable-next-line no-process-env
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL ?? "" }),
 });
 

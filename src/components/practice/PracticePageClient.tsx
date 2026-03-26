@@ -9,7 +9,7 @@ import { CATEGORIES, ROLES, COMPANIES } from "@/data/constants";
 import type { Difficulty, InterviewPersona, InterviewType } from "@/lib/interview/domain";
 import { getDefaultDifficultyForOnboardingLevel, normalizeOnboardingFormValues } from "@/lib/onboarding/preferences";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
-import { IconArrowLeft, IconArrowRight, IconCheckCircle, IconPlay, IconSpinner, IconUploadArrow, IconXMark, IconMessage, IconCode, IconLayout, IconActivity, IconZap, IconGem, IconUserCheck, IconStarBurst, IconFlame, IconClock, IconBriefcase, IconBuilding, IconTerminal, IconMicroscope, IconPalette, IconSearch } from "@/components/ui/icons";
+import { IconArrowLeft, IconArrowRight, IconCheckCircle, IconPlay, IconSpinner, IconXMark, IconMessage, IconCode, IconLayout, IconActivity, IconZap, IconGem, IconUserCheck, IconStarBurst, IconFlame, IconClock, IconBriefcase, IconBuilding } from "@/components/ui/icons";
 import { ChoiceCard } from "@/components/ui/ChoiceCard";
 
 type RecentPracticeSession = {
@@ -79,12 +79,6 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
       cancelled = true;
     };
   }, []);
-
-  const interviewLengthOptions = [
-    { value: "5", label: "Mini (5 questions)" },
-    { value: "10", label: "Full (10 questions)" },
-    { value: "15", label: "Extended (15 questions)" },
-  ];
 
   async function handleStart() {
     if (!role.trim()) return;

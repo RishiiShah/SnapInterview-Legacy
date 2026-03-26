@@ -6,7 +6,6 @@ type OriginValidationResult = {
 };
 
 function getEnv(name: string): string | undefined {
-  // eslint-disable-next-line no-process-env
   return process.env[name];
 }
 

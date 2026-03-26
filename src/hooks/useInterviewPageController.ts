@@ -159,7 +159,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
 
     setShowPreJoin(false);
     setInterviewStarted(true);
-  }, [media.stream, videoRecording, interviewId, closeModal]);
+  }, [media.stream, videoRecording, interviewId]);
 
   const handleExitInterview = useCallback(
     async ({ skipConfirmation = false }: { skipConfirmation?: boolean } = {}) => {

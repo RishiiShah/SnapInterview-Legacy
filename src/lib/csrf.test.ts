@@ -1,12 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { csrfRejectIfInvalid, validateRequestOrigin } from "./csrf";
 
-// eslint-disable-next-line no-process-env
 const ORIGINAL_ENV = { ...process.env };
 
 describe("csrf utilities", () => {
   beforeEach(() => {
-    // eslint-disable-next-line no-process-env
     process.env = { ...ORIGINAL_ENV };
   });
 
@@ -22,7 +20,6 @@ describe("csrf utilities", () => {
   });
 
   it("accepts origins that match configured allowed origins", () => {
-    // eslint-disable-next-line no-process-env
     process.env.BETTER_AUTH_URL = "https://app.example.com";
 
     const req = new Request("https://api.example.com/api/test", {
@@ -39,7 +36,6 @@ describe("csrf utilities", () => {
   });
 
   it("accepts origins whose hostname matches a trusted suffix", () => {
-    // eslint-disable-next-line no-process-env
     process.env.CSRF_TRUSTED_ORIGIN_SUFFIXES = ".example.com";
 
     const req = new Request("https://api.example.com/api/test", {

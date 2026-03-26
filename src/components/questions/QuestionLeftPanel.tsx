@@ -6,7 +6,6 @@ import {
     IconAcademicCap,
     IconCheckCircle,
     IconChevronDown,
-    IconChevronUp,
     IconLightBulb,
     IconTag,
 } from "@/components/ui/icons";
@@ -26,8 +25,6 @@ interface QuestionLeftPanelProps {
     handleToggleSolved: () => void;
 }
 
-const diffColor = (d: Difficulty) =>
-    ({ easy: "text-sky-500", medium: "text-amber-400", hard: "text-red-400" })[d];
 const diffLabel = (d: Difficulty) =>
     ({ easy: "Easy", medium: "Medium", hard: "Hard" })[d];
 const catInfo = (c: InterviewType) => CATEGORIES.find((x) => x.value === c);

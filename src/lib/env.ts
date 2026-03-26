@@ -63,7 +63,6 @@ export function parseEnvFrom(source: NodeJS.ProcessEnv): Env {
   return parsed.data as Env;
 }
 
-// eslint-disable-next-line no-process-env
 export const env = parseEnvFrom(process.env);
 
 export function requireGroqApiKey(): string {

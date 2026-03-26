@@ -1,6 +1,5 @@
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import {
-  apiError,
   apiJson,
   badRequestError,
   internalServerError,

@@ -15,6 +15,7 @@ import {
     startInterviewSession,
     updateSessionStatusIfOwned,
 } from "@/services/interview-service";
+import { deleteInterviewSession } from "@/repositories/interview-repo";
 import { logger } from "@/utils/logger";
 
 const createSessionSchema = z.object({
@@ -165,6 +166,38 @@ export async function PATCH(req: Request) {
         logger.error("Update interview session error", {
             error: error instanceof Error ? error.message : String(error),
             route: "PATCH /api/interview/session",
+        });
+        return internalServerError();
+    }
+}
+
+export async function DELETE(req: Request) {
+    try {
+        const csrfError = csrfCheck(req);
+        if (csrfError) return csrfError;
+
+        const authUser = await getSessionUserIdentity();
+        if (!authUser) {
+            return unauthorizedError();
+        }
+
+        const { searchParams } = new URL(req.url);
+        const interviewId = searchParams.get("interviewId");
+
+        if (!interviewId) {
+            return badRequestError("interviewId is required");
+        }
+
+        await deleteInterviewSession({
+            interviewId,
+            userId: authUser.userId,
+        });
+
+        return apiJson({ success: true });
+    } catch (error) {
+        logger.error("Delete interview session error", {
+            error: error instanceof Error ? error.message : String(error),
+            route: "DELETE /api/interview/session",
         });
         return internalServerError();
     }

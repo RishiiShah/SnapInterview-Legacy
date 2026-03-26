@@ -67,7 +67,7 @@ export async function POST(req: Request) {
     }
 
     if (result.type === "conflict") {
-      return apiError(result.message, 409);
+      return apiJson({ error: result.message, currentQuestion: result.currentQuestion }, 409);
     }
 
     if (result.type === "done") {

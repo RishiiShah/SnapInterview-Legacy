@@ -20,8 +20,8 @@ export default function FeaturesSection() {
             Everything you need to prepare
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-center text-[clamp(1rem,1.5vw,1.125rem)] text-zinc-500 leading-relaxed">
-            From AI mock interviews to detailed analytics — we give you the
-            full toolkit to outperform the competition.
+            From AI mock interviews to detailed analytics, we provide the
+            tools to refine your interview skills.
           </p>
         </FadeIn>
 
@@ -35,12 +35,12 @@ export default function FeaturesSection() {
             {
               icon: <IconChartBars className="h-5 w-5" />,
               title: "Instant Feedback",
-              desc: "Get a detailed scorecard after every session — strengths, weak spots, and how to improve.",
+              desc: "Get a detailed scorecard after every session covering strengths, weak spots, and how to improve.",
             },
             {
               icon: <IconQuestionBank className="h-5 w-5" />,
               title: "Question Library",
-              desc: "Thousands of curated questions across industries — behavioral, technical, and case study.",
+              desc: "A wide range of curated questions across industries, including behavioral, technical, and case study.",
             },
             {
               icon: <IconVideoCamera className="h-5 w-5" strokeWidth={1.5} />,
@@ -55,7 +55,7 @@ export default function FeaturesSection() {
             {
               icon: <IconClock className="h-5 w-5" />,
               title: "24 / 7 Access",
-              desc: "Practice on your schedule — morning, night, or five minutes before the real thing.",
+              desc: "Practice on your schedule, whether it's morning, night, or just before your actual interview.",
             },
           ].map((f) => (
             <FadeInStaggerItem key={f.title}>

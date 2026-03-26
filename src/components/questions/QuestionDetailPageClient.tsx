@@ -170,23 +170,23 @@ export default function QuestionDetailPageClient({
   };
 
   return (
-    <div className="-m-6 -mb-2 flex h-[calc(100vh-64px)] flex-col bg-[#1a1a2e]">
-      <div className="flex h-10 shrink-0 items-center justify-between border-b border-[#ffffff0f] px-4">
-        <div className="flex items-center gap-3">
-          <Link href="/questions" className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 transition-colors hover:text-white">
-            <IconChevronLeft className="h-3.5 w-3.5" />
+    <div className="-m-6 -mb-2 flex h-[calc(100vh-64px)] flex-col bg-zinc-50">
+      <div className="flex h-12 shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-6">
+        <div className="flex items-center gap-4">
+          <Link href="/questions" className="group flex items-center gap-2 text-xs font-semibold text-zinc-500 transition-colors hover:text-zinc-900">
+            <IconChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
             Problem List
           </Link>
         </div>
         <div className="flex items-center gap-2">
           {prevQuestion && (
-            <Link href={`/questions/${prevQuestion.slug}`} className="grid h-7 w-7 place-items-center rounded text-zinc-400 transition-colors hover:bg-[#ffffff0f] hover:text-white">
+            <Link href={`/questions/${prevQuestion.slug}`} className="grid h-8 w-8 place-items-center rounded-lg text-zinc-400 transition-all hover:bg-zinc-100 hover:text-zinc-900">
               <IconChevronLeft className="h-4 w-4" />
             </Link>
           )}
-          <span className="text-xs text-zinc-500">{currentIndex + 1} / {totalQuestions}</span>
+          <span className="text-xs font-medium text-zinc-400">{currentIndex + 1} / {totalQuestions}</span>
           {nextQuestion && (
-            <Link href={`/questions/${nextQuestion.slug}`} className="grid h-7 w-7 place-items-center rounded text-zinc-400 transition-colors hover:bg-[#ffffff0f] hover:text-white">
+            <Link href={`/questions/${nextQuestion.slug}`} className="grid h-8 w-8 place-items-center rounded-lg text-zinc-400 transition-all hover:bg-zinc-100 hover:text-zinc-900">
               <IconChevronRight className="h-4 w-4" />
             </Link>
           )}

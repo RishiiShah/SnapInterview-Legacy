@@ -364,7 +364,7 @@ async function getUserTranscripts(userId: string): Promise<TranscriptRecord[]> {
   return transcripts;
 }
 
-function rankKeywordEntries(entries: Array<[string, number]>, fallback: string[]): string[] {
+function rankKeywordEntries(entries: Array<[string, number]>, fallback: string[] = []): string[] {
   if (entries.length === 0) return fallback;
 
   return entries
@@ -379,8 +379,8 @@ function deriveStrengthsAndImprovementsFromTranscripts(transcripts: TranscriptRe
 } {
   if (transcripts.length === 0) {
     return {
-      strengths: ["Communication clarity", "STAR method structure", "Leadership examples"],
-      improvements: ["System scalability", "Time complexity analysis", "Edge case handling"],
+      strengths: [],
+      improvements: [],
     };
   }
 
@@ -419,17 +419,8 @@ function deriveStrengthsAndImprovementsFromTranscripts(transcripts: TranscriptRe
     }
   }
 
-  const strengths = rankKeywordEntries(Array.from(positiveCounts.entries()), [
-    "Communication clarity",
-    "STAR method structure",
-    "Leadership examples",
-  ]);
-
-  const improvements = rankKeywordEntries(Array.from(improvementCounts.entries()), [
-    "System scalability",
-    "Time complexity analysis",
-    "Edge case handling",
-  ]);
+  const strengths = rankKeywordEntries(Array.from(positiveCounts.entries()));
+  const improvements = rankKeywordEntries(Array.from(improvementCounts.entries()));
 
   return { strengths, improvements };
 }
@@ -445,7 +436,7 @@ export async function getDashboardOverviewData(userId: string): Promise<Dashboar
   const last7Days = addDays(now, -7);
 
   const completedSessions = sessions.filter((session) => session.status === "COMPLETED");
-  const sessionsThisWeek = sessions.filter((session) => session.createdAt >= last7Days).length;
+  const sessionsThisWeek = completedSessions.filter((session) => session.createdAt >= last7Days).length;
 
   const averageScore =
     completedSessions.length > 0
@@ -525,7 +516,7 @@ export async function getDashboardOverviewData(userId: string): Promise<Dashboar
     stats: [
       {
         label: "Interviews Completed",
-        value: String(sessions.length),
+        value: String(completedSessions.length),
         change: `+${sessionsThisWeek} this week`,
         iconKey: "completed",
       },
@@ -573,7 +564,8 @@ export async function getAnalyticsOverviewData(userId: string): Promise<Analytic
     return cached;
   }
 
-  const sessions = await getUserSessions(userId);
+  const allSessions = await getUserSessions(userId);
+  const sessions = allSessions.filter(s => s.status === "COMPLETED");
   const transcripts = await getUserTranscripts(userId);
   const now = new Date();
 

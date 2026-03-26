@@ -32,8 +32,8 @@ export default async function AnalyticsPage() {
                 { label: "Last Month", interviews: 0, avgScore: 0, hours: 0 },
             ],
             categoryBreakdown: [],
-            strengths: ["Communication clarity", "STAR method structure", "Leadership examples"],
-            improvements: ["System scalability", "Time complexity analysis", "Edge case handling"],
+            strengths: [],
+            improvements: [],
         };
 
     return (
@@ -89,12 +89,18 @@ export default async function AnalyticsPage() {
                         <h3 className="mb-1 text-sm font-semibold text-zinc-900">Strengths</h3>
                         <p className="mb-4 text-xs text-zinc-400">Keep leveraging these in interviews</p>
                         <div className="space-y-2.5">
-                            {strengths.map((skill, idx) => (
-                                <div key={skill} className="flex items-center gap-3 rounded-lg border border-emerald-100 bg-emerald-50/40 px-3.5 py-3">
-                                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-emerald-100 text-xs font-semibold text-emerald-700">{idx + 1}</span>
-                                    <span className="text-sm font-medium text-zinc-700">{skill}</span>
+                            {strengths.length > 0 ? (
+                                strengths.map((skill, idx) => (
+                                    <div key={skill} className="flex items-center gap-3 rounded-lg border border-emerald-100 bg-emerald-50/40 px-3.5 py-3">
+                                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-emerald-100 text-xs font-semibold text-emerald-700">{idx + 1}</span>
+                                        <span className="text-sm font-medium text-zinc-700">{skill}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-8 text-center border-2 border-dashed border-zinc-100 rounded-2xl bg-zinc-50/30">
+                                    <p className="text-sm font-medium text-zinc-500 italic">Complete an interview to get insights</p>
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </FadeIn>
 
@@ -102,12 +108,18 @@ export default async function AnalyticsPage() {
                         <h3 className="mb-1 text-sm font-semibold text-zinc-900">Areas to Improve</h3>
                         <p className="mb-4 text-xs text-zinc-400">Focus areas for your next sessions</p>
                         <div className="space-y-2.5">
-                            {improvements.map((skill, idx) => (
-                                <div key={skill} className="flex items-center gap-3 rounded-lg border border-amber-100 bg-amber-50/40 px-3.5 py-3">
-                                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-amber-100 text-xs font-semibold text-amber-700">{idx + 1}</span>
-                                    <span className="text-sm font-medium text-zinc-700">{skill}</span>
+                            {improvements.length > 0 ? (
+                                improvements.map((skill, idx) => (
+                                    <div key={skill} className="flex items-center gap-3 rounded-lg border border-amber-100 bg-amber-50/40 px-3.5 py-3">
+                                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-amber-100 text-xs font-semibold text-amber-700">{idx + 1}</span>
+                                        <span className="text-sm font-medium text-zinc-700">{skill}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-8 text-center border-2 border-dashed border-zinc-100 rounded-2xl bg-zinc-50/30">
+                                    <p className="text-sm font-medium text-zinc-500 italic">Complete an interview to get insights</p>
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </FadeIn>
                 </div>

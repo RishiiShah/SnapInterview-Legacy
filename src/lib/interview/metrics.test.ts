@@ -128,4 +128,14 @@ describe("interview metrics scoring", () => {
     expect(analytics.strengths[0]).toBe("Structured storytelling");
     expect(analytics.improvements[0]).toBe("Technical depth");
   });
+
+  it("returns empty strengths and improvements for users with no history", async () => {
+    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.transcriptEntry.findMany).mockResolvedValue([]);
+
+    const analytics = await getAnalyticsOverviewData("user-no-history");
+
+    expect(analytics.strengths).toEqual([]);
+    expect(analytics.improvements).toEqual([]);
+  });
 });

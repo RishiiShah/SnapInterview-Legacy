@@ -9,11 +9,10 @@ export default function CTASection() {
           <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-zinc-800 opacity-50 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl"></div>
           <h2 className="relative z-10 text-[clamp(2rem,4vw,3.5rem)] font-bold tracking-tight">
-            Ready to nail your next interview?
+            Start perfecting your interview technique today.
           </h2>
           <p className="relative z-10 mx-auto mt-6 max-w-2xl text-[clamp(1rem,1.5vw,1.125rem)] text-zinc-400 leading-relaxed">
-            Join thousands of candidates who went from nervous to confident.
-            Start practicing today.
+            Perfect your interview technique with this practice tool. Get started today.
           </p>
           <div className="relative z-10 mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <Link

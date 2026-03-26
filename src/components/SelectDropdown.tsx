@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { IconCheckCircle } from "@/components/ui/icons";
 
 interface Option {
     label: string;
@@ -56,12 +57,15 @@ export default function SelectDropdown({ label, value, onChange, options }: Sele
                                 onChange(option.value);
                                 setOpen(false);
                             }}
-                            className={`w-full cursor-pointer px-4 py-2.5 text-left text-sm transition-colors ${value === option.value
-                                    ? "bg-zinc-100 font-medium text-zinc-900"
+                            className={`flex w-full cursor-pointer items-center justify-between px-4 py-2.5 text-left text-sm transition-colors ${value === option.value
+                                    ? "bg-sky-50 text-sky-700 font-semibold"
                                     : "text-zinc-700 hover:bg-zinc-50"
                                 }`}
                         >
-                            {option.label}
+                            <span className="truncate">{option.label}</span>
+                            {value === option.value && (
+                                <IconCheckCircle className="h-4 w-4 shrink-0 text-sky-600" />
+                            )}
                         </button>
                     ))}
                 </div>

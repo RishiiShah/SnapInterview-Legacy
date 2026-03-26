@@ -49,7 +49,7 @@ export default function QuestionsTable({
 }: QuestionsTableProps) {
   const difficultyLabel = (d: Difficulty) => {
     const map: Record<Difficulty, { text: string; color: string }> = {
-      easy: { text: "Easy", color: "text-emerald-600" },
+      easy: { text: "Easy", color: "text-sky-500" },
       medium: { text: "Medium", color: "text-amber-600" },
       hard: { text: "Hard", color: "text-red-500" },
     };

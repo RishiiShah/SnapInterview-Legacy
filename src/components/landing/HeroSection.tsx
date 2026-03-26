@@ -12,25 +12,25 @@ export default function HeroSection() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
-          Now with AI‑powered feedback
+          AI-powered interview practice
         </span>
       </SlideIn>
 
       <SlideIn delay={0.2}>
-        <h1 className="mx-auto max-w-4xl text-[clamp(2.5rem,6vw,4.5rem)] font-bold leading-[1.1] tracking-tight">
-          Interview prep that
+        <h1 className="mx-auto max-w-4xl text-[clamp(2.5rem,6vw,4.5rem)] font-bold leading-[1.1] tracking-tight text-zinc-900">
+          A practice platform for
           <br className="hidden sm:block" />
           <span className="bg-linear-to-r from-zinc-900 via-zinc-600 to-zinc-400 bg-clip-text text-transparent">
-            actually works.
+            technical interviews.
           </span>
         </h1>
       </SlideIn>
 
       <SlideIn delay={0.3}>
         <p className="mx-auto mt-6 max-w-2xl text-[clamp(1.125rem,2vw,1.375rem)] leading-relaxed text-zinc-500">
-          Practice realistic mock interviews, receive instant AI feedback, and
-          track your progress — so you walk in confident on the day that
-          matters.
+          Practice technical and behavioral interviews with straightforward AI
+          feedback. Refine your responses and build confidence for your next
+          interview.
         </p>
       </SlideIn>
 

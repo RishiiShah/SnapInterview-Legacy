@@ -53,8 +53,7 @@ export default function LoginPage() {
         <div className="flex min-h-screen bg-white font-[family-name:var(--font-geist-sans)]">
             <AuthSidePanel
                 title="SnapInterview"
-                subtitle="&ldquo;SnapInterview helped me prepare for my Google interview in just two weeks. The AI feedback was eerily accurate.&rdquo;"
-                author="— Sarah K., Software Engineer"
+                subtitle="Master your interview responses with our AI-powered practice tool. Straightforward feedback to help you build confidence."
             />
 
             {/* ─── Right: Login Form ─── */}

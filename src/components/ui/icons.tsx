@@ -8,6 +8,7 @@ import {
   ChartColumn,
   ChevronRight,
   ChevronUp,
+  ChevronDown,
   ChevronLeft,
   Clapperboard,
   CircleCheck,
@@ -37,6 +38,18 @@ import {
   Video,
   VideoOff,
   X,
+  MessageSquare,
+  Code2,
+  Layout,
+  Activity,
+  Gem,
+  UserCheck,
+  Zap,
+  Building2,
+  Briefcase,
+  Palette,
+  Terminal,
+  Microscope,
   type LucideIcon,
   type LucideProps,
 } from "lucide-react";
@@ -60,6 +73,7 @@ export const IconBookOpen = makeIcon(BookOpen);
 export const IconArrowRight = makeIcon(ArrowRight);
 export const IconArrowLeft = makeIcon(ArrowLeft);
 export const IconChevronUp = makeIcon(ChevronUp);
+export const IconChevronDown = makeIcon(ChevronDown);
 export const IconChevronRight = makeIcon(ChevronRight);
 export const IconChevronLeft = makeIcon(ChevronLeft);
 export const IconSearch = makeIcon(Search);
@@ -90,3 +104,15 @@ export const IconLightBulb = makeIcon(Lightbulb);
 export const IconAcademicCap = makeIcon(GraduationCap);
 export const IconPencilSquare = makeIcon(Pencil);
 export const IconTrendingUp = makeIcon(TrendingUp);
+export const IconMessage = makeIcon(MessageSquare);
+export const IconCode = makeIcon(Code2);
+export const IconLayout = makeIcon(Layout);
+export const IconActivity = makeIcon(Activity);
+export const IconGem = makeIcon(Gem);
+export const IconUserCheck = makeIcon(UserCheck);
+export const IconZap = makeIcon(Zap);
+export const IconBuilding = makeIcon(Building2);
+export const IconBriefcase = makeIcon(Briefcase);
+export const IconPalette = makeIcon(Palette);
+export const IconTerminal = makeIcon(Terminal);
+export const IconMicroscope = makeIcon(Microscope);

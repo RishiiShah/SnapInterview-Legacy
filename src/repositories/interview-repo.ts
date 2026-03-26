@@ -93,6 +93,7 @@ export async function getInterviewSession<TView extends InterviewSessionView>(pa
 }
 
 export async function createInterviewSession(params: {
+  id?: string;
   userId: string;
   role: string;
   company?: string | null;
@@ -106,6 +107,7 @@ export async function createInterviewSession(params: {
   sessionPlan?: Prisma.InputJsonValue;
 }) {
   const {
+    id,
     userId,
     role,
     company,
@@ -121,6 +123,7 @@ export async function createInterviewSession(params: {
 
   return prisma.interviewSession.create({
     data: {
+      id,
       userId,
       role,
       company: company ?? null,
@@ -210,4 +213,18 @@ export async function advanceInterviewCurrentQuestion(params: {
   });
 
   return result.count === 1;
+}
+
+export async function deleteInterviewSession(params: {
+  interviewId: string;
+  userId: string;
+}) {
+  const { interviewId, userId } = params;
+  return prisma.interviewSession.deleteMany({
+    where: {
+      id: interviewId,
+      userId,
+      status: "IN_PROGRESS",
+    },
+  });
 }

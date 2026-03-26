@@ -3,6 +3,7 @@
 import type { Question } from "@/data/types";
 import {
     IconChartBars,
+    IconChevronRight,
     IconClock,
     IconPencilSquare,
     IconPractice,
@@ -31,19 +32,22 @@ export function QuestionRightPanel({
     rightTab, setRightTab, handleStart, handleSubmit
 }: QuestionRightPanelProps) {
     return (
-        <div className="flex w-1/2 flex-col">
+        <div className="flex w-1/2 flex-col bg-white">
             {/* Top bar */}
-            <div className="flex shrink-0 items-center justify-between border-b border-[#ffffff0f] px-4 py-0">
+            <div className="flex shrink-0 items-center justify-between border-b border-zinc-100 px-4 py-0 bg-white/50 backdrop-blur-sm">
                 <div className="flex items-center gap-1">
-                    <span className="flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium text-white">
-                        <IconPencilSquare className="h-3.5 w-3.5 text-emerald-400" />
-                        Your Answer
+                    <span className="flex items-center gap-2 px-3 py-3 text-xs font-bold text-zinc-900">
+                        <IconPencilSquare className="h-4 w-4 text-sky-500" />
+                        Editor
                     </span>
                 </div>
                 {isTimerStarted && (
-                    <div className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-mono font-semibold ${timeRemaining <= 60 ? "bg-red-500/20 text-red-400" : "text-zinc-400"
+                    <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold font-mono border ${
+                        timeRemaining <= 60 
+                            ? "bg-red-50 border-red-100 text-red-600" 
+                            : "bg-zinc-50 border-zinc-100 text-zinc-500"
                         }`}>
-                        <IconClock className="h-3.5 w-3.5" strokeWidth={2} />
+                        <IconClock className="h-3.5 w-3.5" strokeWidth={2.5} />
                         {formatTime(timeRemaining)}
                     </div>
                 )}
@@ -53,63 +57,76 @@ export function QuestionRightPanel({
             <div className="flex flex-1 flex-col min-h-0">
                 {!isTimerStarted ? (
                     /* Start state */
-                    <div className="flex flex-1 flex-col items-center justify-center text-center px-8">
-                        <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#ffffff08] text-zinc-500">
-                            <IconPractice className="h-7 w-7" strokeWidth={1.5} />
+                    <div className="flex flex-1 flex-col items-center justify-center text-center px-10">
+                        <div className="mb-6 grid h-16 w-16 place-items-center rounded-2xl bg-zinc-50 border border-zinc-100 text-zinc-400">
+                            <IconPractice className="h-8 w-8" strokeWidth={1.5} />
                         </div>
-                        <p className="mb-1 text-sm font-medium text-zinc-300">Ready to practice?</p>
-                        <p className="mb-5 text-xs text-zinc-500">
-                            You&apos;ll have {question.estimatedTime} to write your answer.
+                        <h3 className="mb-2 text-sm font-bold text-zinc-900 tracking-tight">Ready to practice?</h3>
+                        <p className="mb-8 text-xs text-zinc-500 leading-relaxed max-w-[240px]">
+                            You&apos;ll have <span className="font-semibold text-zinc-900">{question.estimatedTime}</span> to write your answer and receive AI feedback.
                         </p>
                         <button
                             onClick={handleStart}
-                            className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-emerald-500 hover:shadow-lg hover:shadow-emerald-600/20"
+                            className="group cursor-pointer relative overflow-hidden rounded-xl bg-zinc-900 px-8 py-3 text-xs font-bold text-white shadow-lg shadow-zinc-900/10 transition-all hover:bg-zinc-800 hover:-translate-y-0.5"
                         >
-                            Start Practice
+                            <span className="relative z-10 flex items-center gap-2">
+                                Start Question
+                                <IconChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" strokeWidth={3} />
+                            </span>
                         </button>
                     </div>
                 ) : (
                     <>
                         {/* Textarea */}
-                        <div className="flex-1 min-h-0">
+                        <div className="flex-1 min-h-0 bg-white">
                             <textarea
                                 value={answerText}
                                 onChange={(e) => setAnswerText(e.target.value)}
                                 placeholder="Type your answer here…"
                                 autoFocus
                                 disabled={!!score}
-                                className="h-full w-full resize-none bg-[#1e1e3a] px-5 py-4 font-mono text-sm text-zinc-200 placeholder-zinc-600 outline-none disabled:opacity-60"
+                                className="h-full w-full resize-none bg-zinc-50/30 px-6 py-6 font-mono text-sm text-zinc-900 placeholder-zinc-300 outline-none disabled:opacity-50 transition-colors focus:bg-white"
                             />
                         </div>
 
                         {/* Saved + line info bar */}
-                        <div className="flex shrink-0 items-center justify-between border-t border-[#ffffff0f] bg-[#1a1a2e] px-4 py-1.5 text-xs text-zinc-500">
-                            <span>{answerText.length} chars</span>
+                        <div className="flex shrink-0 items-center justify-between border-t border-zinc-100 bg-white px-6 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                            <span>{answerText.length} characters</span>
                             <span>Ln 1, Col 1</span>
                         </div>
 
                         {/* Bottom panel: Submit / Result */}
-                        <div className="shrink-0 border-t border-[#ffffff0f]">
+                        <div className="shrink-0 border-t border-zinc-200 bg-zinc-50/30 backdrop-blur-sm">
                             {/* Tab bar */}
-                            <div className="flex items-center gap-1 border-b border-[#ffffff0f] px-4">
+                            <div className="flex items-center gap-1 border-b border-zinc-100 px-4">
                                 <button
                                     onClick={() => setRightTab("answer")}
-                                    className={`flex cursor-pointer items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-medium transition-colors ${rightTab === "answer"
-                                        ? "border-white text-white"
-                                        : "border-transparent text-zinc-500 hover:text-zinc-300"
-                                        }`}
+                                    className={`relative cursor-pointer px-4 py-2 text-xs font-bold transition-all ${
+                                        rightTab === "answer"
+                                            ? "text-zinc-900"
+                                            : "text-zinc-400 hover:text-zinc-600"
+                                    }`}
                                 >
                                     📝 Submit
+                                    {rightTab === "answer" && (
+                                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-900 rounded-full mx-2" />
+                                    )}
                                 </button>
                                 <button
                                     onClick={() => setRightTab("result")}
-                                    className={`flex cursor-pointer items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-medium transition-colors ${rightTab === "result"
-                                        ? "border-white text-white"
-                                        : "border-transparent text-zinc-500 hover:text-zinc-300"
-                                        }`}
+                                    className={`relative cursor-pointer px-4 py-2 text-xs font-bold transition-all ${
+                                        rightTab === "result"
+                                            ? "text-zinc-900"
+                                            : "text-zinc-400 hover:text-zinc-600"
+                                    }`}
                                 >
-                                    <IconChartBars className="h-3.5 w-3.5" strokeWidth={2} />
-                                    Result
+                                    <span className="flex items-center gap-2">
+                                        <IconChartBars className="h-3.5 w-3.5" strokeWidth={2.5} />
+                                        Result
+                                    </span>
+                                    {rightTab === "result" && (
+                                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-900 rounded-full mx-2" />
+                                    )}
                                 </button>
                             </div>
 
@@ -120,14 +137,14 @@ export function QuestionRightPanel({
                                         <button
                                             onClick={handleSubmit}
                                             disabled={!answerText.trim() || !!score}
-                                            className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition-all hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                                            className="rounded-xl bg-sky-600 px-6 py-2.5 text-xs font-bold text-white shadow-lg shadow-sky-600/10 transition-all hover:bg-sky-500 hover:-translate-y-0.5 disabled:opacity-40 disabled:hover:translate-y-0"
                                         >
-                                            Submit
+                                            Submit Answer
                                         </button>
                                         {score?.state === "completed" && (
                                             <button
                                                 onClick={handleStart}
-                                                className="rounded-lg border border-[#ffffff14] px-4 py-2 text-sm font-medium text-zinc-300 transition-all hover:bg-[#ffffff0a]"
+                                                className="rounded-xl border border-zinc-200 bg-white px-6 py-2.5 text-xs font-bold text-zinc-700 transition-all hover:bg-zinc-50 hover:border-zinc-300 hover:-translate-y-0.5"
                                             >
                                                 Try Again
                                             </button>
@@ -138,24 +155,24 @@ export function QuestionRightPanel({
                                         {!score ? (
                                             <p className="py-4 text-center text-sm text-zinc-500">Submit your answer first.</p>
                                         ) : score.state === "evaluating" ? (
-                                            <div className="flex items-center gap-3 py-4 text-sm text-blue-400 font-medium animate-pulse">
+                                            <div className="flex items-center justify-center gap-3 py-6 text-sm text-sky-600 font-bold">
                                                 <IconSpinner className="h-5 w-5 animate-spin" />
-                                                Evaluating your answer…
+                                                Analyzing your response…
                                             </div>
                                         ) : (
-                                            <div className="space-y-2">
-                                                <div className="flex items-center gap-3">
-                                                    <span className={`text-lg font-bold ${score.score >= 70 ? "text-emerald-400" : "text-amber-400"}`}>
-                                                        {score.score}/100
-                                                    </span>
-                                                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${score.score >= 70
-                                                        ? "bg-emerald-500/20 text-emerald-400"
-                                                        : "bg-amber-500/20 text-amber-400"
+                                            <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`text-2xl font-black ${score.score >= 70 ? "text-sky-600" : "text-amber-600"}`}>
+                                                        {score.score}%
+                                                    </div>
+                                                    <span className={`rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider ${score.score >= 70
+                                                        ? "bg-sky-50 text-sky-700 border border-sky-100"
+                                                        : "bg-amber-50 text-amber-700 border border-amber-100"
                                                         }`}>
-                                                        {score.score >= 70 ? "Good" : "Needs Work"}
+                                                        {score.score >= 70 ? "Excellent" : "Needs Review"}
                                                     </span>
                                                 </div>
-                                                <p className="text-sm text-zinc-400 leading-relaxed">{score.feedback}</p>
+                                                <p className="text-sm text-zinc-600 leading-relaxed font-medium">{score.feedback}</p>
                                             </div>
                                         )}
                                     </div>

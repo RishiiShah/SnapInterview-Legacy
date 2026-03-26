@@ -84,7 +84,7 @@ export function useChatSession({
       const expectedCurrentQuestion = formattedMessages.filter((message) => message.role === "assistant").length;
 
       try {
-        const response = await fetch("/api/interview/chat", {
+        let response = await fetch("/api/interview/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -94,6 +94,25 @@ export function useChatSession({
           }),
           signal,
         });
+
+        // Handle 409 conflict: server's currentQuestion is ahead of client's.
+        // Retry once with the server-provided currentQuestion.
+        if (response.status === 409) {
+          const conflictPayload = await response.json().catch(() => null);
+          const serverCurrentQuestion = conflictPayload?.currentQuestion;
+          if (typeof serverCurrentQuestion === "number") {
+            response = await fetch("/api/interview/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                messages: formattedMessages,
+                interviewId,
+                expectedCurrentQuestion: serverCurrentQuestion,
+              }),
+              signal,
+            });
+          }
+        }
 
         if (!response.ok) {
           if (signal.aborted) throw new Error("AbortError");

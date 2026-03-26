@@ -23,7 +23,7 @@ export default function HowItWorksSection() {
             {
               step: "02",
               title: "Practice with AI",
-              desc: "Jump into a realistic mock interview. Our AI asks questions, listens, and responds — just like a real panel.",
+              desc: "Jump into a realistic mock interview. Our AI asks questions, listens, and responds as a real interviewer would.",
             },
             {
               step: "03",

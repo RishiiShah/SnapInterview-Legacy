@@ -74,7 +74,7 @@ export default function QuestionsFilterBar({
               className="h-full rounded-full transition-all duration-500"
               style={{
                 width: `${totalQuestions > 0 ? (solvedCount / totalQuestions) * 100 : 0}%`,
-                backgroundColor: solvedCount === 0 ? "#e4e4e7" : solvedCount === totalQuestions ? "#10b981" : "#3b82f6",
+                backgroundColor: solvedCount === 0 ? "#e4e4e7" : solvedCount === totalQuestions ? "#10b981" : "#0ea5e9",
               }}
             />
           </div>
@@ -97,7 +97,7 @@ export default function QuestionsFilterBar({
             </svg>
             Filters
             {activeFilterCount > 0 && (
-              <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${showFilters ? "bg-white text-zinc-900" : "bg-blue-500 text-white"}`}>
+              <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${showFilters ? "bg-white text-zinc-900" : "bg-sky-500 text-white"}`}>
                 {activeFilterCount}
               </span>
             )}

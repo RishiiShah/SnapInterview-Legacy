@@ -101,9 +101,8 @@ export default function SignupPage() {
     return (
         <div className="flex min-h-screen bg-white font-[family-name:var(--font-geist-sans)]">
             <AuthSidePanel
-                title="Start preparing for your dream job today"
-                subtitle="Join over 50,000 candidates who improved their interview performance with AI-powered mock sessions and instant feedback."
-                showStats={true}
+                title="Refine your interview technique"
+                subtitle="Access a comprehensive library of behavioral and technical questions. Get immediate feedback on your responses and track your progress over time."
             />
 
             {/* ─── Right: Signup Form ─── */}
@@ -125,7 +124,7 @@ export default function SignupPage() {
                         Create your account
                     </h1>
                     <p className="mt-1 text-sm text-zinc-500">
-                        Get started with free mock interviews
+                        Get started with mock interviews
                     </p>
 
                     <form onSubmit={handleSubmit} className="mt-8 space-y-4">

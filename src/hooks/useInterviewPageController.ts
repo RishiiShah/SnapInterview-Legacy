@@ -181,6 +181,9 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
       if (isExitingRef.current) return;
       isExitingRef.current = true;
 
+      // Clear active ID immediately to prevent accidental deletion on practice page
+      localStorage.removeItem("active_interview_id");
+
       speech.stopRecording();
       media.stopStream();
       setIsUploading(true);
@@ -209,7 +212,6 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
           return;
         }
 
-        localStorage.removeItem("active_interview_id");
         router.push("/practice");
       } catch (error) {
         console.error("Error finalizing interview upload:", error);

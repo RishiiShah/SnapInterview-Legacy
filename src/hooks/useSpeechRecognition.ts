@@ -91,6 +91,7 @@ export function useSpeechRecognition() {
     const recognitionRef = useRef<RecognitionLike | null>(null);
     const fullTranscriptRef = useRef<string>("");
     const isIntentionalRecordingRef = useRef<boolean>(false);
+    const userStoppedRef = useRef<boolean>(false);
     const recognitionActiveRef = useRef<boolean>(false);
 
     useEffect(() => {
@@ -140,9 +141,9 @@ export function useSpeechRecognition() {
                 };
 
                 recognition.onend = () => {
-                    // If the user didn't stop it intentionally, and it's not a hard error,
-                    // we try to restart it (e.g., after "no-speech" or transient network dip).
-                    if (isIntentionalRecordingRef.current && recognitionRef.current) {
+                    // If the user didn't explicitly stop and recording is still intentional,
+                    // auto-restart (e.g., after "no-speech" or transient network dip).
+                    if (isIntentionalRecordingRef.current && !userStoppedRef.current && recognitionRef.current) {
                       try {
                         recognitionRef.current.start();
                         recognitionActiveRef.current = true;
@@ -152,8 +153,10 @@ export function useSpeechRecognition() {
                       }
                     }
 
-                    const shouldPublishTranscript = isIntentionalRecordingRef.current;
+                    // User explicitly clicked stop → publish the transcript
+                    const shouldPublishTranscript = userStoppedRef.current || isIntentionalRecordingRef.current;
                     isIntentionalRecordingRef.current = false;
+                    userStoppedRef.current = false;
                     recognitionActiveRef.current = false;
                     setIsRecording(false);
 
@@ -215,13 +218,27 @@ export function useSpeechRecognition() {
 
     const stopRecording = useCallback(() => {
         if (!recognitionRef.current || !recognitionActiveRef.current) return;
-        isIntentionalRecordingRef.current = false;
+
+        // Capture any remaining interim text as final before stopping
+        const pending = fullTranscriptRef.current;
+        // Mark that the user explicitly stopped so onend publishes the transcript
+        userStoppedRef.current = true;
 
         try {
             recognitionRef.current.stop();
         } catch (e) {
             console.error("Failed to stop recognition", e);
+            // Manually finalize if stop() threw
+            const finalStr = pending.trim();
+            if (finalStr) {
+                setFinalTranscriptBlock(finalStr);
+            }
+            fullTranscriptRef.current = "";
+            setInterimTranscript("");
+            setVolatileTranscript("");
             setIsRecording(false);
+            isIntentionalRecordingRef.current = false;
+            userStoppedRef.current = false;
             recognitionActiveRef.current = false;
         }
     }, []);

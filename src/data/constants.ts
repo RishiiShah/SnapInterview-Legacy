@@ -1,4 +1,4 @@
-import { NavItem, SearchItem, Notification, Difficulty, InterviewType, InterviewPersona } from "./types";
+import { NavItem, SearchItem, Difficulty, InterviewType, InterviewPersona } from "./types";
 
 /* ─────────────── Navigation Items ─────────────── */
 export const NAV_ITEMS: NavItem[] = [
@@ -137,11 +137,3 @@ export const COMPANIES: string[] = [
     "Elastic",
 ];
 
-/* ─────────────── Default Notifications ─────────────── */
-export const DEFAULT_NOTIFICATIONS: Notification[] = [
-    { id: 1, title: "Practice streak! 🔥", message: "You've practiced 5 days in a row. Keep it up!", time: "2m ago", read: false },
-    { id: 2, title: "New questions added", message: "15 new System Design questions are available.", time: "1h ago", read: false },
-    { id: 3, title: "Score milestone", message: "Congrats! You scored 90+ on your last 3 interviews.", time: "3h ago", read: false },
-    { id: 4, title: "Weekly report ready", message: "Your analytics for this week have been updated.", time: "1d ago", read: true },
-    { id: 5, title: "Tip of the day", message: "Use the STAR method for behavioral questions.", time: "2d ago", read: true },
-];

@@ -28,13 +28,13 @@ export default function LandingNavbar() {
         <div className="flex items-center gap-3">
           <Link
             href="/login"
-            className="hidden rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 sm:inline-flex"
+            className="hidden rounded-xl px-4 py-2 text-sm font-medium text-zinc-600 transition-all hover:text-zinc-900 hover:bg-zinc-100 sm:inline-flex"
           >
             Log in
           </Link>
           <Link
             href="/signup"
-            className="rounded-lg bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition-all hover:bg-zinc-700"
+            className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm shadow-zinc-900/20 transition-all hover:bg-zinc-700 hover:shadow-md hover:shadow-zinc-900/15"
           >
             Get Started
           </Link>

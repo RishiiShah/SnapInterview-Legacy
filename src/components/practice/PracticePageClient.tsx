@@ -122,7 +122,7 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
 
         <div className="grid gap-8 xl:grid-cols-3">
           <FadeIn delay={0.2} direction="up" className="space-y-6 xl:col-span-2">
-            <div className="rounded-3xl border border-zinc-200/80 bg-linear-to-b from-white via-white to-zinc-50/40 p-8 shadow-sm">
+            <div className="rounded-2xl border border-zinc-200/80 bg-linear-to-b from-white via-white to-zinc-50/40 p-8 shadow-sm">
               <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-zinc-900">

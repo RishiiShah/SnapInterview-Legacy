@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 type ProfileTabProps = {
   userName: string;
@@ -90,19 +92,18 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-zinc-700">Display Name</label>
-            <input
+            <Input
               type="text"
               value={name}
               onChange={(event) => {
                 setName(event.target.value);
                 if (profileError) setProfileError(null);
               }}
-              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none transition-all focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100"
             />
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-zinc-700">Email</label>
-            <input type="email" value={userEmail} disabled className="w-full rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-2.5 text-sm text-zinc-500 cursor-not-allowed" />
+            <Input type="email" value={userEmail} disabled />
             <p className="mt-1 text-xs text-zinc-400">Email cannot be changed.</p>
           </div>
         </div>
@@ -110,13 +111,13 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
       </div>
 
       <div className="flex items-center gap-3 border-t border-zinc-100 px-8 py-5">
-        <button
+        <Button
           onClick={handleSaveProfile}
-          disabled={profileSaving || name.trim() === savedName.trim()}
-          className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-zinc-700 disabled:opacity-50"
+          disabled={name.trim() === savedName.trim()}
+          loading={profileSaving}
         >
           {profileSaving ? "Saving…" : "Save Changes"}
-        </button>
+        </Button>
         {profileSaved && (
           <span className="flex items-center gap-1.5 text-sm text-emerald-600">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>

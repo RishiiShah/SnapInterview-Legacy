@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/Button";
 
 export default function PasswordTab() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -163,9 +164,9 @@ export default function PasswordTab() {
       )}
 
       <div className="flex items-center gap-3 border-t border-zinc-100 px-8 py-5">
-        <button onClick={handleChangePassword} disabled={passwordSaving || !currentPassword || !newPassword} className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed">
+        <Button onClick={handleChangePassword} disabled={!currentPassword || !newPassword} loading={passwordSaving}>
           {passwordSaving ? "Updating…" : "Update Password"}
-        </button>
+        </Button>
         {passwordSaved && (
           <span className="flex items-center gap-1.5 text-sm text-emerald-600">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>

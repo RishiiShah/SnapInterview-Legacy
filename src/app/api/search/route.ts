@@ -1,0 +1,89 @@
+import { getSessionUserIdentity } from "@/lib/server-auth";
+import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
+import { prisma } from "@/lib/prisma";
+import { logger } from "@/utils/logger";
+
+export type SearchSession = {
+  id: string;
+  role: string;
+  company: string | null;
+  type: string;
+  difficulty: string;
+  createdAt: string;
+};
+
+export type SearchQuestion = {
+  id: number;
+  slug: string;
+  text: string;
+  category: string;
+  difficulty: string;
+};
+
+export type SearchResults = {
+  sessions: SearchSession[];
+  questions: SearchQuestion[];
+};
+
+export async function GET(req: Request) {
+  try {
+    const authUser = await getSessionUserIdentity();
+    if (!authUser) {
+      return unauthorizedError();
+    }
+
+    const { searchParams } = new URL(req.url);
+    const q = searchParams.get("q")?.trim() ?? "";
+
+    if (!q || q.length < 2) {
+      return badRequestError("Query must be at least 2 characters");
+    }
+
+    if (q.length > 100) {
+      return badRequestError("Query too long");
+    }
+
+    const [sessions, questions] = await Promise.all([
+      prisma.interviewSession.findMany({
+        where: {
+          userId: authUser.userId,
+          deletedAt: null,
+          OR: [
+            { role: { contains: q, mode: "insensitive" } },
+            { company: { contains: q, mode: "insensitive" } },
+            { type: { contains: q, mode: "insensitive" } },
+          ],
+        },
+        select: { id: true, role: true, company: true, type: true, difficulty: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }),
+      prisma.practiceQuestion.findMany({
+        where: {
+          OR: [
+            { text: { contains: q, mode: "insensitive" } },
+            { category: { contains: q, mode: "insensitive" } },
+            { tags: { has: q.toLowerCase() } },
+          ],
+        },
+        select: { id: true, slug: true, text: true, category: true, difficulty: true },
+        take: 5,
+      }),
+    ]);
+
+    const result: SearchResults = {
+      sessions: sessions.map((s) => ({
+        ...s,
+        createdAt: s.createdAt.toISOString(),
+      })),
+      questions,
+    };
+
+    return apiJson(result);
+  } catch (error) {
+    logger.error("Search error:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return internalServerError();
+  }
+}

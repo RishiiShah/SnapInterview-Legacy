@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 export default function DangerZoneTab() {
   const router = useRouter();
@@ -47,9 +49,14 @@ export default function DangerZoneTab() {
               <div>
                 <h3 className="text-sm font-semibold text-red-900">Delete Account</h3>
                 <p className="mt-1 text-sm text-red-700/70">Once you delete your account, there is no going back. All your data, interviews, recordings, and settings will be permanently removed.</p>
-                <button onClick={() => setDeleteOpen(true)} className="mt-4 rounded-xl border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setDeleteOpen(true)}
+                  className="mt-4 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400"
+                >
                   Delete Account
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -69,11 +76,16 @@ export default function DangerZoneTab() {
             <p className="mt-2 text-center text-sm text-zinc-500">This action is <strong>permanent</strong> and cannot be undone. All your data will be deleted.</p>
             <div className="mt-5">
               <label className="mb-1.5 block text-sm font-medium text-zinc-700">Type <strong>DELETE</strong> to confirm</label>
-              <input type="text" value={deleteConfirm} onChange={(event) => setDeleteConfirm(event.target.value)} className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" />
+              <Input
+                type="text"
+                value={deleteConfirm}
+                onChange={(event) => setDeleteConfirm(event.target.value)}
+                className="focus:border-red-400 focus:ring-red-100"
+              />
             </div>
             <div className="mt-6 flex gap-3">
-              <button onClick={() => { setDeleteOpen(false); setDeleteConfirm(""); }} className="flex-1 rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors">Cancel</button>
-              <button onClick={handleDeleteAccount} disabled={deleteConfirm !== "DELETE"} className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">Delete Account</button>
+              <Button variant="secondary" className="flex-1" onClick={() => { setDeleteOpen(false); setDeleteConfirm(""); }}>Cancel</Button>
+              <Button variant="danger" className="flex-1" onClick={handleDeleteAccount} disabled={deleteConfirm !== "DELETE"}>Delete Account</Button>
             </div>
           </div>
         </div>

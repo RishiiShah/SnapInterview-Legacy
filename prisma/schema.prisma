@@ -30,8 +30,9 @@ model User {
   onboardingLevel        String?
   onboardingCompany      String?
   onboardingGoal         String?
-  preferredInterviewType String?
-  notificationPrefs      Json      @default("{\"emailNotifs\":true,\"practiceReminders\":true,\"weeklyReport\":true,\"scoreAlerts\":false}")
+  preferredInterviewType    String?
+  notificationPrefs         Json      @default("{\"emailNotifs\":true,\"practiceReminders\":true,\"weeklyReport\":true,\"scoreAlerts\":false}")
+  notificationsLastReadAt   DateTime?
 
   // ─── Relations ───
   sessions             Session[]

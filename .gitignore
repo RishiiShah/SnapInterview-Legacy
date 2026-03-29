@@ -21,6 +21,7 @@
 
 # agents
 /.agents/
+CLAUDE.md
 
 # production
 /build

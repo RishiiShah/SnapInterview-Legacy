@@ -1,0 +1,42 @@
+import { csrfRejectIfInvalid } from "@/lib/csrf";
+import { getSessionUserIdentity } from "@/lib/server-auth";
+import { apiJson, internalServerError, unauthorizedError } from "@/lib/api-response";
+import { getUserNotifications, markAllNotificationsRead } from "@/repositories/notification-repo";
+import { logger } from "@/utils/logger";
+
+export async function GET() {
+  try {
+    const authUser = await getSessionUserIdentity();
+    if (!authUser) {
+      return unauthorizedError();
+    }
+
+    const notifications = await getUserNotifications(authUser.userId);
+    return apiJson({ notifications });
+  } catch (error) {
+    logger.error("Get notifications error:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return internalServerError();
+  }
+}
+
+export async function PATCH(req: Request) {
+  try {
+    const csrfError = csrfRejectIfInvalid(req);
+    if (csrfError) return csrfError;
+
+    const authUser = await getSessionUserIdentity();
+    if (!authUser) {
+      return unauthorizedError();
+    }
+
+    await markAllNotificationsRead(authUser.userId);
+    return apiJson({ ok: true });
+  } catch (error) {
+    logger.error("Mark notifications read error:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return internalServerError();
+  }
+}

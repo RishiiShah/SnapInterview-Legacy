@@ -212,7 +212,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
           return;
         }
 
-        router.push("/practice");
+        router.push("/recordings");
       } catch (error) {
         console.error("Error finalizing interview upload:", error);
         setModal({

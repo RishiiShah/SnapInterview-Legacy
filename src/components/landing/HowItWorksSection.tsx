@@ -32,7 +32,7 @@ export default function HowItWorksSection() {
             },
           ].map((s) => (
             <FadeInStaggerItem key={s.step} className="relative group">
-              <span className="mb-4 block text-5xl font-extrabold text-zinc-300 transition-colors group-hover:text-zinc-900">
+              <span className="mb-4 block text-5xl font-bold text-zinc-300 transition-colors group-hover:text-zinc-900">
                 {s.step}
               </span>
               <h3 className="mb-2 text-lg font-semibold">{s.title}</h3>

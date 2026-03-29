@@ -273,7 +273,7 @@ export default function PermissionRequest({
             type="button"
             onClick={handleJoinNow}
             disabled={hasPermission !== true}
-            className="mt-6 w-full cursor-pointer rounded-lg bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="mt-6 w-full cursor-pointer rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Join now
           </button>

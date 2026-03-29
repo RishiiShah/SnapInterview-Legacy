@@ -7,7 +7,7 @@ export default function HeroSection() {
     <section className="relative flex min-h-[90vh] flex-col justify-center items-center px-6 md:px-12 pt-32 pb-20 text-center overflow-hidden">
       {/* Badge */}
       <SlideIn delay={0.1}>
-        <span className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-600 shadow-sm">
+        <span className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50/60 px-3 py-1 text-xs font-medium text-emerald-700 shadow-sm">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -20,9 +20,7 @@ export default function HeroSection() {
         <h1 className="mx-auto max-w-4xl text-[clamp(2.5rem,6vw,4.5rem)] font-bold leading-[1.1] tracking-tight text-zinc-900">
           A practice platform for
           <br className="hidden sm:block" />
-          <span className="bg-linear-to-r from-zinc-900 via-zinc-600 to-zinc-400 bg-clip-text text-transparent">
-            technical interviews.
-          </span>
+          technical interviews.
         </h1>
       </SlideIn>
 

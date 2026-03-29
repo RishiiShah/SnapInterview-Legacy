@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/utils/helpers";
-import { DEFAULT_NOTIFICATIONS } from "@/data/constants";
 import { Notification } from "@/data/types";
 import { IconBell, IconLogout, IconSearch, IconSettings } from "@/components/ui/icons";
 import { navItems } from "./Sidebar";
@@ -19,24 +18,17 @@ type DashboardSession = {
     } | null;
 } | null;
 
-function getNotificationStorageKey(email?: string | null): string {
-    return `snapinterview.notifications.read.${(email || "anon").toLowerCase()}`;
-}
-
-function getReadNotificationIds(storageKey: string): Set<string> {
-    if (typeof window === "undefined") return new Set();
-    try {
-        const raw = window.localStorage.getItem(storageKey);
-        if (!raw) return new Set();
-        const parsed = JSON.parse(raw) as unknown;
-        if (!Array.isArray(parsed)) return new Set();
-        return new Set(parsed.filter((value): value is string => typeof value === "string"));
-    } catch {
-        return new Set();
-    }
-}
-
-function NotificationPanel({ open, notifications, onMarkAllRead }: { open: boolean; notifications: Notification[]; onMarkAllRead: () => void }) {
+function NotificationPanel({
+    open,
+    notifications,
+    loading,
+    onMarkAllRead,
+}: {
+    open: boolean;
+    notifications: Notification[];
+    loading: boolean;
+    onMarkAllRead: () => void;
+}) {
     const unreadCount = notifications.filter((n) => !n.read).length;
     if (!open) return null;
 
@@ -44,19 +36,37 @@ function NotificationPanel({ open, notifications, onMarkAllRead }: { open: boole
         <div className="absolute right-0 top-12 w-80 rounded-xl border border-zinc-200 bg-white shadow-xl" style={{ animation: "fadeSlideIn 0.15s ease-out" }}>
             <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
                 <h3 className="text-sm font-semibold text-zinc-900">Notifications</h3>
-                {unreadCount > 0 && <button onClick={onMarkAllRead} className="text-xs font-medium text-zinc-500 hover:text-zinc-900">Mark all read</button>}
+                {unreadCount > 0 && (
+                    <button onClick={onMarkAllRead} className="text-xs font-medium text-zinc-500 hover:text-zinc-900">
+                        Mark all read
+                    </button>
+                )}
             </div>
             <div className="max-h-80 overflow-y-auto divide-y divide-zinc-50">
-                {notifications.map((n) => (
-                    <div key={n.id} className={`px-4 py-3 transition-colors hover:bg-zinc-50 ${!n.read ? "bg-blue-50/40" : ""}`}>
-                        <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-medium text-zinc-900">{n.title}</p>
-                            {!n.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-500" />}
-                        </div>
-                        <p className="mt-0.5 text-xs text-zinc-500 leading-relaxed">{n.message}</p>
-                        <p className="mt-1 text-[10px] text-zinc-400">{n.time}</p>
+                {loading ? (
+                    <div className="space-y-0 divide-y divide-zinc-50">
+                        {[1, 2, 3].map((i) => (
+                            <div key={i} className="px-4 py-3">
+                                <div className="h-3.5 w-32 animate-pulse rounded bg-zinc-100" />
+                                <div className="mt-1.5 h-3 w-48 animate-pulse rounded bg-zinc-100" />
+                                <div className="mt-1.5 h-2.5 w-16 animate-pulse rounded bg-zinc-100" />
+                            </div>
+                        ))}
                     </div>
-                ))}
+                ) : notifications.length === 0 ? (
+                    <p className="px-4 py-6 text-center text-sm text-zinc-400">No notifications yet</p>
+                ) : (
+                    notifications.map((n) => (
+                        <div key={n.id} className={`px-4 py-3 transition-colors hover:bg-zinc-50 ${!n.read ? "bg-blue-50/40" : ""}`}>
+                            <div className="flex items-start justify-between gap-2">
+                                <p className="text-sm font-medium text-zinc-900">{n.title}</p>
+                                {!n.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-500" />}
+                            </div>
+                            <p className="mt-0.5 text-xs text-zinc-500 leading-relaxed">{n.message}</p>
+                            <p className="mt-1 text-[10px] text-zinc-400">{n.time}</p>
+                        </div>
+                    ))
+                )}
             </div>
         </div>
     );
@@ -104,29 +114,41 @@ export function Header({ onSearchOpen, session }: { onSearchOpen: () => void; se
 
     const [avatarOpen, setAvatarOpen] = useState(false);
     const [notifOpen, setNotifOpen] = useState(false);
-    const [, setNotificationRevision] = useState(0);
-
-    const notificationStorageKey = useMemo(() => getNotificationStorageKey(userEmail), [userEmail]);
-
-    const persistReadNotifications = useCallback((readIds: string[]) => {
-        if (typeof window === "undefined") return;
-        try {
-            window.localStorage.setItem(notificationStorageKey, JSON.stringify(readIds));
-        } catch {}
-    }, [notificationStorageKey]);
-
-    const notifications: Notification[] = (() => {
-        const readIds = getReadNotificationIds(notificationStorageKey);
-        return DEFAULT_NOTIFICATIONS.map((notification) => ({
-            ...notification,
-            read: notification.read || readIds.has(String(notification.id)),
-        }));
-    })();
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [notifLoading, setNotifLoading] = useState(false);
+    const [notifFetched, setNotifFetched] = useState(false);
 
     const avatarRef = useRef<HTMLDivElement>(null);
     const notifRef = useRef<HTMLDivElement>(null);
 
-    const unreadCount = notifications.filter((n) => !n.read).length;
+    const fetchNotifications = useCallback(async () => {
+        if (notifFetched) return;
+        setNotifLoading(true);
+        try {
+            const res = await fetch("/api/notifications");
+            if (res.ok) {
+                const data = await res.json() as { notifications: Notification[] };
+                setNotifications(data.notifications);
+                setNotifFetched(true);
+            }
+        } catch {
+            // silently fail — panel will show empty state
+        } finally {
+            setNotifLoading(false);
+        }
+    }, [notifFetched]);
+
+    const handleMarkAllRead = useCallback(async () => {
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+        try {
+            await fetch("/api/notifications", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+            });
+        } catch {
+            // optimistic update already applied
+        }
+    }, []);
 
     useEffect(() => {
         function handleClick(e: MouseEvent) {
@@ -137,6 +159,14 @@ export function Header({ onSearchOpen, session }: { onSearchOpen: () => void; se
         return () => document.removeEventListener("mousedown", handleClick);
     }, []);
 
+    const handleNotifOpen = useCallback(() => {
+        setNotifOpen((prev) => !prev);
+        setAvatarOpen(false);
+        fetchNotifications();
+    }, [fetchNotifications]);
+
+    const unreadCount = notifications.filter((n) => !n.read).length;
+
     const pageTitle = navItems.find((i) => pathname === i.href || pathname.startsWith(i.href + '/'))?.label ?? "Dashboard";
 
     return (
@@ -144,7 +174,7 @@ export function Header({ onSearchOpen, session }: { onSearchOpen: () => void; se
             <h2 className="text-sm font-semibold text-zinc-900">{pageTitle}</h2>
             <div className="flex items-center gap-3">
                 {/* Search */}
-                <button onClick={onSearchOpen} className="hidden items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-400 transition-colors hover:border-zinc-300 hover:bg-zinc-100 sm:flex">
+                <button onClick={onSearchOpen} className="hidden items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-400 transition-colors hover:border-zinc-300 hover:bg-zinc-100 sm:flex">
                     <IconSearch className="h-4 w-4" />
                     <span>Search…</span>
                     <kbd className="ml-6 rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">⌘K</kbd>
@@ -152,18 +182,22 @@ export function Header({ onSearchOpen, session }: { onSearchOpen: () => void; se
 
                 {/* Notifications */}
                 <div ref={notifRef} className="relative">
-                    <button onClick={() => { setNotifOpen(!notifOpen); setAvatarOpen(false); }} className="relative rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600">
+                    <button
+                        onClick={handleNotifOpen}
+                        className="relative rounded-xl p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
+                    >
                         <IconBell className="h-5 w-5" />
-                        {unreadCount > 0 && <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">{unreadCount}</span>}
+                        {unreadCount > 0 && (
+                            <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                                {unreadCount}
+                            </span>
+                        )}
                     </button>
                     <NotificationPanel
                         open={notifOpen}
                         notifications={notifications}
-                        onMarkAllRead={() => {
-                            const nextReadIds = notifications.map((notification) => String(notification.id));
-                            persistReadNotifications(nextReadIds);
-                            setNotificationRevision((prev) => prev + 1);
-                        }}
+                        loading={notifLoading}
+                        onMarkAllRead={handleMarkAllRead}
                     />
                 </div>
 

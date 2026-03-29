@@ -21,7 +21,7 @@ export interface SearchItem {
 
 /* ─────────────── Notifications ─────────────── */
 export interface Notification {
-    id: number;
+    id: string;
     title: string;
     message: string;
     time: string;

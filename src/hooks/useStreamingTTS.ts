@@ -38,11 +38,11 @@ function pickRandom<T>(arr: T[]): T | undefined {
 }
 
 /**
- * Picks a random English voice regardless of persona.
- * The persona character is expressed through the AI's language, not the voice.
- * Falls back to any available voice if no English voice is found.
+ * Picks a random English voice. The persona character is expressed through the
+ * AI's language, not the voice. Falls back to any available voice if no
+ * English voice is found.
  */
-function selectVoiceForPersona(_persona: string | null | undefined): SpeechSynthesisVoice | null {
+function selectVoice(): SpeechSynthesisVoice | null {
   if (!isSpeechAvailable()) return null;
   const voices = window.speechSynthesis.getVoices();
   if (voices.length === 0) return null;
@@ -77,7 +77,7 @@ export function useStreamingTTS({
     if (!isSpeechAvailable()) return;
 
     function resolve() {
-      voiceRef.current = selectVoiceForPersona(persona);
+      voiceRef.current = selectVoice();
     }
 
     resolve();

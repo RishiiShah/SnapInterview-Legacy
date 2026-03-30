@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import OnboardingPreferencesForm from "@/components/onboarding/OnboardingPreferencesForm";
 import type { OnboardingPreferencesFormValues } from "@/lib/onboarding/preferences";
 
@@ -20,16 +20,15 @@ type InterviewPreferencesTabProps = {
 };
 
 export default function InterviewPreferencesTab({ initialValues }: InterviewPreferencesTabProps) {
-  const [muted, setMuted] = useState(false);
-  const [speed, setSpeed] = useState<SpeedValue>("normal");
-
-  useEffect(() => {
-    setMuted(localStorage.getItem(MUTE_STORAGE_KEY) === "1");
+  const [muted, setMuted] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(MUTE_STORAGE_KEY) === "1";
+  });
+  const [speed, setSpeed] = useState<SpeedValue>(() => {
+    if (typeof window === "undefined") return "normal";
     const stored = localStorage.getItem(SPEED_STORAGE_KEY);
-    if (stored === "slow" || stored === "normal" || stored === "fast") {
-      setSpeed(stored);
-    }
-  }, []);
+    return stored === "slow" || stored === "normal" || stored === "fast" ? stored : "normal";
+  });
 
   function handleMuteToggle() {
     const next = !muted;

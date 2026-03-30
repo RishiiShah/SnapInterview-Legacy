@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     session: {
-      findMany: vi.fn(),
       deleteMany: vi.fn(),
     },
     securityEvent: {
@@ -41,9 +40,7 @@ describe("account-security helpers", () => {
   });
 
   it("revokes matching sessions and records a summary security event", async () => {
-    vi.mocked(prisma.session.findMany).mockResolvedValue(
-      [{ id: "s1" }, { id: "s2" }] as Awaited<ReturnType<typeof prisma.session.findMany>>
-    );
+    vi.mocked(prisma.session.deleteMany).mockResolvedValue({ count: 2 });
 
     const revokedCount = await revokeUserSessions({
       userId: "user-1",
@@ -54,7 +51,9 @@ describe("account-security helpers", () => {
     expect(revokedCount).toBe(2);
     expect(prisma.session.deleteMany).toHaveBeenCalledWith({
       where: {
-        id: { in: ["s1", "s2"] },
+        userId: "user-1",
+        expiresAt: expect.objectContaining({ gt: expect.any(Date) }),
+        token: { not: "keep-me" },
       },
     });
     expect(prisma.securityEvent.create).toHaveBeenCalledWith({
@@ -67,7 +66,7 @@ describe("account-security helpers", () => {
   });
 
   it("returns zero when there are no active sessions to revoke", async () => {
-    vi.mocked(prisma.session.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.session.deleteMany).mockResolvedValue({ count: 0 });
 
     await expect(
       revokeUserSessions({
@@ -76,7 +75,7 @@ describe("account-security helpers", () => {
       })
     ).resolves.toBe(0);
 
-    expect(prisma.session.deleteMany).not.toHaveBeenCalled();
+    expect(prisma.session.deleteMany).toHaveBeenCalledOnce();
     expect(prisma.securityEvent.create).not.toHaveBeenCalled();
   });
 });

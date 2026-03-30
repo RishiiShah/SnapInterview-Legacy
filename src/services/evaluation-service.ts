@@ -76,11 +76,14 @@ Evaluation Criteria:
 3. Did they handle follow-up questions well, showing depth of knowledge?
 4. Did they quantify their impact and provide concrete examples?
 
-Based on the transcript, return a JSON object with exactly these four keys:
+Based on the transcript, return a JSON object with exactly these seven keys:
 - "score": A number between 0 and 100 representing the overall interview performance.
 - "feedback": A concise 2-3 paragraph summary of their performance, highlighting key takeaways.
 - "strengths": An array of 2-4 strings, each being a short bullet point of something they did exceptionally well.
-- "areasForImprovement": An array of 2-4 strings, each being a short bullet point of a specific area they need to work on.`,
+- "areasForImprovement": An array of 2-4 strings, each being a short bullet point of a specific area they need to work on.
+- "communication": A number between 0 and 100 rating how clearly and effectively they communicated (structure, articulation, conciseness).
+- "technicalDepth": A number between 0 and 100 rating the depth and accuracy of their technical knowledge and reasoning.
+- "clarity": A number between 0 and 100 rating how well-organised and easy to follow their answers were (logical flow, no rambling).`,
           },
           {
             role: "user",

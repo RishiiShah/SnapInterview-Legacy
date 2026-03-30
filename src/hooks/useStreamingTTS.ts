@@ -1,0 +1,105 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+const STORAGE_KEY = "tts_muted";
+const SENTENCE_BOUNDARY = /[.?!]+(?=\s|$)/g;
+
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/`{1,3}(.*?)`{1,3}/g, "$1")
+    .replace(/#+\s/g, "")
+    .trim();
+}
+
+function isSpeechAvailable(): boolean {
+  return typeof window !== "undefined" && "speechSynthesis" in window;
+}
+
+export function useStreamingTTS({
+  currentStreamedText,
+  enabled = true,
+}: {
+  currentStreamedText: string;
+  enabled?: boolean;
+}) {
+  const [muted, setMutedState] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(STORAGE_KEY) === "1";
+  });
+
+  const mutedRef = useRef(muted);
+  // Tracks how many characters of the accumulated stream we've already queued for speech
+  const spokenUpToRef = useRef(0);
+  // Holds the last non-empty streamed text so we can flush the tail when the stream ends
+  const lastTextRef = useRef("");
+
+  const speakSegment = useCallback((text: string) => {
+    if (!isSpeechAvailable() || mutedRef.current || !enabled) return;
+    const cleaned = stripMarkdown(text).trim();
+    if (!cleaned) return;
+    const utterance = new SpeechSynthesisUtterance(cleaned);
+    utterance.rate = 1.05;
+    try {
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      // Browser denied or speech synthesis is in a bad state — skip this segment
+      // and let subsequent segments attempt normally.
+    }
+  }, [enabled]);
+
+  const cancel = useCallback(() => {
+    if (isSpeechAvailable()) window.speechSynthesis.cancel();
+    spokenUpToRef.current = 0;
+    lastTextRef.current = "";
+  }, []);
+
+  const setMuted = useCallback((value: boolean) => {
+    mutedRef.current = value;
+    setMutedState(value);
+    localStorage.setItem(STORAGE_KEY, value ? "1" : "0");
+    if (value) cancel();
+  }, [cancel]);
+
+  // React to each streaming update
+  useEffect(() => {
+    if (!isSpeechAvailable() || !enabled) return;
+
+    if (currentStreamedText === "") {
+      // Stream just ended — flush any tail that didn't end with punctuation
+      if (lastTextRef.current) {
+        const tail = lastTextRef.current.slice(spokenUpToRef.current);
+        if (tail.trim()) speakSegment(tail);
+      }
+      spokenUpToRef.current = 0;
+      lastTextRef.current = "";
+      return;
+    }
+
+    lastTextRef.current = currentStreamedText;
+    const newChunk = currentStreamedText.slice(spokenUpToRef.current);
+
+    // Find all sentence-ending positions within the new chunk
+    SENTENCE_BOUNDARY.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    let lastEnd = 0;
+
+    while ((match = SENTENCE_BOUNDARY.exec(newChunk)) !== null) {
+      const end = match.index + match[0].length;
+      const sentence = newChunk.slice(lastEnd, end);
+      speakSegment(sentence);
+      lastEnd = end;
+    }
+
+    spokenUpToRef.current += lastEnd;
+  }, [currentStreamedText, enabled, speakSegment]);
+
+  // Cancel on unmount
+  useEffect(() => {
+    return () => { if (isSpeechAvailable()) window.speechSynthesis.cancel(); };
+  }, []);
+
+  return { muted, setMuted, cancel };
+}

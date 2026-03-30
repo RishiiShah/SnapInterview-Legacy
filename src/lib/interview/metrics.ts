@@ -123,12 +123,19 @@ export type DashboardOverviewData = {
   chartData: DashboardChartPoint[];
 };
 
+export type SubScores = {
+  communication: number | null;
+  technicalDepth: number | null;
+  clarity: number | null;
+};
+
 export type AnalyticsOverviewData = {
   weeklyScores: DashboardChartPoint[];
   monthlyComparison: AnalyticsMonthlyComparison[];
   categoryBreakdown: AnalyticsCategoryScore[];
   strengths: string[];
   improvements: string[];
+  subScores: SubScores;
 };
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
@@ -371,6 +378,29 @@ function rankKeywordEntries(entries: Array<[string, number]>, fallback: string[]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
     .map(([label]) => label);
+}
+
+function deriveSubScores(sessions: SessionRecord[]): SubScores {
+  const comms: number[] = [];
+  const tech: number[] = [];
+  const clarity: number[] = [];
+
+  for (const session of sessions) {
+    const evaluation = normalizeTranscriptEvaluation(session.evaluation);
+    if (!evaluation) continue;
+    if (evaluation.communication != null) comms.push(evaluation.communication);
+    if (evaluation.technicalDepth != null) tech.push(evaluation.technicalDepth);
+    if (evaluation.clarity != null) clarity.push(evaluation.clarity);
+  }
+
+  const avg = (arr: number[]) =>
+    arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+
+  return {
+    communication: avg(comms),
+    technicalDepth: avg(tech),
+    clarity: avg(clarity),
+  };
 }
 
 function deriveStrengthsAndImprovementsFromTranscripts(transcripts: TranscriptRecord[]): {
@@ -641,6 +671,8 @@ export async function getAnalyticsOverviewData(userId: string): Promise<Analytic
   const evaluationInsights = deriveStrengthsAndImprovementsFromEvaluations(sessions);
   const { strengths, improvements } = evaluationInsights ?? deriveStrengthsAndImprovementsFromTranscripts(transcripts);
 
+  const subScores = deriveSubScores(sessions);
+
   const result: AnalyticsOverviewData = {
     weeklyScores,
     monthlyComparison: [
@@ -650,6 +682,7 @@ export async function getAnalyticsOverviewData(userId: string): Promise<Analytic
     categoryBreakdown: resolvedCategories,
     strengths,
     improvements,
+    subScores,
   };
 
   writeCache(analyticsCache, userId, result, ANALYTICS_CACHE_TTL_MS);

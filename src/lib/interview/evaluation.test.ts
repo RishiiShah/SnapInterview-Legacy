@@ -8,7 +8,7 @@ import {
 describe("interview evaluation helpers", () => {
   it("extracts transcript evaluation JSON from fenced markdown", () => {
     const parsed = parseTranscriptEvaluationResponse(
-      "```json\n{\"score\":84,\"feedback\":\"Good work.\",\"strengths\":[\"Clarity\"],\"areasForImprovement\":[\"Depth\"]}\n```",
+      "```json\n{\"score\":84,\"feedback\":\"Good work.\",\"strengths\":[\"Clarity\"],\"areasForImprovement\":[\"Depth\"],\"communication\":80,\"technicalDepth\":75,\"clarity\":88}\n```",
     );
 
     expect(parsed).toEqual({
@@ -16,6 +16,9 @@ describe("interview evaluation helpers", () => {
       feedback: "Good work.",
       strengths: ["Clarity"],
       areasForImprovement: ["Depth"],
+      communication: 80,
+      technicalDepth: 75,
+      clarity: 88,
     });
   });
 

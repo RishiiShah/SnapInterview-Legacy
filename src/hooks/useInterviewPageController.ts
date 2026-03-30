@@ -4,6 +4,7 @@ import { useMediaPermissions } from "@/lib/useMediaPermissions";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useVideoRecording } from "@/hooks/useVideoRecording";
 import { useChatSession } from "@/hooks/useChatSession";
+import { useStreamingTTS } from "@/hooks/useStreamingTTS";
 import { getInterviewBlockReason, type BrowserBlockResult } from "@/lib/interview/browser-block";
 import { finalizeInterviewUpload, type InterviewCompletionStatus } from "@/lib/video/upload-service";
 
@@ -91,6 +92,11 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     interviewDone,
     finalTranscriptBlock: speech.finalTranscriptBlock,
     setInterviewDone,
+  });
+
+  const tts = useStreamingTTS({
+    currentStreamedText: chat.currentStreamedText,
+    enabled: interviewStarted && !interviewDone,
   });
 
   useEffect(() => {
@@ -332,6 +338,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     setInterviewDone,
     speech,
     chat,
+    tts,
     media,
     videoRecording,
     handlePermissionsGranted,

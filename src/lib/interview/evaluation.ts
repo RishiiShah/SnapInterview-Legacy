@@ -7,6 +7,10 @@ export const transcriptEvaluationResponseSchema = z.object({
   feedback: nonEmptyTrimmedString,
   strengths: z.array(nonEmptyTrimmedString).min(1).max(4),
   areasForImprovement: z.array(nonEmptyTrimmedString).min(1).max(4),
+  // Sub-scores — optional for backwards compatibility with existing DB records
+  communication: z.number().int().min(0).max(100).optional(),
+  technicalDepth: z.number().int().min(0).max(100).optional(),
+  clarity: z.number().int().min(0).max(100).optional(),
 });
 
 export const questionEvaluationResponseSchema = z.object({

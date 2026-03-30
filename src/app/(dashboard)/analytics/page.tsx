@@ -23,6 +23,7 @@ export default async function AnalyticsPage() {
         categoryBreakdown,
         strengths,
         improvements,
+        subScores,
     } = userId
         ? await getAnalyticsOverviewData(userId)
         : {
@@ -34,6 +35,7 @@ export default async function AnalyticsPage() {
             categoryBreakdown: [],
             strengths: [],
             improvements: [],
+            subScores: { communication: null, technicalDepth: null, clarity: null },
         };
 
     return (
@@ -82,6 +84,50 @@ export default async function AnalyticsPage() {
                     <PerformanceChart weeklyScores={weeklyScores} delay={0.2} />
                     <CategoryBreakdown categories={categoryBreakdown} delay={0.3} />
                 </div>
+
+                {/* Sub-score Breakdown */}
+                <FadeIn triggerOnView={false} delay={0.35} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
+                    <h3 className="mb-1 text-sm font-semibold text-zinc-900">Score Breakdown</h3>
+                    <p className="mb-5 text-xs text-zinc-400">Average sub-scores across all evaluated interviews</p>
+                    <div className="grid gap-4 sm:grid-cols-3">
+                        {[
+                            { label: "Communication", value: subScores.communication, description: "Clarity and articulation" },
+                            { label: "Technical Depth", value: subScores.technicalDepth, description: "Knowledge and reasoning" },
+                            { label: "Clarity", value: subScores.clarity, description: "Structure and logical flow" },
+                        ].map(({ label, value, description }) => (
+                            <div key={label} className="rounded-xl border border-zinc-100 p-4">
+                                <p className="text-xs font-medium text-zinc-500">{label}</p>
+                                <p className="text-xs text-zinc-400 mt-0.5 mb-3">{description}</p>
+                                {value !== null ? (
+                                    <>
+                                        <div className="flex items-end justify-between mb-1.5">
+                                            <span className="text-2xl font-bold tracking-tight text-zinc-900">{value}</span>
+                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                                value >= 80 ? "bg-emerald-100 text-emerald-700"
+                                                : value >= 65 ? "bg-blue-100 text-blue-700"
+                                                : "bg-amber-100 text-amber-700"
+                                            }`}>
+                                                {value >= 80 ? "Strong" : value >= 65 ? "Steady" : "Improve"}
+                                            </span>
+                                        </div>
+                                        <div className="h-2 w-full rounded-full bg-zinc-100">
+                                            <div
+                                                className={`h-full rounded-full transition-all duration-500 ${
+                                                    value >= 80 ? "bg-emerald-500"
+                                                    : value >= 65 ? "bg-blue-500"
+                                                    : "bg-amber-500"
+                                                }`}
+                                                style={{ width: `${value}%` }}
+                                            />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <p className="text-sm text-zinc-400 italic">No data yet</p>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </FadeIn>
 
                 {/* Strengths & Weaknesses */}
                 <div className="grid gap-6 lg:grid-cols-2 pb-8">

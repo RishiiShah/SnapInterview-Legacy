@@ -139,3 +139,139 @@ describe("interview metrics scoring", () => {
     expect(analytics.improvements).toEqual([]);
   });
 });
+
+describe("deriveSubScores (via getAnalyticsOverviewData)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(prisma.transcriptEntry.findMany).mockResolvedValue([]);
+  });
+
+  function makeSession(overrides: object) {
+    return {
+      id: "s",
+      role: "Engineer",
+      company: "Acme",
+      videoKey: null,
+      type: "behavioral",
+      status: "COMPLETED",
+      questionCount: 5,
+      currentQuestion: 5,
+      evaluation: null,
+      createdAt: new Date(),
+      ...overrides,
+    };
+  }
+
+  it("averages sub-scores across all sessions that have evaluations", async () => {
+    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([
+      makeSession({
+        id: "s1",
+        evaluation: {
+          score: 80,
+          feedback: "Good.",
+          strengths: ["Clarity"],
+          areasForImprovement: ["Depth"],
+          communication: 70,
+          technicalDepth: 60,
+          clarity: 90,
+        },
+      }),
+      makeSession({
+        id: "s2",
+        evaluation: {
+          score: 90,
+          feedback: "Great.",
+          strengths: ["Clarity"],
+          areasForImprovement: ["Depth"],
+          communication: 90,
+          technicalDepth: 80,
+          clarity: 70,
+        },
+      }),
+    ] as never);
+
+    const analytics = await getAnalyticsOverviewData("user-sub");
+
+    expect(analytics.subScores.communication).toBe(80); // (70 + 90) / 2
+    expect(analytics.subScores.technicalDepth).toBe(70); // (60 + 80) / 2
+    expect(analytics.subScores.clarity).toBe(80); // (90 + 70) / 2
+  });
+
+  it("returns null for each sub-score when no sessions have evaluations", async () => {
+    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([
+      makeSession({ id: "s1", evaluation: null }),
+      makeSession({ id: "s2", evaluation: null }),
+    ] as never);
+
+    const analytics = await getAnalyticsOverviewData("user-no-evals");
+
+    expect(analytics.subScores.communication).toBeNull();
+    expect(analytics.subScores.technicalDepth).toBeNull();
+    expect(analytics.subScores.clarity).toBeNull();
+  });
+
+  it("returns null for sub-scores omitted from some evaluations (backward compat)", async () => {
+    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([
+      makeSession({
+        id: "s1",
+        evaluation: {
+          score: 85,
+          feedback: "Ok.",
+          strengths: [],
+          areasForImprovement: [],
+          // no sub-score fields
+        },
+      }),
+    ] as never);
+
+    const analytics = await getAnalyticsOverviewData("user-old-eval");
+
+    expect(analytics.subScores.communication).toBeNull();
+    expect(analytics.subScores.technicalDepth).toBeNull();
+    expect(analytics.subScores.clarity).toBeNull();
+  });
+
+  it("includes only sessions that have the sub-score when mixing old and new evaluations", async () => {
+    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([
+      makeSession({
+        id: "s1",
+        evaluation: {
+          score: 80,
+          feedback: "Good.",
+          strengths: ["Clarity"],
+          areasForImprovement: ["Depth"],
+          communication: 60,
+          // technicalDepth and clarity absent
+        },
+      }),
+      makeSession({
+        id: "s2",
+        evaluation: {
+          score: 90,
+          feedback: "Great.",
+          strengths: ["Clarity"],
+          areasForImprovement: ["Depth"],
+          communication: 80,
+          technicalDepth: 70,
+          clarity: 90,
+        },
+      }),
+    ] as never);
+
+    const analytics = await getAnalyticsOverviewData("user-mixed");
+
+    expect(analytics.subScores.communication).toBe(70); // (60 + 80) / 2
+    expect(analytics.subScores.technicalDepth).toBe(70); // only s2
+    expect(analytics.subScores.clarity).toBe(90); // only s2
+  });
+
+  it("returns null sub-scores when there are no completed sessions at all", async () => {
+    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([] as never);
+
+    const analytics = await getAnalyticsOverviewData("user-empty");
+
+    expect(analytics.subScores.communication).toBeNull();
+    expect(analytics.subScores.technicalDepth).toBeNull();
+    expect(analytics.subScores.clarity).toBeNull();
+  });
+});

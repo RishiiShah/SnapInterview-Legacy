@@ -50,6 +50,8 @@ import {
   Palette,
   Terminal,
   Microscope,
+  Volume2,
+  VolumeOff,
   type LucideIcon,
   type LucideProps,
 } from "lucide-react";
@@ -116,3 +118,5 @@ export const IconBriefcase = makeIcon(Briefcase);
 export const IconPalette = makeIcon(Palette);
 export const IconTerminal = makeIcon(Terminal);
 export const IconMicroscope = makeIcon(Microscope);
+export const IconVolume = makeIcon(Volume2);
+export const IconVolumeOff = makeIcon(VolumeOff);

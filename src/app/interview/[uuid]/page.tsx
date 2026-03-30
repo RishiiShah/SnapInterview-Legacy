@@ -24,6 +24,7 @@ export default function InterviewPage() {
     chatBottomRef,
     speech,
     chat,
+    tts,
     media,
     videoRecording,
     handlePermissionsGranted,
@@ -92,9 +93,14 @@ export default function InterviewPage() {
           isRecording={speech.isRecording}
           hasSpeechSupport={speech.hasSupport}
           speechError={speech.speechError}
+          ttsMuted={tts.muted}
           toggleMic={media.toggleMic}
           toggleCamera={media.toggleCamera}
-          toggleRecording={speech.toggleRecording}
+          toggleRecording={() => {
+            if (!speech.isRecording) tts.cancel();
+            speech.toggleRecording();
+          }}
+          onToggleTTSMute={() => tts.setMuted(!tts.muted)}
         />
       )}
     </AnimatePresence>

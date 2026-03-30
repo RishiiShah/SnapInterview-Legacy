@@ -215,6 +215,7 @@ describe("updateSessionStatusIfOwned", () => {
     vi.mocked(getInterviewSession).mockResolvedValue({
       id: "int-4",
       status: "IN_PROGRESS",
+      persona: null,
       videoUrl: null,
       videoKey: null,
       questionCount: 10,

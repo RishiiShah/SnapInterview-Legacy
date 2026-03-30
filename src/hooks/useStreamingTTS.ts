@@ -3,6 +3,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "tts_muted";
+const SPEED_STORAGE_KEY = "tts_speed";
+
+const SPEECH_RATES: Record<string, number> = {
+  slow: 0.85,
+  normal: 1.05,
+  fast: 1.25,
+};
+
+function getSpeechRate(): number {
+  if (typeof window === "undefined") return SPEECH_RATES.normal;
+  return SPEECH_RATES[localStorage.getItem(SPEED_STORAGE_KEY) ?? ""] ?? SPEECH_RATES.normal;
+}
 const SENTENCE_BOUNDARY = /[.?!]+(?=\s|$)/g;
 
 function stripMarkdown(text: string): string {
@@ -18,12 +30,35 @@ function isSpeechAvailable(): boolean {
   return typeof window !== "undefined" && "speechSynthesis" in window;
 }
 
+/**
+ * Picks a random voice from an array. Returns undefined if the array is empty.
+ */
+function pickRandom<T>(arr: T[]): T | undefined {
+  return arr.length > 0 ? arr[Math.floor(Math.random() * arr.length)] : undefined;
+}
+
+/**
+ * Picks a random English voice regardless of persona.
+ * The persona character is expressed through the AI's language, not the voice.
+ * Falls back to any available voice if no English voice is found.
+ */
+function selectVoiceForPersona(_persona: string | null | undefined): SpeechSynthesisVoice | null {
+  if (!isSpeechAvailable()) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) return null;
+
+  const englishVoices = voices.filter((v) => v.lang.startsWith("en"));
+  return pickRandom(englishVoices) ?? pickRandom(voices) ?? null;
+}
+
 export function useStreamingTTS({
   currentStreamedText,
   enabled = true,
+  persona,
 }: {
   currentStreamedText: string;
   enabled?: boolean;
+  persona?: string | null;
 }) {
   const [muted, setMutedState] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -31,17 +66,32 @@ export function useStreamingTTS({
   });
 
   const mutedRef = useRef(muted);
+  const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
   // Tracks how many characters of the accumulated stream we've already queued for speech
   const spokenUpToRef = useRef(0);
   // Holds the last non-empty streamed text so we can flush the tail when the stream ends
   const lastTextRef = useRef("");
+
+  // Resolve the persona voice once voices are available; re-run if persona changes
+  useEffect(() => {
+    if (!isSpeechAvailable()) return;
+
+    function resolve() {
+      voiceRef.current = selectVoiceForPersona(persona);
+    }
+
+    resolve();
+    window.speechSynthesis.addEventListener("voiceschanged", resolve);
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", resolve);
+  }, [persona]);
 
   const speakSegment = useCallback((text: string) => {
     if (!isSpeechAvailable() || mutedRef.current || !enabled) return;
     const cleaned = stripMarkdown(text).trim();
     if (!cleaned) return;
     const utterance = new SpeechSynthesisUtterance(cleaned);
-    utterance.rate = 1.05;
+    utterance.rate = getSpeechRate();
+    if (voiceRef.current) utterance.voice = voiceRef.current;
     try {
       window.speechSynthesis.speak(utterance);
     } catch {

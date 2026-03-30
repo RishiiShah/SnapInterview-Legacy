@@ -5,12 +5,17 @@ import { useStreamingTTS } from "./useStreamingTTS";
 
 // ─── Speech Synthesis mock ────────────────────────────────────────────────────
 
+// Defined at module level so tests can assert call counts on them.
 const mockSpeak = vi.fn();
 const mockCancel = vi.fn();
 
-const speechSynthesisMock = {
-  speak: mockSpeak,
-  cancel: mockCancel,
+// Rebuilt inside beforeEach so restoreMocks:true doesn't wipe the implementations.
+let speechSynthesisMock: {
+  speak: ReturnType<typeof vi.fn>;
+  cancel: ReturnType<typeof vi.fn>;
+  getVoices: ReturnType<typeof vi.fn>;
+  addEventListener: ReturnType<typeof vi.fn>;
+  removeEventListener: ReturnType<typeof vi.fn>;
 };
 
 // ─── SpeechSynthesisUtterance mock ───────────────────────────────────────────
@@ -36,6 +41,13 @@ function renderTTS(initial = "") {
 // ─── Setup / teardown ────────────────────────────────────────────────────────
 
 beforeEach(() => {
+  speechSynthesisMock = {
+    speak: mockSpeak,
+    cancel: mockCancel,
+    getVoices: vi.fn().mockReturnValue([]),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  };
   vi.stubGlobal("speechSynthesis", speechSynthesisMock);
   vi.stubGlobal("SpeechSynthesisUtterance", MockSpeechSynthesisUtterance);
   localStorage.clear();

@@ -21,6 +21,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   const [nativeShareStopped, setNativeShareStopped] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [totalQuestions, setTotalQuestions] = useState(10);
+  const [persona, setPersona] = useState<string | null>(null);
   const [joinBlockedReason, setJoinBlockedReason] = useState<BrowserBlockResult>(null);
 
   const [modal, setModal] = useState<{
@@ -97,6 +98,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   const tts = useStreamingTTS({
     currentStreamedText: chat.currentStreamedText,
     enabled: interviewStarted && !interviewDone,
+    persona,
   });
 
   useEffect(() => {
@@ -277,6 +279,9 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
         const data = await res.json();
         if (!isCancelled && typeof data?.questionCount === "number" && data.questionCount > 0) {
           setTotalQuestions(data.questionCount);
+        }
+        if (!isCancelled && typeof data?.persona === "string") {
+          setPersona(data.persona);
         }
       } catch (error) {
         console.error("Failed to load interview session metadata:", error);

@@ -9,6 +9,7 @@ const interviewSessionStateSelect = {
   videoKey: true,
   questionCount: true,
   currentQuestion: true,
+  persona: true,
 } satisfies Prisma.InterviewSessionSelect;
 
 const interviewSessionChatSelect = {

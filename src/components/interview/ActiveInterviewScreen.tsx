@@ -4,8 +4,6 @@ import {
   IconMicrophoneSolid,
   IconVideoCamera,
   IconVideoCameraOff,
-  IconVolume,
-  IconVolumeOff,
 } from "@/components/ui/icons";
 
 type ChatMessage = {
@@ -36,11 +34,9 @@ type ActiveInterviewScreenProps = {
   isRecording: boolean;
   hasSpeechSupport: boolean;
   speechError: string | null;
-  ttsMuted: boolean;
   toggleMic: () => void;
   toggleCamera: () => void;
   toggleRecording: () => void;
-  onToggleTTSMute: () => void;
 };
 
 export default function ActiveInterviewScreen({
@@ -65,11 +61,9 @@ export default function ActiveInterviewScreen({
   isRecording,
   hasSpeechSupport,
   speechError,
-  ttsMuted,
   toggleMic,
   toggleCamera,
   toggleRecording,
-  onToggleTTSMute,
 }: ActiveInterviewScreenProps) {
   return (
     <motion.div
@@ -177,18 +171,6 @@ export default function ActiveInterviewScreen({
         {/* Control bar */}
         <div className="flex flex-col items-center gap-2.5 px-2 shrink-0">
           <div className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900 px-5 py-3.5 shadow-lg shadow-black/20">
-            <button
-              onClick={onToggleTTSMute}
-              title={ttsMuted ? "Unmute AI voice" : "Mute AI voice"}
-              className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all ${
-                ttsMuted
-                  ? "bg-zinc-800 text-zinc-500 hover:bg-zinc-700 hover:text-zinc-300"
-                  : "bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 ring-1 ring-emerald-500/30"
-              }`}
-            >
-              {ttsMuted ? <IconVolumeOff className="h-5 w-5" /> : <IconVolume className="h-5 w-5" />}
-            </button>
-            <div className="h-7 w-px bg-zinc-800" />
             <button
               onClick={toggleMic}
               className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all ${hasPermission && isMicEnabled

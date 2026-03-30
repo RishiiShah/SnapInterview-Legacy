@@ -36,4 +36,41 @@ describe("interview evaluation helpers", () => {
   it("rejects invalid persisted transcript evaluations", () => {
     expect(normalizeTranscriptEvaluation({ score: "92" })).toBeNull();
   });
+
+  it("parses transcript evaluation response without sub-scores (older LLM output)", () => {
+    const parsed = parseTranscriptEvaluationResponse(
+      `{"score":71,"feedback":"Solid answer.","strengths":["Structure"],"areasForImprovement":["Examples"]}`,
+    );
+
+    expect(parsed.score).toBe(71);
+    expect(parsed.communication).toBeUndefined();
+    expect(parsed.technicalDepth).toBeUndefined();
+    expect(parsed.clarity).toBeUndefined();
+  });
+
+  it("normalizes old DB records missing sub-score fields to non-null", () => {
+    const result = normalizeTranscriptEvaluation({
+      score: 65,
+      feedback: "Decent.",
+      strengths: ["Focus"],
+      areasForImprovement: ["Depth"],
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.communication).toBeUndefined();
+    expect(result?.technicalDepth).toBeUndefined();
+    expect(result?.clarity).toBeUndefined();
+  });
+
+  it("rejects persisted sub-scores that are out of range", () => {
+    expect(
+      normalizeTranscriptEvaluation({
+        score: 80,
+        feedback: "Good.",
+        strengths: ["Clarity"],
+        areasForImprovement: ["Depth"],
+        communication: 150,
+      }),
+    ).toBeNull();
+  });
 });

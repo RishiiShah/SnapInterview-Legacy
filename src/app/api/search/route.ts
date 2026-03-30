@@ -1,7 +1,10 @@
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
+import { createRateLimiter } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/utils/logger";
+
+const searchLimiter = createRateLimiter("search", 60 * 1000, 30);
 
 export type SearchSession = {
   id: string;
@@ -30,6 +33,10 @@ export async function GET(req: Request) {
     const authUser = await getSessionUserIdentity();
     if (!authUser) {
       return unauthorizedError();
+    }
+
+    if (await searchLimiter.isLimited(authUser.userId)) {
+      return badRequestError("Too many search requests. Please slow down.");
     }
 
     const { searchParams } = new URL(req.url);

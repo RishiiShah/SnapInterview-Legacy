@@ -41,34 +41,25 @@ export async function revokeUserSessions(params: {
   const { userId, excludeSessionToken, reason } = params;
   const now = new Date();
 
-  // Better Auth session table uses `token` and `expiresAt` (not `sessionToken`, `expires`, `revokedAt`)
-  const sessions = await prisma.session.findMany({
+  // Delete sessions atomically so they are immediately invalidated.
+  // A single deleteMany avoids the TOCTOU race of findMany-then-deleteMany.
+  const { count } = await prisma.session.deleteMany({
     where: {
       userId,
       expiresAt: { gt: now },
       ...(excludeSessionToken ? { token: { not: excludeSessionToken } } : {}),
     },
-    select: {
-      id: true,
-    },
   });
 
-  if (sessions.length === 0) {
+  if (count === 0) {
     return 0;
   }
-
-  // Delete sessions so they are immediately invalidated
-  await prisma.session.deleteMany({
-    where: {
-      id: { in: sessions.map((session) => session.id) },
-    },
-  });
 
   await recordSecurityEvent({
     type: "SESSION_REVOKED",
     userId,
-    metadata: { reason, count: sessions.length },
+    metadata: { reason, count },
   });
 
-  return sessions.length;
+  return count;
 }

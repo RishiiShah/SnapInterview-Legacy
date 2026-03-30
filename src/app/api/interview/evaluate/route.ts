@@ -10,7 +10,7 @@ const evaluateTranscriptSchema = z.object({
     interviewId: z.string().uuid(),
 });
 
-const interviewEvaluateLimiter = createRateLimiter("interview-evaluate", 10 * 60 * 1000, 12);
+const interviewEvaluateLimiter = createRateLimiter("interview-evaluate", 10 * 60 * 1000, 5);
 
 export async function POST(req: Request) {
     try {

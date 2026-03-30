@@ -27,6 +27,7 @@ export type PromptInterviewSession = {
   persona?: InterviewPersona | null;
   jobDescription: string | null;
   resumeUrl: string | null;
+  resumeText?: string | null;
   questionCount: number;
   currentQuestion: number;
   focusAreas?: unknown;
@@ -46,6 +47,7 @@ export function normalizePromptInterviewSession(session: {
   persona?: string | null;
   jobDescription: string | null;
   resumeUrl: string | null;
+  resumeText?: string | null;
   questionCount: number;
   currentQuestion: number;
   focusAreas?: unknown;
@@ -82,5 +84,6 @@ export type StartInterviewSessionInput = {
   persona?: InterviewPersona;
   jobDescription?: string | null;
   resumeUrl?: string | null;
+  resumeText?: string | null;
   questionCount?: InterviewQuestionCount;
 };

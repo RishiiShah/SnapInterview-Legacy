@@ -27,6 +27,7 @@ const createSessionSchema = z.object({
     persona: interviewPersonaSchema.optional(),
     jobDescription: z.string().trim().max(10000).optional(),
     resumeUrl: z.string().url().optional(),
+    resumeText: z.string().trim().max(8000).optional(),
     questionCount: interviewQuestionCountSchema.optional(),
 });
 
@@ -85,7 +86,7 @@ export async function POST(req: Request) {
             return badRequestError(firstError);
         }
 
-        const { id, role, company, type, difficulty, persona, jobDescription, resumeUrl, questionCount } = parsed.data;
+        const { id, role, company, type, difficulty, persona, jobDescription, resumeUrl, resumeText, questionCount } = parsed.data;
 
         const interviewSession = await startInterviewSession({
             id,
@@ -97,6 +98,7 @@ export async function POST(req: Request) {
             persona,
             jobDescription,
             resumeUrl,
+            resumeText,
             questionCount,
         });
 

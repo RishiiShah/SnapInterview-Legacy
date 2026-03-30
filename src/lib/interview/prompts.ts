@@ -139,6 +139,7 @@ export async function buildSystemInstruction(interviewSession: PromptInterviewSe
     persona,
     jobDescription,
     resumeUrl,
+    resumeText,
     questionCount,
     currentQuestion,
     focusAreas,
@@ -224,8 +225,10 @@ export async function buildSystemInstruction(interviewSession: PromptInterviewSe
     }
   }
 
-  if (resumeUrl) {
-    systemInstruction += `Candidate provided a resume file at: ${resumeUrl}. Use any available resume context when tailoring questions.\n`;
+  if (resumeText) {
+    systemInstruction += `\nCandidate Resume:\n---\n${resumeText}\n---\nUse this to personalize your questions to their specific background, skills, and experience.\n`;
+  } else if (resumeUrl) {
+    systemInstruction += `Candidate provided a resume at: ${resumeUrl}.\n`;
   }
 
   if (jobDescription) {

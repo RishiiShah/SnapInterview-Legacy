@@ -35,6 +35,9 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
   const [interviewLength, setInterviewLength] = useState<5 | 10 | 15>(10);
   const [jobDescription, setJobDescription] = useState("");
   const [resumeName, setResumeName] = useState("");
+  const [resumeText, setResumeText] = useState("");
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [step, setStep] = useState(1);
@@ -80,6 +83,31 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
     };
   }, []);
 
+  async function handleResumeUpload(file: File) {
+    setResumeName(file.name);
+    setResumeUploading(true);
+    setResumeError(null);
+    setResumeText("");
+
+    const formData = new FormData();
+    formData.append("resume", file);
+
+    try {
+      const res = await fetch("/api/resume/parse", { method: "POST", body: formData });
+      if (!res.ok) {
+        const data = await res.json() as { error?: string };
+        throw new Error(data.error ?? "Failed to process resume");
+      }
+      const data = await res.json() as { resumeText: string };
+      setResumeText(data.resumeText);
+    } catch (err) {
+      setResumeError(err instanceof Error ? err.message : "Failed to process resume");
+      setResumeName("");
+    } finally {
+      setResumeUploading(false);
+    }
+  }
+
   async function handleStart() {
     if (!role.trim()) return;
     setStarted(true);
@@ -95,6 +123,7 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
         persona,
         jobDescription: jobDescription || undefined,
         questionCount: interviewLength,
+        resumeText: resumeText || undefined,
       };
 
       // Defer DB creation: store config and pass ID to route
@@ -375,7 +404,63 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
                       <div className="space-y-6 pt-4">
                         <div className="space-y-3">
                           <label className="px-1 text-[13px] font-bold text-zinc-900">Resume Context</label>
-                          {!resumeName ? (
+                          {/* Uploading */}
+                          {resumeUploading && (
+                            <div className="flex w-full items-center gap-4 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/50 p-2 pr-4">
+                              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-100">
+                                <IconSpinner className="h-5 w-5 animate-spin text-zinc-400" />
+                              </div>
+                              <div className="flex flex-col overflow-hidden">
+                                <span className="text-[13px] font-bold text-zinc-700">Reading resume…</span>
+                                <span className="truncate text-[11px] font-medium text-zinc-400">{resumeName}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Error */}
+                          {!resumeUploading && resumeError && (
+                            <div className="flex w-full items-center justify-between rounded-2xl border-2 border-dashed border-red-200 bg-red-50/50 p-2 pr-4">
+                              <div className="flex items-center gap-4">
+                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-500">
+                                  <IconXMark className="h-5 w-5" />
+                                </div>
+                                <div className="flex flex-col overflow-hidden">
+                                  <span className="text-[13px] font-bold text-red-700">Upload failed</span>
+                                  <span className="truncate text-[11px] font-medium text-red-500">{resumeError}</span>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => { setResumeError(null); setResumeName(""); }}
+                                className="rounded-xl bg-white px-4 py-2 text-[11px] font-bold text-zinc-600 shadow-sm ring-1 ring-zinc-200 transition-all hover:bg-zinc-50"
+                              >
+                                Try again
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Success */}
+                          {!resumeUploading && !resumeError && resumeName && resumeText && (
+                            <div className="flex w-full items-center justify-between rounded-2xl border-2 border-dashed border-sky-200 bg-sky-50/50 p-2 pr-4">
+                              <div className="flex items-center gap-4">
+                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-sky-500 text-white shadow-md shadow-sky-500/20">
+                                  <IconCheckCircle className="h-6 w-6" />
+                                </div>
+                                <div className="flex flex-col overflow-hidden">
+                                  <span className="truncate text-[13px] font-bold text-sky-900">{resumeName}</span>
+                                  <span className="text-[11px] font-medium text-sky-600">Parsed · ready to use</span>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => { setResumeName(""); setResumeText(""); setResumeError(null); }}
+                                className="group flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-white text-zinc-400 shadow-sm ring-1 ring-zinc-200 transition-all hover:bg-red-50 hover:text-red-500 hover:ring-red-200"
+                              >
+                                <IconXMark className="h-4 w-4 transition-transform group-hover:scale-110" />
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Upload dropzone */}
+                          {!resumeUploading && !resumeError && !resumeName && (
                             <motion.label
                               whileHover="hover"
                               className="group relative flex w-full cursor-pointer items-center justify-between overflow-hidden rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/50 p-2 pr-4 transition-all hover:border-sky-400 hover:bg-white hover:shadow-sm"
@@ -392,40 +477,22 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
                                 </div>
                                 <div className="flex flex-col">
                                   <span className="text-[13px] font-bold text-zinc-900 transition-colors group-hover:text-sky-700">Upload your Resume</span>
-                                  <span className="text-[11px] font-medium text-zinc-500">PDF or Word (max 5MB)</span>
+                                  <span className="text-[11px] font-medium text-zinc-500">PDF only · max 5 MB</span>
                                 </div>
                               </div>
-                              <div className="rounded-lg bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-sky-600 shadow-sm ring-1 ring-zinc-200 transition-all group-hover:bg-sky-50 group-hover:ring-sky-200">
+                              <div className="rounded-xl bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-sky-600 shadow-sm ring-1 ring-zinc-200 transition-all group-hover:bg-sky-50 group-hover:ring-sky-200">
                                 Browse
                               </div>
                               <input
                                 type="file"
-                                accept=".pdf,.doc,.docx"
+                                accept=".pdf"
                                 className="hidden"
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
-                                  if (file) setResumeName(file.name);
+                                  if (file) void handleResumeUpload(file);
                                 }}
                               />
                             </motion.label>
-                          ) : (
-                            <div className="flex w-full items-center justify-between rounded-2xl border-2 border-dashed border-sky-200 bg-sky-50/50 p-2 pr-4">
-                              <div className="flex items-center gap-4">
-                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-sky-500 text-white shadow-md shadow-sky-500/20">
-                                  <IconCheckCircle className="h-6 w-6" />
-                                </div>
-                                <div className="flex flex-col overflow-hidden">
-                                  <span className="truncate text-[13px] font-bold text-sky-900">{resumeName}</span>
-                                  <span className="text-[11px] font-medium text-sky-600">Successfully attached</span>
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => setResumeName("")}
-                                className="group flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-white text-zinc-400 shadow-sm ring-1 ring-zinc-200 transition-all hover:bg-red-50 hover:text-red-500 hover:ring-red-200"
-                              >
-                                <IconXMark className="h-4 w-4 transition-transform group-hover:scale-110" />
-                              </button>
-                            </div>
                           )}
                         </div>
 

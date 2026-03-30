@@ -40,6 +40,7 @@ export async function buildQuestionEvaluationRoleContext(question: Question): Pr
     difficulty: question.difficulty,
     jobDescription: pseudoJobDescription,
     resumeUrl: null,
+    resumeText: null,
     questionCount: 1,
     currentQuestion: 0,
     transcript: [],

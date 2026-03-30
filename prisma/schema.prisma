@@ -187,6 +187,7 @@ model InterviewSession {
   persona         String?
   jobDescription  String?         @db.Text
   resumeUrl       String?
+  resumeText      String?  @db.Text
   videoUrl        String?
   videoKey        String?         @unique
   status          InterviewStatus @default(IN_PROGRESS)

@@ -20,6 +20,7 @@ const interviewSessionChatSelect = {
   persona: true,
   jobDescription: true,
   resumeUrl: true,
+  resumeText: true,
   questionCount: true,
   currentQuestion: true,
   focusAreas: true,
@@ -46,6 +47,7 @@ const interviewSessionEvaluationSelect = {
   persona: true,
   jobDescription: true,
   resumeUrl: true,
+  resumeText: true,
   questionCount: true,
   currentQuestion: true,
   focusAreas: true,
@@ -102,6 +104,7 @@ export async function createInterviewSession(params: {
   persona?: InterviewPersona;
   jobDescription?: string | null;
   resumeUrl?: string | null;
+  resumeText?: string | null;
   questionCount?: number;
   focusAreas?: Prisma.InputJsonValue;
   sessionPlan?: Prisma.InputJsonValue;
@@ -116,6 +119,7 @@ export async function createInterviewSession(params: {
     persona,
     jobDescription,
     resumeUrl,
+    resumeText,
     questionCount,
     focusAreas,
     sessionPlan,
@@ -132,6 +136,7 @@ export async function createInterviewSession(params: {
       persona: persona ?? null,
       jobDescription: jobDescription ?? null,
       resumeUrl: resumeUrl ?? null,
+      resumeText: resumeText ?? null,
       questionCount: questionCount ?? 10,
       focusAreas: focusAreas ?? undefined,
       sessionPlan: sessionPlan ?? undefined,

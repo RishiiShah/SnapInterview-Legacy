@@ -1,5 +1,4 @@
 import type { InterviewStatus } from "@/generated/prisma/client";
-import { csrfRejectIfInvalid } from "@/lib/csrf";
 import {
     interviewDifficultySchema,
     interviewPersonaSchema,
@@ -16,6 +15,7 @@ import {
     updateSessionStatusIfOwned,
 } from "@/services/interview-service";
 import { deleteInterviewSession } from "@/repositories/interview-repo";
+import { withCsrfProtection } from "@/lib/route-security";
 import { logger } from "@/utils/logger";
 
 const createSessionSchema = z.object({
@@ -30,10 +30,6 @@ const createSessionSchema = z.object({
     resumeText: z.string().trim().max(8000).optional(),
     questionCount: interviewQuestionCountSchema.optional(),
 });
-
-function csrfCheck(req: Request) {
-    return csrfRejectIfInvalid(req);
-}
 
 export async function GET(req: Request) {
     try {
@@ -68,11 +64,8 @@ export async function GET(req: Request) {
     }
 }
 
-export async function POST(req: Request) {
+export const POST = withCsrfProtection(async (req: Request) => {
     try {
-        const csrfError = csrfCheck(req);
-        if (csrfError) return csrfError;
-
         const authUser = await getSessionUserIdentity();
         if (!authUser) {
             return unauthorizedError();
@@ -110,7 +103,7 @@ export async function POST(req: Request) {
         });
         return internalServerError();
     }
-}
+});
 
 const patchSessionSchema = z.object({
     interviewId: z.string().uuid("interviewId must be a valid UUID"),
@@ -122,11 +115,8 @@ const patchSessionSchema = z.object({
     ).optional(),
 });
 
-export async function PATCH(req: Request) {
+export const PATCH = withCsrfProtection(async (req: Request) => {
     try {
-        const csrfError = csrfCheck(req);
-        if (csrfError) return csrfError;
-
         const authUser = await getSessionUserIdentity();
         if (!authUser) {
             return unauthorizedError();
@@ -171,13 +161,10 @@ export async function PATCH(req: Request) {
         });
         return internalServerError();
     }
-}
+});
 
-export async function DELETE(req: Request) {
+export const DELETE = withCsrfProtection(async (req: Request) => {
     try {
-        const csrfError = csrfCheck(req);
-        if (csrfError) return csrfError;
-
         const authUser = await getSessionUserIdentity();
         if (!authUser) {
             return unauthorizedError();
@@ -203,4 +190,4 @@ export async function DELETE(req: Request) {
         });
         return internalServerError();
     }
-}
+});

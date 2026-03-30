@@ -129,8 +129,15 @@ export type SubScores = {
   clarity: number | null;
 };
 
+export type WeeklySubScoreTrends = {
+  communication: DashboardChartPoint[];
+  technicalDepth: DashboardChartPoint[];
+  clarity: DashboardChartPoint[];
+};
+
 export type AnalyticsOverviewData = {
   weeklyScores: DashboardChartPoint[];
+  weeklySubScoreTrends: WeeklySubScoreTrends;
   monthlyComparison: AnalyticsMonthlyComparison[];
   categoryBreakdown: AnalyticsCategoryScore[];
   strengths: string[];
@@ -638,6 +645,27 @@ export async function getAnalyticsOverviewData(userId: string): Promise<Analytic
     };
   });
 
+  const weeklySubScoreTrends: WeeklySubScoreTrends = {
+    communication: [],
+    technicalDepth: [],
+    clarity: [],
+  };
+
+  for (const key of ["communication", "technicalDepth", "clarity"] as const) {
+    weeklySubScoreTrends[key] = Array.from({ length: 7 }, (_, index) => {
+      const day = addDays(startOfDay(now), index - 6);
+      const dayKey = day.toISOString().slice(0, 10);
+      const vals = sessions
+        .filter((s) => startOfDay(s.createdAt).toISOString().slice(0, 10) === dayKey)
+        .map((s) => normalizeTranscriptEvaluation(s.evaluation)?.[key] ?? null)
+        .filter((v): v is number => v !== null);
+      return {
+        label: day.toLocaleDateString("en-US", { weekday: "short" }),
+        value: vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0,
+      };
+    });
+  }
+
   const categoryMap = new Map<string, { total: number; count: number }>();
   for (const session of sessions) {
     const key = prettifyCategory(session.type || "General");
@@ -675,6 +703,7 @@ export async function getAnalyticsOverviewData(userId: string): Promise<Analytic
 
   const result: AnalyticsOverviewData = {
     weeklyScores,
+    weeklySubScoreTrends,
     monthlyComparison: [
       { label: "This Month", ...thisMonth },
       { label: "Last Month", ...previousMonth },

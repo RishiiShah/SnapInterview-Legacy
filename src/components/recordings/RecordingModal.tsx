@@ -26,6 +26,9 @@ type EvaluationResult = {
     feedback: string;
     strengths: string[];
     areasForImprovement: string[];
+    communication?: number;
+    technicalDepth?: number;
+    clarity?: number;
 };
 
 type InterviewData = {

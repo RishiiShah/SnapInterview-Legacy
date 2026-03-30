@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { z } from "zod/v4";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { getServerAuthSession } from "@/lib/server-auth";
+import { withCsrfProtection } from "@/lib/route-security";
 import { logger } from "@/utils/logger";
 
 const prefsSchema = z.object({
@@ -59,11 +59,8 @@ export async function GET() {
   }
 }
 
-export async function PUT(req: Request) {
+export const PUT = withCsrfProtection(async (req: Request) => {
   try {
-    const csrfError = csrfRejectIfInvalid(req);
-    if (csrfError) return csrfError;
-
     const email = await getAuthedEmail();
     if (!email) {
       return unauthorizedError();
@@ -102,4 +99,4 @@ export async function PUT(req: Request) {
     });
     return internalServerError();
   }
-}
+});

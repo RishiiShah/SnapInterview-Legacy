@@ -2,8 +2,8 @@ import { z } from "zod/v4";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { evaluateInterviewTranscript } from "@/services/evaluation-service";
-import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { withCsrfProtection } from "@/lib/route-security";
 import { logger } from "@/utils/logger";
 
 const evaluateTranscriptSchema = z.object({
@@ -12,11 +12,8 @@ const evaluateTranscriptSchema = z.object({
 
 const interviewEvaluateLimiter = createRateLimiter("interview-evaluate", 10 * 60 * 1000, 5);
 
-export async function POST(req: Request) {
+export const POST = withCsrfProtection(async (req: Request) => {
     try {
-        const csrfError = csrfRejectIfInvalid(req);
-        if (csrfError) return csrfError;
-
         const authUser = await getSessionUserIdentity();
         if (!authUser) {
             return unauthorizedError();
@@ -61,4 +58,4 @@ export async function POST(req: Request) {
         });
         return internalServerError();
     }
-}
+});

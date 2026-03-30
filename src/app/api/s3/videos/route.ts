@@ -1,4 +1,3 @@
-import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
@@ -13,6 +12,7 @@ import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 import { requireAwsS3Env } from "@/lib/env";
 import { listUserVideos, getSignedVideoUrl } from "@/lib/s3/videos";
 import { S3Client } from "@aws-sdk/client-s3";
+import { withCsrfProtection } from "@/lib/route-security";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
 
@@ -65,7 +65,7 @@ export async function GET(req: Request) {
 /**
  * Endpoint to get a signed URL for a specific video on-demand.
  */
-export async function POST(req: Request) {
+export const POST = withCsrfProtection(async (req: Request) => {
   try {
     const authUser = await getSessionUserIdentity();
     if (!authUser) {
@@ -94,13 +94,10 @@ export async function POST(req: Request) {
     });
     return internalServerError("Failed to sign video URL");
   }
-}
+});
 
-export async function DELETE(req: Request) {
+export const DELETE = withCsrfProtection(async (req: Request) => {
   try {
-    const csrfError = csrfRejectIfInvalid(req);
-    if (csrfError) return csrfError;
-
     const authUser = await getSessionUserIdentity();
     if (!authUser) {
       return unauthorizedError();
@@ -158,4 +155,4 @@ export async function DELETE(req: Request) {
     });
     return internalServerError("Failed to delete video");
   }
-}
+});

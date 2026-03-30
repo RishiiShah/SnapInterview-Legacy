@@ -3,6 +3,9 @@ type EvaluationResult = {
     feedback: string;
     strengths: string[];
     areasForImprovement: string[];
+    communication?: number;
+    technicalDepth?: number;
+    clarity?: number;
 };
 
 export function RecordingEvaluation({ evaluation }: { evaluation: EvaluationResult }) {
@@ -33,6 +36,34 @@ export function RecordingEvaluation({ evaluation }: { evaluation: EvaluationResu
                     <p className="text-sm text-zinc-500 mt-1">Based on technical depth, communication, and structure.</p>
                 </div>
             </div>
+
+            {/* Sub-score Breakdown */}
+            {(evaluation.communication != null || evaluation.technicalDepth != null || evaluation.clarity != null) && (
+                <div className="grid grid-cols-3 gap-2">
+                    {[
+                        { label: "Communication", value: evaluation.communication, bar: "bg-blue-400" },
+                        { label: "Technical", value: evaluation.technicalDepth, bar: "bg-violet-400" },
+                        { label: "Clarity", value: evaluation.clarity, bar: "bg-emerald-400" },
+                    ].map(({ label, value, bar }) => (
+                        <div key={label} className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-3">
+                            <p className="text-[10px] font-medium text-zinc-500 mb-1">{label}</p>
+                            {value != null ? (
+                                <>
+                                    <p className="text-xl font-bold tracking-tight text-zinc-900 leading-none mb-2">{value}</p>
+                                    <div className="h-1.5 w-full rounded-full bg-zinc-200">
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-500 ${bar}`}
+                                            style={{ width: `${value}%` }}
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                <p className="text-xs text-zinc-400 italic">—</p>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {/* Feedback Summary */}
             <div>

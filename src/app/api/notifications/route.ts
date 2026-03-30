@@ -1,7 +1,7 @@
-import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiJson, internalServerError, unauthorizedError } from "@/lib/api-response";
 import { getUserNotifications, markAllNotificationsRead } from "@/repositories/notification-repo";
+import { withCsrfProtection } from "@/lib/route-security";
 import { logger } from "@/utils/logger";
 
 export async function GET() {
@@ -21,10 +21,9 @@ export async function GET() {
   }
 }
 
-export async function PATCH(req: Request) {
+export const PATCH = withCsrfProtection(async (req: Request) => {
   try {
-    const csrfError = csrfRejectIfInvalid(req);
-    if (csrfError) return csrfError;
+    void req;
 
     const authUser = await getSessionUserIdentity();
     if (!authUser) {
@@ -39,4 +38,4 @@ export async function PATCH(req: Request) {
     });
     return internalServerError();
   }
-}
+});

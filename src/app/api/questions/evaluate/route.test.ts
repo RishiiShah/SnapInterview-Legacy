@@ -15,6 +15,12 @@ vi.mock("@/services/evaluation-service", () => ({
   evaluatePracticeQuestion: vi.fn(),
 }));
 
+vi.mock("@/lib/rate-limit", () => ({
+  createRateLimiter: vi.fn(() => ({
+    isLimited: vi.fn().mockResolvedValue(false),
+  })),
+}));
+
 describe("POST /api/questions/evaluate", () => {
   beforeEach(() => {
     vi.clearAllMocks();

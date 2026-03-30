@@ -1,11 +1,30 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { csrfRejectIfInvalid, validateRequestOrigin } from "./csrf";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { csrfRejectIfInvalid, validateRequestOrigin, _resetOriginCacheForTesting } from "./csrf";
 
-const ORIGINAL_ENV = { ...process.env };
+// vi.mock is hoisted, so mockEnv must be declared with vi.hoisted to be accessible
+// inside the factory and in the tests below.
+const mockEnv = vi.hoisted(() => ({
+  BETTER_AUTH_URL: "http://localhost:3000",
+  NEXT_PUBLIC_APP_URL: undefined as string | undefined,
+  APP_URL: undefined as string | undefined,
+  CSRF_TRUSTED_ORIGINS: undefined as string | undefined,
+  CSRF_TRUSTED_ORIGIN_SUFFIXES: undefined as string | undefined,
+  NODE_ENV: "test" as "test" | "development" | "production",
+}));
+
+vi.mock("@/lib/env", () => ({ env: mockEnv }));
 
 describe("csrf utilities", () => {
   beforeEach(() => {
-    process.env = { ...ORIGINAL_ENV };
+    // Reset per-test env overrides back to safe defaults.
+    mockEnv.BETTER_AUTH_URL = "http://localhost:3000";
+    mockEnv.NEXT_PUBLIC_APP_URL = undefined;
+    mockEnv.APP_URL = undefined;
+    mockEnv.CSRF_TRUSTED_ORIGINS = undefined;
+    mockEnv.CSRF_TRUSTED_ORIGIN_SUFFIXES = undefined;
+    mockEnv.NODE_ENV = "test";
+    // Flush the module-level cache so each test starts fresh.
+    _resetOriginCacheForTesting();
   });
 
   it("rejects when origin header is missing or invalid", () => {
@@ -20,7 +39,7 @@ describe("csrf utilities", () => {
   });
 
   it("accepts origins that match configured allowed origins", () => {
-    process.env.BETTER_AUTH_URL = "https://app.example.com";
+    mockEnv.BETTER_AUTH_URL = "https://app.example.com";
 
     const req = new Request("https://api.example.com/api/test", {
       method: "POST",
@@ -36,7 +55,7 @@ describe("csrf utilities", () => {
   });
 
   it("accepts origins whose hostname matches a trusted suffix", () => {
-    process.env.CSRF_TRUSTED_ORIGIN_SUFFIXES = ".example.com";
+    mockEnv.CSRF_TRUSTED_ORIGIN_SUFFIXES = ".example.com";
 
     const req = new Request("https://api.example.com/api/test", {
       method: "POST",
@@ -48,7 +67,9 @@ describe("csrf utilities", () => {
     expect(result.normalizedOrigin).toBe("https://web.example.com");
   });
 
-  it("always allows localhost:3000 origins", () => {
+  it("always allows localhost:3000 origins in non-production", () => {
+    mockEnv.BETTER_AUTH_URL = "https://prod.example.com";
+
     const req = new Request("http://localhost:3000/api/test", {
       method: "POST",
       headers: { origin: "http://localhost:3000" },
@@ -58,5 +79,28 @@ describe("csrf utilities", () => {
     expect(result.isValid).toBe(true);
     expect(result.normalizedOrigin).toBe("http://localhost:3000");
   });
-});
 
+  it("rejects localhost:3000 in production", () => {
+    mockEnv.NODE_ENV = "production" as never;
+    mockEnv.BETTER_AUTH_URL = "https://prod.example.com";
+
+    const req = new Request("https://prod.example.com/api/test", {
+      method: "POST",
+      headers: { origin: "http://localhost:3000" },
+    });
+
+    const result = validateRequestOrigin(req);
+    expect(result.isValid).toBe(false);
+  });
+
+  it("accepts extra origins from CSRF_TRUSTED_ORIGINS", () => {
+    mockEnv.CSRF_TRUSTED_ORIGINS = "https://partner.example.com, https://other.example.com";
+
+    const req = new Request("https://api.example.com/api/test", {
+      method: "POST",
+      headers: { origin: "https://partner.example.com" },
+    });
+
+    expect(validateRequestOrigin(req).isValid).toBe(true);
+  });
+});

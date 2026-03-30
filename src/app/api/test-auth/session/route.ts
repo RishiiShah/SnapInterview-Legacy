@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { apiError, apiJson, badRequestError, internalServerError } from "@/lib/api-response";
+import { withCsrfProtection } from "@/lib/route-security";
 import { E2E_TEST_AUTH_COOKIE, encodeE2ETestIdentity, isTestAuthEnabled } from "@/lib/test-auth";
 import { logger } from "@/utils/logger";
 import { z } from "zod/v4";
@@ -19,7 +20,7 @@ function rejectIfDisabled() {
   return null;
 }
 
-export async function POST(req: Request) {
+export const POST = withCsrfProtection(async (req: Request) => {
   const disabled = rejectIfDisabled();
   if (disabled) return disabled;
 
@@ -69,13 +70,15 @@ export async function POST(req: Request) {
     });
     return internalServerError();
   }
-}
+});
 
-export async function DELETE() {
+export const DELETE = withCsrfProtection(async (req: Request) => {
   const disabled = rejectIfDisabled();
   if (disabled) return disabled;
+
+  void req;
 
   const response = apiJson({ ok: true });
   response.cookies.delete(E2E_TEST_AUTH_COOKIE);
   return response;
-}
+});

@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
+import { withCsrfProtection } from "@/lib/route-security";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 
-export async function POST(req: NextRequest) {
-  const csrfError = csrfRejectIfInvalid(req);
-  if (csrfError) return csrfError;
-
+export const POST = withCsrfProtection(async (req: NextRequest) => {
   const identity = await getSessionUserIdentity();
   if (!identity) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -49,4 +46,4 @@ export async function POST(req: NextRequest) {
     .slice(0, 8000);                // cap to keep prompt size reasonable
 
   return NextResponse.json({ resumeText });
-}
+});

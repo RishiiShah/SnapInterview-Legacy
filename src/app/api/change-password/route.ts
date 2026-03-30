@@ -1,12 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { recordSecurityEvent, revokeUserSessions } from "@/lib/account-security";
 import { getCurrentSession } from "@/lib/server-auth";
-import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getServerAuthSession } from "@/lib/server-auth";
 import { hashCredentialPassword, verifyCredentialPassword } from "@/lib/password";
 import { z } from "zod/v4";
 import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { withCsrfProtection } from "@/lib/route-security";
 import { logger } from "@/utils/logger";
 
 const changePasswordSchema = z.object({
@@ -23,11 +23,8 @@ const changePasswordSchema = z.object({
 
 const changePasswordLimiter = createRateLimiter("change-password", 15 * 60 * 1000, 5);
 
-export async function POST(req: Request) {
+export const POST = withCsrfProtection(async (req: Request) => {
     try {
-        const csrfError = csrfRejectIfInvalid(req);
-        if (csrfError) return csrfError;
-
         const session = await getServerAuthSession();
         if (!session?.user?.email) {
             return unauthorizedError();
@@ -121,4 +118,4 @@ export async function POST(req: Request) {
         });
         return internalServerError();
     }
-}
+});

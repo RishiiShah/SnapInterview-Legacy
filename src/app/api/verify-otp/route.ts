@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { recordSecurityEvent } from "@/lib/account-security";
-import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { normalizeEmail, verifyOneTimeCode, extractRequestContext } from "@/lib/security";
 import { z } from "zod/v4";
 import { apiError, apiJson, badRequestError, internalServerError, notFoundError } from "@/lib/api-response";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { withCsrfProtection } from "@/lib/route-security";
 import { logger } from "@/utils/logger";
 
 const verifySchema = z.object({
@@ -18,11 +18,8 @@ const LOCKOUT_MS = 15 * 60 * 1000; // 15 mins
 // IP-based Postgres-backed distributed rate limiter
 const otpVerifyLimiter = createRateLimiter("otp-verify", 60 * 1000, 10); // 10 per minute per IP
 
-export async function POST(req: Request) {
+export const POST = withCsrfProtection(async (req: Request) => {
     try {
-        const csrfError = csrfRejectIfInvalid(req);
-        if (csrfError) return csrfError;
-
         const { ipHash } = extractRequestContext(req.headers);
         const rateLimitKey = ipHash ?? "unknown";
         if (await otpVerifyLimiter.isLimited(rateLimitKey)) {
@@ -172,4 +169,4 @@ export async function POST(req: Request) {
         });
         return internalServerError();
     }
-}
+});

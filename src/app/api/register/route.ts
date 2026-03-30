@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { isDisposableEmail } from "@/lib/disposable-emails";
 import { sendOtpEmail } from "@/lib/email";
-import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { z } from "zod/v4";
 import {
   apiError,
@@ -17,6 +16,7 @@ import {
 } from "@/lib/security";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { hashCredentialPassword } from "@/lib/password";
+import { withCsrfProtection } from "@/lib/route-security";
 import { logger } from "@/utils/logger";
 
 // ── Zod schema ──
@@ -36,11 +36,8 @@ const registerSchema = z.object({
 // ── Postgres-backed distributed rate limiter (per hashed IP) ──
 const registerLimiter = createRateLimiter("register", 60 * 1000, 5); // 5 per minute per IP
 
-export async function POST(req: Request) {
+export const POST = withCsrfProtection(async (req: Request) => {
   try {
-    const csrfError = csrfRejectIfInvalid(req);
-    if (csrfError) return csrfError;
-
     const { ipHash } = extractRequestContext(req.headers);
     const rateLimitKey = ipHash ?? "unknown";
 
@@ -140,4 +137,4 @@ export async function POST(req: Request) {
     });
     return internalServerError();
   }
-}
+});

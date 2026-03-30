@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
+import { env } from "@/lib/env";
 
 type OriginValidationResult = {
   isValid: boolean;
   normalizedOrigin: string | null;
 };
-
-function getEnv(name: string): string | undefined {
-  return process.env[name];
-}
 
 function normalizeOrigin(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -18,55 +15,62 @@ function normalizeOrigin(value: string | null | undefined): string | null {
   }
 }
 
-function getTrustedOriginSuffixes(): string[] {
-  const raw = getEnv("CSRF_TRUSTED_ORIGIN_SUFFIXES");
-  if (!raw) return [];
+// Module-level cache — built once on first request, reused for the lifetime of
+// the module (i.e. the warm serverless instance). Both are null until first use.
+let _allowedOrigins: Set<string> | null = null;
+let _trustedSuffixes: string[] | null = null;
 
-  return raw
-    .split(",")
-    .map((suffix) => suffix.trim().toLowerCase())
-    .filter(Boolean)
-    .map((suffix) => (suffix.startsWith(".") ? suffix : `.${suffix}`));
+// Reset the cache. Only exported for use in tests — do not call in production code.
+export function _resetOriginCacheForTesting() {
+  _allowedOrigins = null;
+  _trustedSuffixes = null;
 }
 
 function getAllowedOrigins(): Set<string> {
+  if (_allowedOrigins !== null) return _allowedOrigins;
+
   const origins = new Set<string>();
 
-  const candidateOrigins = [
-    getEnv("BETTER_AUTH_URL"),
-    getEnv("NEXT_PUBLIC_APP_URL"),
-    getEnv("APP_URL"),
-  ];
+  for (const raw of [env.BETTER_AUTH_URL, env.NEXT_PUBLIC_APP_URL, env.APP_URL]) {
+    const normalized = normalizeOrigin(raw);
+    if (normalized) origins.add(normalized);
+  }
 
-  for (const origin of candidateOrigins) {
-    if (origin) {
-      const normalized = normalizeOrigin(origin);
-      if (normalized) {
-        origins.add(normalized);
-      }
+  if (env.CSRF_TRUSTED_ORIGINS) {
+    for (const raw of env.CSRF_TRUSTED_ORIGINS.split(",")) {
+      const normalized = normalizeOrigin(raw.trim());
+      if (normalized) origins.add(normalized);
     }
   }
 
-  const extraTrustedOrigins = getEnv("CSRF_TRUSTED_ORIGINS");
-  if (extraTrustedOrigins) {
-    for (const origin of extraTrustedOrigins.split(",")) {
-      const normalized = normalizeOrigin(origin.trim());
-      if (normalized) {
-        origins.add(normalized);
-      }
-    }
-  }
-
-  if (getEnv("NODE_ENV") !== "production") {
+  if (env.NODE_ENV !== "production") {
     origins.add("http://localhost:3000");
     origins.add("http://127.0.0.1:3000");
   }
 
-  return origins;
+  _allowedOrigins = origins;
+  return _allowedOrigins;
+}
+
+function getTrustedSuffixes(): string[] {
+  if (_trustedSuffixes !== null) return _trustedSuffixes;
+
+  if (!env.CSRF_TRUSTED_ORIGIN_SUFFIXES) {
+    _trustedSuffixes = [];
+    return _trustedSuffixes;
+  }
+
+  _trustedSuffixes = env.CSRF_TRUSTED_ORIGIN_SUFFIXES
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+    .map((s) => (s.startsWith(".") ? s : `.${s}`));
+
+  return _trustedSuffixes;
 }
 
 function originMatchesTrustedSuffix(origin: string): boolean {
-  const suffixes = getTrustedOriginSuffixes();
+  const suffixes = getTrustedSuffixes();
   if (suffixes.length === 0) return false;
 
   try {

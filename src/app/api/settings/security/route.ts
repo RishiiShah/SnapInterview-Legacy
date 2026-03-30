@@ -4,8 +4,8 @@ import { auth } from "@/lib/auth";
 import { recordSecurityEvent } from "@/lib/account-security";
 import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 import { getSessionUserIdentity, getCurrentSession } from "@/lib/server-auth";
-import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { headers } from "next/headers";
+import { withCsrfProtection } from "@/lib/route-security";
 import { logger } from "@/utils/logger";
 
 const securityActionSchema = z.discriminatedUnion("action", [
@@ -80,11 +80,8 @@ export async function GET() {
   }
 }
 
-export async function PATCH(req: Request) {
+export const PATCH = withCsrfProtection(async (req: Request) => {
   try {
-    const csrfError = csrfRejectIfInvalid(req);
-    if (csrfError) return csrfError;
-
     const authUser = await getSessionUserIdentity();
     if (!authUser) {
       return unauthorizedError();
@@ -153,4 +150,4 @@ export async function PATCH(req: Request) {
     });
     return internalServerError();
   }
-}
+});

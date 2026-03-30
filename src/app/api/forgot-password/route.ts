@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { recordSecurityEvent } from "@/lib/account-security";
 import { sendOtpEmail } from "@/lib/email";
-import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { z } from "zod/v4";
 import { apiError, apiJson, internalServerError } from "@/lib/api-response";
 import { extractRequestContext, generateNumericCode, hashOneTimeCode, normalizeEmail } from "@/lib/security";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { withCsrfProtection } from "@/lib/route-security";
 import { logger } from "@/utils/logger";
 
 const schema = z.object({
@@ -16,11 +16,8 @@ const WINDOW_MS = 15 * 60 * 1000;
 const MAX_REQUESTS = 3;
 const forgotPasswordLimiter = createRateLimiter("forgot-password", 60 * 1000, 6);
 
-export async function POST(req: Request) {
+export const POST = withCsrfProtection(async (req: Request) => {
     try {
-        const csrfError = csrfRejectIfInvalid(req);
-        if (csrfError) return csrfError;
-
         const body = await req.json();
         const result = schema.safeParse(body);
 
@@ -110,4 +107,4 @@ export async function POST(req: Request) {
         });
         return internalServerError();
     }
-}
+});

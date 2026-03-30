@@ -1,8 +1,8 @@
 import { z } from "zod/v4";
 import { prisma } from "@/lib/prisma";
-import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { normalizeOnboardingResponse } from "@/lib/onboarding/preferences";
+import { withCsrfProtection } from "@/lib/route-security";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { logger } from "@/utils/logger";
 
@@ -59,11 +59,8 @@ export async function GET() {
   }
 }
 
-export async function PUT(req: Request) {
+export const PUT = withCsrfProtection(async (req: Request) => {
   try {
-    const csrfError = csrfRejectIfInvalid(req);
-    if (csrfError) return csrfError;
-
     const authUser = await getSessionUserIdentity();
     if (!authUser) {
       return unauthorizedError();
@@ -117,4 +114,4 @@ export async function PUT(req: Request) {
     });
     return internalServerError();
   }
-  }
+});

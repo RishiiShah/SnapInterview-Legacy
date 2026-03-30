@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { csrfRejectIfInvalid } from "@/lib/csrf";
 import {
   apiJson,
   badRequestError,
@@ -11,6 +10,7 @@ import { getServerAuthSession } from "@/lib/server-auth";
 import { recordSecurityEvent } from "@/lib/account-security";
 import { extractRequestContext } from "@/lib/security";
 import { verifyCredentialPassword } from "@/lib/password";
+import { withCsrfProtection } from "@/lib/route-security";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
 
@@ -21,11 +21,8 @@ const deleteAccountSchema = z.object({
     .min(1, "Current password is required to delete your account."),
 });
 
-export async function DELETE(req: Request) {
+export const DELETE = withCsrfProtection(async (req: Request) => {
   try {
-    const csrfError = csrfRejectIfInvalid(req);
-    if (csrfError) return csrfError;
-
     const session = await getServerAuthSession();
     if (!session?.user?.email) {
       return unauthorizedError();
@@ -89,4 +86,4 @@ export async function DELETE(req: Request) {
     });
     return internalServerError();
   }
-}
+});

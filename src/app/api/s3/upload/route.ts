@@ -1,11 +1,11 @@
 import { S3Client } from "@aws-sdk/client-s3";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { prisma } from "@/lib/prisma";
-import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiError, apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 import { requireAwsS3Env } from "@/lib/env";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { withCsrfProtection } from "@/lib/route-security";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
 
@@ -25,11 +25,8 @@ const uploadSchema = z.object({
 
 const uploadLimiter = createRateLimiter("s3-upload", 10 * 60 * 1000, 20);
 
-export async function POST(req: Request) {
+export const POST = withCsrfProtection(async (req: Request) => {
     try {
-        const csrfError = csrfRejectIfInvalid(req);
-        if (csrfError) return csrfError;
-
         const authUser = await getSessionUserIdentity();
         if (!authUser) {
             return unauthorizedError();
@@ -87,4 +84,4 @@ export async function POST(req: Request) {
         });
         return internalServerError("Failed to generate presigned URL");
     }
-}
+});

@@ -1,19 +1,16 @@
 import { z } from "zod/v4";
 import { prisma } from "@/lib/prisma";
-import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { getSessionUserIdentity } from "@/lib/server-auth";
+import { withCsrfProtection } from "@/lib/route-security";
 import { logger } from "@/utils/logger";
 
 const profileSchema = z.object({
   name: z.string().trim().min(1, "Display name is required").max(100, "Display name is too long"),
 });
 
-export async function PUT(req: Request) {
+export const PUT = withCsrfProtection(async (req: Request) => {
   try {
-    const csrfError = csrfRejectIfInvalid(req);
-    if (csrfError) return csrfError;
-
     const authUser = await getSessionUserIdentity();
     if (!authUser) {
       return unauthorizedError();
@@ -61,4 +58,4 @@ export async function PUT(req: Request) {
     });
     return internalServerError();
   }
-}
+});

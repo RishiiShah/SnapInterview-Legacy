@@ -1,4 +1,3 @@
-import { csrfRejectIfInvalid } from "@/lib/csrf";
 import {
   apiJson,
   badRequestError,
@@ -9,6 +8,7 @@ import {
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { runInterviewChat } from "@/services/interview-service";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { withCsrfProtection } from "@/lib/route-security";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
 
@@ -25,11 +25,8 @@ const chatSchema = z.object({
 
 const interviewChatLimiter = createRateLimiter("interview-chat", 60 * 1000, 30);
 
-export async function POST(req: Request) {
+export const POST = withCsrfProtection(async (req: Request) => {
   try {
-    const csrfError = csrfRejectIfInvalid(req);
-    if (csrfError) return csrfError;
-
     const authUser = await getSessionUserIdentity();
     if (!authUser) {
       return unauthorizedError();
@@ -87,4 +84,4 @@ export async function POST(req: Request) {
     });
     return internalServerError();
   }
-}
+});

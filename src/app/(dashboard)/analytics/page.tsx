@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 import PerformanceChart from "@/components/analytics/PerformanceChart";
 import CategoryBreakdown from "@/components/analytics/CategoryBreakdown";
+import SubScoreTrendChart from "@/components/analytics/SubScoreTrendChart";
 import { IconArrowRight } from "@/components/ui/icons";
 import { getAnalyticsOverviewData } from "@/lib/interview/metrics";
 import { getServerAuthSession } from "@/lib/server-auth";
@@ -17,8 +18,11 @@ export default async function AnalyticsPage() {
 
     const userId = session.user.id;
 
+    const emptyWeeklyTrends = { communication: [], technicalDepth: [], clarity: [] };
+
     const {
         weeklyScores,
+        weeklySubScoreTrends,
         monthlyComparison,
         categoryBreakdown,
         strengths,
@@ -28,6 +32,7 @@ export default async function AnalyticsPage() {
         ? await getAnalyticsOverviewData(userId)
         : {
             weeklyScores: [],
+            weeklySubScoreTrends: emptyWeeklyTrends,
             monthlyComparison: [
                 { label: "This Month", interviews: 0, avgScore: 0, hours: 0 },
                 { label: "Last Month", interviews: 0, avgScore: 0, hours: 0 },
@@ -128,6 +133,8 @@ export default async function AnalyticsPage() {
                         ))}
                     </div>
                 </FadeIn>
+
+                <SubScoreTrendChart trends={weeklySubScoreTrends} delay={0.4} />
 
                 {/* Strengths & Weaknesses */}
                 <div className="grid gap-6 lg:grid-cols-2 pb-8">

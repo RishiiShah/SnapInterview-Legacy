@@ -12,6 +12,7 @@ type RecordingModalProps = {
     videoUrl: string;
     interviewId: string | null;
     videoDate: string;
+    onDeleted?: () => void;
 };
 
 type TranscriptEntry = {
@@ -41,7 +42,7 @@ type InterviewData = {
     createdAt: string;
 };
 
-type LoadingStep = "idle" | "loadingSession" | "generatingEvaluation";
+type LoadingStep = "idle" | "loadingSession" | "generatingEvaluation" | "deleting";
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
     const response = await fetch(url, init);
@@ -52,11 +53,31 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
     return (await response.json()) as T;
 }
 
-export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId, videoDate }: RecordingModalProps) {
+export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId, videoDate, onDeleted }: RecordingModalProps) {
     const [activeTab, setActiveTab] = useState<"results" | "transcript">("results");
     const [interviewData, setInterviewData] = useState<InterviewData | null>(null);
     const [loadingStep, setLoadingStep] = useState<LoadingStep>("idle");
     const [error, setError] = useState<string | null>(null);
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+    async function handleDelete() {
+        if (!interviewId) return;
+        setLoadingStep("deleting");
+        try {
+            const res = await fetch(`/api/interview/${interviewId}`, { method: "DELETE" });
+            if (res.ok) {
+                onDeleted?.();
+                onClose();
+            } else {
+                setError("Failed to delete interview data. Please try again.");
+                setLoadingStep("idle");
+            }
+        } catch {
+            setError("Failed to delete interview data. Please try again.");
+            setLoadingStep("idle");
+        }
+        setConfirmingDelete(false);
+    }
 
     useEffect(() => {
         if (!isOpen) return;
@@ -166,16 +187,26 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                         </svg>
                     </button>
 
-                    {/* Left Side: Video Player */}
+                    {/* Left Side: Video Player or No-video Placeholder */}
                     <div className="flex w-full shrink-0 flex-col bg-zinc-950 md:w-1/2 lg:w-3/5">
                         <div className="flex flex-1 items-center justify-center p-4 md:p-8">
-                            <video
-                                src={videoUrl}
-                                crossOrigin="anonymous"
-                                controls
-                                autoPlay
-                                className="max-h-full w-full rounded-lg shadow-lg"
-                            />
+                            {videoUrl ? (
+                                <video
+                                    src={videoUrl}
+                                    crossOrigin="anonymous"
+                                    controls
+                                    autoPlay
+                                    className="max-h-full w-full rounded-lg shadow-lg"
+                                />
+                            ) : (
+                                <div className="flex flex-col items-center gap-3 text-center">
+                                    <svg className="h-12 w-12 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+                                        <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" />
+                                    </svg>
+                                    <p className="text-sm text-zinc-500">No recording available</p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -215,6 +246,38 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                             </button>
                         </div>
 
+                        {/* Delete footer — only for sessions with no video */}
+                        {!videoUrl && interviewId && loadingStep === "idle" && (
+                            <div className="border-t border-zinc-100 p-4">
+                                {!confirmingDelete ? (
+                                    <button
+                                        onClick={() => setConfirmingDelete(true)}
+                                        className="w-full rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-100"
+                                    >
+                                        Delete interview data
+                                    </button>
+                                ) : (
+                                    <div className="space-y-2.5">
+                                        <p className="text-xs text-zinc-600">This will permanently remove the transcript and evaluation. Are you sure?</p>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setConfirmingDelete(false)}
+                                                className="flex-1 rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-50"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={handleDelete}
+                                                className="flex-1 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
+                                            >
+                                                Yes, delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         {/* Content Area */}
                         <div className="flex-1 overflow-y-auto p-6">
                             {loadingStep !== "idle" ? (
@@ -223,6 +286,8 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                                     <p className="text-sm text-zinc-500">
                                         {loadingStep === "generatingEvaluation"
                                             ? "Analyzing interview transcript using AI..."
+                                            : loadingStep === "deleting"
+                                            ? "Deleting interview data..."
                                             : "Loading interview details..."}
                                     </p>
                                 </div>

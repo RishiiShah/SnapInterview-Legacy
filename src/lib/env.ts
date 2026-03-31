@@ -22,6 +22,7 @@ const envSchema = z.object({
   ENABLE_TEST_AUTH: z.enum(["0", "1"]).optional(),
   CSRF_TRUSTED_ORIGIN_SUFFIXES: z.string().optional(),
   CSRF_TRUSTED_ORIGINS: z.string().optional(),
+  CRON_SECRET: z.string().min(1).optional(),
 });
 
 const testEnvSchema = envSchema.extend({

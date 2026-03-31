@@ -234,3 +234,72 @@ export async function deleteInterviewSession(params: {
     },
   });
 }
+
+export type CompletedSessionCard = {
+  id: string;
+  role: string;
+  company: string | null;
+  videoKey: string | null;
+  score: number;
+  createdAt: Date;
+};
+
+export async function listCompletedSessionsForUser(params: {
+  userId: string;
+  limit: number;
+  offset: number;
+}): Promise<{ sessions: CompletedSessionCard[]; hasMore: boolean }> {
+  const { userId, limit, offset } = params;
+
+  const rows = await prisma.interviewSession.findMany({
+    where: { userId, deletedAt: null, status: "COMPLETED" },
+    orderBy: { createdAt: "desc" },
+    skip: offset,
+    take: limit + 1,
+    select: {
+      id: true,
+      role: true,
+      company: true,
+      videoKey: true,
+      evaluation: true,
+      questionCount: true,
+      currentQuestion: true,
+      status: true,
+      createdAt: true,
+    },
+  });
+
+  const hasMore = rows.length > limit;
+  const sessions = rows.slice(0, limit).map((s) => {
+    const evalData = s.evaluation as { score?: number } | null;
+    const score = typeof evalData?.score === "number" ? evalData.score : Math.round(Math.min(100, Math.max(0, (Math.min(s.currentQuestion, s.questionCount) / Math.max(1, s.questionCount)) * 80 + 20)));
+    return {
+      id: s.id,
+      role: s.role,
+      company: s.company,
+      videoKey: s.videoKey,
+      score,
+      createdAt: s.createdAt,
+    };
+  });
+
+  return { sessions, hasMore };
+}
+
+export async function softDeleteInterviewSession(params: {
+  id: string;
+  userId: string;
+}): Promise<boolean> {
+  const result = await prisma.interviewSession.updateMany({
+    where: { id: params.id, userId: params.userId, deletedAt: null },
+    data: { deletedAt: new Date() },
+  });
+  return result.count > 0;
+}
+
+export async function hardDeleteSoftDeletedSessions(olderThan: Date): Promise<number> {
+  const result = await prisma.interviewSession.deleteMany({
+    where: { deletedAt: { lte: olderThan } },
+  });
+  return result.count;
+}

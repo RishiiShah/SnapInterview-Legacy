@@ -83,7 +83,7 @@ type DashboardRecentSession = {
   score: number;
   duration: string;
   date: string;
-  videoKey: string;
+  videoKey: string | null;
 };
 
 type DashboardChartPoint = {
@@ -522,8 +522,7 @@ export async function getDashboardOverviewData(userId: string): Promise<Dashboar
 
   const streak = calculateStreak(sessions, now);
 
-  const recentSessions = sessions
-    .filter((session) => Boolean(session.videoKey))
+  const recentSessions = completedSessions
     .slice(0, 5)
     .map((session) => ({
     id: session.id,
@@ -532,7 +531,7 @@ export async function getDashboardOverviewData(userId: string): Promise<Dashboar
     score: getSessionScore(session),
     duration: `${estimateSessionMinutes(session)} min`,
     date: formatSessionDate(session.createdAt),
-    videoKey: session.videoKey!,
+    videoKey: session.videoKey ?? null,
   }));
 
   const lastSevenDays = Array.from({ length: 7 }, (_, index) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getScoreColor, getScoreLabel } from "@/utils/helpers";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
@@ -30,7 +31,7 @@ type SessionItem = {
   score: number;
   duration: string;
   date: string;
-  videoKey: string;
+  videoKey: string | null;
 };
 
 type ChartItem = {
@@ -69,6 +70,7 @@ export default function DashboardOverviewClient({
   recentSessions,
   chartData,
 }: DashboardOverviewClientProps) {
+  const router = useRouter();
   const [selectedVideo, setSelectedVideo] = useState<{ url: string; interviewId: string; date: string } | null>(null);
   const [isOpening, setIsOpening] = useState<string | null>(null);
 
@@ -76,16 +78,19 @@ export default function DashboardOverviewClient({
     if (isOpening) return;
     setIsOpening(session.id);
     try {
-      const res = await fetch("/api/s3/videos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: session.videoKey }),
-      });
-      if (!res.ok) throw new Error("Failed to load video");
-      const { url } = (await res.json()) as { url: string };
+      let url = "";
+      if (session.videoKey) {
+        const res = await fetch("/api/s3/videos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: session.videoKey }),
+        });
+        if (res.ok) {
+          const data = (await res.json()) as { url: string };
+          url = data.url;
+        }
+      }
       setSelectedVideo({ url, interviewId: session.id, date: session.date });
-    } catch {
-      // no-op — video may not exist in S3
     } finally {
       setIsOpening(null);
     }
@@ -162,6 +167,15 @@ export default function DashboardOverviewClient({
               <h3 className="text-sm font-semibold text-zinc-900">Recent Sessions</h3>
               <Link href="/recordings" className="text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-900">View all →</Link>
             </div>
+            {recentSessions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center px-6 py-10 text-center">
+                <p className="text-sm font-semibold text-zinc-800">No interviews yet</p>
+                <p className="mt-1 max-w-xs text-xs text-zinc-500">Complete your first mock interview to see your sessions here.</p>
+                <Link href="/practice" className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-zinc-700">
+                  Start an Interview
+                </Link>
+              </div>
+            ) : (
             <div className="divide-y divide-zinc-100">
               {recentSessions.map((s) => (
                 <button
@@ -183,13 +197,19 @@ export default function DashboardOverviewClient({
                       <p className="text-[11px] text-zinc-400">{s.duration}</p>
                     </div>
                     <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${getScoreColor(s.score)}`}>{getScoreLabel(s.score)}</span>
-                    {isOpening === s.id && (
+                    {isOpening === s.id ? (
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700" />
+                    ) : !s.videoKey && (
+                      <svg className="h-3.5 w-3.5 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-label="No recording">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+                        <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" />
+                      </svg>
                     )}
                   </div>
                 </button>
               ))}
             </div>
+            )}
           </div>
         </div>
       </FadeIn>
@@ -200,6 +220,7 @@ export default function DashboardOverviewClient({
         videoUrl={selectedVideo?.url ?? ""}
         interviewId={selectedVideo?.interviewId ?? null}
         videoDate={selectedVideo?.date ?? ""}
+        onDeleted={() => { setSelectedVideo(null); router.refresh(); }}
       />
     </div>
   );

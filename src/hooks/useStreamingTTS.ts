@@ -15,7 +15,6 @@ function getSpeechRate(): number {
   if (typeof window === "undefined") return SPEECH_RATES.normal;
   return SPEECH_RATES[localStorage.getItem(SPEED_STORAGE_KEY) ?? ""] ?? SPEECH_RATES.normal;
 }
-const SENTENCE_BOUNDARY = /[.?!]+(?=\s|$)/g;
 
 function stripMarkdown(text: string): string {
   return text
@@ -30,18 +29,10 @@ function isSpeechAvailable(): boolean {
   return typeof window !== "undefined" && "speechSynthesis" in window;
 }
 
-/**
- * Picks a random voice from an array. Returns undefined if the array is empty.
- */
 function pickRandom<T>(arr: T[]): T | undefined {
   return arr.length > 0 ? arr[Math.floor(Math.random() * arr.length)] : undefined;
 }
 
-/**
- * Picks a random English voice. The persona character is expressed through the
- * AI's language, not the voice. Falls back to any available voice if no
- * English voice is found.
- */
 function selectVoice(): SpeechSynthesisVoice | null {
   if (!isSpeechAvailable()) return null;
   const voices = window.speechSynthesis.getVoices();
@@ -52,11 +43,11 @@ function selectVoice(): SpeechSynthesisVoice | null {
 }
 
 export function useStreamingTTS({
-  currentStreamedText,
+  completedText,
   enabled = true,
   persona,
 }: {
-  currentStreamedText: string;
+  completedText: string;
   enabled?: boolean;
   persona?: string | null;
 }) {
@@ -67,12 +58,7 @@ export function useStreamingTTS({
 
   const mutedRef = useRef(muted);
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
-  // Tracks how many characters of the accumulated stream we've already queued for speech
-  const spokenUpToRef = useRef(0);
-  // Holds the last non-empty streamed text so we can flush the tail when the stream ends
-  const lastTextRef = useRef("");
 
-  // Resolve the persona voice once voices are available; re-run if persona changes
   useEffect(() => {
     if (!isSpeechAvailable()) return;
 
@@ -85,25 +71,8 @@ export function useStreamingTTS({
     return () => window.speechSynthesis.removeEventListener("voiceschanged", resolve);
   }, [persona]);
 
-  const speakSegment = useCallback((text: string) => {
-    if (!isSpeechAvailable() || mutedRef.current || !enabled) return;
-    const cleaned = stripMarkdown(text).trim();
-    if (!cleaned) return;
-    const utterance = new SpeechSynthesisUtterance(cleaned);
-    utterance.rate = getSpeechRate();
-    if (voiceRef.current) utterance.voice = voiceRef.current;
-    try {
-      window.speechSynthesis.speak(utterance);
-    } catch {
-      // Browser denied or speech synthesis is in a bad state — skip this segment
-      // and let subsequent segments attempt normally.
-    }
-  }, [enabled]);
-
   const cancel = useCallback(() => {
     if (isSpeechAvailable()) window.speechSynthesis.cancel();
-    spokenUpToRef.current = 0;
-    lastTextRef.current = "";
   }, []);
 
   const setMuted = useCallback((value: boolean) => {
@@ -113,38 +82,25 @@ export function useStreamingTTS({
     if (value) cancel();
   }, [cancel]);
 
-  // React to each streaming update
+  // Speak the full completed AI response when it arrives
   useEffect(() => {
-    if (!isSpeechAvailable() || !enabled) return;
+    if (!isSpeechAvailable() || !enabled || mutedRef.current) return;
+    if (!completedText) return;
 
-    if (currentStreamedText === "") {
-      // Stream just ended — flush any tail that didn't end with punctuation
-      if (lastTextRef.current) {
-        const tail = lastTextRef.current.slice(spokenUpToRef.current);
-        if (tail.trim()) speakSegment(tail);
-      }
-      spokenUpToRef.current = 0;
-      lastTextRef.current = "";
-      return;
+    const cleaned = stripMarkdown(completedText);
+    if (!cleaned) return;
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(cleaned);
+    utterance.rate = getSpeechRate();
+    if (voiceRef.current) utterance.voice = voiceRef.current;
+    try {
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      // Browser denied or speech synthesis is in a bad state
     }
-
-    lastTextRef.current = currentStreamedText;
-    const newChunk = currentStreamedText.slice(spokenUpToRef.current);
-
-    // Find all sentence-ending positions within the new chunk
-    SENTENCE_BOUNDARY.lastIndex = 0;
-    let match: RegExpExecArray | null;
-    let lastEnd = 0;
-
-    while ((match = SENTENCE_BOUNDARY.exec(newChunk)) !== null) {
-      const end = match.index + match[0].length;
-      const sentence = newChunk.slice(lastEnd, end);
-      speakSegment(sentence);
-      lastEnd = end;
-    }
-
-    spokenUpToRef.current += lastEnd;
-  }, [currentStreamedText, enabled, speakSegment]);
+  }, [completedText, enabled]);
 
   // Cancel on unmount
   useEffect(() => {

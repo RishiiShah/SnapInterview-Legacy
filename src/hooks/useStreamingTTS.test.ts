@@ -5,11 +5,9 @@ import { useStreamingTTS } from "./useStreamingTTS";
 
 // ─── Speech Synthesis mock ────────────────────────────────────────────────────
 
-// Defined at module level so tests can assert call counts on them.
 const mockSpeak = vi.fn();
 const mockCancel = vi.fn();
 
-// Rebuilt inside beforeEach so restoreMocks:true doesn't wipe the implementations.
 let speechSynthesisMock: {
   speak: ReturnType<typeof vi.fn>;
   cancel: ReturnType<typeof vi.fn>;
@@ -33,7 +31,7 @@ class MockSpeechSynthesisUtterance {
 function renderTTS(initial = "") {
   return renderHook(
     ({ text }: { text: string }) =>
-      useStreamingTTS({ currentStreamedText: text }),
+      useStreamingTTS({ completedText: text }),
     { initialProps: { text: initial } }
   );
 }
@@ -60,8 +58,8 @@ afterEach(() => {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe("useStreamingTTS", () => {
-  describe("sentence boundary detection", () => {
-    it("speaks a sentence when a full stop is received mid-stream", () => {
+  describe("speaking completed text", () => {
+    it("speaks the full text when completedText is provided", () => {
       const { rerender } = renderTTS("");
 
       act(() => {
@@ -70,87 +68,40 @@ describe("useStreamingTTS", () => {
 
       expect(mockSpeak).toHaveBeenCalledTimes(1);
       const utterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
-      expect(utterance.text).toBe("Hello world.");
+      expect(utterance.text).toBe("Hello world. This is a test");
     });
 
-    it("speaks each sentence in a multi-sentence chunk", () => {
-      const { rerender } = renderTTS("");
-
-      act(() => {
-        rerender({ text: "First sentence. Second sentence! Third?" });
-      });
-
-      expect(mockSpeak).toHaveBeenCalledTimes(3);
-    });
-
-    it("does not speak incomplete trailing text without punctuation", () => {
-      const { rerender } = renderTTS("");
-
-      act(() => {
-        rerender({ text: "No sentence boundary here" });
-      });
-
+    it("does not speak on initial empty string", () => {
+      renderTTS("");
       expect(mockSpeak).not.toHaveBeenCalled();
     });
 
-    it("flushes trailing text without punctuation when stream ends (text resets to empty)", () => {
-      const { rerender } = renderTTS("");
+    it("cancels previous speech and speaks the new text when completedText changes", () => {
+      const { rerender } = renderTTS("First response.");
+
+      mockCancel.mockClear();
+      mockSpeak.mockClear();
 
       act(() => {
-        rerender({ text: "No punctuation at end" });
+        rerender({ text: "Second response." });
       });
 
-      expect(mockSpeak).not.toHaveBeenCalled();
+      expect(mockCancel).toHaveBeenCalled();
+      expect(mockSpeak).toHaveBeenCalledTimes(1);
+      const utterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
+      expect(utterance.text).toBe("Second response.");
+    });
+
+    it("does not speak when completedText resets to empty", () => {
+      const { rerender } = renderTTS("Some text.");
+
+      mockSpeak.mockClear();
 
       act(() => {
         rerender({ text: "" });
       });
 
-      expect(mockSpeak).toHaveBeenCalledTimes(1);
-      const utterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
-      expect(utterance.text).toBe("No punctuation at end");
-    });
-
-    it("does not re-speak already spoken segments when stream grows", () => {
-      const { rerender } = renderTTS("");
-
-      act(() => {
-        rerender({ text: "First sentence." });
-      });
-
-      expect(mockSpeak).toHaveBeenCalledTimes(1);
-      mockSpeak.mockClear();
-
-      act(() => {
-        rerender({ text: "First sentence. Second sentence." });
-      });
-
-      expect(mockSpeak).toHaveBeenCalledTimes(1);
-      const utterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
-      // stripMarkdown().trim() strips the leading space, so we get "Second sentence."
-      expect(utterance.text).toBe("Second sentence.");
-    });
-
-    it("resets tracking refs after stream ends so next stream starts fresh", () => {
-      const { rerender } = renderTTS("");
-
-      act(() => {
-        rerender({ text: "Stream one." });
-      });
-
-      act(() => {
-        rerender({ text: "" });
-      });
-
-      mockSpeak.mockClear();
-
-      act(() => {
-        rerender({ text: "Stream two." });
-      });
-
-      expect(mockSpeak).toHaveBeenCalledTimes(1);
-      const utterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
-      expect(utterance.text).toBe("Stream two.");
+      expect(mockSpeak).not.toHaveBeenCalled();
     });
   });
 
@@ -162,16 +113,10 @@ describe("useStreamingTTS", () => {
         rerender({ text: "**Important point.**" });
       });
 
-      // Flush tail on reset
-      act(() => {
-        rerender({ text: "" });
-      });
-
-      const calls = mockSpeak.mock.calls.map(
-        (c) => (c[0] as MockSpeechSynthesisUtterance).text
-      );
-      expect(calls.some((t) => t.includes("**"))).toBe(false);
-      expect(calls.some((t) => t.includes("Important point."))).toBe(true);
+      expect(mockSpeak).toHaveBeenCalledTimes(1);
+      const utterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
+      expect(utterance.text).not.toContain("**");
+      expect(utterance.text).toContain("Important point.");
     });
 
     it("strips inline code before speaking", () => {
@@ -190,13 +135,8 @@ describe("useStreamingTTS", () => {
     it("does not speak a segment that is empty after stripping markdown", () => {
       const { rerender } = renderTTS("");
 
-      // Bold wrapping only whitespace → strips to "" → nothing to speak
       act(() => {
         rerender({ text: "**   **" });
-      });
-
-      act(() => {
-        rerender({ text: "" });
       });
 
       expect(mockSpeak).not.toHaveBeenCalled();
@@ -247,7 +187,7 @@ describe("useStreamingTTS", () => {
       expect(mockCancel).toHaveBeenCalled();
     });
 
-    it("does not speak when muted, even with complete sentences", () => {
+    it("does not speak when muted, even with completed text", () => {
       localStorage.setItem("tts_muted", "1");
       const { rerender } = renderTTS("");
 
@@ -260,39 +200,22 @@ describe("useStreamingTTS", () => {
   });
 
   describe("cancel()", () => {
-    it("calls speechSynthesis.cancel and resets tracking state", () => {
-      const { result, rerender } = renderTTS("");
-
-      // Build up some spoken state
-      act(() => {
-        rerender({ text: "First." });
-      });
+    it("calls speechSynthesis.cancel", () => {
+      const { result } = renderTTS("First response.");
 
       mockCancel.mockClear();
-      mockSpeak.mockClear();
 
       act(() => {
         result.current.cancel();
       });
 
       expect(mockCancel).toHaveBeenCalled();
-
-      // After cancel, a new stream should restart from position 0
-      act(() => {
-        rerender({ text: "" });
-      });
-
-      act(() => {
-        rerender({ text: "Fresh start." });
-      });
-
-      expect(mockSpeak).toHaveBeenCalledTimes(1);
     });
   });
 
   describe("unmount cleanup", () => {
     it("cancels speech synthesis when the component unmounts", () => {
-      const { unmount } = renderTTS("Ongoing stream");
+      const { unmount } = renderTTS("Ongoing response");
 
       mockCancel.mockClear();
       unmount();
@@ -302,42 +225,37 @@ describe("useStreamingTTS", () => {
   });
 
   describe("speak() error resilience", () => {
-    it("continues speaking subsequent sentences after speak() throws", () => {
-      mockSpeak
-        .mockImplementationOnce(() => { throw new Error("NotAllowedError"); })
-        .mockImplementation(() => {});
+    it("does not throw when speak() throws", () => {
+      mockSpeak.mockImplementationOnce(() => { throw new Error("NotAllowedError"); });
 
       const { rerender } = renderTTS("");
 
-      act(() => {
-        rerender({ text: "First sentence. Second sentence." });
-      });
-
-      // First call threw, second should still be attempted
-      expect(mockSpeak).toHaveBeenCalledTimes(2);
-      const second = mockSpeak.mock.calls[1][0] as MockSpeechSynthesisUtterance;
-      expect(second.text).toBe("Second sentence.");
+      expect(() => {
+        act(() => {
+          rerender({ text: "A response that causes speak to throw." });
+        });
+      }).not.toThrow();
     });
   });
 
   describe("enabled guard", () => {
-    it("does not speak when enabled is false, even with complete sentences", () => {
+    it("does not speak when enabled is false, even with completed text", () => {
       renderHook(() =>
-        useStreamingTTS({ currentStreamedText: "A complete sentence.", enabled: false })
+        useStreamingTTS({ completedText: "A complete sentence.", enabled: false })
       );
 
       expect(mockSpeak).not.toHaveBeenCalled();
     });
 
-    it("does not flush tail on stream reset when enabled is false", () => {
+    it("does not speak when enabled toggles to false", () => {
       const { rerender } = renderHook(
         ({ text, enabled }: { text: string; enabled: boolean }) =>
-          useStreamingTTS({ currentStreamedText: text, enabled }),
-        { initialProps: { text: "No punctuation", enabled: false } }
+          useStreamingTTS({ completedText: text, enabled }),
+        { initialProps: { text: "", enabled: true } }
       );
 
       act(() => {
-        rerender({ text: "", enabled: false });
+        rerender({ text: "Some response.", enabled: false });
       });
 
       expect(mockSpeak).not.toHaveBeenCalled();

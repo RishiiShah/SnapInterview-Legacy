@@ -43,6 +43,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   const interviewDoneRef = useRef(false);
   const isExitingRef = useRef(false);
   const hasCheckedResumeRef = useRef(false);
+  const chatMessagesRef = useRef<typeof chat.messages>([]);
 
   useEffect(() => {
     if (typeof window === "undefined" || hasCheckedResumeRef.current) return;
@@ -96,7 +97,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   });
 
   const tts = useStreamingTTS({
-    currentStreamedText: chat.currentStreamedText,
+    completedText: chat.lastCompletedAiText,
     enabled: interviewStarted && !interviewDone,
     persona,
   });
@@ -121,6 +122,10 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   useEffect(() => {
     interviewDoneRef.current = interviewDone;
   }, [interviewDone]);
+
+  useEffect(() => {
+    chatMessagesRef.current = chat.messages;
+  }, [chat.messages]);
 
   const handlePermissionsGranted = useCallback(async () => {
     const blockResult = await getInterviewBlockReason();
@@ -196,7 +201,9 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
       media.stopStream();
       setIsUploading(true);
 
-      const interviewStatus: InterviewCompletionStatus = interviewDoneRef.current ? "COMPLETED" : "ABORTED";
+      const userAnswerCount = chatMessagesRef.current.filter((m) => m.role === "user").length;
+      const interviewStatus: InterviewCompletionStatus =
+        interviewDoneRef.current || userAnswerCount > 0 ? "COMPLETED" : "ABORTED";
 
       try {
         const result = await finalizeInterviewUpload({

@@ -4,8 +4,39 @@ import { normalizeTranscriptEvaluation } from "@/lib/interview/evaluation";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { logger } from "@/utils/logger";
+import { csrfRejectIfInvalid } from "@/lib/csrf";
+import { softDeleteInterviewSession } from "@/repositories/interview-repo";
+import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 
 const interviewIdSchema = z.string().uuid();
+
+export async function DELETE(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const csrfError = await csrfRejectIfInvalid(request);
+    if (csrfError) return csrfError;
+
+    const authUser = await getSessionUserIdentity();
+    if (!authUser) return unauthorizedError();
+
+    const { id } = await params;
+    const parsedId = interviewIdSchema.safeParse(id);
+    if (!parsedId.success) return badRequestError("Invalid interview ID");
+
+    try {
+        const deleted = await softDeleteInterviewSession({ id: parsedId.data, userId: authUser.userId });
+        if (!deleted) return notFoundError("Interview session not found");
+
+        invalidateInterviewMetricsCache(authUser.userId);
+        return apiJson({ success: true });
+    } catch (error) {
+        logger.error("Delete interview session error:", {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return internalServerError();
+    }
+}
 
 export async function GET(
     req: Request,

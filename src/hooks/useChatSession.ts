@@ -34,6 +34,7 @@ export function useChatSession({
 }: UseChatSessionOptions) {
   const [messages, setMessages] = useState<ChatSessionMessage[]>([]);
   const [currentStreamedText, setCurrentStreamedText] = useState("");
+  const [lastCompletedAiText, setLastCompletedAiText] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [internalInterviewDone, setInternalInterviewDone] = useState(false);
 
@@ -135,10 +136,12 @@ export function useChatSession({
           if (payload?.done) {
             setInterviewDone(true);
             if (typeof payload.doneMessage === "string" && payload.doneMessage.trim()) {
+              const doneMsg = payload.doneMessage.trim();
               setMessages((previous) => [
                 ...previous,
-                { role: "ai", text: payload.doneMessage.trim(), isSystem: true },
+                { role: "ai", text: doneMsg, isSystem: true },
               ]);
+              setLastCompletedAiText(doneMsg);
             }
             return;
           }
@@ -169,6 +172,7 @@ export function useChatSession({
 
         setMessages((previous) => [...previous, { role: "ai", text: aiResponseText }]);
         setCurrentStreamedText("");
+        setLastCompletedAiText(aiResponseText);
       } catch (error: unknown) {
         if (error instanceof Error && (error.name === "AbortError" || error.message === "AbortError")) {
           return;
@@ -246,6 +250,7 @@ export function useChatSession({
   return {
     messages,
     currentStreamedText,
+    lastCompletedAiText,
     isThinking,
     sendMessage,
     interviewDone,

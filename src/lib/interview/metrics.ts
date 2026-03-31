@@ -143,6 +143,7 @@ export type AnalyticsOverviewData = {
   strengths: string[];
   improvements: string[];
   subScores: SubScores;
+  totalSessions: number;
 };
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
@@ -688,14 +689,6 @@ export async function getAnalyticsOverviewData(userId: string): Promise<Analytic
     .sort((a, b) => b.score - a.score)
     .slice(0, 6);
 
-  const fallbackCategories: AnalyticsCategoryScore[] = [
-    { category: "Behavioral", score: 0 },
-    { category: "Technical", score: 0 },
-    { category: "System Design", score: 0 },
-    { category: "Leadership", score: 0 },
-  ];
-
-  const resolvedCategories = categoryBreakdown.length > 0 ? categoryBreakdown : fallbackCategories;
   const evaluationInsights = deriveStrengthsAndImprovementsFromEvaluations(sessions);
   const { strengths, improvements } = evaluationInsights ?? deriveStrengthsAndImprovementsFromTranscripts(transcripts);
 
@@ -708,10 +701,11 @@ export async function getAnalyticsOverviewData(userId: string): Promise<Analytic
       { label: "This Month", ...thisMonth },
       { label: "Last Month", ...previousMonth },
     ],
-    categoryBreakdown: resolvedCategories,
+    categoryBreakdown,
     strengths,
     improvements,
     subScores,
+    totalSessions: sessions.length,
   };
 
   writeCache(analyticsCache, userId, result, ANALYTICS_CACHE_TTL_MS);

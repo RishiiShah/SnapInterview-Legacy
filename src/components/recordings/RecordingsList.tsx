@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { FadeIn } from "@/components/ui/motion";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 import Modal from "@/components/ui/Modal";
@@ -148,8 +149,20 @@ export default function RecordingsList({ initialVideos, initialNextToken }: Reco
 
   if (recordings.length === 0 && !isLoadingMore) {
     return (
-      <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 py-12 text-center text-sm text-zinc-500">
-        No recordings found. Complete an interview to save your session.
+      <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/40 px-6 py-20 text-center">
+        <p className="text-base font-semibold text-zinc-800">No recordings yet</p>
+        <p className="mt-1.5 max-w-sm text-sm text-zinc-500">
+          Your interview recordings will appear here once you complete a session with video enabled.
+        </p>
+        <Link
+          href="/practice"
+          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700"
+        >
+          Start an Interview
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </Link>
       </div>
     );
   }

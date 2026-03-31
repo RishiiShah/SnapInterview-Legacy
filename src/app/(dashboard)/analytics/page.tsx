@@ -28,6 +28,7 @@ export default async function AnalyticsPage() {
         strengths,
         improvements,
         subScores,
+        totalSessions,
     } = userId
         ? await getAnalyticsOverviewData(userId)
         : {
@@ -41,7 +42,10 @@ export default async function AnalyticsPage() {
             strengths: [],
             improvements: [],
             subScores: { communication: null, technicalDepth: null, clarity: null },
+            totalSessions: 0,
         };
+
+    const hasData = totalSessions > 0;
 
     return (
         <>
@@ -62,6 +66,25 @@ export default async function AnalyticsPage() {
                     </div>
                 </SlideIn>
 
+                {!hasData && (
+                    <FadeIn triggerOnView={false} direction="up">
+                        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/40 px-6 py-20 text-center">
+                            <p className="text-base font-semibold text-zinc-800">No interview data yet</p>
+                            <p className="mt-1.5 max-w-sm text-sm text-zinc-500">
+                                Complete a mock interview to unlock your performance analytics and track your progress over time.
+                            </p>
+                            <Link
+                                href="/practice"
+                                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700"
+                            >
+                                Start an Interview
+                                <IconArrowRight className="h-4 w-4" />
+                            </Link>
+                        </div>
+                    </FadeIn>
+                )}
+
+                {hasData && (<>
                 {/* Monthly Comparison */}
                 <FadeInStagger triggerOnView={false} className="grid gap-3.5 sm:grid-cols-3">
                     {[
@@ -176,6 +199,7 @@ export default async function AnalyticsPage() {
                         </div>
                     </FadeIn>
                 </div>
+                </>)}
             </div>
         </>
     );

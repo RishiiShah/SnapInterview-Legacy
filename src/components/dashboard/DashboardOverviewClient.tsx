@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { getScoreColor, getScoreLabel } from "@/utils/helpers";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 import { motion } from "framer-motion";
+import RecordingModal from "@/components/recordings/RecordingModal";
 import {
   IconCheckCircle,
   IconClock,
@@ -28,6 +30,7 @@ type SessionItem = {
   score: number;
   duration: string;
   date: string;
+  videoKey: string;
 };
 
 type ChartItem = {
@@ -66,6 +69,28 @@ export default function DashboardOverviewClient({
   recentSessions,
   chartData,
 }: DashboardOverviewClientProps) {
+  const [selectedVideo, setSelectedVideo] = useState<{ url: string; interviewId: string; date: string } | null>(null);
+  const [isOpening, setIsOpening] = useState<string | null>(null);
+
+  async function openSession(session: SessionItem) {
+    if (isOpening) return;
+    setIsOpening(session.id);
+    try {
+      const res = await fetch("/api/s3/videos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: session.videoKey }),
+      });
+      if (!res.ok) throw new Error("Failed to load video");
+      const { url } = (await res.json()) as { url: string };
+      setSelectedVideo({ url, interviewId: session.id, date: session.date });
+    } catch {
+      // no-op — video may not exist in S3
+    } finally {
+      setIsOpening(null);
+    }
+  }
+
   return (
     <div className="space-y-4 pb-8">
       <SlideIn>
@@ -135,11 +160,16 @@ export default function DashboardOverviewClient({
           <div className="rounded-2xl border border-zinc-200 bg-white lg:col-span-3">
             <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4">
               <h3 className="text-sm font-semibold text-zinc-900">Recent Sessions</h3>
-              <Link href="/analytics" className="text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-900">View all →</Link>
+              <Link href="/recordings" className="text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-900">View all →</Link>
             </div>
             <div className="divide-y divide-zinc-100">
               {recentSessions.map((s) => (
-                <div key={s.id} className="group flex items-center justify-between px-6 py-3.5 transition-colors hover:bg-zinc-50">
+                <button
+                  key={s.id}
+                  onClick={() => openSession(s)}
+                  disabled={isOpening !== null}
+                  className="group flex w-full items-center justify-between px-6 py-3.5 text-left transition-colors hover:bg-zinc-50 disabled:pointer-events-none disabled:opacity-60"
+                >
                   <div className="flex items-center gap-4">
                     <div className="grid h-9 w-9 place-items-center rounded-lg bg-zinc-100 text-xs font-bold text-zinc-500 transition-colors group-hover:bg-white group-hover:shadow-sm">{s.company.slice(0, 2).toUpperCase()}</div>
                     <div>
@@ -153,13 +183,24 @@ export default function DashboardOverviewClient({
                       <p className="text-[11px] text-zinc-400">{s.duration}</p>
                     </div>
                     <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${getScoreColor(s.score)}`}>{getScoreLabel(s.score)}</span>
+                    {isOpening === s.id && (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700" />
+                    )}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
         </div>
       </FadeIn>
+
+      <RecordingModal
+        isOpen={selectedVideo !== null}
+        onClose={() => setSelectedVideo(null)}
+        videoUrl={selectedVideo?.url ?? ""}
+        interviewId={selectedVideo?.interviewId ?? null}
+        videoDate={selectedVideo?.date ?? ""}
+      />
     </div>
   );
 }

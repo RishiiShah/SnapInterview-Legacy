@@ -18,10 +18,21 @@ function getSpeechRate(): number {
 
 function stripMarkdown(text: string): string {
   return text
+    // Bold and italic: strip markers, keep spoken content
     .replace(/\*\*(.*?)\*\*/g, "$1")
     .replace(/\*(.*?)\*/g, "$1")
-    .replace(/`{1,3}(.*?)`{1,3}/g, "$1")
-    .replace(/#+\s/g, "")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/_(.*?)_/g, "$1")
+    // Inline code: keep content
+    .replace(/`{1,3}([^`]*)`{1,3}/g, "$1")
+    // Headings: drop the # prefix
+    .replace(/^#{1,6}\s+/gm, "")
+    // Links: keep link text, drop URL
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    // Bare URLs: drop entirely (unpronounceable)
+    .replace(/https?:\/\/\S+/g, "")
+    // Normalize whitespace
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -29,9 +40,18 @@ function isSpeechAvailable(): boolean {
   return typeof window !== "undefined" && "speechSynthesis" in window;
 }
 
-function pickRandom<T>(arr: T[]): T | undefined {
-  return arr.length > 0 ? arr[Math.floor(Math.random() * arr.length)] : undefined;
-}
+
+// Preferred voice names ordered by quality — first match wins
+const PREFERRED_VOICE_NAMES = [
+  "Samantha",       // macOS high-quality
+  "Alex",           // macOS high-quality
+  "Google US English",
+  "Google UK English Female",
+  "Microsoft Zira",
+  "Microsoft David",
+  "Karen",          // macOS Australian English (natural)
+  "Daniel",         // macOS British English (natural)
+];
 
 function selectVoice(): SpeechSynthesisVoice | null {
   if (!isSpeechAvailable()) return null;
@@ -39,7 +59,23 @@ function selectVoice(): SpeechSynthesisVoice | null {
   if (voices.length === 0) return null;
 
   const englishVoices = voices.filter((v) => v.lang.startsWith("en"));
-  return pickRandom(englishVoices) ?? pickRandom(voices) ?? null;
+
+  // 1. Prefer a known high-quality named voice
+  for (const name of PREFERRED_VOICE_NAMES) {
+    const match = englishVoices.find((v) => v.name.includes(name));
+    if (match) return match;
+  }
+
+  // 2. Prefer the browser default English voice
+  const defaultEnglish = englishVoices.find((v) => v.default);
+  if (defaultEnglish) return defaultEnglish;
+
+  // 3. Prefer a local (on-device) English voice over a remote one
+  const localEnglish = englishVoices.find((v) => v.localService);
+  if (localEnglish) return localEnglish;
+
+  // 4. Any English voice, then any voice
+  return englishVoices[0] ?? voices[0] ?? null;
 }
 
 export function useStreamingTTS({

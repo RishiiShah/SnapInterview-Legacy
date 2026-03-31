@@ -10,11 +10,7 @@ export default function LandingFooter() {
             SnapInterview
           </span>
         </div>
-        <div className="flex gap-8 text-sm text-zinc-400">
-          <a href="#" className="transition-colors hover:text-zinc-600">Privacy</a>
-          <a href="#" className="transition-colors hover:text-zinc-600">Terms</a>
-          <a href="#" className="transition-colors hover:text-zinc-600">Contact</a>
-        </div>
+
         <p className="text-xs text-zinc-400">
           © {new Date().getFullYear()} SnapInterview. All rights reserved.
         </p>

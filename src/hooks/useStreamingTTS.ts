@@ -100,6 +100,7 @@ export function useStreamingTTS({
   const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const spokenPrefixRef = useRef("");
   const activeResponseRef = useRef("");
+  const speakNextRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     if (!isSpeechAvailable()) return;
@@ -133,11 +134,11 @@ export function useStreamingTTS({
     if (voiceRef.current) utterance.voice = voiceRef.current;
     utterance.onend = () => {
       currentUtteranceRef.current = null;
-      speakNext();
+      speakNextRef.current();
     };
     utterance.onerror = () => {
       currentUtteranceRef.current = null;
-      speakNext();
+      speakNextRef.current();
     };
 
     currentUtteranceRef.current = utterance;
@@ -147,6 +148,10 @@ export function useStreamingTTS({
       currentUtteranceRef.current = null;
     }
   }, [enabled]);
+
+  useEffect(() => {
+    speakNextRef.current = speakNext;
+  }, [speakNext]);
 
   const queueSpeech = useCallback((text: string) => {
     const cleaned = stripMarkdown(text);

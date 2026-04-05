@@ -97,6 +97,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   });
 
   const tts = useStreamingTTS({
+    streamingText: chat.currentStreamedText,
     completedText: chat.lastCompletedAiText,
     enabled: interviewStarted && !interviewDone,
     persona,

@@ -79,10 +79,12 @@ function selectVoice(): SpeechSynthesisVoice | null {
 }
 
 export function useStreamingTTS({
+  streamingText,
   completedText,
   enabled = true,
   persona,
 }: {
+  streamingText?: string;
   completedText: string;
   enabled?: boolean;
   persona?: string | null;
@@ -94,6 +96,10 @@ export function useStreamingTTS({
 
   const mutedRef = useRef(muted);
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  const queueRef = useRef<string[]>([]);
+  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const spokenPrefixRef = useRef("");
+  const activeResponseRef = useRef("");
 
   useEffect(() => {
     if (!isSpeechAvailable()) return;
@@ -108,8 +114,87 @@ export function useStreamingTTS({
   }, [persona]);
 
   const cancel = useCallback(() => {
+    queueRef.current = [];
+    spokenPrefixRef.current = "";
+    activeResponseRef.current = "";
+    currentUtteranceRef.current = null;
     if (isSpeechAvailable()) window.speechSynthesis.cancel();
   }, []);
+
+  const speakNext = useCallback(() => {
+    if (!isSpeechAvailable() || mutedRef.current || !enabled) return;
+    if (currentUtteranceRef.current) return;
+
+    const nextText = queueRef.current.shift();
+    if (!nextText) return;
+
+    const utterance = new SpeechSynthesisUtterance(nextText);
+    utterance.rate = getSpeechRate();
+    if (voiceRef.current) utterance.voice = voiceRef.current;
+    utterance.onend = () => {
+      currentUtteranceRef.current = null;
+      speakNext();
+    };
+    utterance.onerror = () => {
+      currentUtteranceRef.current = null;
+      speakNext();
+    };
+
+    currentUtteranceRef.current = utterance;
+    try {
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      currentUtteranceRef.current = null;
+    }
+  }, [enabled]);
+
+  const queueSpeech = useCallback((text: string) => {
+    const cleaned = stripMarkdown(text);
+    if (!cleaned) return;
+    queueRef.current.push(cleaned);
+    speakNext();
+  }, [speakNext]);
+
+  const queueIncrementalSpeech = useCallback((text: string, flushRemainder: boolean) => {
+    if (!isSpeechAvailable() || mutedRef.current || !enabled) return;
+
+    const cleaned = stripMarkdown(text);
+    if (!cleaned) return;
+
+    if (!cleaned.startsWith(activeResponseRef.current)) {
+      const nextPortion = cleaned.slice(spokenPrefixRef.current.length).trim();
+      if (nextPortion) queueSpeech(nextPortion);
+      activeResponseRef.current = cleaned;
+      spokenPrefixRef.current = cleaned;
+      return;
+    }
+
+    activeResponseRef.current = cleaned;
+
+    const unsaid = cleaned.slice(spokenPrefixRef.current.length);
+    if (!unsaid.trim()) return;
+
+    if (flushRemainder) {
+      spokenPrefixRef.current = cleaned;
+      queueSpeech(unsaid);
+      return;
+    }
+
+    const lastBoundary = Math.max(
+      unsaid.lastIndexOf(". "),
+      unsaid.lastIndexOf("! "),
+      unsaid.lastIndexOf("? "),
+      unsaid.lastIndexOf("\n")
+    );
+
+    if (lastBoundary === -1) return;
+
+    const speakable = unsaid.slice(0, lastBoundary + 1).trim();
+    if (!speakable) return;
+
+    spokenPrefixRef.current += unsaid.slice(0, lastBoundary + 1);
+    queueSpeech(speakable);
+  }, [enabled, queueSpeech]);
 
   const setMuted = useCallback((value: boolean) => {
     mutedRef.current = value;
@@ -118,29 +203,29 @@ export function useStreamingTTS({
     if (value) cancel();
   }, [cancel]);
 
-  // Speak the full completed AI response when it arrives
   useEffect(() => {
-    if (!isSpeechAvailable() || !enabled || mutedRef.current) return;
+    if (!streamingText) return;
+    queueIncrementalSpeech(streamingText, false);
+  }, [queueIncrementalSpeech, streamingText]);
+
+  useEffect(() => {
     if (!completedText) return;
+    queueIncrementalSpeech(completedText, true);
+  }, [completedText, queueIncrementalSpeech]);
 
-    const cleaned = stripMarkdown(completedText);
-    if (!cleaned) return;
-
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(cleaned);
-    utterance.rate = getSpeechRate();
-    if (voiceRef.current) utterance.voice = voiceRef.current;
-    try {
-      window.speechSynthesis.speak(utterance);
-    } catch {
-      // Browser denied or speech synthesis is in a bad state
-    }
-  }, [completedText, enabled]);
+  useEffect(() => {
+    if (streamingText) return;
+    activeResponseRef.current = "";
+    spokenPrefixRef.current = "";
+  }, [streamingText]);
 
   // Cancel on unmount
   useEffect(() => {
-    return () => { if (isSpeechAvailable()) window.speechSynthesis.cancel(); };
+    return () => {
+      queueRef.current = [];
+      currentUtteranceRef.current = null;
+      if (isSpeechAvailable()) window.speechSynthesis.cancel();
+    };
   }, []);
 
   return { muted, setMuted, cancel };

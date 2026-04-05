@@ -8,64 +8,65 @@ import {
   IconVideoCamera,
 } from "@/components/ui/icons";
 
+const features = [
+  {
+    icon: <IconStarBurst className="h-5 w-5" />,
+    title: "Live Follow-Ups",
+    desc: "The interviewer pushes on weak spots instead of stopping at canned one-shot prompts.",
+  },
+  {
+    icon: <IconChartBars className="h-5 w-5" />,
+    title: "Useful Scorecards",
+    desc: "See where you rambled, where you lacked depth, and where your answer actually landed.",
+  },
+  {
+    icon: <IconQuestionBank className="h-5 w-5" />,
+    title: "Targeted Question Sets",
+    desc: "Practice by role, company style, and interview type instead of digging through random prompts.",
+  },
+  {
+    icon: <IconVideoCamera className="h-5 w-5" strokeWidth={1.5} />,
+    title: "Replay The Session",
+    desc: "Review the exact answer you gave, not the polished version you remember afterward.",
+  },
+  {
+    icon: <IconTrendingUp className="h-5 w-5" />,
+    title: "Track Real Improvement",
+    desc: "Watch your pacing, clarity, and confidence change across repeated reps over time.",
+  },
+  {
+    icon: <IconClock className="h-5 w-5" />,
+    title: "Always Ready",
+    desc: "Run a quick rep before work, a full mock at night, or a last-minute warmup before the interview.",
+  },
+];
+
 export default function FeaturesSection() {
   return (
-    <section id="features" className="py-24 px-6 md:px-12">
+    <section id="features" className="px-6 py-22 md:px-12">
       <div className="mx-auto max-w-7xl">
         <FadeIn direction="up">
-          <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-zinc-400">
-            Features
+          <p className="mb-3 text-center text-xs font-semibold uppercase tracking-[0.28em] text-sky-600">
+            Why It Feels Sharper
           </p>
           <h2 className="mx-auto max-w-3xl text-center text-[clamp(2rem,4vw,3rem)] font-bold tracking-tight">
-            Everything you need to prepare
+            Less fake practice, more signal you can actually use
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-center text-[clamp(1rem,1.5vw,1.125rem)] text-zinc-500 leading-relaxed">
-            From AI mock interviews to detailed analytics, we provide the
-            tools to refine your interview skills.
+          <p className="mx-auto mt-4 max-w-2xl text-center text-[clamp(1rem,1.5vw,1.125rem)] leading-relaxed text-zinc-500">
+            Every session is built to help you hear better questions, give stronger answers, and see exactly where your interview performance breaks down.
           </p>
         </FadeIn>
 
         <FadeInStagger className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            {
-              icon: <IconStarBurst className="h-5 w-5" />,
-              title: "AI Interviewer",
-              desc: "Our AI adapts in real time, asking follow-ups just like a real interviewer would.",
-            },
-            {
-              icon: <IconChartBars className="h-5 w-5" />,
-              title: "Instant Feedback",
-              desc: "Get a detailed scorecard after every session covering strengths, weak spots, and how to improve.",
-            },
-            {
-              icon: <IconQuestionBank className="h-5 w-5" />,
-              title: "Question Library",
-              desc: "A wide range of curated questions across industries, including behavioral, technical, and case study.",
-            },
-            {
-              icon: <IconVideoCamera className="h-5 w-5" strokeWidth={1.5} />,
-              title: "Video Recording",
-              desc: "Record your sessions, replay them, and catch every detail you missed in the moment.",
-            },
-            {
-              icon: <IconTrendingUp className="h-5 w-5" />,
-              title: "Progress Tracking",
-              desc: "Visualize your improvement over weeks with detailed analytics and performance charts.",
-            },
-            {
-              icon: <IconClock className="h-5 w-5" />,
-              title: "24 / 7 Access",
-              desc: "Practice on your schedule, whether it's morning, night, or just before your actual interview.",
-            },
-          ].map((f) => (
-            <FadeInStaggerItem key={f.title}>
-              <div className="group h-full rounded-2xl border border-zinc-100 bg-white p-7 transition-all hover:border-zinc-200 hover:shadow-xl hover:shadow-zinc-100 hover:-translate-y-1">
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 transition-colors group-hover:bg-zinc-900 group-hover:text-white">
-                  {f.icon}
+          {features.map((feature) => (
+            <FadeInStaggerItem key={feature.title}>
+              <div className="group h-full rounded-[1.6rem] border border-sky-100/80 bg-white/88 p-7 shadow-[0_28px_60px_-52px_rgba(15,109,252,0.55)] transition-all hover:-translate-y-1 hover:border-sky-200 hover:shadow-[0_30px_70px_-48px_rgba(15,109,252,0.7)]">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 text-sky-700 transition-colors group-hover:bg-[linear-gradient(135deg,#19a7ff,#0f6dfc)] group-hover:text-white">
+                  {feature.icon}
                 </div>
-                <h3 className="mb-2 text-base font-semibold">{f.title}</h3>
+                <h3 className="mb-2 text-base font-semibold text-zinc-950">{feature.title}</h3>
                 <p className="text-sm leading-relaxed text-zinc-500">
-                  {f.desc}
+                  {feature.desc}
                 </p>
               </div>
             </FadeInStaggerItem>

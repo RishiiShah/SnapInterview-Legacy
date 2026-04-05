@@ -21,6 +21,8 @@ let speechSynthesisMock: {
 class MockSpeechSynthesisUtterance {
   text: string;
   rate = 1;
+  onend: (() => void) | null = null;
+  onerror: (() => void) | null = null;
   constructor(text: string) {
     this.text = text;
   }
@@ -28,17 +30,18 @@ class MockSpeechSynthesisUtterance {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function renderTTS(initial = "") {
+function renderTTS(initialCompleted = "", initialStreaming = "") {
   return renderHook(
-    ({ text }: { text: string }) =>
-      useStreamingTTS({ completedText: text }),
-    { initialProps: { text: initial } }
+    ({ completedText, streamingText }: { completedText: string; streamingText: string }) =>
+      useStreamingTTS({ completedText, streamingText }),
+    { initialProps: { completedText: initialCompleted, streamingText: initialStreaming } }
   );
 }
 
 // ─── Setup / teardown ────────────────────────────────────────────────────────
 
 beforeEach(() => {
+  vi.clearAllMocks();
   speechSynthesisMock = {
     speak: mockSpeak,
     cancel: mockCancel,
@@ -63,7 +66,7 @@ describe("useStreamingTTS", () => {
       const { rerender } = renderTTS("");
 
       act(() => {
-        rerender({ text: "Hello world. This is a test" });
+        rerender({ completedText: "Hello world. This is a test", streamingText: "" });
       });
 
       expect(mockSpeak).toHaveBeenCalledTimes(1);
@@ -76,17 +79,22 @@ describe("useStreamingTTS", () => {
       expect(mockSpeak).not.toHaveBeenCalled();
     });
 
-    it("cancels previous speech and speaks the new text when completedText changes", () => {
+    it("queues the new text when completedText changes during active playback", () => {
       const { rerender } = renderTTS("First response.");
+      const firstUtterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
 
-      mockCancel.mockClear();
       mockSpeak.mockClear();
 
       act(() => {
-        rerender({ text: "Second response." });
+        rerender({ completedText: "Second response.", streamingText: "" });
       });
 
-      expect(mockCancel).toHaveBeenCalled();
+      expect(mockSpeak).not.toHaveBeenCalled();
+
+      act(() => {
+        firstUtterance.onend?.();
+      });
+
       expect(mockSpeak).toHaveBeenCalledTimes(1);
       const utterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
       expect(utterance.text).toBe("Second response.");
@@ -98,10 +106,45 @@ describe("useStreamingTTS", () => {
       mockSpeak.mockClear();
 
       act(() => {
-        rerender({ text: "" });
+        rerender({ completedText: "", streamingText: "" });
       });
 
       expect(mockSpeak).not.toHaveBeenCalled();
+    });
+
+    it("speaks completed sentences while text is still streaming", () => {
+      const { rerender } = renderTTS("", "");
+
+      act(() => {
+        rerender({ completedText: "", streamingText: "First sentence. Second" });
+      });
+
+      expect(mockSpeak).toHaveBeenCalledTimes(1);
+      const utterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
+      expect(utterance.text).toBe("First sentence.");
+    });
+
+    it("flushes the remaining partial sentence when the stream completes", () => {
+      const { rerender } = renderTTS("", "");
+
+      act(() => {
+        rerender({ completedText: "", streamingText: "First sentence. Second" });
+      });
+
+      const firstUtterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
+      act(() => {
+        firstUtterance.onend?.();
+      });
+
+      mockSpeak.mockClear();
+
+      act(() => {
+        rerender({ completedText: "First sentence. Second", streamingText: "" });
+      });
+
+      expect(mockSpeak).toHaveBeenCalledTimes(1);
+      const remainderUtterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
+      expect(remainderUtterance.text).toBe("Second");
     });
   });
 
@@ -110,7 +153,7 @@ describe("useStreamingTTS", () => {
       const { rerender } = renderTTS("");
 
       act(() => {
-        rerender({ text: "**Important point.**" });
+        rerender({ completedText: "**Important point.**", streamingText: "" });
       });
 
       expect(mockSpeak).toHaveBeenCalledTimes(1);
@@ -123,7 +166,7 @@ describe("useStreamingTTS", () => {
       const { rerender } = renderTTS("");
 
       act(() => {
-        rerender({ text: "Use `Array.prototype.map` to iterate." });
+        rerender({ completedText: "Use `Array.prototype.map` to iterate.", streamingText: "" });
       });
 
       expect(mockSpeak).toHaveBeenCalledTimes(1);
@@ -136,7 +179,7 @@ describe("useStreamingTTS", () => {
       const { rerender } = renderTTS("");
 
       act(() => {
-        rerender({ text: "**   **" });
+        rerender({ completedText: "**   **", streamingText: "" });
       });
 
       expect(mockSpeak).not.toHaveBeenCalled();
@@ -192,7 +235,7 @@ describe("useStreamingTTS", () => {
       const { rerender } = renderTTS("");
 
       act(() => {
-        rerender({ text: "A complete sentence." });
+        rerender({ completedText: "A complete sentence.", streamingText: "" });
       });
 
       expect(mockSpeak).not.toHaveBeenCalled();
@@ -232,7 +275,7 @@ describe("useStreamingTTS", () => {
 
       expect(() => {
         act(() => {
-          rerender({ text: "A response that causes speak to throw." });
+          rerender({ completedText: "A response that causes speak to throw.", streamingText: "" });
         });
       }).not.toThrow();
     });

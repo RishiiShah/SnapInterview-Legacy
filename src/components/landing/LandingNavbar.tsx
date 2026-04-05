@@ -2,11 +2,11 @@ import Link from "next/link";
 
 export default function LandingNavbar() {
   return (
-    <nav className="fixed inset-x-0 top-0 z-50 border-b border-zinc-100 bg-white/80 backdrop-blur-lg">
+    <nav className="fixed inset-x-0 top-0 z-50 border-b border-white/60 bg-white/72 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-zinc-900 text-[11px] font-bold leading-none tracking-tighter text-white">
+          <div className="grid h-8 w-8 place-items-center rounded-lg bg-[linear-gradient(145deg,#07111f,#0ea5e9)] text-[11px] font-bold leading-none tracking-tighter text-white shadow-[0_14px_30px_-18px_rgba(14,165,233,0.7)]">
             SI
           </div>
           <span className="text-lg font-semibold tracking-tight">
@@ -34,7 +34,7 @@ export default function LandingNavbar() {
           </Link>
           <Link
             href="/signup"
-            className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm shadow-zinc-900/20 transition-all hover:bg-zinc-700 hover:shadow-md hover:shadow-zinc-900/15"
+            className="rounded-xl bg-[linear-gradient(135deg,#149dff,#0f6dfc)] px-5 py-2.5 text-sm font-medium text-white shadow-[0_16px_30px_-18px_rgba(20,157,255,0.9)] transition-all hover:-translate-y-0.5 hover:brightness-105"
           >
             Get Started
           </Link>

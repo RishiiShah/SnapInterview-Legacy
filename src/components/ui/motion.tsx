@@ -40,7 +40,7 @@ export function FadeInStagger({
         hidden: {},
         visible: {
           transition: {
-            staggerChildren: 0.10,
+            staggerChildren: 0.07,
           },
         },
       }}
@@ -69,8 +69,9 @@ export function FadeInStaggerItem({
           y: 0,
           transition: {
             type: "spring",
-            damping: 20,
-            stiffness: 100,
+            damping: 18,
+            stiffness: 132,
+            mass: 0.9,
           },
         },
       }}
@@ -111,13 +112,13 @@ export function FadeIn({
       {...(triggerOnView
         ? {
             whileInView: { opacity: 1, x: 0, y: 0 },
-            viewport: { once: true, margin: "-100px" },
+            viewport: { once: true, margin: "-40px" },
           }
         : {
             animate: { opacity: 1, x: 0, y: 0 },
           })}
       transition={{
-        duration: 0.5,
+        duration: 0.38,
         delay,
         ease: [0.21, 0.47, 0.32, 0.98], // Custom easeOut cubic
       }}
@@ -146,8 +147,8 @@ export function SlideIn({
       animate={{ opacity: 1, y: 0 }}
       transition={{
         type: "spring",
-        damping: 25,
-        stiffness: 120,
+        damping: 20,
+        stiffness: 148,
         delay,
       }}
       className={className}

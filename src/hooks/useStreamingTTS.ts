@@ -7,7 +7,7 @@ const SPEED_STORAGE_KEY = "tts_speed";
 
 const SPEECH_RATES: Record<string, number> = {
   slow: 0.85,
-  normal: 1.05,
+  normal: 1.0,
   fast: 1.25,
 };
 
@@ -36,46 +36,16 @@ function stripMarkdown(text: string): string {
     .trim();
 }
 
-function isSpeechAvailable(): boolean {
-  return typeof window !== "undefined" && "speechSynthesis" in window;
-}
-
-
-// Preferred voice names ordered by quality — first match wins
-const PREFERRED_VOICE_NAMES = [
-  "Samantha",       // macOS high-quality
-  "Alex",           // macOS high-quality
-  "Google US English",
-  "Google UK English Female",
-  "Microsoft Zira",
-  "Microsoft David",
-  "Karen",          // macOS Australian English (natural)
-  "Daniel",         // macOS British English (natural)
-];
-
-function selectVoice(): SpeechSynthesisVoice | null {
-  if (!isSpeechAvailable()) return null;
-  const voices = window.speechSynthesis.getVoices();
-  if (voices.length === 0) return null;
-
-  const englishVoices = voices.filter((v) => v.lang.startsWith("en"));
-
-  // 1. Prefer a known high-quality named voice
-  for (const name of PREFERRED_VOICE_NAMES) {
-    const match = englishVoices.find((v) => v.name.includes(name));
-    if (match) return match;
+function getOrCreateAudioContext(
+  ref: React.MutableRefObject<AudioContext | null>
+): AudioContext {
+  if (!ref.current) {
+    ref.current = new AudioContext();
   }
-
-  // 2. Prefer the browser default English voice
-  const defaultEnglish = englishVoices.find((v) => v.default);
-  if (defaultEnglish) return defaultEnglish;
-
-  // 3. Prefer a local (on-device) English voice over a remote one
-  const localEnglish = englishVoices.find((v) => v.localService);
-  if (localEnglish) return localEnglish;
-
-  // 4. Any English voice, then any voice
-  return englishVoices[0] ?? voices[0] ?? null;
+  if (ref.current.state === "suspended") {
+    void ref.current.resume();
+  }
+  return ref.current;
 }
 
 export function useStreamingTTS({
@@ -89,124 +59,154 @@ export function useStreamingTTS({
   enabled?: boolean;
   persona?: string | null;
 }) {
+  const personaRef = useRef(persona);
+  personaRef.current = persona; // keep in sync with latest render synchronously
+
   const [muted, setMutedState] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem(STORAGE_KEY) === "1";
   });
 
   const mutedRef = useRef(muted);
-  const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const queueRef = useRef<string[]>([]);
-  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const spokenPrefixRef = useRef("");
   const activeResponseRef = useRef("");
   const speakNextRef = useRef<() => void>(() => {});
-
-  useEffect(() => {
-    if (!isSpeechAvailable()) return;
-
-    function resolve() {
-      voiceRef.current = selectVoice();
-    }
-
-    resolve();
-    window.speechSynthesis.addEventListener("voiceschanged", resolve);
-    return () => window.speechSynthesis.removeEventListener("voiceschanged", resolve);
-  }, [persona]);
+  const isSpeakingRef = useRef(false);
 
   const cancel = useCallback(() => {
     queueRef.current = [];
     spokenPrefixRef.current = "";
     activeResponseRef.current = "";
-    currentUtteranceRef.current = null;
-    if (isSpeechAvailable()) window.speechSynthesis.cancel();
+    isSpeakingRef.current = false;
+    if (currentSourceRef.current) {
+      try {
+        currentSourceRef.current.onended = null;
+        currentSourceRef.current.stop();
+      } catch {
+        // already stopped — safe to ignore
+      }
+      currentSourceRef.current = null;
+    }
   }, []);
 
   const speakNext = useCallback(() => {
-    if (!isSpeechAvailable() || mutedRef.current || !enabled) return;
-    if (currentUtteranceRef.current) return;
+    if (typeof window === "undefined" || mutedRef.current || !enabled) return;
+    if (isSpeakingRef.current || currentSourceRef.current) return; // already fetching or playing
 
     const nextText = queueRef.current.shift();
     if (!nextText) return;
 
-    const utterance = new SpeechSynthesisUtterance(nextText);
-    utterance.rate = getSpeechRate();
-    if (voiceRef.current) utterance.voice = voiceRef.current;
-    utterance.onend = () => {
-      currentUtteranceRef.current = null;
-      speakNextRef.current();
-    };
-    utterance.onerror = () => {
-      currentUtteranceRef.current = null;
-      speakNextRef.current();
-    };
+    isSpeakingRef.current = true;
+    const rate = getSpeechRate();
 
-    currentUtteranceRef.current = utterance;
-    try {
-      window.speechSynthesis.speak(utterance);
-    } catch {
-      currentUtteranceRef.current = null;
-    }
+    fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: nextText, persona: personaRef.current }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const detail = await res.text().catch(() => "");
+          throw new Error(`TTS API ${res.status}: ${detail}`);
+        }
+        return res.arrayBuffer();
+      })
+      .then((arrayBuffer) => {
+        const ctx = getOrCreateAudioContext(audioContextRef);
+        return ctx.decodeAudioData(arrayBuffer).then((audioBuffer) => {
+          if (mutedRef.current) return; // cancelled while decoding
+
+          const source = ctx.createBufferSource();
+          source.buffer = audioBuffer;
+          source.playbackRate.value = rate;
+          source.connect(ctx.destination);
+          source.onended = () => {
+            currentSourceRef.current = null;
+            isSpeakingRef.current = false;
+            speakNextRef.current();
+          };
+          currentSourceRef.current = source;
+          source.start();
+        });
+      })
+      .catch((err) => {
+        console.error("[TTS] playback error:", err);
+        currentSourceRef.current = null;
+        isSpeakingRef.current = false;
+        speakNextRef.current(); // skip failed sentence, continue queue
+      });
   }, [enabled]);
 
   useEffect(() => {
     speakNextRef.current = speakNext;
   }, [speakNext]);
 
-  const queueSpeech = useCallback((text: string) => {
-    const cleaned = stripMarkdown(text);
-    if (!cleaned) return;
-    queueRef.current.push(cleaned);
-    speakNext();
-  }, [speakNext]);
+  const queueSpeech = useCallback(
+    (text: string) => {
+      const cleaned = stripMarkdown(text);
+      if (!cleaned) return;
+      queueRef.current.push(cleaned);
+      speakNext();
+    },
+    [speakNext]
+  );
 
-  const queueIncrementalSpeech = useCallback((text: string, flushRemainder: boolean) => {
-    if (!isSpeechAvailable() || mutedRef.current || !enabled) return;
+  const queueIncrementalSpeech = useCallback(
+    (text: string, flushRemainder: boolean) => {
+      if (typeof window === "undefined" || mutedRef.current || !enabled) return;
 
-    const cleaned = stripMarkdown(text);
-    if (!cleaned) return;
+      const cleaned = stripMarkdown(text);
+      if (!cleaned) return;
 
-    if (!cleaned.startsWith(activeResponseRef.current)) {
-      const nextPortion = cleaned.slice(spokenPrefixRef.current.length).trim();
-      if (nextPortion) queueSpeech(nextPortion);
+      if (!cleaned.startsWith(activeResponseRef.current)) {
+        const nextPortion = cleaned.slice(spokenPrefixRef.current.length).trim();
+        if (nextPortion) queueSpeech(nextPortion);
+        activeResponseRef.current = cleaned;
+        spokenPrefixRef.current = cleaned;
+        return;
+      }
+
       activeResponseRef.current = cleaned;
-      spokenPrefixRef.current = cleaned;
-      return;
-    }
 
-    activeResponseRef.current = cleaned;
+      const unsaid = cleaned.slice(spokenPrefixRef.current.length);
+      if (!unsaid.trim()) return;
 
-    const unsaid = cleaned.slice(spokenPrefixRef.current.length);
-    if (!unsaid.trim()) return;
+      if (flushRemainder) {
+        spokenPrefixRef.current = cleaned;
+        queueSpeech(unsaid);
+        return;
+      }
 
-    if (flushRemainder) {
-      spokenPrefixRef.current = cleaned;
-      queueSpeech(unsaid);
-      return;
-    }
+      const lastBoundary = Math.max(
+        unsaid.lastIndexOf(". "),
+        unsaid.lastIndexOf("! "),
+        unsaid.lastIndexOf("? "),
+        unsaid.lastIndexOf("\n")
+      );
 
-    const lastBoundary = Math.max(
-      unsaid.lastIndexOf(". "),
-      unsaid.lastIndexOf("! "),
-      unsaid.lastIndexOf("? "),
-      unsaid.lastIndexOf("\n")
-    );
+      if (lastBoundary === -1) return;
 
-    if (lastBoundary === -1) return;
+      const speakable = unsaid.slice(0, lastBoundary + 1).trim();
+      if (!speakable) return;
 
-    const speakable = unsaid.slice(0, lastBoundary + 1).trim();
-    if (!speakable) return;
+      spokenPrefixRef.current += unsaid.slice(0, lastBoundary + 1);
+      queueSpeech(speakable);
+    },
+    [enabled, queueSpeech]
+  );
 
-    spokenPrefixRef.current += unsaid.slice(0, lastBoundary + 1);
-    queueSpeech(speakable);
-  }, [enabled, queueSpeech]);
-
-  const setMuted = useCallback((value: boolean) => {
-    mutedRef.current = value;
-    setMutedState(value);
-    localStorage.setItem(STORAGE_KEY, value ? "1" : "0");
-    if (value) cancel();
-  }, [cancel]);
+  const setMuted = useCallback(
+    (value: boolean) => {
+      mutedRef.current = value;
+      setMutedState(value);
+      localStorage.setItem(STORAGE_KEY, value ? "1" : "0");
+      if (value) cancel();
+    },
+    [cancel]
+  );
 
   useEffect(() => {
     if (!streamingText) return;
@@ -224,12 +224,23 @@ export function useStreamingTTS({
     spokenPrefixRef.current = "";
   }, [streamingText]);
 
-  // Cancel on unmount
+  // Clean up audio resources on unmount
   useEffect(() => {
     return () => {
       queueRef.current = [];
-      currentUtteranceRef.current = null;
-      if (isSpeechAvailable()) window.speechSynthesis.cancel();
+      if (currentSourceRef.current) {
+        try {
+          currentSourceRef.current.onended = null;
+          currentSourceRef.current.stop();
+        } catch {
+          // already stopped
+        }
+        currentSourceRef.current = null;
+      }
+      if (audioContextRef.current) {
+        void audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
     };
   }, []);
 

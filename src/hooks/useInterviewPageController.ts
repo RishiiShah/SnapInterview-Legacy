@@ -280,6 +280,9 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
             if (typeof data?.questionCount === "number" && data.questionCount > 0) {
               setTotalQuestions(data.questionCount);
             }
+            if (typeof data?.persona === "string") {
+              setPersona(data.persona);
+            }
           }
           return;
         }

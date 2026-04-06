@@ -1,31 +1,82 @@
 // @vitest-environment jsdom
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useStreamingTTS } from "./useStreamingTTS";
 
-// ─── Speech Synthesis mock ────────────────────────────────────────────────────
-
-const mockSpeak = vi.fn();
-const mockCancel = vi.fn();
-
-let speechSynthesisMock: {
-  speak: ReturnType<typeof vi.fn>;
-  cancel: ReturnType<typeof vi.fn>;
-  getVoices: ReturnType<typeof vi.fn>;
-  addEventListener: ReturnType<typeof vi.fn>;
-  removeEventListener: ReturnType<typeof vi.fn>;
+type TTSRequestPayload = {
+  text: string;
+  persona?: string | null;
 };
 
-// ─── SpeechSynthesisUtterance mock ───────────────────────────────────────────
+type MockAudioSource = {
+  buffer: unknown;
+  playbackRate: { value: number };
+  onended: (() => void) | null;
+  connect: ReturnType<typeof vi.fn>;
+  start: ReturnType<typeof vi.fn>;
+  stop: ReturnType<typeof vi.fn>;
+};
 
-class MockSpeechSynthesisUtterance {
-  text: string;
-  rate = 1;
-  onend: (() => void) | null = null;
-  onerror: (() => void) | null = null;
-  constructor(text: string) {
-    this.text = text;
-  }
+const mockFetch = vi.fn();
+const mockAudioContextResume = vi.fn();
+const mockAudioContextClose = vi.fn();
+const mockDecodeAudioData = vi.fn();
+const mockCreateBufferSource = vi.fn();
+const mockSourceConnect = vi.fn();
+const mockSourceStart = vi.fn();
+const mockSourceStop = vi.fn();
+
+let latestSource: MockAudioSource | null = null;
+
+class MockAudioContext {
+  state: "running" | "suspended" = "running";
+  destination = {};
+  resume = mockAudioContextResume.mockResolvedValue(undefined);
+  close = mockAudioContextClose.mockResolvedValue(undefined);
+  decodeAudioData = mockDecodeAudioData.mockResolvedValue({});
+  createBufferSource = mockCreateBufferSource.mockImplementation(() => {
+    const source: MockAudioSource = {
+      buffer: null,
+      playbackRate: { value: 1 },
+      onended: null,
+      connect: mockSourceConnect,
+      start: mockSourceStart,
+      stop: mockSourceStop,
+    };
+    latestSource = source;
+    return source;
+  });
+
+  constructor() {}
+}
+
+function createSuccessfulTtsResponse() {
+  return {
+    ok: true,
+    status: 200,
+    arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
+    text: vi.fn().mockResolvedValue(""),
+  };
+}
+
+function getFetchPayload(index = 0): TTSRequestPayload {
+  const init = mockFetch.mock.calls[index]?.[1] as RequestInit | undefined;
+  const body = init?.body;
+  return JSON.parse(typeof body === "string" ? body : "{}");
+}
+
+async function expectFetchText(text: string, index = 0) {
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledTimes(index + 1);
+  });
+  expect(getFetchPayload(index).text).toBe(text);
+}
+
+async function waitForSourceReady() {
+  await waitFor(() => {
+    expect(latestSource).not.toBeNull();
+    expect(mockSourceStart).toHaveBeenCalled();
+  });
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -42,15 +93,10 @@ function renderTTS(initialCompleted = "", initialStreaming = "") {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  speechSynthesisMock = {
-    speak: mockSpeak,
-    cancel: mockCancel,
-    getVoices: vi.fn().mockReturnValue([]),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-  };
-  vi.stubGlobal("speechSynthesis", speechSynthesisMock);
-  vi.stubGlobal("SpeechSynthesisUtterance", MockSpeechSynthesisUtterance);
+  latestSource = null;
+  mockFetch.mockResolvedValue(createSuccessfulTtsResponse());
+  vi.stubGlobal("fetch", mockFetch);
+  vi.stubGlobal("AudioContext", MockAudioContext as unknown as typeof AudioContext);
   localStorage.clear();
 });
 
@@ -62,117 +108,109 @@ afterEach(() => {
 
 describe("useStreamingTTS", () => {
   describe("speaking completed text", () => {
-    it("speaks the full text when completedText is provided", () => {
+    it("speaks the full text when completedText is provided", async () => {
       const { rerender } = renderTTS("");
 
       act(() => {
         rerender({ completedText: "Hello world. This is a test", streamingText: "" });
       });
 
-      expect(mockSpeak).toHaveBeenCalledTimes(1);
-      const utterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
-      expect(utterance.text).toBe("Hello world. This is a test");
+      await expectFetchText("Hello world. This is a test");
     });
 
     it("does not speak on initial empty string", () => {
       renderTTS("");
-      expect(mockSpeak).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it("queues the new text when completedText changes during active playback", () => {
+    it("queues the new text when completedText changes during active playback", async () => {
       const { rerender } = renderTTS("First response.");
-      const firstUtterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
 
-      mockSpeak.mockClear();
+      await expectFetchText("First response.");
+      await waitForSourceReady();
+
+      mockFetch.mockClear();
 
       act(() => {
         rerender({ completedText: "Second response.", streamingText: "" });
       });
 
-      expect(mockSpeak).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
 
       act(() => {
-        firstUtterance.onend?.();
+        latestSource?.onended?.();
       });
 
-      expect(mockSpeak).toHaveBeenCalledTimes(1);
-      const utterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
-      expect(utterance.text).toBe("Second response.");
+      await expectFetchText("Second response.");
     });
 
-    it("does not speak when completedText resets to empty", () => {
+    it("does not speak when completedText resets to empty", async () => {
       const { rerender } = renderTTS("Some text.");
 
-      mockSpeak.mockClear();
+      await expectFetchText("Some text.");
+
+      mockFetch.mockClear();
 
       act(() => {
         rerender({ completedText: "", streamingText: "" });
       });
 
-      expect(mockSpeak).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it("speaks completed sentences while text is still streaming", () => {
+    it("speaks completed sentences while text is still streaming", async () => {
       const { rerender } = renderTTS("", "");
 
       act(() => {
         rerender({ completedText: "", streamingText: "First sentence. Second" });
       });
 
-      expect(mockSpeak).toHaveBeenCalledTimes(1);
-      const utterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
-      expect(utterance.text).toBe("First sentence.");
+      await expectFetchText("First sentence.");
     });
 
-    it("flushes the remaining partial sentence when the stream completes", () => {
+    it("flushes the remaining partial sentence when the stream completes", async () => {
       const { rerender } = renderTTS("", "");
 
       act(() => {
         rerender({ completedText: "", streamingText: "First sentence. Second" });
       });
 
-      const firstUtterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
+      await expectFetchText("First sentence.");
+      await waitForSourceReady();
+
       act(() => {
-        firstUtterance.onend?.();
+        latestSource?.onended?.();
       });
 
-      mockSpeak.mockClear();
+      mockFetch.mockClear();
 
       act(() => {
         rerender({ completedText: "First sentence. Second", streamingText: "" });
       });
 
-      expect(mockSpeak).toHaveBeenCalledTimes(1);
-      const remainderUtterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
-      expect(remainderUtterance.text).toBe("Second");
+      await expectFetchText("Second");
     });
   });
 
   describe("markdown stripping", () => {
-    it("strips bold markdown before speaking", () => {
+    it("strips bold markdown before speaking", async () => {
       const { rerender } = renderTTS("");
 
       act(() => {
         rerender({ completedText: "**Important point.**", streamingText: "" });
       });
 
-      expect(mockSpeak).toHaveBeenCalledTimes(1);
-      const utterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
-      expect(utterance.text).not.toContain("**");
-      expect(utterance.text).toContain("Important point.");
+      await expectFetchText("Important point.");
     });
 
-    it("strips inline code before speaking", () => {
+    it("strips inline code before speaking", async () => {
       const { rerender } = renderTTS("");
 
       act(() => {
         rerender({ completedText: "Use `Array.prototype.map` to iterate.", streamingText: "" });
       });
 
-      expect(mockSpeak).toHaveBeenCalledTimes(1);
-      const utterance = mockSpeak.mock.calls[0][0] as MockSpeechSynthesisUtterance;
-      expect(utterance.text).not.toContain("`");
-      expect(utterance.text).toContain("Array.prototype.map");
+      await expectFetchText("Use Array.prototype.map to iterate.");
     });
 
     it("does not speak a segment that is empty after stripping markdown", () => {
@@ -182,7 +220,7 @@ describe("useStreamingTTS", () => {
         rerender({ completedText: "**   **", streamingText: "" });
       });
 
-      expect(mockSpeak).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
   });
 
@@ -220,14 +258,21 @@ describe("useStreamingTTS", () => {
       expect(result.current.muted).toBe(false);
     });
 
-    it("cancels speech synthesis when muted", () => {
-      const { result } = renderTTS("");
+    it("stops active audio when muted", async () => {
+      const { result, rerender } = renderTTS("");
+
+      act(() => {
+        rerender({ completedText: "Playing right now.", streamingText: "" });
+      });
+
+      await expectFetchText("Playing right now.");
+      await waitForSourceReady();
 
       act(() => {
         result.current.setMuted(true);
       });
 
-      expect(mockCancel).toHaveBeenCalled();
+      expect(mockSourceStop).toHaveBeenCalled();
     });
 
     it("does not speak when muted, even with completed text", () => {
@@ -238,46 +283,65 @@ describe("useStreamingTTS", () => {
         rerender({ completedText: "A complete sentence.", streamingText: "" });
       });
 
-      expect(mockSpeak).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
   });
 
   describe("cancel()", () => {
-    it("calls speechSynthesis.cancel", () => {
+    it("stops active audio", async () => {
       const { result } = renderTTS("First response.");
 
-      mockCancel.mockClear();
+      await expectFetchText("First response.");
+      await waitForSourceReady();
+
+      mockSourceStop.mockClear();
 
       act(() => {
         result.current.cancel();
       });
 
-      expect(mockCancel).toHaveBeenCalled();
+      expect(mockSourceStop).toHaveBeenCalled();
     });
   });
 
   describe("unmount cleanup", () => {
-    it("cancels speech synthesis when the component unmounts", () => {
+    it("cleans up active audio context on unmount", async () => {
       const { unmount } = renderTTS("Ongoing response");
 
-      mockCancel.mockClear();
+      await expectFetchText("Ongoing response");
+      await waitForSourceReady();
+
+      mockSourceStop.mockClear();
+      mockAudioContextClose.mockClear();
       unmount();
 
-      expect(mockCancel).toHaveBeenCalled();
+      expect(mockSourceStop).toHaveBeenCalled();
+      expect(mockAudioContextClose).toHaveBeenCalled();
     });
   });
 
   describe("speak() error resilience", () => {
-    it("does not throw when speak() throws", () => {
-      mockSpeak.mockImplementationOnce(() => { throw new Error("NotAllowedError"); });
+    it("does not throw when /api/tts request fails", async () => {
+      mockFetch.mockRejectedValueOnce(new Error("NetworkError"));
 
-      const { rerender } = renderTTS("");
+      const { rerender } = renderTTS("", "");
 
       expect(() => {
         act(() => {
-          rerender({ completedText: "A response that causes speak to throw.", streamingText: "" });
+          rerender({ completedText: "", streamingText: "First sentence. Second sentence." });
         });
       }).not.toThrow();
+
+      act(() => {
+        rerender({ completedText: "First sentence. Second sentence.", streamingText: "" });
+      });
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+      });
+
+      expect(getFetchPayload(0).text).toBe("First sentence.");
+      expect(getFetchPayload(1).text).toBe("Second sentence.");
     });
   });
 
@@ -287,7 +351,7 @@ describe("useStreamingTTS", () => {
         useStreamingTTS({ completedText: "A complete sentence.", enabled: false })
       );
 
-      expect(mockSpeak).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it("does not speak when enabled toggles to false", () => {
@@ -301,7 +365,7 @@ describe("useStreamingTTS", () => {
         rerender({ text: "Some response.", enabled: false });
       });
 
-      expect(mockSpeak).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
   });
 });

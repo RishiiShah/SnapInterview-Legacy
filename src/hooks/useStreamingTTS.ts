@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "tts_muted";
 const SPEED_STORAGE_KEY = "tts_speed";
@@ -60,7 +60,10 @@ export function useStreamingTTS({
   persona?: string | null;
 }) {
   const personaRef = useRef(persona);
-  personaRef.current = persona; // keep in sync with latest render synchronously
+
+  useLayoutEffect(() => {
+    personaRef.current = persona;
+  }, [persona]);
 
   const [muted, setMutedState] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;

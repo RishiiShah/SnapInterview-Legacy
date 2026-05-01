@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-data-scientist",
+  "title": "Data Scientist Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Data Scientist."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Statistics & Probability: Hypothesis testing, p-values and confidence intervals, A/B testing design, bias-variance trade-off, and Bayesian vs. frequentist reasoning.",
+        "2. Machine Learning: Supervised and unsupervised algorithm selection, regularization, cross-validation, feature engineering, and model evaluation metrics (precision/recall, AUC, RMSE).",
+        "3. Data Wrangling: Pandas/NumPy proficiency, handling missing data, outlier treatment, data leakage prevention, and exploratory data analysis.",
+        "4. Productionization: Model serialization, monitoring for drift, experiment tracking (MLflow/Weights & Biases), and communicating results to non-technical stakeholders."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Statistical reasoning and model evaluation are the highest-signal areas - prioritize probing the 'why' behind model choices.",
+        "- Use interview difficulty to calibrate: algorithm definitions for entry-level, trade-off analysis and production considerations for senior.",
+        "- Use resume and job-description signals to focus on the candidate's domain (NLP, computer vision, recommendation systems, tabular data).",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal data science competency to broaden assessment."
+      ]
+    }
+  ]
+}

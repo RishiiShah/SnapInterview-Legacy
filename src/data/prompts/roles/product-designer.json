@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-product-designer",
+  "title": "Product Designer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Product Designer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Design Process: Discovery, ideation, prototyping, and validation - how the candidate moves from problem to solution and involves stakeholders.",
+        "2. User Research & Validation: Usability testing methods, interpreting qualitative feedback, distinguishing user wants from user needs, and iterating on evidence.",
+        "3. Interaction & Visual Design: Information architecture, interaction patterns, visual hierarchy, typography, and accessibility (WCAG, color contrast, keyboard navigation).",
+        "4. Cross-functional Collaboration: Handing off to engineers (design system usage, specs, edge cases), working with PMs on trade-offs, and advocating for the user in product decisions."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Design process and how the candidate handles ambiguity are the highest-signal areas - probe for concrete project examples.",
+        "- Use interview difficulty to calibrate: process descriptions for entry-level, systemic thinking and cross-functional influence for senior.",
+        "- Use resume and job-description signals to focus on the candidate's domain (web, mobile, enterprise, consumer) and tooling (Figma, Sketch).",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal product design competency to broaden assessment."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-backend-developer",
+  "title": "Backend Developer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Backend Developer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. API Design: RESTful principles, versioning, idempotency, error response contracts, pagination, and rate limiting.",
+        "2. Databases: Relational vs. NoSQL trade-offs, indexing strategies, query optimization, transactions, and connection pooling.",
+        "3. Concurrency & Performance: Thread safety, async/await patterns, caching strategies (Redis, CDN), and horizontal vs. vertical scaling.",
+        "4. System Reliability: Circuit breakers, retry logic, graceful degradation, health checks, and structured logging."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Use interview difficulty to adjust depth: data modeling for entry-level, distributed consistency trade-offs for senior candidates.",
+        "- Use resume and job-description signals to focus on the tech stack and scale the candidate has worked with.",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- Keep focus on one topic at a time; follow up to probe the reasoning behind architectural decisions.",
+        "- If the candidate is strong in one area, shift to another high-signal backend competency to broaden assessment."
+      ]
+    }
+  ]
+}

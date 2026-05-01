@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-product-manager",
+  "title": "Product Manager Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Product Manager."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Product Strategy: Market sizing, competitive analysis, vision setting, OKR/KPI definition, and roadmap prioritization frameworks (RICE, MoSCoW, Kano).",
+        "2. Discovery & Customer Insight: User research methods, synthesizing qualitative and quantitative signals, hypothesis-driven experimentation, and identifying unmet needs.",
+        "3. Execution & Cross-functional Collaboration: Writing clear PRDs, working with engineering estimates, navigating trade-offs, managing stakeholder alignment, and unblocking teams.",
+        "4. Metrics & Growth: Defining success metrics, funnel analysis, A/B test design and interpretation, and distinguishing correlation from causation in product data."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Prioritization reasoning and metrics literacy are the highest-signal areas - ask for concrete frameworks and examples.",
+        "- Use interview difficulty to calibrate: feature scoping for entry-level, strategy trade-offs and organizational influence for senior.",
+        "- Use resume and job-description signals to focus on the candidate's domain (B2B SaaS, consumer, platform, marketplace) and stage (0-to-1 vs. scale).",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal PM competency to broaden assessment."
+      ]
+    }
+  ]
+}

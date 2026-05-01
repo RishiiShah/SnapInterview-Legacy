@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-engineering-manager",
+  "title": "Engineering Manager Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Engineering Manager."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. People Management: 1:1 structure, performance feedback frameworks, handling underperformance, career growth facilitation, and managing conflict within the team.",
+        "2. Delivery & Execution: Sprint planning, unblocking engineers, managing technical debt vs. feature work trade-offs, and communicating progress to stakeholders.",
+        "3. Technical Judgment: Staying close enough to the codebase to make informed architectural trade-offs, code review culture, and hiring bar definition.",
+        "4. Organizational & Cross-team: Roadmap negotiation with product, cross-team dependency management, headcount planning, and building psychological safety."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- People development and handling ambiguous delivery situations are the highest-signal areas - ask for specific, behavioral examples.",
+        "- Use interview difficulty to calibrate: team facilitation for new managers, org design and executive alignment for senior EMs.",
+        "- Use resume and job-description signals to focus on team size, stage (startup vs. enterprise), and technical domain.",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal EM competency to broaden assessment."
+      ]
+    }
+  ]
+}

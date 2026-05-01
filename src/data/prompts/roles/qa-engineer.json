@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-qa-engineer",
+  "title": "QA Engineer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: QA Engineer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Testing Strategy: Test pyramid (unit, integration, E2E), risk-based prioritization, boundary value analysis, equivalence partitioning, and exploratory testing techniques.",
+        "2. Test Automation: Framework design (Page Object Model, data-driven tests), flakiness root causes, CI/CD integration, and choosing what to automate vs. keep manual.",
+        "3. API & Performance Testing: REST/GraphQL contract testing, load testing tools (k6, JMeter), interpreting percentile latency, and identifying performance regressions.",
+        "4. Quality Processes: Bug report quality, defect lifecycle management, regression coverage, working with developers on shift-left testing, and release readiness criteria."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Test strategy thinking and automation architecture are the highest-signal areas - probe for how the candidate decides what and how to test.",
+        "- Use interview difficulty to calibrate: manual testing techniques for entry-level, automation framework design and performance testing for senior.",
+        "- Use resume and job-description signals to focus on the candidate's tooling (Playwright, Cypress, Selenium, Postman, k6).",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal QA competency to broaden assessment."
+      ]
+    }
+  ]
+}

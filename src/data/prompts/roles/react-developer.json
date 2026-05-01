@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-react-developer",
+  "title": "React Developer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: React Developer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. React Core: JSX, reconciliation, virtual DOM diffing, component composition, controlled vs. uncontrolled inputs.",
+        "2. Hooks & State: useState, useEffect, useRef, useCallback, useMemo - correct usage, dependency arrays, and pitfalls (stale closures, infinite loops).",
+        "3. State Management: Context API trade-offs, external stores (Redux, Zustand, Jotai), derived state, and selector patterns.",
+        "4. Performance Optimization: React.memo, lazy loading, code splitting, avoiding unnecessary re-renders, and React DevTools profiling."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Prioritize hooks and rendering semantics - these are the highest-signal areas for React expertise.",
+        "- Use interview difficulty to calibrate: component basics for entry-level, concurrent features and advanced patterns for senior.",
+        "- Use resume and job-description signals to focus on relevant ecosystem tools (Next.js, React Query, Remix, etc.).",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal React competency to broaden assessment."
+      ]
+    }
+  ]
+}

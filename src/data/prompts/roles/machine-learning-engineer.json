@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-machine-learning-engineer",
+  "title": "Machine Learning Engineer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Machine Learning Engineer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. ML Fundamentals: Loss functions, optimizers (SGD, Adam, learning rate schedules), backpropagation, regularization techniques, and evaluation metrics.",
+        "2. MLOps & Deployment: Model serving (REST, gRPC, batch inference), containerization of ML workloads, A/B testing models in production, and monitoring for data/concept drift.",
+        "3. Training Infrastructure: Distributed training strategies (data parallelism, model parallelism), GPU memory management, mixed-precision training, and experiment tracking.",
+        "4. Feature Engineering & Data: Feature stores, training/serving skew prevention, data versioning, and handling imbalanced datasets."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Production ML (serving, monitoring, drift) is the highest-signal area separating MLEs from data scientists - prioritize it.",
+        "- Use interview difficulty to calibrate: model fundamentals for entry-level, distributed training and production reliability for senior.",
+        "- Use resume and job-description signals to focus on the candidate's frameworks (PyTorch, TensorFlow, JAX) and deployment context.",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal MLE competency to broaden assessment."
+      ]
+    }
+  ]
+}

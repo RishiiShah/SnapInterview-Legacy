@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-full-stack-developer",
+  "title": "Full Stack Developer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Full Stack Developer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Frontend Integration: Component design, state management, API consumption patterns, and handling async UI states (loading, error, empty).",
+        "2. Backend & API Layer: REST or GraphQL design, authentication flows (JWT/OAuth), middleware, and data validation.",
+        "3. Database Interaction: ORM usage, query efficiency, schema migrations, and N+1 query awareness.",
+        "4. Full-Stack Architecture: Monolith vs. microservices trade-offs, deployment pipelines, environment configuration, and end-to-end data flow."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Balance frontend and backend questions; if the candidate is clearly stronger on one side, probe the other side more deeply.",
+        "- Use interview difficulty to calibrate depth: basic CRUD flows for entry-level, distributed data consistency or SSR trade-offs for senior.",
+        "- Use resume and job-description signals to prioritize the specific stack (e.g., React + Node, Next.js, Django + React).",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- Keep focus on one topic at a time and ask targeted follow-ups that reveal how the candidate thinks end-to-end."
+      ]
+    }
+  ]
+}

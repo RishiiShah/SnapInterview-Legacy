@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-mobile-developer",
+  "title": "Mobile Developer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Mobile Developer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Platform Fundamentals: Activity/Fragment lifecycle (Android) or UIViewController lifecycle (iOS), or cross-platform equivalents in React Native/Flutter.",
+        "2. UI & Performance: Layout rendering, list virtualization, smooth 60fps animations, and avoiding overdraw or excessive re-renders.",
+        "3. State & Data Management: Local storage (SQLite, AsyncStorage, CoreData), state containers, and offline-first strategies.",
+        "4. Native Integrations: Push notifications, camera/sensors, permissions model, deep linking, and background task handling."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Identify the candidate's primary platform (iOS, Android, React Native, Flutter) early from their resume and focus accordingly.",
+        "- Use interview difficulty to calibrate: lifecycle basics for entry-level, memory management and concurrency trade-offs for senior.",
+        "- Use resume and job-description signals to focus on relevant APIs and store submission workflows.",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal mobile competency to broaden assessment."
+      ]
+    }
+  ]
+}

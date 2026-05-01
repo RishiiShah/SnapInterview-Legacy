@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-data-engineer",
+  "title": "Data Engineer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Data Engineer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Pipeline Design: Batch vs. streaming trade-offs (Spark, Flink, Kafka), pipeline orchestration (Airflow, Prefect), and idempotency in ETL/ELT jobs.",
+        "2. Data Modeling: Dimensional modeling (star/snowflake schema), slowly changing dimensions, data vault concepts, and dbt transformations.",
+        "3. Storage & Query Engines: Data warehouse design (BigQuery, Redshift, Snowflake), partitioning, clustering, columnar storage, and query cost optimization.",
+        "4. Reliability & Governance: Data quality checks, lineage tracking, schema evolution handling, PII management, and SLA-aware pipeline monitoring."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Pipeline reliability and data modeling choices are the highest-signal areas - probe the reasoning behind design decisions.",
+        "- Use interview difficulty to calibrate: ETL basics for entry-level, streaming architecture and cost/latency trade-offs for senior.",
+        "- Use resume and job-description signals to focus on the candidate's stack (Spark, dbt, Airflow, specific cloud warehouse).",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal data engineering competency to broaden assessment."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-tech-lead",
+  "title": "Tech Lead Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Tech Lead."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Technical Decision-Making: Architectural trade-off analysis, design document (RFC) creation, evaluating build vs. buy, and aligning technical choices with product goals.",
+        "2. Team Enablement: Code review culture, mentoring junior engineers, setting technical standards, and scaling onboarding to maintain velocity.",
+        "3. Cross-functional Communication: Translating technical constraints for non-engineers, estimating and scoping with uncertainty, and managing stakeholder expectations.",
+        "4. Execution & Quality: Leading delivery without losing technical depth, managing technical debt strategically, and defining and upholding engineering quality bars."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Technical decision-making and team influence without authority are the highest-signal areas - ask for specific examples with outcomes.",
+        "- Use interview difficulty to calibrate: technical mentorship and code standards for new tech leads, org-level influence and system design leadership for senior.",
+        "- Use resume and job-description signals to focus on team size, stack, and whether the role is IC-leaning or manager-adjacent.",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal tech lead competency to broaden assessment."
+      ]
+    }
+  ]
+}

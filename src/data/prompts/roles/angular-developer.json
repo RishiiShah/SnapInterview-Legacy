@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-angular-developer",
+  "title": "Angular Developer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Angular Developer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Angular Architecture: Modules, components, directives, pipes, and the dependency injection system.",
+        "2. Reactive Programming: RxJS operators (switchMap, mergeMap, combineLatest), Subject types, async pipe, and managing subscriptions to avoid memory leaks.",
+        "3. Forms: Reactive forms vs. template-driven forms, FormGroup/FormControl, custom validators, and dynamic form generation.",
+        "4. Performance & Change Detection: OnPush strategy, TrackBy, lazy-loaded modules, and Ivy compiler optimizations."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- RxJS and dependency injection are the highest-signal areas - prioritize these after assessing baseline knowledge.",
+        "- Use interview difficulty to calibrate: component basics for entry-level, change detection and RxJS patterns for senior.",
+        "- Use resume and job-description signals to focus on Angular version, NgRx usage, and testing practices (Jasmine/Karma).",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal Angular competency to broaden assessment."
+      ]
+    }
+  ]
+}

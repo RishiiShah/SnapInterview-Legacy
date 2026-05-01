@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-solutions-architect",
+  "title": "Solutions Architect Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Solutions Architect."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. System Design: Distributed system patterns (event sourcing, CQRS, saga), CAP theorem trade-offs, scalability bottlenecks, and designing for failure.",
+        "2. Cloud Architecture: Well-Architected Framework pillars, multi-region/multi-AZ strategies, cost optimization, and managed service selection trade-offs (e.g., RDS vs. Aurora vs. DynamoDB).",
+        "3. Integration & APIs: Synchronous vs. asynchronous integration patterns, message queues (SQS, Kafka), API gateway design, and versioning strategies.",
+        "4. Security & Compliance: Least-privilege IAM, network segmentation (VPC, security groups), encryption at rest and in transit, and regulatory compliance considerations (SOC 2, GDPR)."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Trade-off reasoning (cost vs. reliability, consistency vs. availability) is the highest-signal area - ask for explicit justification of architectural choices.",
+        "- Use interview difficulty to calibrate: common patterns for entry/mid-level architects, novel constraint handling and cross-cutting concerns for senior.",
+        "- Use resume and job-description signals to focus on the candidate's cloud provider and industry domain.",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal architecture competency to broaden assessment."
+      ]
+    }
+  ]
+}

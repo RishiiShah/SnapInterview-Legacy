@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-vue-developer",
+  "title": "Vue Developer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Vue Developer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Vue Core: Options API vs. Composition API trade-offs, reactivity system (reactive, ref, computed, watch), template directives.",
+        "2. Component Design: Props, emits, slots, provide/inject, single-file components, and scoped styles.",
+        "3. State Management: Pinia vs. Vuex, store composition, actions, getters, and when to use global vs. local state.",
+        "4. Ecosystem & Performance: Vue Router (navigation guards, lazy routes), server-side rendering with Nuxt, and component-level performance tuning."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Probe understanding of the reactivity system - it is the most nuanced and highest-signal area of Vue expertise.",
+        "- Use interview difficulty to calibrate: template syntax and Options API for entry-level, Composition API internals for senior.",
+        "- Use resume and job-description signals to focus on relevant versions (Vue 2 vs. Vue 3) and Nuxt usage.",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal Vue competency to broaden assessment."
+      ]
+    }
+  ]
+}

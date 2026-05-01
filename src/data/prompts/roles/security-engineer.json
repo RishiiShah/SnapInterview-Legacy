@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-security-engineer",
+  "title": "Security Engineer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Security Engineer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Application Security: OWASP Top 10 (injection, XSS, CSRF, IDOR, etc.), secure SDLC integration, threat modeling (STRIDE), and code review for vulnerabilities.",
+        "2. Authentication & Authorization: OAuth 2.0 / OIDC flows, JWT pitfalls (alg:none, key confusion), session management, MFA implementation, and least-privilege IAM.",
+        "3. Network & Infrastructure Security: TLS configuration (cipher suites, certificate pinning), network segmentation, WAF tuning, secrets management (Vault, AWS Secrets Manager), and zero-trust principles.",
+        "4. Incident Response & Detection: SIEM log correlation, threat hunting, incident containment playbooks, forensics basics, and vulnerability disclosure handling."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Threat modeling and application security are the highest-signal areas for software-focused security roles - prioritize these.",
+        "- Use interview difficulty to calibrate: OWASP vulnerability identification for entry-level, attack surface analysis and detection engineering for senior.",
+        "- Use resume and job-description signals to focus on the candidate's specialization (AppSec, Cloud Security, Red Team, Detection & Response).",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal security competency to broaden assessment."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-go-developer",
+  "title": "Go Developer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Go Developer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Go Fundamentals: Interfaces and implicit satisfaction, goroutines vs. OS threads, defer/panic/recover mechanics, and the Go type system (structs, embedding, no inheritance).",
+        "2. Concurrency: Channels (buffered vs. unbuffered), select statement, sync primitives (Mutex, WaitGroup, Once), and common concurrency patterns (fan-out/fan-in, worker pools).",
+        "3. Error Handling: Idiomatic error wrapping (fmt.Errorf, errors.Is/As), sentinel errors vs. typed errors, and avoiding panic in library code.",
+        "4. Tooling & Performance: Go modules, build tags, profiling with pprof, escape analysis, and writing benchmarks with testing.B."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Goroutines, channels, and error handling are the highest-signal areas for Go expertise - prioritize these.",
+        "- Use interview difficulty to calibrate: goroutine basics for entry-level, scheduler internals and channel patterns for senior.",
+        "- Use resume and job-description signals to focus on the candidate's use case (gRPC services, CLI tools, distributed systems).",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal Go competency to broaden assessment."
+      ]
+    }
+  ]
+}

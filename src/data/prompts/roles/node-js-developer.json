@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-node-js-developer",
+  "title": "Node.js Developer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Node.js Developer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Node.js Runtime: Event loop phases, libuv, non-blocking I/O, the difference between process.nextTick and setImmediate, and worker threads.",
+        "2. Async Patterns: Promises, async/await, callback patterns, error-first convention, and avoiding callback hell.",
+        "3. API & Middleware: Express/Fastify route design, middleware chaining, request validation, and streaming response handling.",
+        "4. Performance & Production: Clustering, memory leak detection, graceful shutdown, environment configuration, and structured logging."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- The event loop and async patterns are the highest-signal areas - prioritize these after assessing baseline knowledge.",
+        "- Use interview difficulty to calibrate: async/await basics for entry-level, event loop internals and production tuning for senior.",
+        "- Use resume and job-description signals to focus on the candidate's framework (Express, Fastify, NestJS) and deployment context.",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal Node.js competency to broaden assessment."
+      ]
+    }
+  ]
+}

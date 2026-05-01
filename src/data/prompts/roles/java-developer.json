@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-java-developer",
+  "title": "Java Developer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Java Developer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Java Core: OOP principles, generics, collections framework (HashMap internals, ConcurrentHashMap), exception hierarchy, and Java memory model.",
+        "2. Concurrency: Thread lifecycle, synchronized blocks, volatile, java.util.concurrent utilities, and ExecutorService patterns.",
+        "3. Spring Framework: IoC container, bean lifecycle, dependency injection modes, Spring Boot auto-configuration, and Spring Data JPA.",
+        "4. JVM & Performance: Garbage collection strategies (G1, ZGC), JVM tuning flags, heap profiling, and common memory leak patterns."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Concurrency and the JVM memory model are the highest-signal areas for senior Java - prioritize after assessing baseline knowledge.",
+        "- Use interview difficulty to calibrate: OOP and collections for entry-level, JVM internals and distributed Spring apps for senior.",
+        "- Use resume and job-description signals to focus on Spring version, microservices vs. monolith experience, and testing patterns (JUnit, Mockito).",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal Java competency to broaden assessment."
+      ]
+    }
+  ]
+}

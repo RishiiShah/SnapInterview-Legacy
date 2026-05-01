@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-system-administrator",
+  "title": "System Administrator Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: System Administrator."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Linux & OS Fundamentals: File system hierarchy, process management (systemd, signals), user/group permissions, package management, and shell scripting (bash).",
+        "2. Networking: TCP/IP stack, DNS resolution, firewall rules (iptables/nftables), DHCP, VLANs, and diagnosing connectivity issues with standard tools.",
+        "3. Automation & Configuration Management: Ansible playbook design, idempotency, inventory management, cron scheduling, and scripted patch management.",
+        "4. Monitoring & Incident Response: Log analysis (journalctl, grep, awk), alerting setup, backup/restore procedures, and systematic troubleshooting under pressure."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Troubleshooting methodology and automation practices are the highest-signal areas - ask for step-by-step incident reasoning.",
+        "- Use interview difficulty to calibrate: day-to-day Linux tasks for entry-level, large-scale automation and capacity planning for senior.",
+        "- Use resume and job-description signals to focus on the candidate's environment (on-prem, hybrid cloud, specific OS distributions).",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal sysadmin competency to broaden assessment."
+      ]
+    }
+  ]
+}

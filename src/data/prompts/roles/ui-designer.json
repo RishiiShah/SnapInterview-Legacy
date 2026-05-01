@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-ui-designer",
+  "title": "UI Designer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: UI Designer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Visual Design Principles: Typography scale, color theory and contrast ratios, spacing systems (8pt grid), hierarchy, and gestalt principles.",
+        "2. Design Systems: Component architecture in Figma (auto layout, variants, tokens), maintaining consistency across a product, and contributing to and consuming shared libraries.",
+        "3. Responsive & Adaptive Design: Breakpoint strategy, fluid vs. fixed layouts, component behavior across screen sizes, and dark/light mode support.",
+        "4. Handoff & Implementation Awareness: Writing developer-ready specs, understanding CSS constraints, working with engineers on feasibility, and using inspect tools accurately."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Design system fluency and developer collaboration are the highest-signal areas for UI roles - probe for concrete examples.",
+        "- Use interview difficulty to calibrate: visual principles for entry-level, design system architecture and scalability for senior.",
+        "- Use resume and job-description signals to focus on the candidate's tooling (Figma, Sketch, Adobe XD) and product domain.",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal UI design competency to broaden assessment."
+      ]
+    }
+  ]
+}

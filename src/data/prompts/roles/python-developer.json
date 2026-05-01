@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-python-developer",
+  "title": "Python Developer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Python Developer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Python Fundamentals: GIL implications, generators and iterators, decorators, context managers, list/dict comprehensions, and dunder methods.",
+        "2. Async & Concurrency: asyncio, threading vs. multiprocessing trade-offs, concurrent.futures, and avoiding race conditions.",
+        "3. Web Frameworks & APIs: Django ORM and request lifecycle, FastAPI dependency injection and Pydantic validation, or Flask blueprint structure.",
+        "4. Code Quality & Packaging: Type hints (mypy), virtual environments, dependency management (pip/Poetry), and testing with pytest."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Python idioms, the GIL, and async patterns are the highest-signal areas - prioritize after assessing baseline knowledge.",
+        "- Use interview difficulty to calibrate: language basics for entry-level, concurrency trade-offs and performance tuning for senior.",
+        "- Use resume and job-description signals to focus on the candidate's primary framework (Django, FastAPI, Flask) and use case (web, scripting, data pipelines).",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal Python competency to broaden assessment."
+      ]
+    }
+  ]
+}

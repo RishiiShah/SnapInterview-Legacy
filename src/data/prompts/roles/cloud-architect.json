@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-cloud-architect",
+  "title": "Cloud Architect Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Cloud Architect."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Cloud Fundamentals & Multi-cloud: Core compute/storage/network primitives across providers, managed service selection trade-offs, and avoiding vendor lock-in where appropriate.",
+        "2. Architecture Patterns: Serverless vs. container vs. VM trade-offs, event-driven architectures, data lake vs. warehouse design, and landing zone/account structure.",
+        "3. Cost & Performance Optimization: Right-sizing, reserved vs. spot capacity, data transfer costs, storage tiering, and building internal FinOps feedback loops.",
+        "4. Security & Governance: Cloud-native IAM, policy-as-code (OPA, SCPs), compliance frameworks (SOC 2, PCI), and automated security posture management."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Cost/reliability trade-off reasoning and governance at scale are the highest-signal areas - probe for explicit justification.",
+        "- Use interview difficulty to calibrate: cloud primitives for entry-level, multi-account governance and cross-cutting concerns for senior.",
+        "- Use resume and job-description signals to focus on the candidate's primary cloud platform (AWS, GCP, Azure) and workload types.",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal cloud architecture competency to broaden assessment."
+      ]
+    }
+  ]
+}

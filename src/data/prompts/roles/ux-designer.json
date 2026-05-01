@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "role-ux-designer",
+  "title": "UX Designer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: UX Designer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Research Methods: Contextual inquiry, usability testing, card sorting, surveys vs. interviews trade-offs, and synthesizing findings into actionable insights.",
+        "2. Information Architecture: Sitemap design, navigation patterns, mental models, taxonomy, and wayfinding for complex systems.",
+        "3. Interaction Design: Task flows, wireframing, low-fi vs. hi-fi prototyping, micro-interactions, and error prevention principles.",
+        "4. Accessibility & Inclusive Design: WCAG guidelines, screen reader compatibility, cognitive load reduction, and designing for diverse user abilities."
+      ]
+    },
+    {
+      "heading": "Question Strategy",
+      "lines": [
+        "- Do not use a fixed sequence. Choose the next question based on the candidate's latest answer quality and identified gaps.",
+        "- Research methodology and how insights drive design decisions are the highest-signal areas - ask for specific project examples.",
+        "- Use interview difficulty to calibrate: UX fundamentals for entry-level, systemic design thinking and accessibility depth for senior.",
+        "- Use resume and job-description signals to focus on the candidate's domain and tools (Figma, Maze, UserTesting).",
+        "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
+        "- If the candidate is strong in one area, shift to another high-signal UX competency to broaden assessment."
+      ]
+    }
+  ]
+}

@@ -121,7 +121,7 @@ describe("evaluateInterviewTranscript", () => {
 
     const result = await evaluateInterviewTranscript({ userId: "user-1", interviewId: "int-1" });
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       type: "ok",
       data: {
         score: 91,

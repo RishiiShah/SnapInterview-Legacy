@@ -23,7 +23,7 @@ export async function evaluateInterviewTranscript(params: {
   | { type: "not_found" }
   | { type: "no_transcript" }
   | { type: "error"; message: string }
-  | { type: "ok"; data: TranscriptEvaluationResponse }
+  | { type: "ok"; data: TranscriptEvaluationResponse; role: string; fresh: boolean }
 > {
   const { userId, interviewId } = params;
 
@@ -37,7 +37,7 @@ export async function evaluateInterviewTranscript(params: {
   if (evaluation) {
     const cached = normalizeTranscriptEvaluation(evaluation);
     if (cached) {
-      return { type: "ok", data: cached };
+      return { type: "ok", data: cached, role: interviewSession.role, fresh: false };
     }
   }
 
@@ -111,7 +111,7 @@ Based on the transcript, return a JSON object with exactly these seven keys:
     });
     invalidateInterviewMetricsCache(userId);
 
-    return { type: "ok", data: parsedEvaluation };
+    return { type: "ok", data: parsedEvaluation, role: interviewSession.role, fresh: true };
   } catch (error) {
     logger.error("Interview evaluation error", { error, interviewId });
     return { type: "error", message: "Failed to generate interview evaluation" };

@@ -4,6 +4,8 @@ import { apiJson, badRequestError, internalServerError, notFoundError, unauthori
 import { evaluateInterviewTranscript } from "@/services/evaluation-service";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
+import { sendEvaluationEmail } from "@/lib/email";
+import { getNotificationPrefs } from "@/repositories/user-repo";
 import { logger } from "@/utils/logger";
 
 const evaluateTranscriptSchema = z.object({
@@ -48,6 +50,27 @@ export const POST = withCsrfProtection(async (req: Request) => {
 
         if (result.type === "error") {
             return badRequestError(result.message);
+        }
+
+        if (result.fresh && authUser.email) {
+            void (async () => {
+                try {
+                    const prefs = await getNotificationPrefs(authUser.userId);
+                    if (!prefs.emailNotifs) return;
+                    await sendEvaluationEmail({
+                        to: authUser.email!,
+                        role: result.role,
+                        score: result.data.score,
+                        feedback: result.data.feedback,
+                        strengths: result.data.strengths,
+                        improvements: result.data.areasForImprovement,
+                    });
+                } catch (err) {
+                    logger.error("Failed to send evaluation email", {
+                        error: err instanceof Error ? err.message : String(err),
+                    });
+                }
+            })();
         }
 
         return apiJson(result.data);

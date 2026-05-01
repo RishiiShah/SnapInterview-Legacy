@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   IconMicrophoneOffSolid,
@@ -34,9 +35,11 @@ type ActiveInterviewScreenProps = {
   isRecording: boolean;
   hasSpeechSupport: boolean;
   speechError: string | null;
+  audioLevels: [number, number, number];
   toggleMic: () => void;
   toggleCamera: () => void;
   toggleRecording: () => void;
+  onSendTextAnswer: (text: string) => void;
 };
 
 export default function ActiveInterviewScreen({
@@ -61,10 +64,31 @@ export default function ActiveInterviewScreen({
   isRecording,
   hasSpeechSupport,
   speechError,
+  audioLevels,
   toggleMic,
   toggleCamera,
   toggleRecording,
+  onSendTextAnswer,
 }: ActiveInterviewScreenProps) {
+  const [textDraft, setTextDraft] = useState("");
+
+  const handleTextSubmit = useCallback(() => {
+    const trimmed = textDraft.trim();
+    if (!trimmed || interviewDone) return;
+    onSendTextAnswer(trimmed);
+    setTextDraft("");
+  }, [textDraft, interviewDone, onSendTextAnswer]);
+
+  const handleTextKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleTextSubmit();
+      }
+    },
+    [handleTextSubmit]
+  );
+
   return (
     <motion.div
       key="interview"
@@ -170,48 +194,112 @@ export default function ActiveInterviewScreen({
 
         {/* Control bar */}
         <div className="flex flex-col items-center gap-2.5 px-2 shrink-0">
-          <div className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900 px-5 py-3.5 shadow-lg shadow-black/20">
-            <button
-              onClick={toggleMic}
-              className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all ${hasPermission && isMicEnabled
-                ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 ring-1 ring-emerald-500/30'
-                : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                }`}
-            >
-              {hasPermission && isMicEnabled ? (
-                <IconMicrophoneSolid className="h-5 w-5" />
-              ) : (
-                <IconMicrophoneOffSolid className="h-5 w-5" />
+          {hasSpeechSupport ? (
+            <div className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900 px-5 py-3.5 shadow-lg shadow-black/20">
+              <button
+                onClick={toggleMic}
+                className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all ${hasPermission && isMicEnabled
+                  ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 ring-1 ring-emerald-500/30'
+                  : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                  }`}
+              >
+                {hasPermission && isMicEnabled ? (
+                  <IconMicrophoneSolid className="h-5 w-5" />
+                ) : (
+                  <IconMicrophoneOffSolid className="h-5 w-5" />
+                )}
+              </button>
+
+              {/* Mic activity visualizer — 3 frequency bars */}
+              {hasPermission && isMicEnabled && (
+                <div className="flex items-end gap-0.5 h-5">
+                  {audioLevels.map((level, i) => (
+                    <div
+                      key={i}
+                      className="w-1 rounded-full bg-emerald-400 transition-all duration-75"
+                      style={{ height: `${Math.max(3, (level / 100) * 20)}px` }}
+                    />
+                  ))}
+                </div>
               )}
-            </button>
-            <button
-              onClick={toggleCamera}
-              className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all ${hasPermission && isCameraEnabled
-                ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 ring-1 ring-emerald-500/30'
-                : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                }`}
-            >
-              {hasPermission && isCameraEnabled ? (
-                <IconVideoCamera className="h-5 w-5" />
-              ) : (
-                <IconVideoCameraOff className="h-5 w-5" />
-              )}
-            </button>
-            <div className="h-7 w-px bg-zinc-800" />
-            <button
-              onClick={toggleRecording}
-              disabled={!hasSpeechSupport}
-              className={`flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-xs font-semibold tracking-wide transition-all ${isRecording
-                ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-                : 'bg-blue-600 text-white hover:bg-blue-700'} ${!hasSpeechSupport
-                ? 'cursor-not-allowed opacity-40'
-                : ''}`}
-              title={!hasSpeechSupport ? 'Speech recognition is unavailable in this browser.' : undefined}
-            >
-              <div className={`h-2 w-2 rounded-full flex-shrink-0 ${isRecording ? 'bg-red-400 animate-pulse' : 'bg-white'}`} />
-              {isRecording ? 'Stop Speaking' : hasSpeechSupport ? 'Start Speaking' : 'Unavailable'}
-            </button>
-          </div>
+
+              <button
+                onClick={toggleCamera}
+                className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all ${hasPermission && isCameraEnabled
+                  ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 ring-1 ring-emerald-500/30'
+                  : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                  }`}
+              >
+                {hasPermission && isCameraEnabled ? (
+                  <IconVideoCamera className="h-5 w-5" />
+                ) : (
+                  <IconVideoCameraOff className="h-5 w-5" />
+                )}
+              </button>
+              <div className="h-7 w-px bg-zinc-800" />
+              <button
+                onClick={toggleRecording}
+                className={`flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-xs font-semibold tracking-wide transition-all ${isRecording
+                  ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+              >
+                <div className={`h-2 w-2 rounded-full flex-shrink-0 ${isRecording ? 'bg-red-400 animate-pulse' : 'bg-white'}`} />
+                {isRecording ? 'Stop Speaking' : 'Start Speaking'}
+              </button>
+            </div>
+          ) : (
+            /* Text input fallback when speech recognition is unavailable */
+            <div className="flex w-full max-w-2xl flex-col gap-2 rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-3 shadow-lg shadow-black/20">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={toggleMic}
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all ${hasPermission && isMicEnabled
+                    ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 ring-1 ring-emerald-500/30'
+                    : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                    }`}
+                >
+                  {hasPermission && isMicEnabled ? (
+                    <IconMicrophoneSolid className="h-4 w-4" />
+                  ) : (
+                    <IconMicrophoneOffSolid className="h-4 w-4" />
+                  )}
+                </button>
+                <button
+                  onClick={toggleCamera}
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all ${hasPermission && isCameraEnabled
+                    ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 ring-1 ring-emerald-500/30'
+                    : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                    }`}
+                >
+                  {hasPermission && isCameraEnabled ? (
+                    <IconVideoCamera className="h-4 w-4" />
+                  ) : (
+                    <IconVideoCameraOff className="h-4 w-4" />
+                  )}
+                </button>
+                <div className="h-6 w-px bg-zinc-800" />
+                <span className="text-xs text-zinc-500">Voice unavailable — type your answer below</span>
+              </div>
+              <div className="flex gap-2">
+                <textarea
+                  value={textDraft}
+                  onChange={(e) => setTextDraft(e.target.value)}
+                  onKeyDown={handleTextKeyDown}
+                  disabled={interviewDone}
+                  placeholder="Type your answer… (Enter to submit, Shift+Enter for new line)"
+                  rows={3}
+                  className="flex-1 resize-none rounded-xl bg-zinc-800 px-3 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 outline-none ring-1 ring-zinc-700 focus:ring-blue-500/60 transition-all disabled:opacity-40"
+                />
+                <button
+                  onClick={handleTextSubmit}
+                  disabled={!textDraft.trim() || interviewDone}
+                  className="self-end rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white transition-all hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Submit
+                </button>
+              </div>
+            </div>
+          )}
           {speechError && (
             <p className="text-center text-xs text-amber-400 max-w-xl">
               {speechError}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { withCsrfProtection } from "@/lib/route-security";
+import { saveUserResume } from "@/repositories/user-repo";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 
@@ -44,6 +45,8 @@ export const POST = withCsrfProtection(async (req: NextRequest) => {
     .replace(/\n{3,}/g, "\n\n")     // collapse excessive blank lines
     .trim()
     .slice(0, 8000);                // cap to keep prompt size reasonable
+
+  await saveUserResume(identity.userId, resumeText);
 
   return NextResponse.json({ resumeText });
 });

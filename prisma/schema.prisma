@@ -33,6 +33,7 @@ model User {
   preferredInterviewType    String?
   notificationPrefs         Json      @default("{\"emailNotifs\":true,\"practiceReminders\":true,\"weeklyReport\":true,\"scoreAlerts\":false}")
   notificationsLastReadAt   DateTime?
+  resumeText                String?   @db.Text
 
   // ─── Relations ───
   sessions             Session[]
@@ -196,13 +197,27 @@ model InterviewSession {
   focusAreas      Json?
   sessionPlan     Json?
   evaluation      Json?
+  shareToken      String?         @unique
   deletedAt       DateTime?
   createdAt       DateTime        @default(now())
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transcript      TranscriptEntry[]
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transcript       TranscriptEntry[]
+  questionFeedback QuestionFeedback[]
 
   @@index([userId])
   @@index([userId, deletedAt])
+}
+
+model QuestionFeedback {
+  id                 String           @id @default(cuid())
+  interviewSessionId String
+  questionOrder      Int
+  rating             String
+  createdAt          DateTime         @default(now())
+  interviewSession   InterviewSession @relation(fields: [interviewSessionId], references: [id], onDelete: Cascade)
+
+  @@unique([interviewSessionId, questionOrder])
+  @@index([interviewSessionId])
 }
 
 model TranscriptEntry {

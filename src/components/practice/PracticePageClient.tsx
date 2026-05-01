@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -8,6 +8,7 @@ import SearchableDropdown from "@/components/SearchableDropdown";
 import { CATEGORIES, ROLES, COMPANIES } from "@/data/constants";
 import type { Difficulty, InterviewPersona, InterviewType } from "@/lib/interview/domain";
 import { getDefaultDifficultyForOnboardingLevel, normalizeOnboardingFormValues } from "@/lib/onboarding/preferences";
+import { extractResumeHighlights } from "@/lib/interview/resume-highlights";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 import { IconArrowLeft, IconArrowRight, IconCheckCircle, IconPlay, IconSpinner, IconXMark, IconMessage, IconCode, IconLayout, IconActivity, IconZap, IconGem, IconUserCheck, IconStarBurst, IconFlame, IconClock, IconBriefcase, IconBuilding } from "@/components/ui/icons";
 import { ChoiceCard } from "@/components/ui/ChoiceCard";
@@ -42,37 +43,62 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
   const [createError, setCreateError] = useState<string | null>(null);
   const [step, setStep] = useState(1);
 
+  const resumeHighlights = useMemo(() => extractResumeHighlights(resumeText), [resumeText]);
+
   useEffect(() => {
     let cancelled = false;
-    
+
     // Clear any active interview session so a new one is always started
     const activeId = localStorage.getItem("active_interview_id");
     if (activeId) {
       localStorage.removeItem("active_interview_id");
-      // Hard delete abandoned interview from database
       fetch(`/api/interview/session?interviewId=${activeId}`, {
         method: "DELETE",
       }).catch((err) => console.error("Failed to delete abandoned session", err));
     }
 
+    // Pre-fill from URL params when retaking an interview
+    const urlParams = new URLSearchParams(window.location.search);
+    const retakeRole = urlParams.get("role");
+    const retakeType = urlParams.get("type");
+    const retakeDifficulty = urlParams.get("difficulty");
+    const validTypes = ["behavioral", "technical", "system-design"];
+    const validDifficulties = ["easy", "medium", "hard"];
+    if (retakeRole) setRole(retakeRole);
+    if (retakeType && validTypes.includes(retakeType)) setType(retakeType as typeof type);
+    if (retakeDifficulty && validDifficulties.includes(retakeDifficulty)) setDifficulty(retakeDifficulty as typeof difficulty);
+
     const loadDefaults = async () => {
       try {
-        const res = await fetch("/api/onboarding", { method: "GET" });
-        if (!res.ok) return;
+        const [onboardingRes, resumeRes] = await Promise.all([
+          fetch("/api/onboarding", { method: "GET" }),
+          fetch("/api/resume", { method: "GET" }),
+        ]);
 
-        const data = normalizeOnboardingFormValues(await res.json());
         if (cancelled) return;
 
-        setRole((previous) => (previous === "" || !previous) ? data.onboardingRole : previous);
-        setCompany((previous) => (previous === "" || !previous) ? data.onboardingCompany : previous);
-        setType((previous) => previous === "behavioral" ? data.preferredInterviewType : previous);
-        setDifficulty((previous) => {
-          if (previous !== "medium") return previous;
+        if (onboardingRes.ok) {
+          const data = normalizeOnboardingFormValues(await onboardingRes.json());
+          if (!cancelled) {
+            if (!retakeRole) setRole((previous) => (previous === "" || !previous) ? data.onboardingRole : previous);
+            if (!retakeRole) setCompany((previous) => (previous === "" || !previous) ? data.onboardingCompany : previous);
+            if (!retakeType) setType((previous) => previous === "behavioral" ? data.preferredInterviewType : previous);
+            if (!retakeDifficulty) setDifficulty((previous) => {
+              if (previous !== "medium") return previous;
+              return getDefaultDifficultyForOnboardingLevel(data.onboardingLevel);
+            });
+          }
+        }
 
-          return getDefaultDifficultyForOnboardingLevel(data.onboardingLevel);
-        });
+        if (resumeRes.ok) {
+          const resumeData = await resumeRes.json() as { resumeText: string | null };
+          if (!cancelled && resumeData.resumeText) {
+            setResumeText(resumeData.resumeText);
+            setResumeName("Saved resume");
+          }
+        }
       } catch {
-        // Keep defaults when onboarding fetch fails.
+        // Keep defaults when fetches fail.
       }
     };
 
@@ -440,22 +466,48 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
 
                           {/* Success */}
                           {!resumeUploading && !resumeError && resumeName && resumeText && (
-                            <div className="flex w-full items-center justify-between rounded-2xl border-2 border-dashed border-sky-200 bg-sky-50/50 p-2 pr-4">
-                              <div className="flex items-center gap-4">
-                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-sky-500 text-white shadow-md shadow-sky-500/20">
-                                  <IconCheckCircle className="h-6 w-6" />
+                            <div className="space-y-2">
+                              <div className="flex w-full items-center justify-between rounded-2xl border-2 border-dashed border-sky-200 bg-sky-50/50 p-2 pr-4">
+                                <div className="flex items-center gap-4">
+                                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-sky-500 text-white shadow-md shadow-sky-500/20">
+                                    <IconCheckCircle className="h-6 w-6" />
+                                  </div>
+                                  <div className="flex flex-col overflow-hidden">
+                                    <span className="truncate text-[13px] font-bold text-sky-900">{resumeName}</span>
+                                    <span className="text-[11px] font-medium text-sky-600">Parsed · ready to use</span>
+                                  </div>
                                 </div>
-                                <div className="flex flex-col overflow-hidden">
-                                  <span className="truncate text-[13px] font-bold text-sky-900">{resumeName}</span>
-                                  <span className="text-[11px] font-medium text-sky-600">Parsed · ready to use</span>
-                                </div>
+                                <button
+                                  onClick={() => { setResumeName(""); setResumeText(""); setResumeError(null); }}
+                                  className="group flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-white text-zinc-400 shadow-sm ring-1 ring-zinc-200 transition-all hover:bg-red-50 hover:text-red-500 hover:ring-red-200"
+                                >
+                                  <IconXMark className="h-4 w-4 transition-transform group-hover:scale-110" />
+                                </button>
                               </div>
-                              <button
-                                onClick={() => { setResumeName(""); setResumeText(""); setResumeError(null); }}
-                                className="group flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-white text-zinc-400 shadow-sm ring-1 ring-zinc-200 transition-all hover:bg-red-50 hover:text-red-500 hover:ring-red-200"
-                              >
-                                <IconXMark className="h-4 w-4 transition-transform group-hover:scale-110" />
-                              </button>
+                              {resumeHighlights.skills.length > 0 && (
+                                <div className="rounded-xl border border-zinc-100 bg-white px-3 py-2.5">
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mr-1">From your resume</span>
+                                    {resumeHighlights.skills.map((skill) => (
+                                      <span key={skill} className="rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
+                                        {skill}
+                                      </span>
+                                    ))}
+                                  </div>
+                                  {resumeHighlights.suggestedType && resumeHighlights.suggestedType !== type && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setType(resumeHighlights.suggestedType!)}
+                                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-sky-700 hover:text-sky-800"
+                                    >
+                                      <span>💡</span>
+                                      <span>
+                                        Try a {resumeHighlights.suggestedType === "system-design" ? "system-design" : resumeHighlights.suggestedType} interview
+                                      </span>
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           )}
 

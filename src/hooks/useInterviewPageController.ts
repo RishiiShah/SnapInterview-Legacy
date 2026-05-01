@@ -5,6 +5,7 @@ import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useVideoRecording } from "@/hooks/useVideoRecording";
 import { useChatSession } from "@/hooks/useChatSession";
 import { useStreamingTTS } from "@/hooks/useStreamingTTS";
+import { useAudioAnalyser } from "@/hooks/useAudioAnalyser";
 import { getInterviewBlockReason, type BrowserBlockResult } from "@/lib/interview/browser-block";
 import { finalizeInterviewUpload, type InterviewCompletionStatus } from "@/lib/video/upload-service";
 
@@ -102,6 +103,8 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     enabled: interviewStarted && !interviewDone,
     persona,
   });
+
+  const audioLevels = useAudioAnalyser(media.stream, media.isMicEnabled);
 
   useEffect(() => {
     let isCancelled = false;
@@ -357,6 +360,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     tts,
     media,
     videoRecording,
+    audioLevels,
     handlePermissionsGranted,
     handleExitInterview,
     handleVideoMount,

@@ -1,5 +1,19 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 
+function sanitizeAiText(text: string): string {
+  return text
+    .replace(/—/g, " - ")   // em dash
+    .replace(/–/g, "-")     // en dash
+    .replace(/‘/g, "'")     // left single quote
+    .replace(/’/g, "'")     // right single quote
+    .replace(/“/g, '"')     // left double quote
+    .replace(/”/g, '"')     // right double quote
+    .replace(/…/g, "...")   // ellipsis
+    .replace(/•/g, "-")     // bullet
+    .replace(/ /g, " ")     // non-breaking space
+    .replace(/ {2,}/g, " ");     // collapse double spaces left by em dash substitution
+}
+
 export interface ChatSessionMessage {
   role: "user" | "ai";
   text: string;
@@ -163,7 +177,7 @@ export function useChatSession({
 
           if (value) {
             const chunk = decoder.decode(value, { stream: true });
-            aiResponseText += chunk;
+            aiResponseText = sanitizeAiText(aiResponseText + chunk);
             setCurrentStreamedText(aiResponseText);
           }
         }

@@ -27,6 +27,7 @@ export default function InterviewPage() {
     tts,
     media,
     videoRecording,
+    audioLevels,
     handlePermissionsGranted,
     handleExitInterview,
     handleVideoMount,
@@ -93,11 +94,16 @@ export default function InterviewPage() {
           isRecording={speech.isRecording}
           hasSpeechSupport={speech.hasSupport}
           speechError={speech.speechError}
+          audioLevels={audioLevels}
           toggleMic={media.toggleMic}
           toggleCamera={media.toggleCamera}
           toggleRecording={() => {
             if (!speech.isRecording) tts.cancel();
             speech.toggleRecording();
+          }}
+          onSendTextAnswer={(text) => {
+            tts.cancel();
+            void chat.sendMessage(text);
           }}
         />
       )}

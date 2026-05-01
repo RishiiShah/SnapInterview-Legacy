@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getScoreColor, getScoreLabel } from "@/utils/helpers";
@@ -40,6 +40,7 @@ type ChartItem = {
 };
 
 type DashboardOverviewClientProps = {
+  userId: string;
   firstName: string;
   isFirstLogin: boolean;
   stats: StatItem[];
@@ -64,6 +65,7 @@ function renderStatIcon(iconKey: StatItem["iconKey"]) {
 }
 
 export default function DashboardOverviewClient({
+  userId,
   firstName,
   isFirstLogin,
   stats,
@@ -73,6 +75,19 @@ export default function DashboardOverviewClient({
   const router = useRouter();
   const [selectedVideo, setSelectedVideo] = useState<{ url: string; interviewId: string; date: string } | null>(null);
   const [isOpening, setIsOpening] = useState<string | null>(null);
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  useEffect(() => {
+    const key = `snap-welcome-dismissed-${userId}`;
+    if (!localStorage.getItem(key)) {
+      setShowWelcome(true);
+    }
+  }, [userId]);
+
+  function dismissWelcome() {
+    localStorage.setItem(`snap-welcome-dismissed-${userId}`, "1");
+    setShowWelcome(false);
+  }
 
   async function openSession(session: SessionItem) {
     if (isOpening) return;
@@ -222,6 +237,97 @@ export default function DashboardOverviewClient({
         videoDate={selectedVideo?.date ?? ""}
         onDeleted={() => { setSelectedVideo(null); router.refresh(); }}
       />
+
+      {/* Welcome / onboarding modal */}
+      {showWelcome && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/50" onClick={dismissWelcome}>
+          <div
+            className="relative w-full max-w-lg rounded-2xl bg-white p-8 shadow-2xl ring-1 ring-black/5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={dismissWelcome}
+              className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <div className="mb-6">
+              <p className="text-xs font-semibold uppercase tracking-widest text-blue-600 mb-1">Getting started</p>
+              <h2 className="text-2xl font-bold text-zinc-900">Welcome, {firstName}!</h2>
+              <p className="mt-1.5 text-sm text-zinc-500">Here are a few things to set up before your first interview.</p>
+            </div>
+
+            <div className="space-y-3">
+              <Link
+                href="/settings"
+                onClick={dismissWelcome}
+                className="flex items-center gap-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 transition-colors hover:border-blue-200 hover:bg-blue-50/40 group"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-zinc-200 group-hover:ring-blue-200 transition-colors">
+                  <svg className="h-4 w-4 text-zinc-500 group-hover:text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-zinc-900">Complete your profile</p>
+                  <p className="text-xs text-zinc-500">Upload your resume so AI questions are tailored to your background.</p>
+                </div>
+                <svg className="h-4 w-4 shrink-0 text-zinc-300 group-hover:text-blue-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+
+              <Link
+                href="/questions"
+                onClick={dismissWelcome}
+                className="flex items-center gap-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 transition-colors hover:border-blue-200 hover:bg-blue-50/40 group"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-zinc-200 group-hover:ring-blue-200 transition-colors">
+                  <svg className="h-4 w-4 text-zinc-500 group-hover:text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-zinc-900">Browse practice questions</p>
+                  <p className="text-xs text-zinc-500">Explore behavioral, technical, and system design questions before your interview.</p>
+                </div>
+                <svg className="h-4 w-4 shrink-0 text-zinc-300 group-hover:text-blue-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+
+              <Link
+                href="/practice"
+                onClick={dismissWelcome}
+                className="flex items-center gap-4 rounded-xl border border-blue-200 bg-blue-50 p-4 transition-colors hover:bg-blue-100 group"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm shadow-blue-500/20">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-blue-900">Start your first interview</p>
+                  <p className="text-xs text-blue-600/80">Practice with an AI interviewer and get scored feedback instantly.</p>
+                </div>
+                <svg className="h-4 w-4 shrink-0 text-blue-300 group-hover:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+
+            <button
+              onClick={dismissWelcome}
+              className="mt-5 w-full text-center text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+            >
+              Skip for now
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

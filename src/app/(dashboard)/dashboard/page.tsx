@@ -31,6 +31,7 @@ export default async function DashboardPage() {
   return (
     <>
       <DashboardOverviewClient
+        userId={userId}
         firstName={firstName}
         isFirstLogin={isFirstLogin}
         stats={stats}

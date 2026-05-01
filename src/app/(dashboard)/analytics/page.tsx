@@ -24,11 +24,13 @@ export default async function AnalyticsPage() {
         weeklyScores,
         weeklySubScoreTrends,
         monthlyComparison,
+        periodComparison,
         categoryBreakdown,
         strengths,
         improvements,
         subScores,
         totalSessions,
+        feedbackStats,
     } = userId
         ? await getAnalyticsOverviewData(userId)
         : {
@@ -38,11 +40,21 @@ export default async function AnalyticsPage() {
                 { label: "This Month", interviews: 0, avgScore: 0, hours: 0 },
                 { label: "Last Month", interviews: 0, avgScore: 0, hours: 0 },
             ],
+            periodComparison: {
+                currentSessions: 0,
+                previousSessions: 0,
+                currentAvg: null,
+                previousAvg: null,
+                scoreDelta: null,
+                scoreDeltaPct: null,
+                summary: "Start a session to track 30-day progress.",
+            },
             categoryBreakdown: [],
             strengths: [],
             improvements: [],
             subScores: { communication: null, technicalDepth: null, clarity: null },
             totalSessions: 0,
+            feedbackStats: { total: 0, thumbsUp: 0, thumbsDown: 0 },
         };
 
     const hasData = totalSessions > 0;
@@ -85,6 +97,32 @@ export default async function AnalyticsPage() {
                 )}
 
                 {hasData && (<>
+                {/* 30-day period summary */}
+                {periodComparison.currentSessions > 0 && (
+                    <FadeIn triggerOnView={false} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-5">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">Last 30 days</p>
+                                <p className="mt-1 text-sm font-medium text-zinc-800">{periodComparison.summary}</p>
+                            </div>
+                            {periodComparison.scoreDelta !== null && (
+                                <div className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+                                    periodComparison.scoreDelta > 0
+                                        ? "bg-emerald-50 text-emerald-700"
+                                        : periodComparison.scoreDelta < 0
+                                        ? "bg-red-50 text-red-700"
+                                        : "bg-zinc-100 text-zinc-700"
+                                }`}>
+                                    <span>{periodComparison.scoreDelta > 0 ? "↑" : periodComparison.scoreDelta < 0 ? "↓" : "→"}</span>
+                                    <span>
+                                        {periodComparison.currentAvg ?? 0} vs {periodComparison.previousAvg ?? 0} avg
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </FadeIn>
+                )}
+
                 {/* Monthly Comparison */}
                 <FadeInStagger triggerOnView={false} className="grid gap-3.5 sm:grid-cols-3">
                     {[
@@ -158,6 +196,52 @@ export default async function AnalyticsPage() {
                 </FadeIn>
 
                 <SubScoreTrendChart trends={weeklySubScoreTrends} delay={0.4} />
+
+                {/* Question Feedback */}
+                <FadeIn triggerOnView={false} delay={0.45} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
+                    <h3 className="mb-1 text-sm font-semibold text-zinc-900">Question Feedback</h3>
+                    <p className="mb-5 text-xs text-zinc-400">Questions you rated across all interviews</p>
+                    {feedbackStats.total === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-6 text-center border-2 border-dashed border-zinc-100 rounded-2xl bg-zinc-50/30">
+                            <p className="text-sm font-medium text-zinc-500 italic">Rate questions in the Transcript tab to see insights here</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-zinc-500">{feedbackStats.total} question{feedbackStats.total !== 1 ? "s" : ""} rated</span>
+                                <span className="font-medium text-zinc-700">
+                                    {Math.round((feedbackStats.thumbsUp / feedbackStats.total) * 100)}% positive
+                                </span>
+                            </div>
+                            <div className="h-2.5 w-full rounded-full bg-zinc-100 overflow-hidden">
+                                <div
+                                    className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                                    style={{ width: `${Math.round((feedbackStats.thumbsUp / feedbackStats.total) * 100)}%` }}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="flex items-center gap-2.5 rounded-xl border border-emerald-100 bg-emerald-50/50 px-4 py-3">
+                                    <svg className="h-4 w-4 text-emerald-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+                                    </svg>
+                                    <div>
+                                        <p className="text-lg font-bold text-zinc-900 leading-none">{feedbackStats.thumbsUp}</p>
+                                        <p className="text-xs text-zinc-500 mt-0.5">Went well</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2.5 rounded-xl border border-red-100 bg-red-50/50 px-4 py-3">
+                                    <svg className="h-4 w-4 text-red-500 shrink-0 rotate-180" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+                                    </svg>
+                                    <div>
+                                        <p className="text-lg font-bold text-zinc-900 leading-none">{feedbackStats.thumbsDown}</p>
+                                        <p className="text-xs text-zinc-500 mt-0.5">Challenging</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </FadeIn>
 
                 {/* Strengths & Weaknesses */}
                 <div className="grid gap-6 lg:grid-cols-2 pb-8">

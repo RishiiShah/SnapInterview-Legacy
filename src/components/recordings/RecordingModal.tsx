@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Difficulty, InterviewType } from "@/lib/interview/domain";
 import { RecordingEvaluation } from "./RecordingEvaluation";
@@ -32,6 +33,11 @@ type EvaluationResult = {
     clarity?: number;
 };
 
+type FeedbackEntry = {
+    questionOrder: number;
+    rating: string;
+};
+
 type InterviewData = {
     id: string;
     role: string;
@@ -39,6 +45,7 @@ type InterviewData = {
     difficulty: Difficulty;
     transcript: TranscriptEntry[];
     evaluation: EvaluationResult | null;
+    feedback: FeedbackEntry[];
     createdAt: string;
 };
 
@@ -54,11 +61,26 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId, videoDate, onDeleted }: RecordingModalProps) {
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState<"results" | "transcript">("results");
     const [interviewData, setInterviewData] = useState<InterviewData | null>(null);
     const [loadingStep, setLoadingStep] = useState<LoadingStep>("idle");
     const [error, setError] = useState<string | null>(null);
     const [confirmingDelete, setConfirmingDelete] = useState(false);
+    const [shareToken, setShareToken] = useState<string | null | undefined>(undefined);
+    const [sharingLoading, setSharingLoading] = useState(false);
+    const [shareCopied, setShareCopied] = useState(false);
+
+    function handleRetake() {
+        if (!interviewData) return;
+        const params = new URLSearchParams({
+            role: interviewData.role,
+            type: interviewData.type,
+            difficulty: interviewData.difficulty,
+        });
+        router.push(`/practice?${params.toString()}`);
+        onClose();
+    }
 
     async function handleDelete() {
         if (!interviewId) return;
@@ -79,6 +101,34 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
         setConfirmingDelete(false);
     }
 
+    async function handleShare() {
+        if (!interviewId) return;
+        setSharingLoading(true);
+        try {
+            const res = await fetch(`/api/interview/${interviewId}/share`, { method: "POST" });
+            if (!res.ok) return;
+            const data = await res.json() as { shareToken: string };
+            setShareToken(data.shareToken);
+            const url = `${window.location.origin}/share/${data.shareToken}`;
+            await navigator.clipboard.writeText(url);
+            setShareCopied(true);
+            setTimeout(() => setShareCopied(false), 2500);
+        } finally {
+            setSharingLoading(false);
+        }
+    }
+
+    async function handleRevokeShare() {
+        if (!interviewId) return;
+        setSharingLoading(true);
+        try {
+            const res = await fetch(`/api/interview/${interviewId}/share`, { method: "DELETE" });
+            if (res.ok) setShareToken(null);
+        } finally {
+            setSharingLoading(false);
+        }
+    }
+
     useEffect(() => {
         if (!isOpen) return;
         if (!interviewId) {
@@ -89,6 +139,7 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
         const controller = new AbortController();
         setActiveTab("results");
         setInterviewData(null);
+        setShareToken(undefined);
 
         async function fetchData() {
             setLoadingStep("loadingSession");
@@ -114,6 +165,12 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                 }
 
                 setInterviewData(data);
+
+                // fetch existing share token (non-blocking)
+                fetch(`/api/interview/${interviewId}/share`, { signal: controller.signal })
+                    .then((r) => r.ok ? r.json() as Promise<{ shareToken: string | null }> : null)
+                    .then((d) => { if (d) setShareToken(d.shareToken); })
+                    .catch(() => {});
             } catch (err: unknown) {
                 if ((err as { name?: string })?.name !== "AbortError") {
                     setError(err instanceof Error ? err.message : "An unexpected error occurred");
@@ -214,9 +271,65 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                     <div className="flex w-full flex-col bg-white md:w-1/2 lg:w-2/5 border-l border-zinc-200">
                         {/* Header */}
                         <div className="border-b border-zinc-200 p-6 pt-8 md:pt-6">
-                            <h2 className="text-xl font-bold text-zinc-900">
-                                {interviewData ? `${interviewData.role} Interview` : "Interview Session"}
-                            </h2>
+                            <div className="flex items-start justify-between gap-3">
+                                <h2 className="text-xl font-bold text-zinc-900">
+                                    {interviewData ? `${interviewData.role} Interview` : "Interview Session"}
+                                </h2>
+                                {interviewData && loadingStep === "idle" && (
+                                    <div className="flex shrink-0 items-center gap-2">
+                                        {/* Share button */}
+                                        {shareToken ? (
+                                            <div className="flex items-center gap-1.5">
+                                                <button
+                                                    onClick={() => {
+                                                        const url = `${window.location.origin}/share/${shareToken}`;
+                                                        void navigator.clipboard.writeText(url).then(() => {
+                                                            setShareCopied(true);
+                                                            setTimeout(() => setShareCopied(false), 2500);
+                                                        });
+                                                    }}
+                                                    className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-100"
+                                                >
+                                                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                                                    </svg>
+                                                    {shareCopied ? "Copied!" : "Copy link"}
+                                                </button>
+                                                <button
+                                                    onClick={() => void handleRevokeShare()}
+                                                    disabled={sharingLoading}
+                                                    className="rounded-xl border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-xs text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-red-500 disabled:opacity-50"
+                                                    title="Remove share link"
+                                                >
+                                                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => void handleShare()}
+                                                disabled={sharingLoading}
+                                                className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 disabled:opacity-50"
+                                            >
+                                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+                                                </svg>
+                                                Share
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={handleRetake}
+                                            className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100"
+                                        >
+                                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                            </svg>
+                                            Retake
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                             <div className="mt-2 flex items-center gap-3 text-sm text-zinc-500">
                                 <span>{videoDate}</span>
                                 {interviewData && (
@@ -298,13 +411,17 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                             ) : activeTab === "results" && interviewData?.evaluation ? (
                                 <RecordingEvaluation evaluation={interviewData.evaluation} />
                             ) : activeTab === "transcript" && interviewData?.transcript ? (
-                                <RecordingTranscript transcript={interviewData.transcript} />
+                                <RecordingTranscript
+                                    transcript={interviewData.transcript}
+                                    interviewId={interviewData.id}
+                                    feedback={interviewData.feedback}
+                                />
                             ) : activeTab === "results" ? (
                                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
                                     Evaluation is not available for this interview yet.
                                 </div>
                             ) : (
-                                <RecordingTranscript transcript={[]} />
+                                <RecordingTranscript transcript={[]} interviewId={interviewId ?? ""} feedback={[]} />
                             )}
                         </div>
                     </div>

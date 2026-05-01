@@ -239,6 +239,7 @@ export type CompletedSessionCard = {
   id: string;
   role: string;
   company: string | null;
+  type: InterviewType;
   videoKey: string | null;
   score: number;
   createdAt: Date;
@@ -248,11 +249,17 @@ export async function listCompletedSessionsForUser(params: {
   userId: string;
   limit: number;
   offset: number;
+  interviewType?: InterviewType;
 }): Promise<{ sessions: CompletedSessionCard[]; hasMore: boolean }> {
-  const { userId, limit, offset } = params;
+  const { userId, limit, offset, interviewType } = params;
 
   const rows = await prisma.interviewSession.findMany({
-    where: { userId, deletedAt: null, status: "COMPLETED" },
+    where: {
+      userId,
+      deletedAt: null,
+      status: "COMPLETED",
+      ...(interviewType ? { type: interviewType } : {}),
+    },
     orderBy: { createdAt: "desc" },
     skip: offset,
     take: limit + 1,
@@ -260,6 +267,7 @@ export async function listCompletedSessionsForUser(params: {
       id: true,
       role: true,
       company: true,
+      type: true,
       videoKey: true,
       evaluation: true,
       questionCount: true,
@@ -277,6 +285,7 @@ export async function listCompletedSessionsForUser(params: {
       id: s.id,
       role: s.role,
       company: s.company,
+      type: s.type as InterviewType,
       videoKey: s.videoKey,
       score,
       createdAt: s.createdAt,
@@ -302,4 +311,103 @@ export async function hardDeleteSoftDeletedSessions(olderThan: Date): Promise<nu
     where: { deletedAt: { lte: olderThan } },
   });
   return result.count;
+}
+
+export async function upsertQuestionFeedback(params: {
+  interviewSessionId: string;
+  questionOrder: number;
+  rating: "up" | "down";
+}): Promise<void> {
+  await prisma.questionFeedback.upsert({
+    where: {
+      interviewSessionId_questionOrder: {
+        interviewSessionId: params.interviewSessionId,
+        questionOrder: params.questionOrder,
+      },
+    },
+    create: {
+      interviewSessionId: params.interviewSessionId,
+      questionOrder: params.questionOrder,
+      rating: params.rating,
+    },
+    update: { rating: params.rating },
+  });
+}
+
+export async function getQuestionFeedbackForSession(interviewSessionId: string): Promise<
+  Array<{ questionOrder: number; rating: string }>
+> {
+  return prisma.questionFeedback.findMany({
+    where: { interviewSessionId },
+    select: { questionOrder: true, rating: true },
+    orderBy: { questionOrder: "asc" },
+  });
+}
+
+export async function generateShareToken(params: {
+  interviewId: string;
+  userId: string;
+}): Promise<string | null> {
+  const { randomBytes } = await import("crypto");
+  const token = randomBytes(16).toString("hex");
+  const result = await prisma.interviewSession.updateMany({
+    where: { id: params.interviewId, userId: params.userId, deletedAt: null, status: "COMPLETED" },
+    data: { shareToken: token },
+  });
+  return result.count > 0 ? token : null;
+}
+
+export async function revokeShareToken(params: {
+  interviewId: string;
+  userId: string;
+}): Promise<boolean> {
+  const result = await prisma.interviewSession.updateMany({
+    where: { id: params.interviewId, userId: params.userId, deletedAt: null },
+    data: { shareToken: null },
+  });
+  return result.count > 0;
+}
+
+export async function getShareToken(params: {
+  interviewId: string;
+  userId: string;
+}): Promise<string | null> {
+  const session = await prisma.interviewSession.findFirst({
+    where: { id: params.interviewId, userId: params.userId, deletedAt: null },
+    select: { shareToken: true },
+  });
+  return session?.shareToken ?? null;
+}
+
+export type SharedInterviewView = {
+  role: string;
+  company: string | null;
+  type: string;
+  difficulty: string;
+  evaluation: Record<string, unknown> | null;
+  createdAt: Date;
+};
+
+export async function getSharedInterview(token: string): Promise<SharedInterviewView | null> {
+  const session = await prisma.interviewSession.findUnique({
+    where: { shareToken: token },
+    select: {
+      role: true,
+      company: true,
+      type: true,
+      difficulty: true,
+      evaluation: true,
+      createdAt: true,
+      deletedAt: true,
+    },
+  });
+  if (!session || session.deletedAt) return null;
+  return {
+    role: session.role,
+    company: session.company,
+    type: session.type,
+    difficulty: session.difficulty,
+    evaluation: session.evaluation as Record<string, unknown> | null,
+    createdAt: session.createdAt,
+  };
 }

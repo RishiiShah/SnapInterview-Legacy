@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { FadeIn } from "@/components/ui/motion";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
@@ -23,10 +23,27 @@ function formatSessionDate(value: string | Date) {
   return sessionDateFormatter.format(new Date(value));
 }
 
+type FilterType = "all" | "behavioral" | "technical" | "system-design";
+type SortBy = "date" | "score";
+
+const TYPE_LABELS: Record<FilterType, string> = {
+  all: "All",
+  behavioral: "Behavioral",
+  technical: "Technical",
+  "system-design": "System Design",
+};
+
+const TYPE_BADGE: Record<string, string> = {
+  behavioral: "bg-blue-50 text-blue-700",
+  technical: "bg-purple-50 text-purple-700",
+  "system-design": "bg-emerald-50 text-emerald-700",
+};
+
 type SessionCard = {
   id: string;
   role: string;
   company: string | null;
+  type: string;
   videoKey: string | null;
   score: number;
   createdAt: string;
@@ -41,6 +58,10 @@ export default function RecordingsList({ initialSessions, initialHasMore }: Reco
   const [sessions, setSessions] = useState<SessionCard[]>(initialSessions);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isReloading, setIsReloading] = useState(false);
+  const [filterType, setFilterType] = useState<FilterType>("all");
+  const [sortBy, setSortBy] = useState<SortBy>("date");
+  const isFirstRender = useRef(true);
   const [isOpening, setIsOpening] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sessionToDelete, setSessionToDelete] = useState<SessionCard | null>(null);
@@ -52,11 +73,46 @@ export default function RecordingsList({ initialSessions, initialHasMore }: Reco
     description: "",
   });
 
+  function buildSessionsUrl(offset: number, type: FilterType) {
+    const params = new URLSearchParams({ offset: String(offset), limit: "12" });
+    if (type !== "all") params.set("type", type);
+    return `/api/interview/sessions?${params.toString()}`;
+  }
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    let cancelled = false;
+    setIsReloading(true);
+    fetch(buildSessionsUrl(0, filterType))
+      .then((res) => res.json() as Promise<{ sessions: SessionCard[]; hasMore: boolean }>)
+      .then((data) => {
+        if (!cancelled) {
+          setSessions(data.sessions);
+          setHasMore(data.hasMore);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setErrorModal({ isOpen: true, title: "Error", description: "Failed to filter sessions. Please try again." });
+      })
+      .finally(() => {
+        if (!cancelled) setIsReloading(false);
+      });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterType]);
+
+  const displayedSessions = [...sessions].sort((a, b) =>
+    sortBy === "score" ? b.score - a.score : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
   const loadMore = async () => {
     if (isLoadingMore || !hasMore) return;
     setIsLoadingMore(true);
     try {
-      const res = await fetch(`/api/interview/sessions?offset=${sessions.length}&limit=12`);
+      const res = await fetch(buildSessionsUrl(sessions.length, filterType));
       if (!res.ok) throw new Error("Failed to load more sessions");
       const data = await res.json() as { sessions: SessionCard[]; hasMore: boolean };
       setSessions((prev) => [...prev, ...data.sessions]);
@@ -123,30 +179,91 @@ export default function RecordingsList({ initialSessions, initialHasMore }: Reco
     }
   };
 
-  if (sessions.length === 0 && !isLoadingMore) {
-    return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/40 px-6 py-20 text-center">
-        <p className="text-base font-semibold text-zinc-800">No sessions yet</p>
-        <p className="mt-1.5 max-w-sm text-sm text-zinc-500">
-          Your completed interview sessions will appear here.
-        </p>
-        <Link
-          href="/practice"
-          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700"
-        >
-          Start an Interview
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </Link>
+  const filterSortBar = (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Type filter chips */}
+      <div className="flex flex-wrap gap-2">
+        {(["all", "behavioral", "technical", "system-design"] as FilterType[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setFilterType(t)}
+            className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+              filterType === t
+                ? "border-zinc-900 bg-zinc-900 text-white"
+                : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+            }`}
+          >
+            {TYPE_LABELS[t]}
+          </button>
+        ))}
       </div>
+      {/* Sort toggle */}
+      <div className="flex items-center gap-1 rounded-xl border border-zinc-200 bg-white p-1">
+        {(["date", "score"] as SortBy[]).map((s) => (
+          <button
+            key={s}
+            onClick={() => setSortBy(s)}
+            className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors capitalize ${
+              sortBy === s ? "bg-zinc-900 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            {s === "date" ? "Newest" : "Top Score"}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (!isReloading && sessions.length === 0 && !isLoadingMore) {
+    return (
+      <>
+        {filterSortBar}
+        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/40 px-6 py-20 text-center">
+          {filterType !== "all" ? (
+            <>
+              <p className="text-base font-semibold text-zinc-800">No {TYPE_LABELS[filterType]} sessions</p>
+              <p className="mt-1.5 max-w-sm text-sm text-zinc-500">
+                Try a different filter or start a new interview.
+              </p>
+              <button
+                onClick={() => setFilterType("all")}
+                className="mt-6 text-sm font-medium text-blue-600 hover:text-blue-800"
+              >
+                Show all sessions
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-base font-semibold text-zinc-800">No sessions yet</p>
+              <p className="mt-1.5 max-w-sm text-sm text-zinc-500">
+                Your completed interview sessions will appear here.
+              </p>
+              <Link
+                href="/practice"
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700"
+              >
+                Start an Interview
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </>
+          )}
+        </div>
+      </>
     );
   }
 
   return (
     <>
+      {filterSortBar}
+      {isReloading ? (
+        <div className="flex justify-center py-20">
+          <IconSpinner className="h-6 w-6 animate-spin text-zinc-400" />
+        </div>
+      ) : (
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {sessions.map((session, idx) => {
+        {displayedSessions.map((session, idx) => {
           const date = formatSessionDate(session.createdAt);
           const hasVideo = Boolean(session.videoKey);
           const isProcessing = isOpening === session.id;
@@ -236,14 +353,22 @@ export default function RecordingsList({ initialSessions, initialHasMore }: Reco
                     )}
                   </div>
                 </div>
-                <p className="mt-auto pt-2 text-xs text-zinc-400">{date}</p>
+                <div className="mt-auto flex items-center justify-between pt-2">
+                  <p className="text-xs text-zinc-400">{date}</p>
+                  {session.type && (
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${TYPE_BADGE[session.type] ?? "bg-zinc-100 text-zinc-600"}`}>
+                      {session.type === "system-design" ? "System Design" : session.type}
+                    </span>
+                  )}
+                </div>
               </div>
             </FadeIn>
           );
         })}
       </div>
+      )}
 
-      {hasMore && (
+      {!isReloading && hasMore && (
         <div className="mt-12 flex justify-center">
           <button
             onClick={loadMore}

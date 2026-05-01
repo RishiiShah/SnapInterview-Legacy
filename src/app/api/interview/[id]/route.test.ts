@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "./route";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { getQuestionFeedbackForSession } from "@/repositories/interview-repo";
 
 vi.mock("@/lib/server-auth", () => ({
   getSessionUserIdentity: vi.fn(),
@@ -12,12 +13,25 @@ vi.mock("@/lib/prisma", () => ({
     interviewSession: {
       findFirst: vi.fn(),
     },
+    questionFeedback: {
+      findMany: vi.fn(),
+    },
   },
 }));
+
+vi.mock("@/repositories/interview-repo", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/repositories/interview-repo")>();
+  return {
+    ...actual,
+    getQuestionFeedbackForSession: vi.fn().mockResolvedValue([]),
+    softDeleteInterviewSession: vi.fn(),
+  };
+});
 
 describe("GET /api/interview/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getQuestionFeedbackForSession).mockResolvedValue([]);
   });
 
   it("returns 401 when user is unauthenticated", async () => {
@@ -85,6 +99,7 @@ describe("GET /api/interview/[id]", () => {
     await expect(response.json()).resolves.toMatchObject({
       id: interviewId,
       evaluation: null,
+      feedback: [],
     });
   });
 });

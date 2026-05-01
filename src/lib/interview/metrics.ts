@@ -136,15 +136,33 @@ export type WeeklySubScoreTrends = {
   clarity: DashboardChartPoint[];
 };
 
+export type FeedbackStats = {
+  total: number;
+  thumbsUp: number;
+  thumbsDown: number;
+};
+
+export type PeriodComparison = {
+  currentSessions: number;
+  previousSessions: number;
+  currentAvg: number | null;
+  previousAvg: number | null;
+  scoreDelta: number | null;
+  scoreDeltaPct: number | null;
+  summary: string;
+};
+
 export type AnalyticsOverviewData = {
   weeklyScores: DashboardChartPoint[];
   weeklySubScoreTrends: WeeklySubScoreTrends;
   monthlyComparison: AnalyticsMonthlyComparison[];
+  periodComparison: PeriodComparison;
   categoryBreakdown: AnalyticsCategoryScore[];
   strengths: string[];
   improvements: string[];
   subScores: SubScores;
   totalSessions: number;
+  feedbackStats: FeedbackStats;
 };
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
@@ -603,9 +621,15 @@ export async function getAnalyticsOverviewData(userId: string): Promise<Analytic
     return cached;
   }
 
-  const allSessions = await getUserSessions(userId);
+  const [allSessions, transcripts, feedbackRows] = await Promise.all([
+    getUserSessions(userId),
+    getUserTranscripts(userId),
+    prisma.questionFeedback.findMany({
+      where: { interviewSession: { userId, deletedAt: null } },
+      select: { rating: true },
+    }),
+  ]);
   const sessions = allSessions.filter(s => s.status === "COMPLETED");
-  const transcripts = await getUserTranscripts(userId);
   const now = new Date();
 
   const thisMonthRange = getMonthRange(now);
@@ -695,6 +719,52 @@ export async function getAnalyticsOverviewData(userId: string): Promise<Analytic
 
   const subScores = deriveSubScores(sessions);
 
+  const thumbsUp = feedbackRows.filter(r => r.rating === "up").length;
+  const thumbsDown = feedbackRows.filter(r => r.rating === "down").length;
+  const feedbackStats: FeedbackStats = { total: feedbackRows.length, thumbsUp, thumbsDown };
+
+  const thirtyDaysAgo = addDays(now, -30);
+  const sixtyDaysAgo = addDays(now, -60);
+  const currentPeriodSessions = sessions.filter(s => s.createdAt >= thirtyDaysAgo);
+  const previousPeriodSessions = sessions.filter(s => s.createdAt >= sixtyDaysAgo && s.createdAt < thirtyDaysAgo);
+
+  const avgFor = (items: SessionRecord[]) =>
+    items.length === 0 ? null : items.reduce((acc, s) => acc + getSessionScore(s), 0) / items.length;
+
+  const currentAvg = avgFor(currentPeriodSessions);
+  const previousAvg = avgFor(previousPeriodSessions);
+  const scoreDelta = currentAvg !== null && previousAvg !== null
+    ? Math.round((currentAvg - previousAvg) * 10) / 10
+    : null;
+  const scoreDeltaPct = currentAvg !== null && previousAvg !== null && previousAvg > 0
+    ? Math.round(((currentAvg - previousAvg) / previousAvg) * 100)
+    : null;
+
+  let summary: string;
+  if (currentPeriodSessions.length === 0) {
+    summary = "Start a session to track 30-day progress.";
+  } else if (previousPeriodSessions.length === 0) {
+    summary = `${currentPeriodSessions.length} session${currentPeriodSessions.length !== 1 ? "s" : ""} in the last 30 days — keep it up to unlock comparisons.`;
+  } else if (scoreDelta === null) {
+    summary = "Not enough data to compare periods.";
+  } else if (scoreDelta > 0) {
+    summary = `You're up ${Math.abs(scoreDelta)} points (${scoreDeltaPct}%) vs the prior 30 days.`;
+  } else if (scoreDelta < 0) {
+    summary = `Down ${Math.abs(scoreDelta)} points vs the prior 30 days — refocus on areas to improve.`;
+  } else {
+    summary = "Holding steady vs the prior 30 days.";
+  }
+
+  const periodComparison: PeriodComparison = {
+    currentSessions: currentPeriodSessions.length,
+    previousSessions: previousPeriodSessions.length,
+    currentAvg: currentAvg !== null ? Math.round(currentAvg) : null,
+    previousAvg: previousAvg !== null ? Math.round(previousAvg) : null,
+    scoreDelta,
+    scoreDeltaPct,
+    summary,
+  };
+
   const result: AnalyticsOverviewData = {
     weeklyScores,
     weeklySubScoreTrends,
@@ -702,11 +772,13 @@ export async function getAnalyticsOverviewData(userId: string): Promise<Analytic
       { label: "This Month", ...thisMonth },
       { label: "Last Month", ...previousMonth },
     ],
+    periodComparison,
     categoryBreakdown,
     strengths,
     improvements,
     subScores,
     totalSessions: sessions.length,
+    feedbackStats,
   };
 
   writeCache(analyticsCache, userId, result, ANALYTICS_CACHE_TTL_MS);

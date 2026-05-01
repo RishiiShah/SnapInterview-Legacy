@@ -13,12 +13,16 @@ vi.mock("@/lib/prisma", () => ({
     transcriptEntry: {
       findMany: vi.fn(),
     },
+    questionFeedback: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
   },
 }));
 
 describe("interview metrics scoring", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(prisma.questionFeedback.findMany).mockResolvedValue([]);
   });
 
   it("prefers persisted model evaluation score over derived completion score", async () => {
@@ -144,6 +148,7 @@ describe("deriveSubScores (via getAnalyticsOverviewData)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(prisma.transcriptEntry.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.questionFeedback.findMany).mockResolvedValue([]);
   });
 
   function makeSession(overrides: object) {

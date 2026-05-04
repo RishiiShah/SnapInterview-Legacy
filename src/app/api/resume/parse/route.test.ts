@@ -60,9 +60,7 @@ describe("POST /api/resume/parse", () => {
 
   it("returns 400 when no file is attached", async () => {
     vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "u1", email: "a@b.com" });
-    const fd = new FormData();
-    const req = new Request("http://localhost/api/resume/parse", { method: "POST", body: fd });
-    const res = await POST(req as never);
+    const res = await POST(makeRequest(null) as never);
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ error: /no file/i });
   });
@@ -70,10 +68,7 @@ describe("POST /api/resume/parse", () => {
   it("returns 400 when file is not a PDF", async () => {
     vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "u1", email: "a@b.com" });
     const file = new File(["hello"], "resume.txt", { type: "text/plain" });
-    const fd = new FormData();
-    fd.append("resume", file);
-    const req = new Request("http://localhost/api/resume/parse", { method: "POST", body: fd });
-    const res = await POST(req as never);
+    const res = await POST(makeRequest(file) as never);
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ error: /pdf/i });
   });

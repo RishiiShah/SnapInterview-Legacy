@@ -26,10 +26,8 @@ export const POST = withCsrfProtection(async (req: NextRequest) => {
     return NextResponse.json({ error: "File too large (max 5 MB)" }, { status: 400 });
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-
   let rawText: string;
-  const parser = new PDFParse({ data: new Uint8Array(buffer) });
+  const parser = new PDFParse({ data: new Uint8Array(await file.arrayBuffer()) });
   try {
     const result = await parser.getText();
     rawText = result.text;

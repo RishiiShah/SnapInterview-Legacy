@@ -51,6 +51,7 @@ const mockQuestions = [
 describe("GET /api/search", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "u1", email: "a@b.com" });
     isLimitedMock.mockResolvedValue(false);
     vi.mocked(prisma.interviewSession.findMany).mockResolvedValue(mockSessions as never);
     vi.mocked(prisma.practiceQuestion.findMany).mockResolvedValue(mockQuestions as never);
@@ -63,25 +64,21 @@ describe("GET /api/search", () => {
   });
 
   it("returns 400 when query param is missing", async () => {
-    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "u1", email: "a@b.com" });
     const res = await GET(makeRequest());
     expect(res.status).toBe(400);
   });
 
   it("returns 400 when query is too short (1 char)", async () => {
-    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "u1", email: "a@b.com" });
     const res = await GET(makeRequest("a"));
     expect(res.status).toBe(400);
   });
 
   it("returns 400 when query exceeds 100 characters", async () => {
-    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "u1", email: "a@b.com" });
     const res = await GET(makeRequest("a".repeat(101)));
     expect(res.status).toBe(400);
   });
 
   it("returns 400 when rate limited", async () => {
-    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "u1", email: "a@b.com" });
     isLimitedMock.mockResolvedValueOnce(true);
     const res = await GET(makeRequest("engineer"));
     expect(res.status).toBe(400);
@@ -89,8 +86,6 @@ describe("GET /api/search", () => {
   });
 
   it("returns matching sessions and questions", async () => {
-    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "u1", email: "a@b.com" });
-
     const res = await GET(makeRequest("engineer"));
     expect(res.status).toBe(200);
 
@@ -107,8 +102,6 @@ describe("GET /api/search", () => {
   });
 
   it("passes userId and query to session search", async () => {
-    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "u1", email: "a@b.com" });
-
     await GET(makeRequest("frontend"));
 
     expect(prisma.interviewSession.findMany).toHaveBeenCalledWith(
@@ -119,7 +112,6 @@ describe("GET /api/search", () => {
   });
 
   it("returns empty arrays when no matches found", async () => {
-    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "u1", email: "a@b.com" });
     vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([]);
     vi.mocked(prisma.practiceQuestion.findMany).mockResolvedValue([]);
 
@@ -130,7 +122,6 @@ describe("GET /api/search", () => {
   });
 
   it("returns 500 when DB throws", async () => {
-    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "u1", email: "a@b.com" });
     vi.mocked(prisma.interviewSession.findMany).mockRejectedValue(new Error("DB error"));
 
     const res = await GET(makeRequest("engineer"));

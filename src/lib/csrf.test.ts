@@ -116,5 +116,11 @@ describe("csrf utilities", () => {
     const result = validateRequestOrigin(req);
     expect(result.isValid).toBe(true);
     expect(result.normalizedOrigin).toBe("https://web.example.com");
+
+    const nonSubdomainReq = new Request("https://api.example.com/api/test", {
+      method: "POST",
+      headers: { origin: "https://notexample.com" },
+    });
+    expect(validateRequestOrigin(nonSubdomainReq).isValid).toBe(false);
   });
 });

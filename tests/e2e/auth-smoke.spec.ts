@@ -1,5 +1,28 @@
 import { expect, test } from "@playwright/test";
 
+test.describe("Landing page", () => {
+  test("renders the hero CTA section", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(page.getByRole("heading", { name: /start practicing/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /get started/i })).toBeVisible();
+  });
+});
+
+test.describe("Auth redirects", () => {
+  test("unauthenticated visit to /dashboard redirects to /login", async ({ page }) => {
+    await page.goto("/dashboard");
+
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test("unauthenticated visit to /practice redirects to /login", async ({ page }) => {
+    await page.goto("/practice");
+
+    await expect(page).toHaveURL(/\/login/);
+  });
+});
+
 test.describe("Public auth smoke flows", () => {
   test("login page renders primary auth controls", async ({ page }) => {
     await page.goto("/login");

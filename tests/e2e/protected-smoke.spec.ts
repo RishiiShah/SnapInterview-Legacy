@@ -35,4 +35,28 @@ test.describe("Protected smoke flows", () => {
     await expect(page.getByRole("heading", { name: /question bank/i })).toBeVisible();
     await expect(page.getByPlaceholder(/search questions/i)).toBeVisible();
   });
+
+  test("dashboard page loads the welcome heading", async ({ page }) => {
+    await page.goto("/dashboard");
+
+    await expect(page.getByRole("heading", { name: /welcome/i })).toBeVisible();
+  });
+
+  test("recordings page loads the recordings heading", async ({ page }) => {
+    await page.goto("/recordings");
+
+    await expect(page.getByRole("heading", { name: /recordings/i })).toBeVisible();
+  });
+
+  test("analytics page loads the analytics heading", async ({ page }) => {
+    await page.goto("/analytics");
+
+    await expect(page.getByRole("heading", { name: /analytics/i })).toBeVisible();
+  });
+
+  test("settings page loads profile settings", async ({ page }) => {
+    await page.goto("/settings");
+
+    await expect(page.getByRole("heading", { name: /settings/i })).toBeVisible();
+  });
 });

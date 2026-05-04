@@ -101,7 +101,6 @@ export default function RecordingsList({ initialSessions, initialHasMore }: Reco
         if (!cancelled) setIsReloading(false);
       });
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterType]);
 
   const displayedSessions = [...sessions].sort((a, b) =>

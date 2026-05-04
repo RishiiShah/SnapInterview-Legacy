@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getScoreColor, getScoreLabel } from "@/utils/helpers";
@@ -75,14 +75,9 @@ export default function DashboardOverviewClient({
   const router = useRouter();
   const [selectedVideo, setSelectedVideo] = useState<{ url: string; interviewId: string; date: string } | null>(null);
   const [isOpening, setIsOpening] = useState<string | null>(null);
-  const [showWelcome, setShowWelcome] = useState(false);
-
-  useEffect(() => {
-    const key = `snap-welcome-dismissed-${userId}`;
-    if (!localStorage.getItem(key)) {
-      setShowWelcome(true);
-    }
-  }, [userId]);
+  const [showWelcome, setShowWelcome] = useState(
+    () => typeof window !== "undefined" && !localStorage.getItem(`snap-welcome-dismissed-${userId}`)
+  );
 
   function dismissWelcome() {
     localStorage.setItem(`snap-welcome-dismissed-${userId}`, "1");

@@ -1,8 +1,11 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getSharedInterview } from "@/repositories/interview-repo";
 import { getScoreColor, getScoreLabel } from "@/utils/helpers";
+
+const getSharedInterviewCached = cache(getSharedInterview);
 
 type Evaluation = {
   score: number;
@@ -20,7 +23,7 @@ export async function generateMetadata({
   params: Promise<{ token: string }>;
 }): Promise<Metadata> {
   const { token } = await params;
-  const interview = await getSharedInterview(token);
+  const interview = await getSharedInterviewCached(token);
   if (!interview) {
     return {
       title: "Shared Interview",
@@ -84,7 +87,7 @@ export default async function SharedInterviewPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const interview = await getSharedInterview(token);
+  const interview = await getSharedInterviewCached(token);
   if (!interview) notFound();
 
   const evaluation = parseEvaluation(interview.evaluation);

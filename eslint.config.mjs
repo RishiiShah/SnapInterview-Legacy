@@ -29,6 +29,13 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  // Downgrade react-hooks/set-state-in-effect to warn: the rule flags valid async data-fetching
+  // patterns (setLoading/setError before first await) that are the React-recommended idiom.
+  {
+    rules: {
+      "react-hooks/set-state-in-effect": "warn",
+    },
+  },
   // Better security: enforce server/client boundary. Any file that runs on the client must not
   // import server-only modules (env, prisma, auth, secrets, etc.). Use client-safe modules
   // (e.g. @/lib/auth-client, @/lib/describe-user-agent) and type-only imports where needed.

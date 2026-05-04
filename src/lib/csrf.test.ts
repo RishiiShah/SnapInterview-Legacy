@@ -103,4 +103,18 @@ describe("csrf utilities", () => {
 
     expect(validateRequestOrigin(req).isValid).toBe(true);
   });
+
+  it("accepts suffix without a leading dot in CSRF_TRUSTED_ORIGIN_SUFFIXES", () => {
+    // "example.com" has no leading dot — getTrustedSuffixes must prepend one
+    mockEnv.CSRF_TRUSTED_ORIGIN_SUFFIXES = "example.com";
+
+    const req = new Request("https://api.example.com/api/test", {
+      method: "POST",
+      headers: { origin: "https://web.example.com" },
+    });
+
+    const result = validateRequestOrigin(req);
+    expect(result.isValid).toBe(true);
+    expect(result.normalizedOrigin).toBe("https://web.example.com");
+  });
 });

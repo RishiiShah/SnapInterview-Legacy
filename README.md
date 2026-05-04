@@ -80,6 +80,15 @@ In development, `http://localhost:3000` and `http://127.0.0.1:3000` are always a
 - `npm test`: Run tests once
 - `npm run test:watch`: Run tests in watch mode
 
+## AI Tooling
+
+If you use AI coding tools, keep the relevant context file up to date so the agent understands the project:
+
+- **Claude Code** — create `CLAUDE.md` at the repo root
+- **Cursor / Copilot / Codex / other** — create `AGENTS.md` at the repo root
+
+All contributors (regardless of tool) should have `docs/architecture.md` locally. It is the single source of truth for project architecture and is referenced by all AI context files. Do not duplicate its contents into `CLAUDE.md` or `AGENTS.md` — just reference it.
+
 ## CI
 
 GitHub Actions workflow lives in `.github/workflows/ci.yml` and runs on push/PR to `main`:

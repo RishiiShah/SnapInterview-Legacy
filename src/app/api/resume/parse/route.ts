@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { PDFParse } from "pdf-parse";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { withCsrfProtection } from "@/lib/route-security";
 import { saveUserResume } from "@/repositories/user-repo";
@@ -28,16 +29,17 @@ export const POST = withCsrfProtection(async (req: NextRequest) => {
   const buffer = Buffer.from(await file.arrayBuffer());
 
   let rawText: string;
+  const parser = new PDFParse({ data: new Uint8Array(buffer) });
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfParse = require("pdf-parse/lib/pdf-parse.js") as (buf: Buffer) => Promise<{ text: string }>;
-    const result = await pdfParse(buffer);
+    const result = await parser.getText();
     rawText = result.text;
   } catch {
     return NextResponse.json(
       { error: "Could not read PDF. Make sure it is a valid, text-based PDF." },
       { status: 422 }
     );
+  } finally {
+    await parser.destroy();
   }
 
   const resumeText = rawText

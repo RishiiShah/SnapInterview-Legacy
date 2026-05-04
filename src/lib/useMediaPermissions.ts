@@ -12,6 +12,7 @@ interface UseMediaPermissionsReturn {
   error: string | null;
   stream: MediaStream | null;
   videoRef: React.RefObject<HTMLVideoElement | null>;
+  mountVideoNode: (node: HTMLVideoElement | null) => void;
   requestPermissions: () => Promise<void>;
   stopStream: () => void;
   audioInputs: MediaDeviceInfo[];
@@ -313,6 +314,13 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
     void applyAudioOutputToVideoElement(selectedAudioOutputId);
   }, [applyAudioOutputToVideoElement, selectedAudioOutputId]);
 
+  const mountVideoNode = useCallback((node: HTMLVideoElement | null) => {
+    videoRef.current = node;
+    if (node && streamRef.current) {
+      node.srcObject = streamRef.current;
+    }
+  }, []);
+
   // Clean up stream on unmount
   useEffect(() => {
     return () => {
@@ -327,6 +335,7 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
     error,
     stream,
     videoRef,
+    mountVideoNode,
     requestPermissions,
     stopStream,
     audioInputs,

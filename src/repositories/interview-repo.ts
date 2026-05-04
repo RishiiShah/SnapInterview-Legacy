@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import type { InterviewStatus, Prisma } from "@/generated/prisma/client";
 import type { Difficulty, InterviewPersona, InterviewType } from "@/lib/interview/domain";
 import { prisma } from "@/lib/prisma";
@@ -348,7 +349,6 @@ export async function generateShareToken(params: {
   interviewId: string;
   userId: string;
 }): Promise<string | null> {
-  const { randomBytes } = await import("crypto");
   const token = randomBytes(16).toString("hex");
   const result = await prisma.interviewSession.updateMany({
     where: { id: params.interviewId, userId: params.userId, deletedAt: null, status: "COMPLETED" },

@@ -37,7 +37,7 @@ vi.mock("@aws-sdk/s3-presigned-post", () => ({
 }));
 
 vi.mock("@aws-sdk/client-s3", () => ({
-  S3Client: vi.fn().mockImplementation(() => ({})),
+  S3Client: vi.fn().mockImplementation(function () { return {}; }),
 }));
 
 describe("POST /api/s3/upload", () => {

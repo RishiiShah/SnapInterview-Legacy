@@ -10,7 +10,7 @@ vi.mock("@/lib/env", () => ({
 }));
 
 vi.mock("@aws-sdk/client-s3", () => ({
-  S3Client: vi.fn().mockImplementation(() => ({ send: vi.fn() })),
+  S3Client: vi.fn().mockImplementation(function () { return { send: vi.fn() }; }),
   ListObjectsV2Command: vi.fn(),
   GetObjectCommand: vi.fn(),
 }));

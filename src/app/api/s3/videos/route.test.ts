@@ -50,10 +50,8 @@ vi.mock("@aws-sdk/client-s3", () => {
   );
   return {
     ...actual,
-    S3Client: vi.fn().mockImplementation(() => ({
-      send: s3SendMock,
-    })),
-    DeleteObjectCommand: vi.fn().mockImplementation((input) => input),
+    S3Client: vi.fn().mockImplementation(function () { return { send: s3SendMock }; }),
+    DeleteObjectCommand: vi.fn().mockImplementation(function (input) { return input; }),
   };
 });
 

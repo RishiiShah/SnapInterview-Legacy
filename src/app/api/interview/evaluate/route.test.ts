@@ -29,7 +29,7 @@ describe("POST /api/interview/evaluate", () => {
   });
 
   it("returns 403 when CSRF validation fails", async () => {
-    vi.mocked(csrfRejectIfInvalid).mockReturnValue(NextResponse.json({ error: "Forbidden" }, { status: 403 }));
+    vi.mocked(csrfRejectIfInvalid).mockReturnValueOnce(NextResponse.json({ error: "Forbidden" }, { status: 403 }));
 
     const request = new Request("http://localhost/api/interview/evaluate", {
       method: "POST",

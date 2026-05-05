@@ -42,7 +42,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
                 <Header onSearchOpen={() => setSearchOpen(true)} session={session} />
                 <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto p-6 pb-2">{children}</main>
             </div>
-            <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
+            {searchOpen && <SearchModal onClose={() => setSearchOpen(false)} />}
         </div>
     );
 }

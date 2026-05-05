@@ -130,13 +130,10 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
     }
 
     useEffect(() => {
-        if (!isOpen) return;
-        if (!interviewId) {
-            setError("Interview session ID is missing for this recording.");
-            return;
-        }
+        if (!isOpen || !interviewId) return;
 
         const controller = new AbortController();
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setActiveTab("results");
         setInterviewData(null);
         setShareToken(undefined);
@@ -213,6 +210,10 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
     }, [isOpen, onClose]);
 
     if (!isOpen) return null;
+
+    const displayError = !interviewId
+        ? "Interview session ID is missing for this recording."
+        : error;
 
     return (
         <AnimatePresence>
@@ -404,9 +405,9 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                                             : "Loading interview details..."}
                                     </p>
                                 </div>
-                            ) : error ? (
+                            ) : displayError ? (
                                 <div className="rounded-xl bg-red-50 p-4 text-red-800 border border-red-100">
-                                    <p className="text-sm">{error}</p>
+                                    <p className="text-sm">{displayError}</p>
                                 </div>
                             ) : activeTab === "results" && interviewData?.evaluation ? (
                                 <RecordingEvaluation evaluation={interviewData.evaluation} />

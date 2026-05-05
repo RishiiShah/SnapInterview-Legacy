@@ -12,7 +12,7 @@ vi.mock("pdf-parse", () => ({
   PDFParse: class MockPDFParse {
     getText = pdfGetText;
     destroy = pdfDestroy;
-    constructor(_opts: unknown) {}
+    constructor() {}
   },
 }));
 

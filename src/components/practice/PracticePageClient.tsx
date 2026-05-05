@@ -28,10 +28,23 @@ type PracticePageClientProps = {
 
 export default function PracticePageClient({ recentPractice }: PracticePageClientProps) {
   const router = useRouter();
-  const [role, setRole] = useState("");
+  const [role, setRole] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("role") ?? "";
+  });
   const [company, setCompany] = useState("");
-  const [type, setType] = useState<InterviewType>("behavioral");
-  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+  const [type, setType] = useState<InterviewType>(() => {
+    if (typeof window === "undefined") return "behavioral";
+    const t = new URLSearchParams(window.location.search).get("type");
+    const validTypes = ["behavioral", "technical", "system-design"];
+    return (t && validTypes.includes(t)) ? t as InterviewType : "behavioral";
+  });
+  const [difficulty, setDifficulty] = useState<Difficulty>(() => {
+    if (typeof window === "undefined") return "medium";
+    const d = new URLSearchParams(window.location.search).get("difficulty");
+    const validDifficulties = ["easy", "medium", "hard"];
+    return (d && validDifficulties.includes(d)) ? d as Difficulty : "medium";
+  });
   const [persona, setPersona] = useState<InterviewPersona>("balanced");
   const [interviewLength, setInterviewLength] = useState<5 | 10 | 15>(10);
   const [jobDescription, setJobDescription] = useState("");
@@ -57,17 +70,6 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
       }).catch((err) => console.error("Failed to delete abandoned session", err));
     }
 
-    // Pre-fill from URL params when retaking an interview
-    const urlParams = new URLSearchParams(window.location.search);
-    const retakeRole = urlParams.get("role");
-    const retakeType = urlParams.get("type");
-    const retakeDifficulty = urlParams.get("difficulty");
-    const validTypes = ["behavioral", "technical", "system-design"];
-    const validDifficulties = ["easy", "medium", "hard"];
-    if (retakeRole) setRole(retakeRole);
-    if (retakeType && validTypes.includes(retakeType)) setType(retakeType as typeof type);
-    if (retakeDifficulty && validDifficulties.includes(retakeDifficulty)) setDifficulty(retakeDifficulty as typeof difficulty);
-
     const loadDefaults = async () => {
       try {
         const [onboardingRes, resumeRes] = await Promise.all([
@@ -80,10 +82,10 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
         if (onboardingRes.ok) {
           const data = normalizeOnboardingFormValues(await onboardingRes.json());
           if (!cancelled) {
-            if (!retakeRole) setRole((previous) => (previous === "" || !previous) ? data.onboardingRole : previous);
-            if (!retakeRole) setCompany((previous) => (previous === "" || !previous) ? data.onboardingCompany : previous);
-            if (!retakeType) setType((previous) => previous === "behavioral" ? data.preferredInterviewType : previous);
-            if (!retakeDifficulty) setDifficulty((previous) => {
+            setRole((previous) => (previous === "" || !previous) ? data.onboardingRole : previous);
+            setCompany((previous) => (previous === "" || !previous) ? data.onboardingCompany : previous);
+            setType((previous) => previous === "behavioral" ? data.preferredInterviewType : previous);
+            setDifficulty((previous) => {
               if (previous !== "medium") return previous;
               return getDefaultDifficultyForOnboardingLevel(data.onboardingLevel);
             });

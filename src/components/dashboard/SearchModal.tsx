@@ -25,7 +25,7 @@ function categoryLabel(type: string): string {
     return map[type] ?? type;
 }
 
-export function SearchModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function SearchModal({ onClose }: { onClose: () => void }) {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<SearchResults | null>(null);
     const [loading, setLoading] = useState(false);
@@ -33,13 +33,8 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
     const debouncedQuery = useDebounce(query.trim(), 300);
 
     useEffect(() => {
-        if (open) {
-            setTimeout(() => inputRef.current?.focus(), 50);
-        } else {
-            setQuery("");
-            setResults(null);
-        }
-    }, [open]);
+        setTimeout(() => inputRef.current?.focus(), 50);
+    }, []);
 
     const fetchResults = useCallback(async (q: string) => {
         if (q.length < 2) {
@@ -61,10 +56,9 @@ export function SearchModal({ open, onClose }: { open: boolean; onClose: () => v
     }, []);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchResults(debouncedQuery);
     }, [debouncedQuery, fetchResults]);
-
-    if (!open) return null;
 
     const filteredNav = SEARCH_ITEMS.filter((i) =>
         i.label.toLowerCase().includes(query.toLowerCase())

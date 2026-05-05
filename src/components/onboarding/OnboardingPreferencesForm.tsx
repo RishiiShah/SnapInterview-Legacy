@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import SearchableDropdown from "@/components/SearchableDropdown";
 import SelectDropdown from "@/components/SelectDropdown";
 import { COMPANIES, EXPERIENCE_LEVELS, INTERVIEW_GOALS, CATEGORIES, ROLES } from "@/data/constants";
@@ -38,13 +38,6 @@ export default function OnboardingPreferencesForm({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    setValues((previous) => ({
-      ...previous,
-      ...initialValues,
-    }));
-  }, [initialValues]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

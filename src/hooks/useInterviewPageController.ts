@@ -53,6 +53,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
 
     const activeId = localStorage.getItem("active_interview_id");
     if (activeId && activeId !== interviewId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setModal({
         isOpen: true,
         title: "Active Interview Found",

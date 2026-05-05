@@ -71,6 +71,7 @@ export default function SecurityTab() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadSecurityData();
   }, []);
 

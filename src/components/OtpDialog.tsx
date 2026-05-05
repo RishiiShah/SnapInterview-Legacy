@@ -66,7 +66,6 @@ export default function OtpDialog({ email, onVerified, onCancel, onResend }: Otp
     };
 
     const handleChange = (index: number, value: string) => {
-        // Only allow digits
         if (value && !/^\d$/.test(value)) return;
 
         const newOtp = [...otp];
@@ -74,9 +73,12 @@ export default function OtpDialog({ email, onVerified, onCancel, onResend }: Otp
         setOtp(newOtp);
         setError("");
 
-        // Auto-focus next input
         if (value && index < OTP_LENGTH - 1) {
             inputRefs.current[index + 1]?.focus();
+        }
+
+        if (newOtp.every((d) => d !== "")) {
+            void handleVerify(newOtp);
         }
     };
 
@@ -98,13 +100,16 @@ export default function OtpDialog({ email, onVerified, onCancel, onResend }: Otp
         setOtp(newOtp);
         setError("");
 
-        // Focus the next empty input or last one
         const nextEmpty = newOtp.findIndex((v) => !v);
         inputRefs.current[nextEmpty === -1 ? OTP_LENGTH - 1 : nextEmpty]?.focus();
+
+        if (newOtp.every((d) => d !== "")) {
+            void handleVerify(newOtp);
+        }
     };
 
-    const handleVerify = useCallback(async () => {
-        const code = otp.join("");
+    const handleVerify = useCallback(async (otpOverride?: string[]) => {
+        const code = (otpOverride ?? otp).join("");
         if (code.length !== OTP_LENGTH) {
             setError("Please enter all 6 digits.");
             return;
@@ -149,13 +154,6 @@ export default function OtpDialog({ email, onVerified, onCancel, onResend }: Otp
             verifyingRef.current = false;
         }
     }, [otp, email, timeLeft, onVerified]);
-
-    // Auto-submit when all digits filled
-    useEffect(() => {
-        if (otp.every((d) => d !== "")) {
-            handleVerify();
-        }
-    }, [otp, handleVerify]);
 
     const handleResend = async () => {
         if (resendCooldown > 0 || resending) return;
@@ -266,7 +264,7 @@ export default function OtpDialog({ email, onVerified, onCancel, onResend }: Otp
 
                         {/* Verify button */}
                         <button
-                            onClick={handleVerify}
+                            onClick={() => void handleVerify()}
                             disabled={loading || otp.some((d) => !d)}
                             className="mt-6 flex w-full items-center justify-center rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white shadow-lg shadow-zinc-900/20 transition-all hover:bg-zinc-700 hover:shadow-xl disabled:opacity-50"
                         >

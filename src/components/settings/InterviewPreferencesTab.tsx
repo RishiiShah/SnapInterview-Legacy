@@ -20,6 +20,13 @@ type InterviewPreferencesTabProps = {
 };
 
 export default function InterviewPreferencesTab({ initialValues }: InterviewPreferencesTabProps) {
+  const formKey = JSON.stringify({
+    onboardingRole: initialValues.onboardingRole ?? "",
+    onboardingLevel: initialValues.onboardingLevel ?? "",
+    onboardingCompany: initialValues.onboardingCompany ?? "",
+    onboardingGoal: initialValues.onboardingGoal ?? "",
+    preferredInterviewType: initialValues.preferredInterviewType ?? "",
+  });
   const [muted, setMuted] = useState(() => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem(MUTE_STORAGE_KEY) === "1";
@@ -44,6 +51,7 @@ export default function InterviewPreferencesTab({ initialValues }: InterviewPref
   return (
     <div className="space-y-4">
       <OnboardingPreferencesForm
+        key={formKey}
         initialValues={initialValues}
         submitLabel="Save interview preferences"
         title="Interview Preferences"

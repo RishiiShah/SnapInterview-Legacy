@@ -8,6 +8,7 @@ import SearchableDropdown from "@/components/SearchableDropdown";
 import { CATEGORIES, ROLES, COMPANIES } from "@/data/constants";
 import type { Difficulty, InterviewPersona, InterviewType } from "@/lib/interview/domain";
 import { getDefaultDifficultyForOnboardingLevel, normalizeOnboardingFormValues } from "@/lib/onboarding/preferences";
+import type { PracticeRetakeDefaults } from "@/lib/practice/retake-defaults";
 import { extractResumeHighlights } from "@/lib/interview/resume-highlights";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 import { IconArrowLeft, IconArrowRight, IconCheckCircle, IconPlay, IconSpinner, IconXMark, IconMessage, IconCode, IconLayout, IconActivity, IconZap, IconGem, IconUserCheck, IconStarBurst, IconFlame, IconClock, IconBriefcase, IconBuilding } from "@/components/ui/icons";
@@ -24,27 +25,18 @@ type RecentPracticeSession = {
 
 type PracticePageClientProps = {
   recentPractice: RecentPracticeSession[];
+  retakeDefaults?: PracticeRetakeDefaults;
 };
 
-export default function PracticePageClient({ recentPractice }: PracticePageClientProps) {
+export default function PracticePageClient({ recentPractice, retakeDefaults }: PracticePageClientProps) {
   const router = useRouter();
-  const [role, setRole] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return new URLSearchParams(window.location.search).get("role") ?? "";
-  });
+  const retakeRole = retakeDefaults?.role ?? "";
+  const retakeType = retakeDefaults?.type;
+  const retakeDifficulty = retakeDefaults?.difficulty;
+  const [role, setRole] = useState(retakeRole);
   const [company, setCompany] = useState("");
-  const [type, setType] = useState<InterviewType>(() => {
-    if (typeof window === "undefined") return "behavioral";
-    const t = new URLSearchParams(window.location.search).get("type");
-    const validTypes = ["behavioral", "technical", "system-design"];
-    return (t && validTypes.includes(t)) ? t as InterviewType : "behavioral";
-  });
-  const [difficulty, setDifficulty] = useState<Difficulty>(() => {
-    if (typeof window === "undefined") return "medium";
-    const d = new URLSearchParams(window.location.search).get("difficulty");
-    const validDifficulties = ["easy", "medium", "hard"];
-    return (d && validDifficulties.includes(d)) ? d as Difficulty : "medium";
-  });
+  const [type, setType] = useState<InterviewType>(retakeType ?? "behavioral");
+  const [difficulty, setDifficulty] = useState<Difficulty>(retakeDifficulty ?? "medium");
   const [persona, setPersona] = useState<InterviewPersona>("balanced");
   const [interviewLength, setInterviewLength] = useState<5 | 10 | 15>(10);
   const [jobDescription, setJobDescription] = useState("");
@@ -82,10 +74,10 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
         if (onboardingRes.ok) {
           const data = normalizeOnboardingFormValues(await onboardingRes.json());
           if (!cancelled) {
-            setRole((previous) => (previous === "" || !previous) ? data.onboardingRole : previous);
-            setCompany((previous) => (previous === "" || !previous) ? data.onboardingCompany : previous);
-            setType((previous) => previous === "behavioral" ? data.preferredInterviewType : previous);
-            setDifficulty((previous) => {
+            if (!retakeRole) setRole((previous) => (previous === "" || !previous) ? data.onboardingRole : previous);
+            if (!retakeRole) setCompany((previous) => (previous === "" || !previous) ? data.onboardingCompany : previous);
+            if (!retakeType) setType((previous) => previous === "behavioral" ? data.preferredInterviewType : previous);
+            if (!retakeDifficulty) setDifficulty((previous) => {
               if (previous !== "medium") return previous;
               return getDefaultDifficultyForOnboardingLevel(data.onboardingLevel);
             });
@@ -109,7 +101,7 @@ export default function PracticePageClient({ recentPractice }: PracticePageClien
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retakeDifficulty, retakeRole, retakeType]);
 
   async function handleResumeUpload(file: File) {
     setResumeName(file.name);

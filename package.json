@@ -1,6 +1,7 @@
 {
   "name": "snap-interview",
   "version": "0.1.0",
+  "packageManager": "npm@11.6.2",
   "type": "module",
   "private": true,
   "scripts": {

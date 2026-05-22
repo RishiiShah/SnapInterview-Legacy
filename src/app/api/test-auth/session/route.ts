@@ -38,6 +38,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
         name,
         emailVerified: true,
         onboardingCompletedAt: onboardingCompleted ? new Date() : null,
+        isFirstLogin: false,
       },
       create: {
         id: userId,
@@ -45,6 +46,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
         email,
         emailVerified: true,
         onboardingCompletedAt: onboardingCompleted ? new Date() : null,
+        isFirstLogin: false,
       },
       select: {
         id: true,

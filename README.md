@@ -121,7 +121,7 @@ GitHub Actions workflow lives in `.github/workflows/ci.yml` and runs on push/PR 
 - **S3 storage**: Create a private S3 bucket for recordings; configure `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `S3_BUCKET_NAME`. Bucket should disallow public ACLs; all access happens via signed URLs.
 - **Email**: Configure `SMTP_*` variables (or provider-specific SMTP settings) for OTP and reset emails. For production, prefer a dedicated email provider over a personal Gmail account.
 - **AI provider**: Set `GROQ_API_KEY` and ensure your privacy policy matches Groq’s data-handling terms.
-- **CSRF origins**: For production domains, set `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, `APP_URL`, and optionally `CSRF_TRUSTED_ORIGINS` / `CSRF_TRUSTED_ORIGIN_SUFFIXES` so only your allowed frontends can call state-changing APIs.
+- **CSRF origins**: For production domains, set `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, and `APP_URL` to the same public origin (e.g. `https://snapinterview.app`) in your host’s environment settings (Vercel → Settings → Environment Variables). Middleware validates sessions via `fetch(BETTER_AUTH_URL/api/auth/get-session)` — if this points at localhost, production auth breaks. Optionally set `CSRF_TRUSTED_ORIGINS` / `CSRF_TRUSTED_ORIGIN_SUFFIXES`. Do **not** set `ENABLE_TEST_AUTH` in production.
 
 ## API Overview (high level)
 

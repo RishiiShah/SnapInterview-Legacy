@@ -1,13 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
+import { getSessionUserIdentity } from "@/lib/server-auth";
+import { apiError, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
+import { createRateLimiter } from "@/lib/rate-limit";
+import { withCsrfProtection } from "@/lib/route-security";
+import { logger } from "@/utils/logger";
+import { z } from "zod/v4";
 
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-
-// Voice IDs per persona — all overridable via env vars
 const PERSONA_VOICES: Record<string, string> = {
-  friendly: process.env.ELEVENLABS_VOICE_FRIENDLY ?? "cgSgspJ2msm6clMCkdW9", // Jessica - Playful, Bright, Warm
-  balanced: process.env.ELEVENLABS_VOICE_BALANCED ?? "EXAVITQu4vr4xnSDxMaL", // Sarah - Mature, Reassuring
-  strict:   process.env.ELEVENLABS_VOICE_STRICT   ?? "nPczCjzI2devNBz1zQrb", // Brian - Deep, Resonant
+  friendly: process.env.ELEVENLABS_VOICE_FRIENDLY ?? "cgSgspJ2msm6clMCkdW9",
+  balanced: process.env.ELEVENLABS_VOICE_BALANCED ?? "EXAVITQu4vr4xnSDxMaL",
+  strict: process.env.ELEVENLABS_VOICE_STRICT ?? "nPczCjzI2devNBz1zQrb",
 };
+
+const ttsSchema = z.object({
+  text: z.string().trim().min(1).max(2000),
+  persona: z.string().optional(),
+});
+
+const ttsLimiter = createRateLimiter("tts", 60 * 1000, 60);
 
 function resolveVoiceId(persona?: string | null): string {
   if (!persona) return PERSONA_VOICES.balanced;
@@ -15,25 +24,35 @@ function resolveVoiceId(persona?: string | null): string {
   return PERSONA_VOICES[key] ?? PERSONA_VOICES.balanced;
 }
 
-export async function POST(request: NextRequest) {
-  if (!ELEVENLABS_API_KEY) {
-    return NextResponse.json({ error: "ELEVENLABS_API_KEY is not set" }, { status: 503 });
+export const POST = withCsrfProtection(async (req: Request) => {
+  const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
+  if (!elevenLabsApiKey) {
+    return apiError("Text-to-speech is not configured", 503);
   }
 
-  let body: { text?: string; persona?: string };
+  const authUser = await getSessionUserIdentity();
+  if (!authUser) {
+    return unauthorizedError();
+  }
+
+  if (await ttsLimiter.isLimited(authUser.userId)) {
+    return apiError("Too many text-to-speech requests. Please try again later.", 429);
+  }
+
+  let body: unknown;
   try {
-    body = (await request.json()) as typeof body;
+    body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return badRequestError("Invalid JSON body");
   }
 
-  const text = body.text?.trim();
-  if (!text) {
-    return NextResponse.json({ error: "text is required" }, { status: 400 });
+  const parsed = ttsSchema.safeParse(body);
+  if (!parsed.success) {
+    return badRequestError(parsed.error.issues[0]?.message || "Invalid input");
   }
 
-  const voiceId = resolveVoiceId(body.persona);
-  console.log(`[TTS] persona="${body.persona ?? "null"}" → voice=${voiceId}`);
+  const { text, persona } = parsed.data;
+  const voiceId = resolveVoiceId(persona);
 
   try {
     const upstream = await fetch(
@@ -41,7 +60,7 @@ export async function POST(request: NextRequest) {
       {
         method: "POST",
         headers: {
-          "xi-api-key": ELEVENLABS_API_KEY,
+          "xi-api-key": elevenLabsApiKey,
           "Content-Type": "application/json",
           Accept: "audio/mpeg",
         },
@@ -53,16 +72,15 @@ export async function POST(request: NextRequest) {
             similarity_boost: 0.75,
           },
         }),
-      }
+      },
     );
 
     if (!upstream.ok) {
-      const detail = await upstream.text();
-      console.error(`[TTS] ElevenLabs ${upstream.status}:`, detail);
-      return NextResponse.json(
-        { error: "ElevenLabs API error", status: upstream.status, detail },
-        { status: 502 }
-      );
+      logger.error("ElevenLabs TTS request failed", {
+        status: upstream.status,
+        userId: authUser.userId,
+      });
+      return apiError("Text-to-speech generation failed", 502);
     }
 
     const audio = await upstream.arrayBuffer();
@@ -72,8 +90,11 @@ export async function POST(request: NextRequest) {
         "Cache-Control": "no-store",
       },
     });
-  } catch (err) {
-    console.error("[TTS] fetch failed:", err);
-    return NextResponse.json({ error: "Failed to reach ElevenLabs" }, { status: 503 });
+  } catch (error) {
+    logger.error("ElevenLabs TTS fetch failed", {
+      error: error instanceof Error ? error.message : String(error),
+      userId: authUser.userId,
+    });
+    return internalServerError("Text-to-speech is temporarily unavailable");
   }
-}
+});

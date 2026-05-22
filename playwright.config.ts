@@ -1,4 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
+import nextEnv from "@next/env";
+
+const { loadEnvConfig } = nextEnv;
+
+loadEnvConfig(process.cwd());
 
 const appEnv = {
   NODE_ENV: "test",

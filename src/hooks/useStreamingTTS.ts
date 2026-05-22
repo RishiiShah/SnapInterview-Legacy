@@ -107,6 +107,7 @@ export function useStreamingTTS({
 
     fetch("/api/tts", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: nextText, persona: personaRef.current }),
     })

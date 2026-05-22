@@ -16,7 +16,7 @@ const transporter = nodemailer.createTransport({
  * Send a 6-digit OTP verification email.
  */
 export async function sendOtpEmail(to: string, otp: string): Promise<void> {
-    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.com";
+    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.app";
 
     await transporter.sendMail({
         from,
@@ -78,7 +78,7 @@ export async function sendOtpEmail(to: string, otp: string): Promise<void> {
 }
 
 export async function sendResetPasswordLinkEmail(to: string, resetUrl: string): Promise<void> {
-    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.com";
+    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.app";
 
     await transporter.sendMail({
         from,
@@ -130,7 +130,7 @@ export async function sendEvaluationEmail(params: {
     strengths: string[];
     improvements: string[];
 }): Promise<void> {
-    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.com";
+    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.app";
     const { to, role, score, feedback, strengths, improvements } = params;
 
     const scoreColor = score >= 80 ? "#10b981" : score >= 65 ? "#3b82f6" : "#f59e0b";
@@ -139,7 +139,7 @@ export async function sendEvaluationEmail(params: {
     const listItems = (items: string[]) =>
         items.map(item => `<li style="margin:6px 0;font-size:13px;color:#3f3f46;">${item}</li>`).join("");
 
-    const appUrl = env.NEXT_PUBLIC_APP_URL ?? env.APP_URL ?? "https://snapinterview.com";
+    const appUrl = env.NEXT_PUBLIC_APP_URL ?? env.APP_URL ?? "https://snapinterview.app";
 
     await transporter.sendMail({
         from,
@@ -229,9 +229,9 @@ export async function sendWeeklyReportEmail(params: {
     bestRole: string | null;
     bestScore: number | null;
 }): Promise<void> {
-    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.com";
+    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.app";
     const { to, name, sessionsCount, avgScore, bestRole, bestScore } = params;
-    const appUrl = env.NEXT_PUBLIC_APP_URL ?? env.APP_URL ?? "https://snapinterview.com";
+    const appUrl = env.NEXT_PUBLIC_APP_URL ?? env.APP_URL ?? "https://snapinterview.app";
     const avgDisplay = avgScore !== null ? Math.round(avgScore).toString() : "—";
     const headline = sessionsCount === 1 ? "1 mock interview this week" : `${sessionsCount} mock interviews this week`;
 
@@ -283,9 +283,9 @@ export async function sendPracticeReminderEmail(params: {
     name: string;
     daysSinceLast: number;
 }): Promise<void> {
-    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.com";
+    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.app";
     const { to, name, daysSinceLast } = params;
-    const appUrl = env.NEXT_PUBLIC_APP_URL ?? env.APP_URL ?? "https://snapinterview.com";
+    const appUrl = env.NEXT_PUBLIC_APP_URL ?? env.APP_URL ?? "https://snapinterview.app";
 
     await transporter.sendMail({
         from,

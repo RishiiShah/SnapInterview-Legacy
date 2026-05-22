@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getScoreColor, getScoreLabel } from "@/utils/helpers";
@@ -75,9 +75,20 @@ export default function DashboardOverviewClient({
   const router = useRouter();
   const [selectedVideo, setSelectedVideo] = useState<{ url: string; interviewId: string; date: string } | null>(null);
   const [isOpening, setIsOpening] = useState<string | null>(null);
-  const [showWelcome, setShowWelcome] = useState(
-    () => typeof window !== "undefined" && !localStorage.getItem(`snap-welcome-dismissed-${userId}`)
-  );
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  useEffect(() => {
+    try {
+      const dismissed = typeof window !== "undefined" && !!localStorage.getItem(`snap-welcome-dismissed-${userId}`);
+      if (!dismissed && isFirstLogin) {
+        // Schedule the state update asynchronously to avoid synchronous setState
+        // inside the effect which can trigger cascading renders.
+        void Promise.resolve().then(() => setShowWelcome(true));
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, [userId, isFirstLogin]);
 
   function dismissWelcome() {
     localStorage.setItem(`snap-welcome-dismissed-${userId}`, "1");

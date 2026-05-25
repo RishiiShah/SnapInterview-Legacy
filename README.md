@@ -1,15 +1,23 @@
 # SnapInterview
 
-AI-powered mock interview platform built with Next.js, Better Auth, Prisma, and Vitest.
+AI-powered technical interview practice platform. Users conduct voice-based mock interviews with an AI interviewer, get recorded, receive detailed evaluations, and track improvement over time.
+
+**Live at** [snapinterview.app](https://snapinterview.app)
+
+---
 
 ## Tech Stack
 
-- Next.js 16 (App Router)
-- React 19
-- TypeScript
-- Prisma + PostgreSQL
-- Better Auth
-- Vitest + ESLint
+- **Framework**: Next.js 16 (App Router), React 19, TypeScript
+- **Styling**: Tailwind CSS 4, Framer Motion
+- **Auth**: Better Auth (session-based, HTTP-only cookies) + Google OAuth
+- **Database**: PostgreSQL via Prisma ORM
+- **AI**: Groq Cloud (Llama 3.3 70B) for interview chat and evaluation
+- **Voice**: Web Speech API (recognition), ElevenLabs (TTS)
+- **Storage**: AWS S3 for video recordings (presigned uploads)
+- **Email**: Nodemailer via SMTP
+- **Testing**: Vitest (unit), Playwright (E2E)
+- **Hosting**: Vercel
 
 ## Prerequisites
 
@@ -19,136 +27,151 @@ AI-powered mock interview platform built with Next.js, Better Auth, Prisma, and 
 
 ## Local Setup
 
-1. Install dependencies:
+1. **Install dependencies**
 
-```bash
-npm ci
-```
+   ```bash
+   npm ci
+   ```
 
-2. Copy environment variables:
+2. **Configure environment**
 
-```bash
-cp .env.example .env
-```
+   ```bash
+   cp .env.example .env
+   ```
 
-3. Generate Prisma client:
+   Fill in your values. Minimum to start the app:
 
-```bash
-npx prisma generate
-```
+   | Variable          | Description                      |
+   | ----------------- | -------------------------------- |
+   | `DATABASE_URL`    | PostgreSQL connection string      |
+   | `AUTH_SECRET`     | Random secret for session signing |
+   | `BETTER_AUTH_URL` | `http://localhost:3000` for local |
 
-4. Apply migrations:
+   See `.env.example` for the full list (Groq, ElevenLabs, S3, SMTP, etc.).
 
-```bash
-npx prisma migrate deploy
-```
+3. **Set up the database**
 
-5. Start development server:
+   ```bash
+   npx prisma generate
+   npx prisma migrate deploy
+   ```
 
-```bash
-npm run dev
-```
+4. **Start the dev server**
 
-Open http://localhost:3000.
+   ```bash
+   npm run dev
+   ```
 
-## Environment Variables
-
-See `.env.example` for the full list. The minimum required for core app startup:
-
-- DATABASE_URL
-- AUTH_SECRET
-- BETTER_AUTH_URL
-
-### CSRF & Origins
-
-All state-changing API routes are protected by an origin-based CSRF check via `csrfRejectIfInvalid`. Valid origins are derived from:
-
-- `BETTER_AUTH_URL`
-- `NEXT_PUBLIC_APP_URL`
-- `APP_URL`
-- `CSRF_TRUSTED_ORIGINS` (comma-separated full origins)
-- `CSRF_TRUSTED_ORIGIN_SUFFIXES` (comma-separated domain suffixes, e.g. `.example.com`)
-
-In development, `http://localhost:3000` and `http://127.0.0.1:3000` are always allowed. Make sure your reverse proxy preserves the `Origin` header for POST/PUT/PATCH/DELETE requests so CSRF checks can work correctly.
+   Open [http://localhost:3000](http://localhost:3000).
 
 ## Scripts
 
-- `npm run dev`: Run dev server
-- `npm run build`: Create production build
-- `npm run start`: Start production server
-- `npm run lint`: Run ESLint
-- `npm test`: Run tests once
-- `npm run test:watch`: Run tests in watch mode
+| Command              | Description                     |
+| -------------------- | ------------------------------- |
+| `npm run dev`        | Start dev server                 |
+| `npm run build`      | Production build                 |
+| `npm run start`      | Start production server          |
+| `npm run lint`       | ESLint                           |
+| `npm run typecheck`  | TypeScript check (no emit)       |
+| `npm test`           | Run unit tests (Vitest)          |
+| `npm run test:watch` | Tests in watch mode              |
+| `npm run test:e2e`   | Playwright E2E tests             |
 
-## AI Tooling
+## Architecture
 
-If you use AI coding tools, keep the relevant context file up to date so the agent understands the project:
+Layered backend — unusual for Next.js, intentional for separation of concerns:
 
-- **Claude Code** — create `CLAUDE.md` at the repo root
-- **Cursor / Copilot / Codex / other** — create `AGENTS.md` at the repo root
+```
+API Routes → Services → Repositories → Prisma → PostgreSQL
+```
 
-All contributors (regardless of tool) should have `docs/architecture.md` locally. It is the single source of truth for project architecture and is referenced by all AI context files. Do not duplicate its contents into `CLAUDE.md` or `AGENTS.md` — just reference it.
+- **API Routes** (`src/app/api/`) — thin controllers, input validation, auth checks
+- **Services** (`src/services/`) — business logic (interview, evaluation)
+- **Repositories** (`src/repositories/`) — data access layer (interview, user, question, notification)
+- **Proxy** (`src/proxy.ts`) — Next.js 16 proxy for route gating, CSRF, CSP headers
+
+Frontend state is composed from specialized hooks (no Redux/Zustand). The interview experience chains: `useInterviewPageController` → `useChatSession` + `useSpeechRecognition` + `useStreamingTTS` + `useVideoRecording`.
+
+Full architecture doc: `docs/architecture.md`
+
+### Project Structure
+
+```
+src/
+├── app/                    # Pages + API routes
+│   ├── (dashboard)/        # analytics, dashboard, practice, questions, recordings, settings
+│   ├── api/                # 19 API route directories
+│   └── interview/, login/, signup/, forgot-password/, onboarding/, share/
+├── components/             # UI organized by feature area
+├── data/                   # Constants, types, prompts/ (core + 28 role-specific JSONs)
+├── hooks/                  # 10 React hooks
+├── lib/                    # Core: ai/, auth, csrf, rate-limit, email, prisma, interview/, s3/
+├── repositories/           # Data access layer
+├── services/               # Business logic
+├── utils/                  # Helpers, logger, retry
+└── proxy.ts                # Route gating middleware
+```
+
+## Environment Variables
+
+See `.env.example` for the canonical list. Key groups:
+
+| Group    | Variables                                                            |
+| -------- | -------------------------------------------------------------------- |
+| Database | `DATABASE_URL`, `DIRECT_URL`                                         |
+| Auth     | `AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID/SECRET`           |
+| AI       | `GROQ_API_KEY`, `ELEVENLABS_API_KEY`                                 |
+| Storage  | `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME` |
+| Email    | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`     |
+| CSRF     | `CSRF_TRUSTED_ORIGINS`, `CSRF_TRUSTED_ORIGIN_SUFFIXES`               |
+| URLs     | `NEXT_PUBLIC_APP_URL`, `APP_URL`                                     |
+| Cron     | `CRON_SECRET`                                                        |
+
+### CSRF & Origins
+
+All state-changing routes are protected by origin-based CSRF (`csrfRejectIfInvalid`). Valid origins come from `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, `APP_URL`, and the `CSRF_TRUSTED_*` variables. `localhost:3000` is auto-allowed in dev.
+
+## Security
+
+- CSP with nonce-based `script-src`, HSTS, X-Frame-Options DENY
+- Postgres-backed rate limiting (fails closed in prod, in-memory fallback in dev)
+- Failed login lockout, security event audit log
+- OTP registration with attempt counting + disposable email blocking
+- Server/client import boundary enforcement via ESLint
+- Cron endpoints require `Authorization: Bearer <CRON_SECRET>`
 
 ## CI
 
-GitHub Actions workflow lives in `.github/workflows/ci.yml` and runs on push/PR to `main`:
+GitHub Actions (`.github/workflows/ci.yml`) on push/PR to `main`:
 
-1. npm ci
-2. prisma generate
-3. lint
-4. test
-5. build
+checkout → Node 24 → `npm ci` → `npm audit` → `prisma generate` → lint → typecheck → test → build → Playwright E2E
 
-## Security & Privacy
+## Deployment (Vercel)
 
-- **Authentication & sessions**: Managed by Better Auth with HTTP-only cookies and session records in PostgreSQL.
-- **Interview content & AI**: Interview transcripts and practice answers are sent to an external AI provider (Groq) for scoring and feedback. Do not use this app for data that must never leave your infrastructure.
-- **Recordings & storage**: Video recordings are stored in a private S3 bucket. API routes scope keys by user ID so users can only list/delete their own recordings.
-- **Security events**: Login attempts, password changes, password resets, session revocations, and (for password-based accounts) account deletions are logged in the `SecurityEvent` table for auditing.
-- **CSRF protection**: All state-changing API routes enforce an origin check via `csrfRejectIfInvalid` using the origin whitelist and suffixes described above.
+1. Connect repo to Vercel — auto-detects Next.js 16.
+2. Set all env vars from `.env.example`. **Critical**: `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, and `APP_URL` must point to the production origin (e.g. `https://snapinterview.app`), not localhost.
+3. S3 bucket should be private (no public ACLs) — all access via signed URLs.
+4. Do **not** set `ENABLE_TEST_AUTH` in production.
 
-### Secrets Management
+### Cron Jobs (configured in `vercel.json`)
 
-- Do **not** commit `.env` or any real credentials. `.gitignore` is configured to ignore `.env*` except `.env.example`.
-- Use `.env.example` as the canonical list of required environment variables and keep only non-sensitive placeholder values there.
-- In CI, use placeholder secrets sufficient for build/tests only; in production, inject real secrets via your deployment provider’s secret manager (e.g., Vercel/Render/Heroku environment settings).
-- If a secret is ever accidentally committed, rotate it immediately in the provider and scrub it from git history before pushing new changes.
+| Job                  | Schedule              | Purpose                                  |
+| -------------------- | --------------------- | ---------------------------------------- |
+| `/api/cron/cleanup`  | Daily 02:00 UTC       | Hard-delete sessions soft-deleted 30+ days ago |
+| `/api/cron/practice-reminder` | Daily 09:00 UTC | Email inactive users                     |
+| `/api/cron/weekly-report` | Mondays 08:00 UTC | Weekly progress summary emails            |
 
-## Deployment
+## Secrets Management
 
-- **Database**: Provision a managed PostgreSQL instance and set `DATABASE_URL` accordingly.
-- **Runtime**: Deploy the Next.js app to a platform that supports Next 16 (e.g., Vercel, Render, Fly.io) and configure environment variables from `.env.example`.
-- **S3 storage**: Create a private S3 bucket for recordings; configure `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `S3_BUCKET_NAME`. Bucket should disallow public ACLs; all access happens via signed URLs.
-- **Email**: Configure `SMTP_*` variables (or provider-specific SMTP settings) for OTP and reset emails. For production, prefer a dedicated email provider over a personal Gmail account.
-- **AI provider**: Set `GROQ_API_KEY` and ensure your privacy policy matches Groq’s data-handling terms.
-- **CSRF origins**: For production domains, set `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, and `APP_URL` to the same public origin (e.g. `https://snapinterview.app`) in your host’s environment settings (Vercel → Settings → Environment Variables). Middleware validates sessions via `fetch(BETTER_AUTH_URL/api/auth/get-session)` — if this points at localhost, production auth breaks. Optionally set `CSRF_TRUSTED_ORIGINS` / `CSRF_TRUSTED_ORIGIN_SUFFIXES`. Do **not** set `ENABLE_TEST_AUTH` in production.
+- Never commit `.env`. `.gitignore` blocks `.env*` except `.env.example`.
+- CI uses placeholder secrets. Production secrets go in Vercel environment settings.
+- Rotate immediately if a secret is accidentally committed.
 
-## API Overview (high level)
+## AI Tooling
 
-- **Auth & account**
-  - `POST /api/register`: Start email+password signup, sends OTP; body: `{ name, email, password }`.
-  - `POST /api/verify-otp`: Verify registration OTP and create account.
-  - `POST /api/forgot-password`: Request password reset code.
-  - `POST /api/reset-password`: Complete reset with code and new password.
-  - `POST /api/change-password`: Change password for logged-in users (requires current password).
-  - `DELETE /api/delete-account`: Delete logged-in user (requires password and `confirm: "DELETE"`).
+If you use AI coding assistants, keep the relevant context file updated:
 
-- **Settings**
-  - `PATCH /api/settings/profile`: Update basic profile metadata.
-  - `PATCH /api/settings/notifications`: Update notification preferences.
-  - `PATCH /api/settings/security`: Revoke other sessions or current session.
+- **Claude Code** → `CLAUDE.md`
+- **Cursor / Copilot / Codex** → `AGENTS.md`
 
-- **Interviews**
-  - `POST /api/interview/session`: Create a new interview session.
-  - `GET /api/interview/:id`: Fetch a single interview session (authorized user only).
-  - `POST /api/interview/chat`: Send transcript blocks and receive streamed AI interviewer responses.
-  - `POST /api/interview/evaluate`: Run AI evaluation on an interview transcript.
-
-- **Practice questions**
-  - `POST /api/questions/evaluate`: Evaluate an answer to a practice question.
-  - `POST /api/questions/solve`: Mark a practice question as solved.
-
-- **Recordings (S3)**
-  - `POST /api/s3/upload`: Get a presigned URL + key for uploading a recording for a specific interview.
-  - `GET /api/s3/videos`: List signed URLs for the current user’s recordings.
-  - `DELETE /api/s3/videos`: Delete a recording by `key` (must be within the current user’s prefix).
+Both reference `docs/architecture.md` as the canonical source of truth — don't duplicate it.

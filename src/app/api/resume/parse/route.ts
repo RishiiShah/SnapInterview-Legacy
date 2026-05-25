@@ -31,7 +31,8 @@ export const POST = withCsrfProtection(async (req: NextRequest) => {
   try {
     const result = await parser.getText();
     rawText = result.text;
-  } catch {
+  } catch (e) {
+    console.error("[PDF Parse Error]", e);
     return NextResponse.json(
       { error: "Could not read PDF. Make sure it is a valid, text-based PDF." },
       { status: 422 }

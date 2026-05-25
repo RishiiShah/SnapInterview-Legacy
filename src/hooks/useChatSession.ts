@@ -177,7 +177,7 @@ export function useChatSession({
 
           if (value) {
             const chunk = decoder.decode(value, { stream: true });
-            aiResponseText = sanitizeAiText(aiResponseText + chunk);
+            aiResponseText += sanitizeAiText(chunk);
             setCurrentStreamedText(aiResponseText);
           }
         }

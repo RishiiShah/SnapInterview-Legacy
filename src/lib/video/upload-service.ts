@@ -6,13 +6,7 @@ export type InterviewCompletionStatus = "COMPLETED" | "ABORTED";
 type FinalizeInterviewUploadOptions = {
   interviewId: string;
   status: InterviewCompletionStatus;
-  stopVideoRecording: () => Promise<Blob | null>;
-};
-
-type PresignedPostPayload = {
-  url: string;
-  fields: Record<string, string>;
-  key: string;
+  stopVideoRecording: () => Promise<{ videoKey: string } | null>;
 };
 
 async function readErrorMessage(response: Response): Promise<string | undefined> {
@@ -36,53 +30,6 @@ async function cleanupUploadedVideo(videoKey: string): Promise<void> {
   }
 }
 
-async function uploadBlobToPresignedPost(
-  url: string,
-  fields: Record<string, string>,
-  blob: Blob
-): Promise<boolean> {
-  const formData = new FormData();
-  for (const [fieldKey, value] of Object.entries(fields)) {
-    formData.append(fieldKey, value);
-  }
-  formData.append("file", blob, "recording.webm");
-
-  const uploadRes = await fetch(url, {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!uploadRes.ok) {
-    logger.error("Failed to upload video blob to S3", { 
-      status: uploadRes.status,
-      url 
-    });
-    return false;
-  }
-
-  return true;
-}
-
-async function createPresignedUploadUrl(interviewId: string): Promise<PresignedPostPayload | undefined> {
-  const res = await fetch("/api/s3/upload", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ interviewId }),
-  });
-
-  if (!res.ok) {
-    logger.error("Failed to get presigned URL", { 
-      status: res.status, 
-      interviewId 
-    });
-    return undefined;
-  }
-
-  const payload = await res.json();
-  if (!payload?.url || !payload?.fields) return undefined;
-  return payload as PresignedPostPayload;
-}
-
 export type FinalizeResult = 
   | { type: "ok"; videoKey?: string }
   | { type: "error"; message: string; stage: "recording" | "upload" | "metadata" };
@@ -92,28 +39,16 @@ export async function finalizeInterviewUpload({
   status,
   stopVideoRecording,
 }: FinalizeInterviewUploadOptions): Promise<FinalizeResult> {
-  let blob: Blob | null = null;
-  try {
-    blob = await stopVideoRecording();
-  } catch (error) {
-    logger.error("Failed to stop video recording", { error, interviewId });
-    return { type: "error", message: "Failed to stop video recording", stage: "recording" };
-  }
-
   let videoKey: string | undefined;
 
-  if (blob && blob.size > 0) {
-    const presigned = await createPresignedUploadUrl(interviewId);
-    if (!presigned) {
-      return { type: "error", message: "Failed to prepare video upload", stage: "upload" };
+  try {
+    const recordingResult = await stopVideoRecording();
+    if (recordingResult?.videoKey) {
+      videoKey = recordingResult.videoKey;
     }
-
-    const uploaded = await uploadBlobToPresignedPost(presigned.url, presigned.fields, blob);
-    if (!uploaded) {
-      return { type: "error", message: "Failed to upload video recording", stage: "upload" };
-    }
-
-    videoKey = presigned.key;
+  } catch (error) {
+    logger.error("Failed to stop video recording or finalize multipart upload", { error, interviewId });
+    return { type: "error", message: "Failed to finalize video upload", stage: "upload" };
   }
 
   try {
@@ -167,3 +102,4 @@ export async function finalizeInterviewUpload({
     return { type: "error", message: "Interview saved, but failed to update status. Please contact support.", stage: "metadata" };
   }
 }
+

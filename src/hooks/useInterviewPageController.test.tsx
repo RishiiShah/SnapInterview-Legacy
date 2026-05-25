@@ -237,6 +237,6 @@ describe("useInterviewPageController", () => {
       status: "COMPLETED",
       stopVideoRecording,
     });
-    expect(mocks.routerPush).toHaveBeenCalledWith("/recordings");
+    expect(mocks.routerPush).toHaveBeenCalledWith("/analytics");
   });
 });

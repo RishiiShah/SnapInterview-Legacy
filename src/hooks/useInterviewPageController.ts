@@ -86,6 +86,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   const media = useMediaPermissions();
 
   const videoRecording = useVideoRecording({
+    interviewId,
     onScreenShareEnded: () => {
       onScreenShareEndedRef.current();
     },
@@ -211,46 +212,19 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
       const interviewStatus: InterviewCompletionStatus =
         interviewDoneRef.current || userAnswerCount > 0 ? "COMPLETED" : "ABORTED";
 
-      try {
-        const result = await finalizeInterviewUpload({
-          interviewId,
-          status: interviewStatus,
-          stopVideoRecording: videoRecording.stopVideoRecording,
-        });
-
-        if (result.type === "error") {
-          setModal({
-            isOpen: true,
-            title: "Upload Failed",
-            description: `${result.message}. Would you like to try again?`,
-            onConfirm: () => {
-              closeModal();
-              void handleExitInterviewRef.current({ skipConfirmation: true });
-            },
-            variant: "danger",
-            confirmLabel: "Retry Upload",
-          });
-          return;
-        }
-
-        router.push("/recordings");
-      } catch (error) {
+      // Fire and forget the upload so the user is not blocked
+      finalizeInterviewUpload({
+        interviewId,
+        status: interviewStatus,
+        stopVideoRecording: videoRecording.stopVideoRecording,
+      }).catch((error) => {
         console.error("Error finalizing interview upload:", error);
-        setModal({
-          isOpen: true,
-          title: "Critical Error",
-          description: "An unexpected error occurred during upload. Please try again.",
-          onConfirm: () => {
-            closeModal();
-            void handleExitInterviewRef.current({ skipConfirmation: true });
-          },
-          variant: "danger",
-          confirmLabel: "Retry",
-        });
-      } finally {
-        setIsUploading(false);
-        isExitingRef.current = false;
-      }
+      });
+
+      // Immediately redirect to analytics to make the experience smooth
+      setIsUploading(false);
+      isExitingRef.current = false;
+      router.push("/analytics");
     },
     [interviewId, media, router, speech, videoRecording.stopVideoRecording, closeModal]
   );

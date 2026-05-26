@@ -21,7 +21,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 24.12.0
+          node-version: 24.16.0
           cache: npm
 
       - name: Install dependencies
@@ -49,7 +49,7 @@ jobs:
         env:
           # Required at build time (Next.js static analysis / server component compilation)
           DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
-          AUTH_SECRET: ci-placeholder-secret-32-chars-min
+          AUTH_SECRET: ci-test-secret-key-that-is-at-least-32-characters-long
           BETTER_AUTH_URL: http://localhost:3000
           GOOGLE_CLIENT_ID: placeholder
           GOOGLE_CLIENT_SECRET: placeholder
@@ -66,7 +66,7 @@ jobs:
         run: npm run test:e2e
         env:
           DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
-          AUTH_SECRET: ci-placeholder-secret-32-chars-min
+          AUTH_SECRET: ci-test-secret-key-that-is-at-least-32-characters-long
           BETTER_AUTH_URL: http://127.0.0.1:3000
           GOOGLE_CLIENT_ID: placeholder
           GOOGLE_CLIENT_SECRET: placeholder

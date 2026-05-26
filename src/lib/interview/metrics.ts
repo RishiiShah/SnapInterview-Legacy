@@ -66,6 +66,8 @@ type SessionRecord = {
   currentQuestion: number;
   evaluation: unknown;
   createdAt: Date;
+  _normalizedEvaluation?: any;
+  _score?: number;
 };
 
 type DashboardStat = {
@@ -215,7 +217,9 @@ function deriveStrengthsAndImprovementsFromEvaluations(sessions: SessionRecord[]
   const improvementCounts = new Map<string, number>();
 
   for (const session of sessions) {
-    const evaluation = normalizeTranscriptEvaluation(session.evaluation);
+    const evaluation = session._normalizedEvaluation !== undefined 
+      ? session._normalizedEvaluation 
+      : normalizeTranscriptEvaluation(session.evaluation);
     if (!evaluation) {
       continue;
     }
@@ -248,6 +252,9 @@ function deriveStrengthsAndImprovementsFromEvaluations(sessions: SessionRecord[]
 }
 
 const getSessionScore = (session: SessionRecord): number => {
+  if (session._score !== undefined) {
+    return session._score;
+  }
   const evaluationScore = getEvaluationScore(session.evaluation);
   if (evaluationScore !== null) {
     return evaluationScore;
@@ -321,7 +328,16 @@ async function getUserSessionsByUserId(userId: string): Promise<SessionRecord[]>
     take: 300,
   });
 
-  return sessions;
+  return sessions.map(session => {
+    const _normalizedEvaluation = normalizeTranscriptEvaluation(session.evaluation);
+    let _score: number;
+    if (_normalizedEvaluation?.score != null) {
+      _score = _normalizedEvaluation.score;
+    } else {
+      _score = deriveSessionScore(session as any); // Cast needed if SessionRecord expects exact Prisma type
+    }
+    return { ...session, _normalizedEvaluation, _score };
+  });
 }
 
 export async function getRecentPracticeSessionsByUserId(
@@ -413,7 +429,9 @@ function deriveSubScores(sessions: SessionRecord[]): SubScores {
   const clarity: number[] = [];
 
   for (const session of sessions) {
-    const evaluation = normalizeTranscriptEvaluation(session.evaluation);
+    const evaluation = session._normalizedEvaluation !== undefined 
+      ? session._normalizedEvaluation 
+      : normalizeTranscriptEvaluation(session.evaluation);
     if (!evaluation) continue;
     if (evaluation.communication != null) comms.push(evaluation.communication);
     if (evaluation.technicalDepth != null) tech.push(evaluation.technicalDepth);
@@ -683,7 +701,7 @@ export async function getAnalyticsOverviewData(userId: string): Promise<Analytic
       const dayKey = day.toISOString().slice(0, 10);
       const vals = sessions
         .filter((s) => startOfDay(s.createdAt).toISOString().slice(0, 10) === dayKey)
-        .map((s) => normalizeTranscriptEvaluation(s.evaluation)?.[key] ?? null)
+        .map((s) => (s._normalizedEvaluation !== undefined ? s._normalizedEvaluation : normalizeTranscriptEvaluation(s.evaluation))?.[key] ?? null)
         .filter((v): v is number => v !== null);
       return {
         label: day.toLocaleDateString("en-US", { weekday: "short" }),

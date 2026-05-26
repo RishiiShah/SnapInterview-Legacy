@@ -9,8 +9,16 @@ import { extractRequestContext } from "@/lib/security";
 import { getServerAuthSession } from "@/lib/server-auth";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 
+const { deleteAccountLimitedMock } = vi.hoisted(() => ({
+  deleteAccountLimitedMock: vi.fn(() => Promise.resolve(false)),
+}));
+
 vi.mock("@/lib/csrf", () => ({
   csrfRejectIfInvalid: vi.fn(() => null),
+}));
+
+vi.mock("@/lib/rate-limit", () => ({
+  createRateLimiter: vi.fn(() => ({ isLimited: deleteAccountLimitedMock })),
 }));
 
 vi.mock("@/lib/server-auth", () => ({
@@ -44,6 +52,7 @@ vi.mock("@/lib/prisma", () => ({
 describe("DELETE /api/delete-account", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    deleteAccountLimitedMock.mockResolvedValue(false);
   });
 
   it("short-circuits when CSRF validation fails", async () => {
@@ -74,6 +83,25 @@ describe("DELETE /api/delete-account", () => {
     const res = await DELETE(request);
 
     expect(res.status).toBe(401);
+  });
+
+  it("rate limits account deletion attempts per authenticated user", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+    vi.mocked(getServerAuthSession).mockResolvedValue({
+      user: { id: "user-1", email: "user@example.com" },
+    } as never);
+    deleteAccountLimitedMock.mockResolvedValue(true);
+
+    const request = new Request("http://localhost/api/delete-account", {
+      method: "DELETE",
+      body: JSON.stringify({ confirm: "DELETE", currentPassword: "pw" }),
+    });
+
+    const res = await DELETE(request);
+
+    expect(res.status).toBe(429);
+    expect(deleteAccountLimitedMock).toHaveBeenCalledWith("user-1");
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
   });
 
   it('requires confirm to be "DELETE" and a current password', async () => {
@@ -191,4 +219,3 @@ describe("DELETE /api/delete-account", () => {
     expect(extractRequestContext).toHaveBeenCalled();
   });
 });
-

@@ -212,4 +212,37 @@ describe("POST /api/register", () => {
       }),
     );
   });
+
+  it("returns a generic success response when the email already exists", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+    vi.mocked(isDisposableEmail).mockResolvedValue({ disposable: false } as never);
+    vi.mocked(extractRequestContext).mockReturnValue({
+      ipHash: "existing-user-hash",
+      userAgent: "agent",
+    } as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "user-1" } as never);
+
+    const res = await POST(
+      new Request("http://localhost/api/register", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "http://localhost:3000",
+        },
+        body: JSON.stringify({
+          name: "Test User",
+          email: "existing@example.com",
+          password: "Password1!",
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({
+      success: true,
+      message: "If this email can be registered, a verification code will be sent.",
+    });
+    expect(prisma.pendingUser.upsert).not.toHaveBeenCalled();
+    expect(sendOtpEmail).not.toHaveBeenCalled();
+  });
 });

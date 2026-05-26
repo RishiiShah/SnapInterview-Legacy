@@ -75,4 +75,28 @@ describe("POST /api/forgot-password", () => {
       error: "smtp down"
     }));
   });
+
+  it("returns the same generic success when an existing account has recent reset requests", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "user-1", email: "user@example.com" } as never);
+    vi.mocked(prisma.account.findFirst).mockResolvedValue({ id: "acct-1" } as never);
+    vi.mocked(prisma.passwordResetCode.count).mockResolvedValue(3);
+
+    const request = new Request("http://localhost/api/forgot-password", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: JSON.stringify({ email: "user@example.com" }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      message: "If an account with that email exists, a reset code has been sent.",
+    });
+    expect(sendOtpEmail).not.toHaveBeenCalled();
+  });
 });

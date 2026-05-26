@@ -15,6 +15,10 @@ const schema = z.object({
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_REQUESTS = 3;
 const forgotPasswordLimiter = createRateLimiter("forgot-password", 60 * 1000, 6);
+const GENERIC_FORGOT_PASSWORD_RESPONSE = {
+    success: true,
+    message: "If an account with that email exists, a reset code has been sent.",
+};
 
 export const POST = withCsrfProtection(async (req: Request) => {
     try {
@@ -55,7 +59,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
             });
 
             if (recentCount >= MAX_REQUESTS) {
-                return apiError("Too many reset requests. Please try again later.", 429);
+                return apiJson(GENERIC_FORGOT_PASSWORD_RESPONSE);
             }
 
             // Generate 6-digit OTP
@@ -97,10 +101,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
         }
 
         // Always return success (prevent enumeration)
-        return apiJson({
-            success: true,
-            message: "If an account with that email exists, a reset code has been sent.",
-        });
+        return apiJson(GENERIC_FORGOT_PASSWORD_RESPONSE);
     } catch (error) {
         logger.error("Forgot password error:", {
             error: error instanceof Error ? error.message : String(error),

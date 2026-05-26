@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import {
+  apiError,
   apiJson,
   badRequestError,
   internalServerError,
@@ -11,6 +12,7 @@ import { recordSecurityEvent } from "@/lib/account-security";
 import { extractRequestContext } from "@/lib/security";
 import { verifyCredentialPassword } from "@/lib/password";
 import { withCsrfProtection } from "@/lib/route-security";
+import { createRateLimiter } from "@/lib/rate-limit";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
 
@@ -21,11 +23,18 @@ const deleteAccountSchema = z.object({
     .min(1, "Current password is required to delete your account."),
 });
 
+const deleteAccountLimiter = createRateLimiter("delete-account", 15 * 60 * 1000, 5);
+
 export const DELETE = withCsrfProtection(async (req: Request) => {
   try {
     const session = await getServerAuthSession();
     if (!session?.user?.email) {
       return unauthorizedError();
+    }
+
+    const userId = session.user.id;
+    if (userId && await deleteAccountLimiter.isLimited(userId)) {
+      return apiError("Too many account deletion attempts. Please try again later.", 429);
     }
 
     const body = await req.json();

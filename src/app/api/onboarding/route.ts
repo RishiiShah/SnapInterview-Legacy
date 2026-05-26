@@ -7,10 +7,10 @@ import { getSessionUserIdentity } from "@/lib/server-auth";
 import { logger } from "@/utils/logger";
 
 const onboardingSchema = z.object({
-  onboardingRole: z.string().trim().min(1, "Target role is required"),
-  onboardingLevel: z.string().trim().min(1, "Experience level is required"),
+  onboardingRole: z.string().trim().min(1, "Target role is required").max(200, "Target role is too long"),
+  onboardingLevel: z.string().trim().min(1, "Experience level is required").max(64, "Experience level is too long"),
   onboardingCompany: z.string().trim().max(100).optional().default(""),
-  onboardingGoal: z.string().trim().min(1, "Primary goal is required"),
+  onboardingGoal: z.string().trim().min(1, "Primary goal is required").max(200, "Primary goal is too long"),
   preferredInterviewType: z.enum(["behavioral", "technical", "system-design", "leadership"]),
 });
 

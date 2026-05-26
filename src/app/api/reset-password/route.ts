@@ -3,7 +3,7 @@ import { recordSecurityEvent, revokeUserSessions } from "@/lib/account-security"
 import { normalizeEmail, verifyOneTimeCode } from "@/lib/security";
 import { hashCredentialPassword } from "@/lib/password";
 import { z } from "zod/v4";
-import { apiError, apiJson, badRequestError, internalServerError, notFoundError } from "@/lib/api-response";
+import { apiError, apiJson, badRequestError, internalServerError } from "@/lib/api-response";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
 import { logger } from "@/utils/logger";
@@ -24,6 +24,7 @@ const schema = z.object({
 const MAX_OTP_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000; // 15 mins
 const resetPasswordLimiter = createRateLimiter("reset-password", 60 * 1000, 10);
+const GENERIC_RESET_CODE_ERROR = "Invalid or expired reset code.";
 
 export const POST = withCsrfProtection(async (req: Request) => {
     try {
@@ -49,7 +50,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
         });
 
         if (!token) {
-            return notFoundError("No reset request found. Please request a new code.");
+            return badRequestError(GENERIC_RESET_CODE_ERROR);
         }
 
         // Check expiry
@@ -58,11 +59,11 @@ export const POST = withCsrfProtection(async (req: Request) => {
                 where: { email: normalizedEmail, usedAt: null },
                 data: { usedAt: new Date() },
             });
-            return apiError("Reset code has expired. Please request a new one.", 410);
+            return badRequestError(GENERIC_RESET_CODE_ERROR);
         }
 
         if (token.lockedUntil && token.lockedUntil > new Date()) {
-            return apiError("Too many failed attempts. Try again later.", 429);
+            return badRequestError(GENERIC_RESET_CODE_ERROR);
         }
 
         // Validate OTP
@@ -81,10 +82,10 @@ export const POST = withCsrfProtection(async (req: Request) => {
             });
 
             if (lockedUntil) {
-                return apiError("Maximum attempts reached. Reset cancelled. Please request a new code.", 429);
+                return badRequestError(GENERIC_RESET_CODE_ERROR);
             }
 
-            return badRequestError(`Invalid code. ${MAX_OTP_ATTEMPTS - attemptCount} attempts left.`);
+            return badRequestError(GENERIC_RESET_CODE_ERROR);
         }
 
         // Find user
@@ -93,7 +94,11 @@ export const POST = withCsrfProtection(async (req: Request) => {
         });
 
         if (!user) {
-            return notFoundError("Account not found.");
+            await prisma.passwordResetCode.updateMany({
+                where: { email: normalizedEmail, usedAt: null },
+                data: { usedAt: new Date() },
+            });
+            return badRequestError(GENERIC_RESET_CODE_ERROR);
         }
 
         // In Better Auth, passwords are stored in the Account table
@@ -102,7 +107,11 @@ export const POST = withCsrfProtection(async (req: Request) => {
         });
 
         if (!account) {
-            return notFoundError("Account not found.");
+            await prisma.passwordResetCode.updateMany({
+                where: { email: normalizedEmail, usedAt: null },
+                data: { usedAt: new Date() },
+            });
+            return badRequestError(GENERIC_RESET_CODE_ERROR);
         }
 
         // Hash and update password in Account

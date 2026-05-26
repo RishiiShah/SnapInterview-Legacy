@@ -6,7 +6,8 @@ import {
     interviewTypeSchema,
 } from "@/lib/interview/domain";
 import { getSessionUserIdentity } from "@/lib/server-auth";
-import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
+import { apiError, apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
+import { createRateLimiter } from "@/lib/rate-limit";
 import { z } from "zod/v4";
 import {
     ALLOWED_STATUSES,
@@ -16,6 +17,7 @@ import {
 } from "@/services/interview-service";
 import { deleteInterviewSession } from "@/repositories/interview-repo";
 import { withCsrfProtection } from "@/lib/route-security";
+import { verifyMultipartCompletionToken } from "@/lib/s3/multipart-upload-token";
 import { logger } from "@/utils/logger";
 
 const createSessionSchema = z.object({
@@ -30,6 +32,8 @@ const createSessionSchema = z.object({
     resumeText: z.string().trim().max(8000).optional(),
     questionCount: interviewQuestionCountSchema.optional(),
 });
+const createSessionLimiter = createRateLimiter("interview-session-create", 60 * 60 * 1000, 30);
+const deleteSessionLimiter = createRateLimiter("interview-session-delete", 60 * 60 * 1000, 60);
 
 export async function GET(req: Request) {
     try {
@@ -71,6 +75,10 @@ export const POST = withCsrfProtection(async (req: Request) => {
             return unauthorizedError();
         }
 
+        if (await createSessionLimiter.isLimited(authUser.userId)) {
+            return apiError("Too many interview sessions created. Please try again later.", 429);
+        }
+
         const body = await req.json();
         const parsed = createSessionSchema.safeParse(body);
 
@@ -107,8 +115,8 @@ export const POST = withCsrfProtection(async (req: Request) => {
 
 const patchSessionSchema = z.object({
     interviewId: z.string().uuid("interviewId must be a valid UUID"),
-    videoUrl: z.string().url().nullable().optional(),
     videoKey: z.string().trim().min(1).nullable().optional(),
+    videoCompletionToken: z.string().min(1).optional(),
     status: z.string().refine(
         (val) => (ALLOWED_STATUSES as readonly string[]).includes(val),
         "Invalid status value"
@@ -123,6 +131,10 @@ export const PATCH = withCsrfProtection(async (req: Request) => {
         }
 
         const body = await req.json();
+        if (body && typeof body === "object" && "videoUrl" in body) {
+            return badRequestError("videoUrl cannot be updated directly");
+        }
+
         const parsed = patchSessionSchema.safeParse(body);
 
         if (!parsed.success) {
@@ -130,13 +142,31 @@ export const PATCH = withCsrfProtection(async (req: Request) => {
             return badRequestError(firstError);
         }
 
-        const { interviewId, videoUrl, videoKey, status } = parsed.data;
+        const { interviewId, videoKey, videoCompletionToken, status } = parsed.data;
+        let verifiedVideoKey = videoKey;
+
+        if (typeof videoKey === "string") {
+            const expectedKey = `${authUser.userId}/interview-${interviewId}.webm`;
+            if (
+                videoKey !== expectedKey ||
+                !videoCompletionToken ||
+                !verifyMultipartCompletionToken(videoCompletionToken, {
+                    userId: authUser.userId,
+                    interviewId,
+                    key: expectedKey,
+                })
+            ) {
+                return apiError("Unauthorized to attach video recording", 403);
+            }
+
+            verifiedVideoKey = expectedKey;
+        }
 
         const updated = await updateSessionStatusIfOwned({
             userId: authUser.userId,
             interviewId,
-            videoUrl,
-            videoKey,
+            videoUrl: undefined,
+            videoKey: verifiedVideoKey,
             status: status as InterviewStatus | undefined,
         });
 
@@ -168,6 +198,10 @@ export const DELETE = withCsrfProtection(async (req: Request) => {
         const authUser = await getSessionUserIdentity();
         if (!authUser) {
             return unauthorizedError();
+        }
+
+        if (await deleteSessionLimiter.isLimited(authUser.userId)) {
+            return apiError("Too many interview session delete requests. Please try again later.", 429);
         }
 
         const { searchParams } = new URL(req.url);

@@ -3,6 +3,17 @@ import { NextResponse } from "next/server";
 import { POST } from "./route";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
+import { createRateLimiter } from "@/lib/rate-limit";
+
+const { mockEnv, mockRateLimiterConfigs } = vi.hoisted(() => ({
+  mockEnv: {
+    ELEVENLABS_API_KEY: "test-elevenlabs-key",
+    ELEVENLABS_VOICE_FRIENDLY: "custom-friendly-voice",
+    ELEVENLABS_VOICE_BALANCED: "custom-balanced-voice",
+    ELEVENLABS_VOICE_STRICT: "custom-strict-voice",
+  },
+  mockRateLimiterConfigs: [] as Array<[string, number, number]>,
+}));
 
 vi.mock("@/lib/csrf", () => ({
   csrfRejectIfInvalid: vi.fn(() => null),
@@ -13,12 +24,17 @@ vi.mock("@/lib/server-auth", () => ({
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
-  createRateLimiter: vi.fn(() => ({
+  createRateLimiter: vi.fn((namespace: string, windowMs: number, maxRequests: number) => {
+    mockRateLimiterConfigs.push([namespace, windowMs, maxRequests]);
+    return {
     isLimited: vi.fn().mockResolvedValue(false),
-  })),
+    };
+  }),
 }));
 
-const originalApiKey = process.env.ELEVENLABS_API_KEY;
+vi.mock("@/lib/env", () => ({
+  env: mockEnv,
+}));
 
 function makeRequest(body: unknown, origin = "http://localhost:3000") {
   return new Request("http://localhost/api/tts", {
@@ -34,7 +50,10 @@ function makeRequest(body: unknown, origin = "http://localhost:3000") {
 describe("POST /api/tts", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.ELEVENLABS_API_KEY = "test-elevenlabs-key";
+    mockEnv.ELEVENLABS_API_KEY = "test-elevenlabs-key";
+    mockEnv.ELEVENLABS_VOICE_FRIENDLY = "custom-friendly-voice";
+    mockEnv.ELEVENLABS_VOICE_BALANCED = "custom-balanced-voice";
+    mockEnv.ELEVENLABS_VOICE_STRICT = "custom-strict-voice";
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
@@ -47,16 +66,11 @@ describe("POST /api/tts", () => {
   });
 
   afterEach(() => {
-    if (originalApiKey === undefined) {
-      delete process.env.ELEVENLABS_API_KEY;
-    } else {
-      process.env.ELEVENLABS_API_KEY = originalApiKey;
-    }
     vi.unstubAllGlobals();
   });
 
   it("returns 503 when ElevenLabs is not configured", async () => {
-    delete process.env.ELEVENLABS_API_KEY;
+    mockEnv.ELEVENLABS_API_KEY = undefined as never;
 
     const response = await POST(makeRequest({ text: "Hello" }));
 
@@ -101,9 +115,14 @@ describe("POST /api/tts", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe("audio/mpeg");
     expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining("nPczCjzI2devNBz1zQrb"),
+      expect.stringContaining("custom-strict-voice"),
       expect.objectContaining({ method: "POST" }),
     );
+  });
+
+  it("uses a tighter per-user rate limit for paid TTS generation", () => {
+    void createRateLimiter;
+    expect(mockRateLimiterConfigs).toContainEqual(["tts", 60 * 1000, 20]);
   });
 
   it("returns 502 without leaking upstream error details", async () => {

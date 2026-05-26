@@ -83,7 +83,7 @@ describe("POST /api/reset-password", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 404 when no reset token exists", async () => {
+  it("returns a generic invalid-code response when no reset token exists", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
     vi.mocked(prisma.passwordResetCode.findFirst).mockResolvedValue(null as never);
 
@@ -101,10 +101,13 @@ describe("POST /api/reset-password", () => {
     });
 
     const res = await POST(req);
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({
+      error: "Invalid or expired reset code.",
+    });
   });
 
-  it("returns 410 when reset code has expired", async () => {
+  it("returns a generic invalid-code response when reset code has expired", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
     vi.mocked(prisma.passwordResetCode.findFirst).mockResolvedValue({
       id: "token-1",
@@ -130,7 +133,10 @@ describe("POST /api/reset-password", () => {
     });
 
     const res = await POST(req);
-    expect(res.status).toBe(410);
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({
+      error: "Invalid or expired reset code.",
+    });
   });
 
   it("increments attempt count on invalid OTP", async () => {
@@ -163,11 +169,49 @@ describe("POST /api/reset-password", () => {
 
     const res = await POST(req);
     expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({
+      error: "Invalid or expired reset code.",
+    });
     expect(prisma.passwordResetCode.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ attemptCount: 1 }),
       }),
     );
+  });
+
+  it("returns a generic invalid-code response when the reset account no longer exists", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+    vi.mocked(prisma.passwordResetCode.findFirst).mockResolvedValue({
+      id: "token-1",
+      email: "user@example.com",
+      codeHash: "hash",
+      expiresAt: new Date(Date.now() + 300000),
+      attemptCount: 0,
+      lockedUntil: null,
+    } as never);
+
+    const { verifyOneTimeCode } = await import("@/lib/security");
+    vi.mocked(verifyOneTimeCode).mockReturnValue(true);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null as never);
+
+    const req = new Request("http://localhost/api/reset-password", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: JSON.stringify({
+        email: "user@example.com",
+        otp: "123456",
+        newPassword: "NewPassword1!",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({
+      error: "Invalid or expired reset code.",
+    });
   });
 
   it("resets password and revokes sessions on valid OTP", async () => {

@@ -35,6 +35,10 @@ const registerSchema = z.object({
 
 // ── Postgres-backed distributed rate limiter (per hashed IP) ──
 const registerLimiter = createRateLimiter("register", 60 * 1000, 5); // 5 per minute per IP
+const GENERIC_REGISTER_RESPONSE = {
+  success: true,
+  message: "If this email can be registered, a verification code will be sent.",
+};
 
 export const POST = withCsrfProtection(async (req: Request) => {
   try {
@@ -74,10 +78,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
     const passwordHash = await hashCredentialPassword(password);
 
     if (existingUser) {
-      return apiError(
-        "Unable to create account. Please try a different email or log in.",
-        409
-      );
+      return apiJson(GENERIC_REGISTER_RESPONSE);
     }
 
     // Generate OTP and store pending user (upsert to handle resends)
@@ -127,10 +128,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
     // Send OTP email
     await sendOtpEmail(normalizedEmail, otp);
 
-    return apiJson(
-      { success: true, message: "Verification code sent to your email." },
-      200
-    );
+    return apiJson(GENERIC_REGISTER_RESPONSE);
   } catch (error) {
     logger.error("Registration error:", {
       error: error instanceof Error ? error.message : String(error),

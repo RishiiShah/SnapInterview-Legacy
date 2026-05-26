@@ -124,4 +124,28 @@ describe("/api/onboarding", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: "Target role is required" });
   });
+
+  it("PUT rejects oversized onboarding text fields", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
+
+    const request = new Request("http://localhost/api/onboarding", {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: JSON.stringify({
+        onboardingRole: "R".repeat(201),
+        onboardingLevel: "L".repeat(65),
+        onboardingCompany: "",
+        onboardingGoal: "G".repeat(201),
+        preferredInterviewType: "technical",
+      }),
+    });
+
+    const response = await PUT(request);
+
+    expect(prisma.user.update).not.toHaveBeenCalled();
+    expect(response.status).toBe(400);
+  });
 });

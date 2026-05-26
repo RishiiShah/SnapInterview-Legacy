@@ -1,14 +1,15 @@
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiError, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
+import { env } from "@/lib/env";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
 import { logger } from "@/utils/logger";
 import { z } from "zod/v4";
 
 const PERSONA_VOICES: Record<string, string> = {
-  friendly: process.env.ELEVENLABS_VOICE_FRIENDLY ?? "cgSgspJ2msm6clMCkdW9",
-  balanced: process.env.ELEVENLABS_VOICE_BALANCED ?? "EXAVITQu4vr4xnSDxMaL",
-  strict: process.env.ELEVENLABS_VOICE_STRICT ?? "nPczCjzI2devNBz1zQrb",
+  friendly: env.ELEVENLABS_VOICE_FRIENDLY ?? "cgSgspJ2msm6clMCkdW9",
+  balanced: env.ELEVENLABS_VOICE_BALANCED ?? "EXAVITQu4vr4xnSDxMaL",
+  strict: env.ELEVENLABS_VOICE_STRICT ?? "nPczCjzI2devNBz1zQrb",
 };
 
 const ttsSchema = z.object({
@@ -16,7 +17,7 @@ const ttsSchema = z.object({
   persona: z.string().optional(),
 });
 
-const ttsLimiter = createRateLimiter("tts", 60 * 1000, 60);
+const ttsLimiter = createRateLimiter("tts", 60 * 1000, 20);
 
 function resolveVoiceId(persona?: string | null): string {
   if (!persona) return PERSONA_VOICES.balanced;
@@ -25,7 +26,7 @@ function resolveVoiceId(persona?: string | null): string {
 }
 
 export const POST = withCsrfProtection(async (req: Request) => {
-  const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
+  const elevenLabsApiKey = env.ELEVENLABS_API_KEY;
   if (!elevenLabsApiKey) {
     return apiError("Text-to-speech is not configured", 503);
   }

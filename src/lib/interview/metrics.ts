@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { normalizeTranscriptEvaluation } from "@/lib/interview/evaluation";
+import { normalizeTranscriptEvaluation, type TranscriptEvaluationResponse } from "@/lib/interview/evaluation";
 import { interviewTypeSchema, type InterviewType } from "@/lib/interview/domain";
 
 import { env } from "@/lib/env";
@@ -66,7 +66,7 @@ type SessionRecord = {
   currentQuestion: number;
   evaluation: unknown;
   createdAt: Date;
-  _normalizedEvaluation?: any;
+  _normalizedEvaluation?: TranscriptEvaluationResponse | null;
   _score?: number;
 };
 
@@ -334,7 +334,7 @@ async function getUserSessionsByUserId(userId: string): Promise<SessionRecord[]>
     if (_normalizedEvaluation?.score != null) {
       _score = _normalizedEvaluation.score;
     } else {
-      _score = deriveSessionScore(session as any); // Cast needed if SessionRecord expects exact Prisma type
+      _score = deriveSessionScore(session as unknown as SessionRecord); // Cast needed if SessionRecord expects exact Prisma type
     }
     return { ...session, _normalizedEvaluation, _score };
   });

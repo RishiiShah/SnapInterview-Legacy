@@ -17,12 +17,12 @@ export const metadata: Metadata = {
     metadataBase: new URL("https://snapinterview.app"),
     title: {
         template: "%s | SnapInterview",
-        default: "SnapInterview — Ace Your Next Interview",
+        default: "SnapInterview | AI Mock Interview Platform",
     },
     description:
         "Practice mock interviews with AI, get instant feedback, and land your dream job with confidence.",
     openGraph: {
-        title: "SnapInterview — Ace Your Next Interview",
+        title: "SnapInterview | AI Mock Interview Platform",
         description: "Practice mock interviews with AI, get instant feedback, and land your dream job with confidence.",
         url: "https://snapinterview.app",
         siteName: "SnapInterview",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     },
     twitter: {
         card: "summary_large_image",
-        title: "SnapInterview — Ace Your Next Interview",
+        title: "SnapInterview | AI Mock Interview Platform",
         description: "Practice mock interviews with AI, get instant feedback, and land your dream job.",
     },
 };

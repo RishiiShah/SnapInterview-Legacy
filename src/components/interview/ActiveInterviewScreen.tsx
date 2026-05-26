@@ -33,6 +33,7 @@ type ActiveInterviewScreenProps = {
   isMicEnabled: boolean;
   isCameraEnabled: boolean;
   isRecording: boolean;
+  isModelLoading?: boolean;
   hasSpeechSupport: boolean;
   speechError: string | null;
   audioLevels: [number, number, number];
@@ -62,6 +63,7 @@ export default function ActiveInterviewScreen({
   isMicEnabled,
   isCameraEnabled,
   isRecording,
+  isModelLoading = false,
   hasSpeechSupport,
   speechError,
   audioLevels,
@@ -175,6 +177,14 @@ export default function ActiveInterviewScreen({
                     <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '0ms' }} />
                     <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '150ms' }} />
                     <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
+              )}
+
+              {isRecording && isModelLoading && !interimTranscript && !volatileTranscript && (
+                <div className="flex w-full justify-end">
+                  <div className="max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed bg-blue-600/20 text-blue-200 rounded-br-sm border border-blue-500/20">
+                    Loading speech model… (first time may take 20–40s)
                   </div>
                 </div>
               )}

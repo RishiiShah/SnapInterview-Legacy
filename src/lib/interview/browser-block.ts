@@ -17,7 +17,7 @@ export async function getInterviewBlockReason(): Promise<BrowserBlockResult> {
   if (userAgent.includes("firefox")) {
     return {
       severity: "warning",
-      reason: "Firefox has limited support for speech recognition and screen recording. For the best experience, we recommend using Chrome or Edge.",
+      reason: "Firefox has limited support for screen recording. For the best experience, we recommend using Chrome or Edge.",
     };
   }
 

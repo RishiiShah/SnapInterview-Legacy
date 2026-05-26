@@ -92,6 +92,7 @@ export default function InterviewPage() {
           isMicEnabled={media.isMicEnabled}
           isCameraEnabled={media.isCameraEnabled}
           isRecording={speech.isRecording}
+          isModelLoading={speech.isModelLoading}
           hasSpeechSupport={speech.hasSupport}
           speechError={speech.speechError}
           audioLevels={audioLevels}

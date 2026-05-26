@@ -81,9 +81,9 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   const chatScrollContainerRef = useRef<HTMLDivElement | null>(null);
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
 
-  const speech = useSpeechRecognition();
-
   const media = useMediaPermissions();
+
+  const speech = useSpeechRecognition({ sharedAudioStream: media.stream });
 
   const videoRecording = useVideoRecording({
     interviewId,
@@ -141,17 +141,6 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
       return;
     }
 
-    const started = await videoRecording.startScreenRecording(media.stream || undefined);
-    if (!started) {
-      setModal({
-        isOpen: true,
-        title: "Screen Recording Required",
-        description: "Please allow screen recording to start the interview. This is used to capture your session for analysis.",
-        variant: "warning",
-      });
-      return;
-    }
-
     const pendingRaw = sessionStorage.getItem(`pending_interview_${interviewId}`);
     if (pendingRaw) {
       try {
@@ -175,6 +164,17 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
         void videoRecording.stopVideoRecording();
         return;
       }
+    }
+
+    const started = await videoRecording.startScreenRecording(media.stream || undefined);
+    if (!started) {
+      setModal({
+        isOpen: true,
+        title: "Screen Recording Required",
+        description: "Please allow screen recording to start the interview. This is used to capture your session for analysis.",
+        variant: "warning",
+      });
+      return;
     }
 
     setShowPreJoin(false);

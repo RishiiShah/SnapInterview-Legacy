@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { decodeE2ETestIdentity, encodeE2ETestIdentity, isTestAuthEnabled } from "./test-auth";
+import {
+  decodeE2ETestIdentity,
+  encodeE2ETestIdentity,
+  isTestAuthEnabled,
+  isTestAuthEnabledForEnv,
+} from "./test-auth";
 
 describe("test auth cookie helpers", () => {
   it("round-trips a signed identity", async () => {
@@ -37,5 +42,13 @@ describe("test auth cookie helpers", () => {
     vi.stubEnv("ENABLE_TEST_AUTH", "0");
 
     expect(isTestAuthEnabled()).toBe(false);
+  });
+
+  it("keeps test auth disabled on non-local auth URLs even when flags are enabled", () => {
+    expect(isTestAuthEnabledForEnv({
+      NODE_ENV: "test",
+      ENABLE_TEST_AUTH: "1",
+      BETTER_AUTH_URL: "https://snap-interview.example.com",
+    })).toBe(false);
   });
 });

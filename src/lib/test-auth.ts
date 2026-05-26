@@ -44,8 +44,27 @@ async function getHmacKey() {
   );
 }
 
+type TestAuthEnv = Pick<typeof env, "NODE_ENV" | "ENABLE_TEST_AUTH" | "BETTER_AUTH_URL">;
+
+function isLocalAuthUrl(value: string) {
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  } catch {
+    return false;
+  }
+}
+
+export function isTestAuthEnabledForEnv(value: TestAuthEnv): boolean {
+  return (
+    value.NODE_ENV === "test" &&
+    value.ENABLE_TEST_AUTH === "1" &&
+    isLocalAuthUrl(value.BETTER_AUTH_URL)
+  );
+}
+
 export function isTestAuthEnabled(): boolean {
-  return env.NODE_ENV === "test" && env.ENABLE_TEST_AUTH === "1";
+  return isTestAuthEnabledForEnv(env);
 }
 export async function encodeE2ETestIdentity(identity: E2ETestIdentity) {
   const payload = bytesToBase64Url(new TextEncoder().encode(JSON.stringify(identity)));

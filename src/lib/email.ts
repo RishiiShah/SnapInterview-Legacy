@@ -12,6 +12,19 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+function escapeHtml(value: string | number) {
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function escapeSubject(value: string) {
+    return value.replace(/[\r\n]+/g, " ").trim();
+}
+
 /**
  * Send a 6-digit OTP verification email.
  */
@@ -136,6 +149,10 @@ export async function sendEvaluationEmail(params: {
     const scoreColor = score >= 80 ? "#10b981" : score >= 65 ? "#3b82f6" : "#f59e0b";
     const scoreLabel = score >= 80 ? "Strong performance" : score >= 65 ? "Steady performance" : "Room to improve";
 
+    const safeRole = escapeHtml(role);
+    const safeFeedback = escapeHtml(feedback);
+    const safeStrengths = strengths.map(escapeHtml);
+    const safeImprovements = improvements.map(escapeHtml);
     const listItems = (items: string[]) =>
         items.map(item => `<li style="margin:6px 0;font-size:13px;color:#3f3f46;">${item}</li>`).join("");
 
@@ -144,7 +161,7 @@ export async function sendEvaluationEmail(params: {
     await transporter.sendMail({
         from,
         to,
-        subject: `SnapInterview — Your ${role} evaluation is ready`,
+        subject: `SnapInterview — Your ${escapeSubject(role)} evaluation is ready`,
         html: `
 <!DOCTYPE html>
 <html>
@@ -170,7 +187,7 @@ export async function sendEvaluationEmail(params: {
           <tr>
             <td style="padding:28px 32px 8px;">
               <h1 style="margin:0;font-size:20px;font-weight:700;color:#18181b;">Your evaluation is ready</h1>
-              <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:#71717a;">${role} interview &mdash; here&apos;s how you did.</p>
+              <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:#71717a;">${safeRole} interview &mdash; here&apos;s how you did.</p>
             </td>
           </tr>
           <tr>
@@ -183,21 +200,21 @@ export async function sendEvaluationEmail(params: {
           </tr>
           <tr>
             <td style="padding:0 32px 20px;">
-              <p style="margin:0;font-size:13px;line-height:1.7;color:#52525b;">${feedback}</p>
+              <p style="margin:0;font-size:13px;line-height:1.7;color:#52525b;">${safeFeedback}</p>
             </td>
           </tr>
-          ${strengths.length > 0 ? `
+          ${safeStrengths.length > 0 ? `
           <tr>
             <td style="padding:0 32px 16px;">
               <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:0.5px;">Strengths</p>
-              <ul style="margin:0;padding-left:18px;">${listItems(strengths)}</ul>
+              <ul style="margin:0;padding-left:18px;">${listItems(safeStrengths)}</ul>
             </td>
           </tr>` : ""}
-          ${improvements.length > 0 ? `
+          ${safeImprovements.length > 0 ? `
           <tr>
             <td style="padding:0 32px 24px;">
               <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:0.5px;">Areas to Improve</p>
-              <ul style="margin:0;padding-left:18px;">${listItems(improvements)}</ul>
+              <ul style="margin:0;padding-left:18px;">${listItems(safeImprovements)}</ul>
             </td>
           </tr>` : ""}
           <tr>
@@ -234,6 +251,8 @@ export async function sendWeeklyReportEmail(params: {
     const appUrl = env.NEXT_PUBLIC_APP_URL ?? env.APP_URL ?? "https://snapinterview.app";
     const avgDisplay = avgScore !== null ? Math.round(avgScore).toString() : "—";
     const headline = sessionsCount === 1 ? "1 mock interview this week" : `${sessionsCount} mock interviews this week`;
+    const safeName = escapeHtml(name);
+    const safeBestRole = bestRole ? escapeHtml(bestRole) : null;
 
     await transporter.sendMail({
         from,
@@ -250,7 +269,7 @@ export async function sendWeeklyReportEmail(params: {
         <td style="padding-left:10px;font-size:18px;font-weight:600;color:#18181b;letter-spacing:-0.3px;">SnapInterview</td>
       </tr></table></td></tr>
       <tr><td style="padding:28px 32px 8px;">
-        <h1 style="margin:0;font-size:20px;font-weight:700;color:#18181b;">Hey ${name}, here&apos;s your week</h1>
+        <h1 style="margin:0;font-size:20px;font-weight:700;color:#18181b;">Hey ${safeName}, here&apos;s your week</h1>
         <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:#71717a;">${headline}</p>
       </td></tr>
       <tr><td style="padding:16px 32px 8px;"><table width="100%" cellpadding="0" cellspacing="0"><tr>
@@ -264,7 +283,7 @@ export async function sendWeeklyReportEmail(params: {
           <div style="font-size:11px;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;">Avg score</div>
         </td>
       </tr></table></td></tr>
-      ${bestRole && bestScore !== null ? `<tr><td style="padding:8px 32px 16px;"><p style="margin:0;font-size:13px;line-height:1.7;color:#52525b;">Top performance: <strong>${bestRole}</strong> at <strong>${bestScore}/100</strong>.</p></td></tr>` : ""}
+      ${safeBestRole && bestScore !== null ? `<tr><td style="padding:8px 32px 16px;"><p style="margin:0;font-size:13px;line-height:1.7;color:#52525b;">Top performance: <strong>${safeBestRole}</strong> at <strong>${bestScore}/100</strong>.</p></td></tr>` : ""}
       <tr><td align="center" style="padding:8px 32px 32px;">
         <a href="${appUrl}/analytics" style="display:inline-block;background:#18181b;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;border-radius:10px;">View analytics</a>
       </td></tr>
@@ -286,6 +305,7 @@ export async function sendPracticeReminderEmail(params: {
     const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.app";
     const { to, name, daysSinceLast } = params;
     const appUrl = env.NEXT_PUBLIC_APP_URL ?? env.APP_URL ?? "https://snapinterview.app";
+    const safeName = escapeHtml(name);
 
     await transporter.sendMail({
         from,
@@ -302,7 +322,7 @@ export async function sendPracticeReminderEmail(params: {
         <td style="padding-left:10px;font-size:18px;font-weight:600;color:#18181b;letter-spacing:-0.3px;">SnapInterview</td>
       </tr></table></td></tr>
       <tr><td style="padding:28px 32px 8px;">
-        <h1 style="margin:0;font-size:20px;font-weight:700;color:#18181b;">Hey ${name}, ready for round two?</h1>
+        <h1 style="margin:0;font-size:20px;font-weight:700;color:#18181b;">Hey ${safeName}, ready for round two?</h1>
         <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:#52525b;">It&apos;s been ${daysSinceLast} days since your last mock interview. A short 10-minute session keeps your reps sharp.</p>
       </td></tr>
       <tr><td align="center" style="padding:24px 32px 32px;">

@@ -21,4 +21,38 @@ describe("parseEnvFrom", () => {
       })
     ).toThrow(/Invalid environment configuration/);
   });
+
+  it("rejects weak production AUTH_SECRET values", () => {
+    expect(() =>
+      parseEnvFrom({
+        NODE_ENV: "production",
+        DATABASE_URL: "postgresql://user:pass@localhost:5432/app",
+        AUTH_SECRET: "short",
+        BETTER_AUTH_URL: "https://example.com",
+      })
+    ).toThrow(/AUTH_SECRET/);
+  });
+
+  it("rejects placeholder production AUTH_SECRET values", () => {
+    expect(() =>
+      parseEnvFrom({
+        NODE_ENV: "production",
+        DATABASE_URL: "postgresql://user:pass@localhost:5432/app",
+        AUTH_SECRET: "test-auth-secret-32-chars-minimum",
+        BETTER_AUTH_URL: "https://example.com",
+      })
+    ).toThrow(/AUTH_SECRET/);
+  });
+
+  it("rejects weak production CRON_SECRET values when configured", () => {
+    expect(() =>
+      parseEnvFrom({
+        NODE_ENV: "production",
+        DATABASE_URL: "postgresql://user:pass@localhost:5432/app",
+        AUTH_SECRET: "a-production-auth-secret-that-is-long-enough",
+        BETTER_AUTH_URL: "https://example.com",
+        CRON_SECRET: "short",
+      })
+    ).toThrow(/CRON_SECRET/);
+  });
 });

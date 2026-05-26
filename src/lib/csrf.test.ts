@@ -123,4 +123,17 @@ describe("csrf utilities", () => {
     });
     expect(validateRequestOrigin(nonSubdomainReq).isValid).toBe(false);
   });
+
+  it("rejects shared platform suffixes even when configured", () => {
+    mockEnv.NODE_ENV = "production" as never;
+    mockEnv.BETTER_AUTH_URL = "https://snapinterview.app";
+    mockEnv.CSRF_TRUSTED_ORIGIN_SUFFIXES = ".vercel.app";
+
+    const req = new Request("https://snapinterview.app/api/test", {
+      method: "POST",
+      headers: { origin: "https://attacker.vercel.app" },
+    });
+
+    expect(validateRequestOrigin(req).isValid).toBe(false);
+  });
 });

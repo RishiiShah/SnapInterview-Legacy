@@ -20,6 +20,16 @@ function normalizeOrigin(value: string | null | undefined): string | null {
 let _allowedOrigins: Set<string> | null = null;
 let _trustedSuffixes: string[] | null = null;
 
+const SHARED_HOSTING_SUFFIXES = new Set([
+  ".vercel.app",
+  ".netlify.app",
+  ".pages.dev",
+  ".github.io",
+  ".herokuapp.com",
+  ".fly.dev",
+  ".render.com",
+]);
+
 // Reset the cache. Only exported for use in tests — do not call in production code.
 export function _resetOriginCacheForTesting() {
   _allowedOrigins = null;
@@ -64,7 +74,8 @@ function getTrustedSuffixes(): string[] {
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean)
-    .map((s) => (s.startsWith(".") ? s : `.${s}`));
+    .map((s) => (s.startsWith(".") ? s : `.${s}`))
+    .filter((suffix) => !SHARED_HOSTING_SUFFIXES.has(suffix));
 
   return _trustedSuffixes;
 }

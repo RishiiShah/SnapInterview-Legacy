@@ -19,6 +19,10 @@ const envSchema = z.object({
   SMTP_USER: z.string().min(1).optional(),
   SMTP_PASS: z.string().min(1).optional(),
   SMTP_FROM: z.string().optional(),
+  ELEVENLABS_API_KEY: z.string().min(1).optional(),
+  ELEVENLABS_VOICE_FRIENDLY: z.string().min(1).optional(),
+  ELEVENLABS_VOICE_BALANCED: z.string().min(1).optional(),
+  ELEVENLABS_VOICE_STRICT: z.string().min(1).optional(),
   ENABLE_TEST_AUTH: z.enum(["0", "1"]).optional(),
   CSRF_TRUSTED_ORIGIN_SUFFIXES: z.string().optional(),
   CSRF_TRUSTED_ORIGINS: z.string().optional(),
@@ -42,6 +46,10 @@ const testEnvSchema = envSchema.extend({
   SMTP_USER: true,
   SMTP_PASS: true,
   SMTP_FROM: true,
+  ELEVENLABS_API_KEY: true,
+  ELEVENLABS_VOICE_FRIENDLY: true,
+  ELEVENLABS_VOICE_BALANCED: true,
+  ELEVENLABS_VOICE_STRICT: true,
   NEXT_PUBLIC_APP_URL: true,
   APP_URL: true,
   ENABLE_TEST_AUTH: true,
@@ -54,6 +62,38 @@ function formatError(prefix: string, issues: z.core.$ZodIssue[]) {
   return `${prefix}: ${detail}`;
 }
 
+const MIN_PRODUCTION_SECRET_LENGTH = 32;
+const PLACEHOLDER_SECRETS = new Set([
+  "test-auth-secret-32-chars-minimum",
+  "your-auth-secret",
+  "your-secret-here",
+  "change-me",
+  "changeme",
+]);
+
+function assertStrongProductionSecret(name: string, value: string | undefined) {
+  if (!value) return;
+
+  const normalized = value.trim().toLowerCase();
+  const isPlaceholder =
+    PLACEHOLDER_SECRETS.has(normalized) ||
+    normalized.includes("placeholder") ||
+    normalized.includes("changeme");
+
+  if (value.length < MIN_PRODUCTION_SECRET_LENGTH || isPlaceholder) {
+    throw new Error(
+      `Invalid environment configuration: ${name} must be at least ${MIN_PRODUCTION_SECRET_LENGTH} characters and not a placeholder value in production`
+    );
+  }
+}
+
+function validateProductionSecrets(parsed: Env) {
+  if (parsed.NODE_ENV !== "production") return;
+
+  assertStrongProductionSecret("AUTH_SECRET", parsed.AUTH_SECRET);
+  assertStrongProductionSecret("CRON_SECRET", parsed.CRON_SECRET);
+}
+
 export function parseEnvFrom(source: NodeJS.ProcessEnv): Env {
   const schema = source.NODE_ENV === "test" ? testEnvSchema : envSchema;
   const parsed = schema.safeParse(source);
@@ -61,7 +101,9 @@ export function parseEnvFrom(source: NodeJS.ProcessEnv): Env {
     throw new Error(formatError("Invalid environment configuration", parsed.error.issues));
   }
 
-  return parsed.data as Env;
+  const env = parsed.data as Env;
+  validateProductionSecrets(env);
+  return env;
 }
 
 export const env = parseEnvFrom(process.env);

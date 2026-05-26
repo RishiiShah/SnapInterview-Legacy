@@ -94,6 +94,14 @@ function assertStrongProductionSecret(name: string, value: string | undefined, r
 
 function validateProductionSecrets(parsed: Env) {
   if (parsed.NODE_ENV !== "production") return;
+  // Skip strict validation during the build phase where secrets might not be injected yet
+  if (
+    process.env.SKIP_ENV_VALIDATION === "1" ||
+    process.env.npm_lifecycle_event === "build" ||
+    process.env.NEXT_PHASE === "phase-production-build"
+  ) {
+    return;
+  }
 
   assertStrongProductionSecret("AUTH_SECRET", parsed.AUTH_SECRET, true);
   assertStrongProductionSecret("CRON_SECRET", parsed.CRON_SECRET, true);

@@ -43,11 +43,17 @@ export async function GET(req: Request) {
         }
 
         const { searchParams } = new URL(req.url);
-        const interviewId = searchParams.get("interviewId");
+        const rawInterviewId = searchParams.get("interviewId");
 
-        if (!interviewId) {
+        if (!rawInterviewId) {
             return badRequestError("interviewId is required");
         }
+
+        const parsedId = z.string().uuid().safeParse(rawInterviewId);
+        if (!parsedId.success) {
+            return badRequestError("interviewId must be a valid UUID");
+        }
+        const interviewId = parsedId.data;
 
         const interviewSession = await getInterviewSessionState({
             interviewId,
@@ -205,11 +211,17 @@ export const DELETE = withCsrfProtection(async (req: Request) => {
         }
 
         const { searchParams } = new URL(req.url);
-        const interviewId = searchParams.get("interviewId");
+        const rawInterviewId = searchParams.get("interviewId");
 
-        if (!interviewId) {
+        if (!rawInterviewId) {
             return badRequestError("interviewId is required");
         }
+
+        const parsedId = z.string().uuid().safeParse(rawInterviewId);
+        if (!parsedId.success) {
+            return badRequestError("interviewId must be a valid UUID");
+        }
+        const interviewId = parsedId.data;
 
         await deleteInterviewSession({
             interviewId,

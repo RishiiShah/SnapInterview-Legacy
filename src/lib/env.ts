@@ -71,8 +71,13 @@ const PLACEHOLDER_SECRETS = new Set([
   "changeme",
 ]);
 
-function assertStrongProductionSecret(name: string, value: string | undefined) {
-  if (!value) return;
+function assertStrongProductionSecret(name: string, value: string | undefined, required = false) {
+  if (!value) {
+    if (required) {
+      throw new Error(`Invalid environment configuration: ${name} is required in production`);
+    }
+    return;
+  }
 
   const normalized = value.trim().toLowerCase();
   const isPlaceholder =
@@ -90,8 +95,8 @@ function assertStrongProductionSecret(name: string, value: string | undefined) {
 function validateProductionSecrets(parsed: Env) {
   if (parsed.NODE_ENV !== "production") return;
 
-  assertStrongProductionSecret("AUTH_SECRET", parsed.AUTH_SECRET);
-  assertStrongProductionSecret("CRON_SECRET", parsed.CRON_SECRET);
+  assertStrongProductionSecret("AUTH_SECRET", parsed.AUTH_SECRET, true);
+  assertStrongProductionSecret("CRON_SECRET", parsed.CRON_SECRET, true);
 }
 
 export function parseEnvFrom(source: NodeJS.ProcessEnv): Env {

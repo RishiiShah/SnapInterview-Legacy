@@ -59,7 +59,22 @@ export function extractRequestContext(source: HeaderSource | null | undefined) {
   const forwardedFor = getHeaderValue(source, "x-forwarded-for");
   const realIp = getHeaderValue(source, "x-real-ip");
   const userAgentValue = getHeaderValue(source, "user-agent")?.trim() || null;
-  const ip = forwardedFor?.split(",")[0]?.trim() || realIp?.trim() || null;
+  let ip = forwardedFor?.split(",")[0]?.trim() || realIp?.trim() || null;
+
+  if (ip) {
+    // Normalize IPv4-mapped IPv6 addresses
+    if (ip.startsWith("::ffff:")) {
+      ip = ip.replace("::ffff:", "");
+    }
+
+    // Apply /64 subnet grouping to pure IPv6 addresses
+    if (ip.includes(":") && !ip.includes(".")) {
+      const parts = ip.split(":");
+      if (parts.length > 4) {
+        ip = parts.slice(0, 4).join(":") + "::/64";
+      }
+    }
+  }
 
   return {
     ipHash: ip ? keyedHash(`ip:${ip}`) : null,

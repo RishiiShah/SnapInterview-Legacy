@@ -149,29 +149,45 @@ export default function RecordingsList({ initialSessions, initialHasMore }: Reco
   };
 
   const handleDeleteVideo = async () => {
-    if (!sessionToDelete?.videoKey) return;
+    if (!sessionToDelete) return;
 
     setDeletingId(sessionToDelete.id);
     try {
-      const res = await fetch("/api/s3/videos", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: sessionToDelete.videoKey, deleteInterviewData }),
-      });
+      if (sessionToDelete.videoKey) {
+        // Has video: Delete video (and optionally interview data)
+        const res = await fetch("/api/s3/videos", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: sessionToDelete.videoKey, deleteInterviewData }),
+        });
 
-      if (res.ok) {
-        if (deleteInterviewData) {
-          setSessions((prev) => prev.filter((s) => s.id !== sessionToDelete.id));
+        if (res.ok) {
+          if (deleteInterviewData) {
+            setSessions((prev) => prev.filter((s) => s.id !== sessionToDelete.id));
+          } else {
+            setSessions((prev) => prev.map((s) => s.id === sessionToDelete.id ? { ...s, videoKey: null } : s));
+          }
+          setSessionToDelete(null);
+          setDeleteInterviewData(false);
         } else {
-          setSessions((prev) => prev.map((s) => s.id === sessionToDelete.id ? { ...s, videoKey: null } : s));
+          setErrorModal({ isOpen: true, title: "Delete Failed", description: "Failed to delete recording. Please try again later." });
         }
-        setSessionToDelete(null);
-        setDeleteInterviewData(false);
       } else {
-        setErrorModal({ isOpen: true, title: "Delete Failed", description: "Failed to delete recording. Please try again later." });
+        // No video: Delete interview session data only
+        const res = await fetch(`/api/interview/session?interviewId=${sessionToDelete.id}`, {
+          method: "DELETE",
+        });
+
+        if (res.ok) {
+          setSessions((prev) => prev.filter((s) => s.id !== sessionToDelete.id));
+          setSessionToDelete(null);
+          setDeleteInterviewData(false);
+        } else {
+          setErrorModal({ isOpen: true, title: "Delete Failed", description: "Failed to delete interview session. Please try again later." });
+        }
       }
     } catch {
-      setErrorModal({ isOpen: true, title: "Delete Error", description: "An unexpected error occurred while deleting the recording." });
+      setErrorModal({ isOpen: true, title: "Delete Error", description: "An unexpected error occurred while deleting." });
     } finally {
       setDeletingId(null);
     }
@@ -329,26 +345,25 @@ export default function RecordingsList({ initialSessions, initialHasMore }: Reco
                     <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${getScoreColor(session.score)}`}>
                       {getScoreLabel(session.score)}
                     </span>
-                    {hasVideo && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteInterviewData(false);
-                          setSessionToDelete(session);
-                        }}
-                        disabled={deletingId === session.id}
-                        className="flex cursor-pointer items-center justify-center rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-default disabled:opacity-50"
-                        aria-label="Delete recording"
-                      >
-                        {deletingId === session.id ? (
-                          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
-                        ) : (
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                          </svg>
-                        )}
-                      </button>
-                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // If there is no video, the only option is to delete the entire interview data.
+                        setDeleteInterviewData(!hasVideo);
+                        setSessionToDelete(session);
+                      }}
+                      disabled={deletingId === session.id}
+                      className="flex cursor-pointer items-center justify-center rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-default disabled:opacity-50"
+                      aria-label={hasVideo ? "Delete recording" : "Delete session"}
+                    >
+                      {deletingId === session.id ? (
+                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
+                      ) : (
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
                 </div>
                 <div className="mt-auto flex items-center justify-between pt-2">
@@ -393,25 +408,29 @@ export default function RecordingsList({ initialSessions, initialHasMore }: Reco
         }}
         onConfirm={handleDeleteVideo}
         isDeleting={deletingId !== null}
-        title="Delete Recording"
+        title={sessionToDelete?.videoKey ? "Delete Recording" : "Delete Interview Session"}
         description={
-          deleteInterviewData
+          !sessionToDelete?.videoKey
+            ? "This will permanently delete this interview session, including your score and feedback."
+            : deleteInterviewData
             ? "This will permanently delete the recording and all interview data (score, transcript, and feedback)."
             : "This will delete only the recording. Your score and feedback will stay available for learning progress."
         }
-        confirmLabel={deleteInterviewData ? "Delete Everything" : "Delete Recording"}
+        confirmLabel={!sessionToDelete?.videoKey || deleteInterviewData ? "Delete Everything" : "Delete Recording"}
         extraContent={
-          <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-left">
-            <input
-              type="checkbox"
-              checked={deleteInterviewData}
-              onChange={(e) => setDeleteInterviewData(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-red-600 focus:ring-red-500"
-            />
-            <span className="text-xs text-zinc-600">
-              Also delete interview data (score, transcript, and feedback)
-            </span>
-          </label>
+          sessionToDelete?.videoKey ? (
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-left">
+              <input
+                type="checkbox"
+                checked={deleteInterviewData}
+                onChange={(e) => setDeleteInterviewData(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-red-600 focus:ring-red-500"
+              />
+              <span className="text-xs text-zinc-600">
+                Also delete interview data (score, transcript, and feedback)
+              </span>
+            </label>
+          ) : null
         }
       />
 

@@ -9,6 +9,8 @@ import { hashCredentialPassword, verifyCredentialPassword } from "@/lib/password
 import { env } from "@/lib/env";
 
 const loginLimiter = createRateLimiter("login", 60 * 1000, 5);
+const loginIpLimiter = createRateLimiter("login_ip", 60 * 1000, 15);
+const loginIpBanLimiter = createRateLimiter("login_ip_ban", 60 * 1000, 50);
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
 
@@ -114,7 +116,40 @@ export const auth = betterAuth({
         ? extractRequestContext(ctx.request.headers).userAgent
         : undefined;
 
-      // Distributed Postgres-backed rate limit check.
+      // 1. Check IP Ban Limit (Tarpit) - Consumes a token for ALL attempts
+      if (ipHash && await loginIpBanLimiter.isLimited(ipHash)) {
+        await recordSecurityEvent({
+          type: "LOGIN_FAILED",
+          email,
+          ipHash,
+          userAgent,
+          metadata: { reason: "ip_tarpit_triggered" },
+        });
+
+        // Randomized delay 5-30s
+        const delayMs = 5000 + Math.random() * 25000;
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+        throw new APIError("TOO_MANY_REQUESTS", {
+          message: "Too many login attempts. Please try again later.",
+        });
+      }
+
+      // 2. Check Primary IP Limit (Failures only) - Peek without consuming
+      if (ipHash && await loginIpLimiter.checkLimit(ipHash)) {
+        await recordSecurityEvent({
+          type: "LOGIN_FAILED",
+          email,
+          ipHash,
+          userAgent,
+          metadata: { reason: "ip_rate_limited" },
+        });
+        throw new APIError("TOO_MANY_REQUESTS", {
+          message: "Too many login attempts. Please try again later.",
+        });
+      }
+
+      // 3. Distributed Postgres-backed email rate limit check.
       if (await loginLimiter.isLimited(email)) {
         await recordSecurityEvent({
           type: "LOGIN_FAILED",
@@ -161,6 +196,12 @@ export const auth = betterAuth({
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const isSuccess = !!(ctx as any).context?.session;
+        
+        // Consume IP rate limit token ONLY on failure
+        if (!isSuccess && ipHash) {
+          await loginIpLimiter.isLimited(ipHash);
+        }
+
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) return;
 

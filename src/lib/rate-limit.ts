@@ -12,6 +12,8 @@ interface RateLimitResult {
 interface RateLimiter {
   /** Returns true if the key is rate limited (request should be rejected). */
   isLimited(key: string): Promise<boolean>;
+  /** Returns true if the key is currently at or over the limit, without consuming a token. */
+  checkLimit(key: string): Promise<boolean>;
 }
 
 const CLEANUP_SAMPLE_RATE = 0.01;
@@ -220,6 +222,43 @@ async function consumeFixedWindow(
   }
 }
 
+async function checkFixedWindow(
+  namespace: string,
+  rawKey: string,
+  windowMs: number,
+  maxRequests: number
+): Promise<boolean> {
+  const nowMs = Date.now();
+  const safeRawKey = (rawKey || "unknown").slice(0, MAX_KEY_LENGTH);
+  const windowStart = windowStartFor(nowMs, windowMs);
+  const keyHash = hashRateLimitKey(namespace, safeRawKey);
+
+  if (typeof prisma.$queryRaw !== "function") {
+    const bucketKey = `${namespace}:${safeRawKey}:${Math.floor(nowMs / windowMs)}`;
+    const count = inMemoryBuckets.get(bucketKey)?.count ?? 0;
+    return count >= maxRequests;
+  }
+
+  try {
+    const bucket = await prisma.$queryRaw<Array<{ count: number | bigint }>>`
+      SELECT "count" FROM "rate_limit_buckets"
+      WHERE "namespace" = ${namespace}
+        AND "keyHash" = ${keyHash}
+        AND "windowStart" = ${windowStart}
+    `;
+    const count = Number(bucket[0]?.count ?? 0);
+    return count >= maxRequests;
+  } catch (error) {
+    if (shouldFallbackToInMemory(error)) {
+      const bucketKey = `${namespace}:${safeRawKey}:${Math.floor(nowMs / windowMs)}`;
+      const count = inMemoryBuckets.get(bucketKey)?.count ?? 0;
+      return count >= maxRequests;
+    }
+    // Default to not limited on error during check
+    return false;
+  }
+}
+
 /**
  * Creates a Postgres-backed fixed-window rate limiter.
  * Semantics: maxRequests per windowMs per key.
@@ -238,6 +277,14 @@ export function createRateLimiter(
         maxRequests
       );
       return result.limited;
+    },
+    async checkLimit(key: string): Promise<boolean> {
+      return checkFixedWindow(
+        namespace,
+        key,
+        windowMs,
+        maxRequests
+      );
     },
   };
 }

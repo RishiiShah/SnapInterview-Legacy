@@ -2,17 +2,10 @@ import { apiError, apiJson, notFoundError, internalServerError } from "@/lib/api
 import { createRateLimiter } from "@/lib/rate-limit";
 import { getSharedInterview } from "@/repositories/interview-repo";
 import { logger } from "@/utils/logger";
+import { extractRequestContext } from "@/lib/security";
 
 const SHARE_TOKEN_PATTERN = /^[a-f0-9]{32}$/i;
 const shareLookupLimiter = createRateLimiter("share-link-lookup", 60 * 1000, 120);
-
-function getPublicRateLimitKey(req: Request) {
-  return (
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip")?.trim() ||
-    "unknown"
-  );
-}
 
 export async function GET(
   req: Request,
@@ -22,7 +15,8 @@ export async function GET(
     const { token } = await params;
     if (!token || !SHARE_TOKEN_PATTERN.test(token)) return notFoundError("Invalid share link");
 
-    if (await shareLookupLimiter.isLimited(getPublicRateLimitKey(req))) {
+    const { ipHash } = extractRequestContext(req.headers);
+    if (await shareLookupLimiter.isLimited(ipHash || "unknown")) {
       return apiError("Too many share link requests. Please try again later.", 429);
     }
 

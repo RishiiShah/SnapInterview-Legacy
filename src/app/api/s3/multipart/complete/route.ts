@@ -1,10 +1,18 @@
-import { S3Client, CompleteMultipartUploadCommand, AbortMultipartUploadCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
+  ListPartsCommand,
+} from "@aws-sdk/client-s3";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiError, apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 import { requireAwsS3Env } from "@/lib/env";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
-import { MULTIPART_UPLOAD_MAX_PARTS } from "@/lib/s3/multipart-upload-constraints";
+import {
+  MULTIPART_UPLOAD_MAX_BYTES,
+  MULTIPART_UPLOAD_MAX_PARTS,
+} from "@/lib/s3/multipart-upload-constraints";
 import { createMultipartCompletionToken, verifyMultipartUploadToken } from "@/lib/s3/multipart-upload-token";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
@@ -21,6 +29,12 @@ const s3Client = new S3Client({
 
 const completeLimiter = createRateLimiter("s3-multipart-complete", 60 * 60 * 1000, 20);
 
+type UploadedPart = {
+  PartNumber?: number;
+  ETag?: string;
+  Size?: number;
+};
+
 const completeSchema = z.object({
   interviewId: z.string().uuid("interviewId must be a valid UUID"),
   key: z.string().min(1),
@@ -32,6 +46,41 @@ const completeSchema = z.object({
   })).max(MULTIPART_UPLOAD_MAX_PARTS).optional().default([]),
   action: z.enum(["complete", "abort"]).optional().default("complete"),
 });
+
+function normalizeETag(etag: string) {
+  return etag.replace(/^"|"$/g, "");
+}
+
+async function abortMultipartUpload(key: string, uploadId: string) {
+  const command = new AbortMultipartUploadCommand({
+    Bucket: aws.bucketName,
+    Key: key,
+    UploadId: uploadId,
+  });
+  await s3Client.send(command);
+}
+
+async function listUploadedParts(key: string, uploadId: string) {
+  const uploadedParts: UploadedPart[] = [];
+  let partNumberMarker: string | undefined;
+  let isTruncated = true;
+
+  while (isTruncated) {
+    const response = await s3Client.send(new ListPartsCommand({
+      Bucket: aws.bucketName,
+      Key: key,
+      UploadId: uploadId,
+      PartNumberMarker: partNumberMarker,
+      MaxParts: MULTIPART_UPLOAD_MAX_PARTS,
+    }));
+
+    uploadedParts.push(...(response.Parts ?? []));
+    isTruncated = Boolean(response.IsTruncated);
+    partNumberMarker = response.NextPartNumberMarker;
+  }
+
+  return uploadedParts;
+}
 
 export const POST = withCsrfProtection(async (req: Request) => {
   try {
@@ -64,12 +113,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
     }
 
     if (action === "abort") {
-      const command = new AbortMultipartUploadCommand({
-        Bucket: aws.bucketName,
-        Key: key,
-        UploadId: uploadId,
-      });
-      await s3Client.send(command);
+      await abortMultipartUpload(key, uploadId);
       return apiJson({ success: true, action: "aborted" });
     }
 
@@ -82,6 +126,36 @@ export const POST = withCsrfProtection(async (req: Request) => {
     );
     if (!hasSequentialParts) {
       return badRequestError("Upload parts must be sequential and ordered");
+    }
+
+    const uploadedParts = await listUploadedParts(key, uploadId);
+    const uploadedPartByNumber = new Map(
+      uploadedParts
+        .filter((part): part is UploadedPart & { PartNumber: number; ETag: string; Size: number } =>
+          typeof part.PartNumber === "number" &&
+          typeof part.ETag === "string" &&
+          typeof part.Size === "number"
+        )
+        .map(part => [part.PartNumber, part])
+    );
+
+    const partsMatchS3 =
+      uploadedPartByNumber.size === uploadedParts.length &&
+      uploadedParts.length === parts.length &&
+      parts.every((part) => {
+        const uploadedPart = uploadedPartByNumber.get(part.PartNumber);
+        return uploadedPart && normalizeETag(uploadedPart.ETag) === normalizeETag(part.ETag);
+      });
+
+    if (!partsMatchS3) {
+      await abortMultipartUpload(key, uploadId);
+      return badRequestError("Uploaded parts do not match submitted completion parts");
+    }
+
+    const uploadedSizeBytes = uploadedParts.reduce((total, part) => total + (part.Size ?? 0), 0);
+    if (uploadedSizeBytes > MULTIPART_UPLOAD_MAX_BYTES) {
+      await abortMultipartUpload(key, uploadId);
+      return badRequestError("Upload exceeds the maximum allowed size");
     }
 
     // Process Complete

@@ -90,7 +90,7 @@ describe("POST /api/verify-otp", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 404 when no pending user exists", async () => {
+  it("returns a generic verification failure when no pending user exists", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
     vi.mocked(prisma.pendingUser.findUnique).mockResolvedValue(null as never);
 
@@ -104,10 +104,13 @@ describe("POST /api/verify-otp", () => {
     });
 
     const res = await POST(req);
-    expect(res.status).toBe(404);
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toBe("Invalid or expired verification code.");
   });
 
-  it("returns 410 when OTP has expired", async () => {
+  it("returns a generic verification failure when OTP has expired", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
     vi.mocked(prisma.pendingUser.findUnique).mockResolvedValue({
       id: "pending-1",
@@ -129,10 +132,13 @@ describe("POST /api/verify-otp", () => {
     });
 
     const res = await POST(req);
-    expect(res.status).toBe(410);
-  });
+    const body = await res.json();
 
-  it("returns 429 when user is locked out", async () => {
+    expect(res.status).toBe(400);
+    expect(body.error).toBe("Invalid or expired verification code.");
+    });
+
+  it("returns a generic verification failure when user is locked out", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
     vi.mocked(prisma.pendingUser.findUnique).mockResolvedValue({
       id: "pending-1",
@@ -153,10 +159,13 @@ describe("POST /api/verify-otp", () => {
     });
 
     const res = await POST(req);
-    expect(res.status).toBe(429);
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toBe("Invalid or expired verification code.");
   });
 
-  it("increments attempt count on invalid OTP", async () => {
+  it("increments attempt count without exposing remaining attempts on invalid OTP", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
     vi.mocked(prisma.pendingUser.findUnique).mockResolvedValue({
       id: "pending-1",
@@ -181,7 +190,10 @@ describe("POST /api/verify-otp", () => {
     });
 
     const res = await POST(req);
+    const body = await res.json();
+
     expect(res.status).toBe(400);
+    expect(body.error).toBe("Invalid or expired verification code.");
     expect(prisma.pendingUser.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ attemptCount: 1 }),
@@ -189,6 +201,45 @@ describe("POST /api/verify-otp", () => {
     );
     expect(recordSecurityEvent).toHaveBeenCalledWith(
       expect.objectContaining({ type: "REGISTRATION_OTP_FAILED" }),
+    );
+  });
+
+  it("locks the pending user without exposing lockout state when max OTP attempts are reached", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+    vi.mocked(prisma.pendingUser.findUnique).mockResolvedValue({
+      id: "pending-1",
+      email: "user@example.com",
+      expiresAt: new Date(Date.now() + 300000),
+      otpHash: "hash",
+      attemptCount: 4,
+      lockedUntil: null,
+    } as never);
+
+    const { verifyOneTimeCode } = await import("@/lib/security");
+    vi.mocked(verifyOneTimeCode).mockReturnValue(false);
+    vi.mocked(prisma.pendingUser.update).mockResolvedValue({} as never);
+
+    const req = new Request("http://localhost/api/verify-otp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: JSON.stringify({ email: "user@example.com", otp: "000000" }),
+    });
+
+    const res = await POST(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toBe("Invalid or expired verification code.");
+    expect(prisma.pendingUser.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          attemptCount: 5,
+          lockedUntil: expect.any(Date),
+        }),
+      }),
     );
   });
 
@@ -300,5 +351,45 @@ describe("POST /api/verify-otp", () => {
         metadata: { recoveredCredentialAccount: true },
       })
     );
+  });
+
+  it("returns a generic verification failure when a credential account already exists", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+    vi.mocked(prisma.pendingUser.findUnique).mockResolvedValue({
+      id: "pending-1",
+      name: "Test User",
+      email: "user@example.com",
+      passwordHash: "hashed-pw",
+      expiresAt: new Date(Date.now() + 300000),
+      otpHash: "hash",
+      attemptCount: 0,
+      lockedUntil: null,
+    } as never);
+
+    const { verifyOneTimeCode } = await import("@/lib/security");
+    vi.mocked(verifyOneTimeCode).mockReturnValue(true);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: "user-1",
+      name: "Test User",
+      email: "user@example.com",
+    } as never);
+    vi.mocked(prisma.account.findFirst).mockResolvedValue({ id: "account-1" } as never);
+    vi.mocked(prisma.pendingUser.delete).mockResolvedValue({} as never);
+
+    const req = new Request("http://localhost/api/verify-otp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: JSON.stringify({ email: "user@example.com", otp: "123456" }),
+    });
+
+    const res = await POST(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toBe("Invalid or expired verification code.");
+    expect(prisma.pendingUser.delete).toHaveBeenCalledWith({ where: { email: "user@example.com" } });
   });
 });

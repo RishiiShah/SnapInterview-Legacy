@@ -115,7 +115,19 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
 
     const startScreenRecording = useCallback(async (micStream?: MediaStream) => {
         try {
-            // Initialize multipart upload first
+            // Request screen share first to ensure it is triggered by user gesture
+            const screenStream = await navigator.mediaDevices.getDisplayMedia({
+                video: {
+                    displaySurface: "monitor",
+                    frameRate: { ideal: 15, max: 30 },
+                },
+                audio: false,
+                // @ts-expect-error - Chrome-specific options
+                selfBrowserSurface: "include",
+                surfaceSwitching: "include",
+            });
+
+            // Initialize multipart upload after getting stream
             const initRes = await fetch("/api/s3/multipart/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -124,6 +136,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
 
             if (!initRes.ok) {
                 console.error("Failed to initialize multipart upload");
+                screenStream.getTracks().forEach(track => track.stop());
                 return false;
             }
 
@@ -139,17 +152,6 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
             multipartStateRef.current.isAborted = false;
             multipartStateRef.current.isCompleting = false;
             multipartStateRef.current.uploadQueue = Promise.resolve();
-
-            const screenStream = await navigator.mediaDevices.getDisplayMedia({
-                video: {
-                    displaySurface: "monitor",
-                    frameRate: { ideal: 15, max: 30 },
-                },
-                audio: false,
-                // @ts-expect-error - Chrome-specific options
-                selfBrowserSurface: "include",
-                surfaceSwitching: "include",
-            });
 
             const combinedStream = new MediaStream();
             screenStream.getVideoTracks().forEach(track => combinedStream.addTrack(track));

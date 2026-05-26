@@ -7,6 +7,7 @@ import { saveUserResume } from "@/repositories/user-repo";
 import { logger } from "@/utils/logger";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+const PDF_PARSE_TIMEOUT_MS = 10_000;
 const resumeParseLimiter = createRateLimiter("resume-parse", 15 * 60 * 1000, 10);
 
 function hasPdfHeader(bytes: Uint8Array) {
@@ -18,6 +19,20 @@ function hasPdfHeader(bytes: Uint8Array) {
     bytes[3] === 0x46 &&
     bytes[4] === 0x2d
   );
+}
+
+export async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 export const POST = withCsrfProtection(async (req: NextRequest) => {
@@ -55,7 +70,11 @@ export const POST = withCsrfProtection(async (req: NextRequest) => {
   let rawText: string;
   const parser = new PDFParse({ data: bytes });
   try {
-    const result = await parser.getText();
+    const result = await withTimeout(
+      parser.getText(),
+      PDF_PARSE_TIMEOUT_MS,
+      "PDF parse timeout"
+    );
     rawText = result.text;
   } catch (e) {
     logger.error("PDF parse error", {

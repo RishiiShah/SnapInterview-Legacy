@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { recordSecurityEvent } from "@/lib/account-security";
 import { normalizeEmail, verifyOneTimeCode, extractRequestContext } from "@/lib/security";
 import { z } from "zod/v4";
-import { apiError, apiJson, badRequestError, internalServerError, notFoundError } from "@/lib/api-response";
+import { apiError, apiJson, badRequestError, internalServerError } from "@/lib/api-response";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
 import { logger } from "@/utils/logger";
@@ -14,6 +14,7 @@ const verifySchema = z.object({
 
 const MAX_OTP_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000; // 15 mins
+const GENERIC_VERIFICATION_ERROR = "Invalid or expired verification code.";
 
 // IP-based Postgres-backed distributed rate limiter
 const otpVerifyLimiter = createRateLimiter("otp-verify", 60 * 1000, 10); // 10 per minute per IP
@@ -43,18 +44,18 @@ export const POST = withCsrfProtection(async (req: Request) => {
         });
 
         if (!pendingUser) {
-            return notFoundError("No pending verification found. Please sign up again.");
+            return badRequestError(GENERIC_VERIFICATION_ERROR);
         }
 
         // Check if OTP has expired
         if (new Date() > pendingUser.expiresAt) {
             await prisma.pendingUser.delete({ where: { email: normalizedEmail } });
-            return apiError("OTP has expired. Please sign up again.", 410);
+            return badRequestError(GENERIC_VERIFICATION_ERROR);
         }
 
         // --- OTP Brute force prevention ---
         if (pendingUser.lockedUntil && pendingUser.lockedUntil > new Date()) {
-            return apiError("Too many failed attempts. Try again later.", 429);
+            return badRequestError(GENERIC_VERIFICATION_ERROR);
         }
 
         // Validate OTP
@@ -74,11 +75,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
                 metadata: { remainingAttempts: Math.max(0, MAX_OTP_ATTEMPTS - attemptCount) },
             });
 
-            if (lockedUntil) {
-                return apiError("Maximum attempts reached. Registration cancelled. Please sign up again.", 429);
-            }
-
-            return badRequestError(`Invalid OTP. ${MAX_OTP_ATTEMPTS - attemptCount} attempts left.`);
+            return badRequestError(GENERIC_VERIFICATION_ERROR);
         }
 
         const { user, recoveredCredentialAccount } = await prisma.$transaction(async (tx) => {
@@ -152,7 +149,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
         });
 
         if (!user) {
-            return apiError("An account with this email already exists. Please log in.", 409);
+            return badRequestError(GENERIC_VERIFICATION_ERROR);
         }
 
         await recordSecurityEvent({

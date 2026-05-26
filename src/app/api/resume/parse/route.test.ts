@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { POST } from "./route";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { POST, withTimeout } from "./route";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { saveUserResume } from "@/repositories/user-repo";
 import { logger } from "@/utils/logger";
@@ -66,6 +66,10 @@ describe("POST /api/resume/parse", () => {
     vi.clearAllMocks();
     mockRateLimitState.limited = false;
     pdfDestroy.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("returns 401 when unauthenticated", async () => {
@@ -157,6 +161,16 @@ describe("POST /api/resume/parse", () => {
       userId: "u1",
     }));
     consoleErrorSpy.mockRestore();
+  });
+
+  it("rejects parser work that exceeds the PDF parse timeout", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const promise = withTimeout(new Promise(() => {}), 10_000, "PDF parse timeout");
+    const expectation = expect(promise).rejects.toThrow("PDF parse timeout");
+
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    await expectation;
   });
 
   it("calls destroy even when parsing succeeds", async () => {

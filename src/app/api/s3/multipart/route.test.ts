@@ -6,7 +6,14 @@ import { POST as completePOST } from "./complete/route";
 import { prisma } from "@/lib/prisma";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
-import { CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand } from "@aws-sdk/client-s3";
+import { MULTIPART_UPLOAD_MAX_BYTES } from "@/lib/s3/multipart-upload-constraints";
+import {
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
+  ListPartsCommand,
+} from "@aws-sdk/client-s3";
 
 vi.mock("@/lib/csrf", () => ({
   csrfRejectIfInvalid: vi.fn(() => null),
@@ -60,6 +67,7 @@ vi.mock("@aws-sdk/client-s3", () => ({
   UploadPartCommand: vi.fn(),
   CompleteMultipartUploadCommand: vi.fn(),
   AbortMultipartUploadCommand: vi.fn(),
+  ListPartsCommand: vi.fn(),
 }));
 
 vi.mock("@aws-sdk/s3-request-presigner", () => ({
@@ -280,9 +288,12 @@ describe("S3 Multipart APIs", () => {
           action: "complete",
         }),
       });
-      mockS3Send.mockResolvedValueOnce({});
+      mockS3Send
+        .mockResolvedValueOnce({ Parts: [{ PartNumber: 1, ETag: "\"abc\"", Size: 1024 }] })
+        .mockResolvedValueOnce({});
       const res = await completePOST(req);
       expect(res.status).toBe(200);
+      expect(ListPartsCommand).toHaveBeenCalled();
       expect(CompleteMultipartUploadCommand).toHaveBeenCalled();
       expect(await res.json()).toMatchObject({
         success: true,
@@ -319,6 +330,44 @@ describe("S3 Multipart APIs", () => {
 
       const res = await completePOST(req);
       expect(res.status).toBe(400);
+      expect(CompleteMultipartUploadCommand).not.toHaveBeenCalled();
+    });
+
+    it("rejects and aborts completion when S3 reports uploaded parts exceed the maximum size", async () => {
+      vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue({ id: "int-1", userId: "user-1" } as never);
+      mockS3Send.mockResolvedValueOnce({ UploadId: "upload-123" });
+
+      const createReq = new Request("http://localhost/api/s3/multipart/create", {
+        method: "POST",
+        body: JSON.stringify({ interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" }),
+      });
+      const createRes = await createPOST(createReq);
+      const { key, uploadId, uploadToken } = await createRes.json();
+
+      const req = new Request("http://localhost/api/s3/multipart/complete", {
+        method: "POST",
+        body: JSON.stringify({
+          interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          key,
+          uploadId,
+          uploadToken,
+          parts: [{ PartNumber: 1, ETag: "huge-part" }],
+          action: "complete",
+        }),
+      });
+      mockS3Send
+        .mockResolvedValueOnce({
+          Parts: [{ PartNumber: 1, ETag: "\"huge-part\"", Size: MULTIPART_UPLOAD_MAX_BYTES + 1 }],
+        })
+        .mockResolvedValueOnce({});
+
+      const res = await completePOST(req);
+      const body = await res.json();
+
+      expect(res.status).toBe(400);
+      expect(body.error).toBe("Upload exceeds the maximum allowed size");
+      expect(ListPartsCommand).toHaveBeenCalled();
+      expect(AbortMultipartUploadCommand).toHaveBeenCalled();
       expect(CompleteMultipartUploadCommand).not.toHaveBeenCalled();
     });
 

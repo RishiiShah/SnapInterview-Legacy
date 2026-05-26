@@ -6,7 +6,7 @@ export type InterviewCompletionStatus = "COMPLETED" | "ABORTED";
 type FinalizeInterviewUploadOptions = {
   interviewId: string;
   status: InterviewCompletionStatus;
-  stopVideoRecording: () => Promise<{ videoKey: string } | null>;
+  stopVideoRecording: () => Promise<{ videoKey: string; videoCompletionToken: string } | null>;
 };
 
 async function readErrorMessage(response: Response): Promise<string | undefined> {
@@ -40,14 +40,21 @@ export async function finalizeInterviewUpload({
   stopVideoRecording,
 }: FinalizeInterviewUploadOptions): Promise<FinalizeResult> {
   let videoKey: string | undefined;
+  let videoCompletionToken: string | undefined;
 
   try {
     const recordingResult = await stopVideoRecording();
     if (recordingResult?.videoKey) {
       videoKey = recordingResult.videoKey;
+      videoCompletionToken = recordingResult.videoCompletionToken;
     }
   } catch (error) {
     logger.error("Failed to stop video recording or finalize multipart upload", { error, interviewId });
+    return { type: "error", message: "Failed to finalize video upload", stage: "upload" };
+  }
+
+  if (videoKey && !videoCompletionToken) {
+    logger.error("Failed to finalize video upload: missing completion token", { interviewId });
     return { type: "error", message: "Failed to finalize video upload", stage: "upload" };
   }
 
@@ -57,7 +64,7 @@ export async function finalizeInterviewUpload({
       const res = await fetch("/api/interview/session", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ interviewId, videoKey, status }),
+        body: JSON.stringify({ interviewId, videoKey, videoCompletionToken, status }),
       });
 
       if (!res.ok) {
@@ -102,4 +109,3 @@ export async function finalizeInterviewUpload({
     return { type: "error", message: "Interview saved, but failed to update status. Please contact support.", stage: "metadata" };
   }
 }
-

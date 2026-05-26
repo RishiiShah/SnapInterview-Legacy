@@ -17,6 +17,9 @@ vi.mock("@/lib/server-auth", () => ({
 }));
 
 vi.mock("@/lib/env", () => ({
+  env: {
+    AUTH_SECRET: "test-auth-secret-32-chars-minimum",
+  },
   requireAwsS3Env: vi.fn(() => ({
     region: "us-east-1",
     accessKeyId: "test",
@@ -37,6 +40,18 @@ const { mockS3Send } = vi.hoisted(() => ({
   mockS3Send: vi.fn(),
 }));
 
+const { mockRateLimitState } = vi.hoisted(() => ({
+  mockRateLimitState: {
+    limitedNamespaces: new Set<string>(),
+  },
+}));
+
+vi.mock("@/lib/rate-limit", () => ({
+  createRateLimiter: vi.fn((namespace: string) => ({
+    isLimited: vi.fn(() => mockRateLimitState.limitedNamespaces.has(namespace)),
+  })),
+}));
+
 vi.mock("@aws-sdk/client-s3", () => ({
   S3Client: vi.fn().mockImplementation(function () {
     return { send: mockS3Send };
@@ -54,6 +69,7 @@ vi.mock("@aws-sdk/s3-request-presigner", () => ({
 describe("S3 Multipart APIs", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRateLimitState.limitedNamespaces.clear();
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
     vi.mocked(getSessionUserIdentity).mockResolvedValue({
       userId: "user-1",
@@ -91,29 +107,149 @@ describe("S3 Multipart APIs", () => {
     it("returns 403 when trying to sign part for another user's key", async () => {
       const req = new Request("http://localhost/api/s3/multipart/sign-part", {
         method: "POST",
-        body: JSON.stringify({ key: "other-user/interview.webm", uploadId: "123", partNumber: 1 }),
+        body: JSON.stringify({
+          interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          key: "other-user/interview-a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.webm",
+          uploadId: "123",
+          uploadToken: "invalid-token",
+          partNumber: 1,
+        }),
       });
       const res = await signPartPOST(req);
       expect(res.status).toBe(403);
     });
 
-    it("returns a presigned url for a valid part", async () => {
+    it("rejects a user-prefixed key that does not match the upload token", async () => {
+      vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue({ id: "int-1", userId: "user-1" } as never);
+      mockS3Send.mockResolvedValueOnce({ UploadId: "upload-123" });
+
+      const createReq = new Request("http://localhost/api/s3/multipart/create", {
+        method: "POST",
+        body: JSON.stringify({ interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" }),
+      });
+      const createRes = await createPOST(createReq);
+      const { uploadToken } = await createRes.json();
+
       const req = new Request("http://localhost/api/s3/multipart/sign-part", {
         method: "POST",
-        body: JSON.stringify({ key: "user-1/interview.webm", uploadId: "123", partNumber: 1 }),
+        body: JSON.stringify({
+          interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          key: "user-1/interview-b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22.webm",
+          uploadId: "upload-123",
+          uploadToken,
+          partNumber: 1,
+        }),
+      });
+
+      const res = await signPartPOST(req);
+      expect(res.status).toBe(403);
+      expect(UploadPartCommand).not.toHaveBeenCalled();
+    });
+
+    it("returns a presigned url for a valid part", async () => {
+      vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue({ id: "int-1", userId: "user-1" } as never);
+      mockS3Send.mockResolvedValueOnce({ UploadId: "upload-123" });
+
+      const createReq = new Request("http://localhost/api/s3/multipart/create", {
+        method: "POST",
+        body: JSON.stringify({ interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" }),
+      });
+      const createRes = await createPOST(createReq);
+      const { key, uploadId, uploadToken } = await createRes.json();
+
+      const req = new Request("http://localhost/api/s3/multipart/sign-part", {
+        method: "POST",
+        body: JSON.stringify({
+          interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          key,
+          uploadId,
+          uploadToken,
+          partNumber: 1,
+        }),
       });
       const res = await signPartPOST(req);
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual({ url: "https://presigned.url/part" });
       expect(UploadPartCommand).toHaveBeenCalled();
     });
+
+    it("rejects part numbers above the bounded upload size", async () => {
+      vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue({ id: "int-1", userId: "user-1" } as never);
+      mockS3Send.mockResolvedValueOnce({ UploadId: "upload-123" });
+
+      const createReq = new Request("http://localhost/api/s3/multipart/create", {
+        method: "POST",
+        body: JSON.stringify({ interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" }),
+      });
+      const createRes = await createPOST(createReq);
+      const { key, uploadId, uploadToken } = await createRes.json();
+
+      const req = new Request("http://localhost/api/s3/multipart/sign-part", {
+        method: "POST",
+        body: JSON.stringify({
+          interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          key,
+          uploadId,
+          uploadToken,
+          partNumber: 101,
+        }),
+      });
+
+      const res = await signPartPOST(req);
+      expect(res.status).toBe(400);
+      expect(UploadPartCommand).not.toHaveBeenCalled();
+    });
+
+    it("rate limits repeated part signing for one upload", async () => {
+      vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue({ id: "int-1", userId: "user-1" } as never);
+      mockS3Send.mockResolvedValueOnce({ UploadId: "upload-123" });
+
+      const createReq = new Request("http://localhost/api/s3/multipart/create", {
+        method: "POST",
+        body: JSON.stringify({ interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" }),
+      });
+      const createRes = await createPOST(createReq);
+      const { key, uploadId, uploadToken } = await createRes.json();
+      mockRateLimitState.limitedNamespaces.add("s3-multipart-sign-part");
+
+      const req = new Request("http://localhost/api/s3/multipart/sign-part", {
+        method: "POST",
+        body: JSON.stringify({
+          interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          key,
+          uploadId,
+          uploadToken,
+          partNumber: 1,
+        }),
+      });
+
+      const res = await signPartPOST(req);
+      expect(res.status).toBe(429);
+      expect(UploadPartCommand).not.toHaveBeenCalled();
+    });
   });
 
   describe("POST /api/s3/multipart/complete", () => {
     it("aborts the upload when action is abort", async () => {
+      vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue({ id: "int-1", userId: "user-1" } as never);
+      mockS3Send.mockResolvedValueOnce({ UploadId: "upload-123" });
+
+      const createReq = new Request("http://localhost/api/s3/multipart/create", {
+        method: "POST",
+        body: JSON.stringify({ interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" }),
+      });
+      const createRes = await createPOST(createReq);
+      const { key, uploadId, uploadToken } = await createRes.json();
+
       const req = new Request("http://localhost/api/s3/multipart/complete", {
         method: "POST",
-        body: JSON.stringify({ key: "user-1/interview.webm", uploadId: "123", parts: [{PartNumber: 1, ETag: "123"}], action: "abort" }),
+        body: JSON.stringify({
+          interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          key,
+          uploadId,
+          uploadToken,
+          action: "abort",
+        }),
       });
       mockS3Send.mockResolvedValueOnce({});
       const res = await completePOST(req);
@@ -123,15 +259,98 @@ describe("S3 Multipart APIs", () => {
     });
 
     it("completes the upload successfully", async () => {
+      vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue({ id: "int-1", userId: "user-1" } as never);
+      mockS3Send.mockResolvedValueOnce({ UploadId: "upload-123" });
+
+      const createReq = new Request("http://localhost/api/s3/multipart/create", {
+        method: "POST",
+        body: JSON.stringify({ interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" }),
+      });
+      const createRes = await createPOST(createReq);
+      const { key, uploadId, uploadToken } = await createRes.json();
+
       const req = new Request("http://localhost/api/s3/multipart/complete", {
         method: "POST",
-        body: JSON.stringify({ key: "user-1/interview.webm", uploadId: "123", parts: [{PartNumber: 1, ETag: "abc"}], action: "complete" }),
+        body: JSON.stringify({
+          interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          key,
+          uploadId,
+          uploadToken,
+          parts: [{PartNumber: 1, ETag: "abc"}],
+          action: "complete",
+        }),
       });
       mockS3Send.mockResolvedValueOnce({});
       const res = await completePOST(req);
       expect(res.status).toBe(200);
       expect(CompleteMultipartUploadCommand).toHaveBeenCalled();
-      expect(await res.json()).toEqual({ success: true, key: "user-1/interview.webm" });
+      expect(await res.json()).toMatchObject({
+        success: true,
+        key,
+        videoCompletionToken: expect.any(String),
+      });
+    });
+
+    it("rejects completion with too many parts", async () => {
+      vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue({ id: "int-1", userId: "user-1" } as never);
+      mockS3Send.mockResolvedValueOnce({ UploadId: "upload-123" });
+
+      const createReq = new Request("http://localhost/api/s3/multipart/create", {
+        method: "POST",
+        body: JSON.stringify({ interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" }),
+      });
+      const createRes = await createPOST(createReq);
+      const { key, uploadId, uploadToken } = await createRes.json();
+
+      const req = new Request("http://localhost/api/s3/multipart/complete", {
+        method: "POST",
+        body: JSON.stringify({
+          interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          key,
+          uploadId,
+          uploadToken,
+          parts: Array.from({ length: 101 }, (_, index) => ({
+            PartNumber: index + 1,
+            ETag: `etag-${index + 1}`,
+          })),
+          action: "complete",
+        }),
+      });
+
+      const res = await completePOST(req);
+      expect(res.status).toBe(400);
+      expect(CompleteMultipartUploadCommand).not.toHaveBeenCalled();
+    });
+
+    it("rejects completion with non-sequential parts", async () => {
+      vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue({ id: "int-1", userId: "user-1" } as never);
+      mockS3Send.mockResolvedValueOnce({ UploadId: "upload-123" });
+
+      const createReq = new Request("http://localhost/api/s3/multipart/create", {
+        method: "POST",
+        body: JSON.stringify({ interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" }),
+      });
+      const createRes = await createPOST(createReq);
+      const { key, uploadId, uploadToken } = await createRes.json();
+
+      const req = new Request("http://localhost/api/s3/multipart/complete", {
+        method: "POST",
+        body: JSON.stringify({
+          interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          key,
+          uploadId,
+          uploadToken,
+          parts: [
+            { PartNumber: 1, ETag: "etag-1" },
+            { PartNumber: 3, ETag: "etag-3" },
+          ],
+          action: "complete",
+        }),
+      });
+
+      const res = await completePOST(req);
+      expect(res.status).toBe(400);
+      expect(CompleteMultipartUploadCommand).not.toHaveBeenCalled();
     });
   });
 });

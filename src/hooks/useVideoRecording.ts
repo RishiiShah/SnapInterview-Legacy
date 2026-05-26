@@ -14,6 +14,8 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
     const multipartStateRef = useRef<{
         uploadId: string | null;
         key: string | null;
+        uploadToken: string | null;
+        videoCompletionToken: string | null;
         partNumber: number;
         parts: { PartNumber: number; ETag: string }[];
         buffer: Blob[];
@@ -24,6 +26,8 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
     }>({
         uploadId: null,
         key: null,
+        uploadToken: null,
+        videoCompletionToken: null,
         partNumber: 1,
         parts: [],
         buffer: [],
@@ -42,22 +46,34 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
                 fetch("/api/s3/multipart/complete", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ key: state.key, uploadId: state.uploadId, parts: [], action: "abort" }),
+                    body: JSON.stringify({
+                        interviewId,
+                        key: state.key,
+                        uploadId: state.uploadId,
+                        uploadToken: state.uploadToken,
+                        action: "abort",
+                    }),
                     keepalive: true,
                 }).catch(() => {});
             }
         };
-    }, []);
+    }, [interviewId]);
 
-    const flushBuffer = async (blobData: Blob) => {
+    const flushBuffer = useCallback(async (blobData: Blob) => {
         const state = multipartStateRef.current;
-        if (state.isAborted || !state.uploadId || !state.key) return;
+        if (state.isAborted || !state.uploadId || !state.key || !state.uploadToken) return;
 
         const currentPartNumber = state.partNumber++;
         const presignRes = await fetch("/api/s3/multipart/sign-part", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ key: state.key, uploadId: state.uploadId, partNumber: currentPartNumber }),
+            body: JSON.stringify({
+                interviewId,
+                key: state.key,
+                uploadId: state.uploadId,
+                uploadToken: state.uploadToken,
+                partNumber: currentPartNumber,
+            }),
         });
         
         if (!presignRes.ok) throw new Error("Failed to sign part");
@@ -74,7 +90,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
         if (!eTag) throw new Error("AWS did not return an ETag");
 
         state.parts.push({ PartNumber: currentPartNumber, ETag: eTag.replace(/"/g, "") });
-    };
+    }, [interviewId]);
 
     const handleDataAvailable = useCallback((event: BlobEvent) => {
         if (!event.data || event.data.size === 0) return;
@@ -95,7 +111,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
                 console.error("Multipart upload part failed:", err);
             });
         }
-    }, []);
+    }, [flushBuffer]);
 
     const startScreenRecording = useCallback(async (micStream?: MediaStream) => {
         try {
@@ -111,9 +127,11 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
                 return false;
             }
 
-            const { uploadId, key } = await initRes.json();
+            const { uploadId, key, uploadToken } = await initRes.json();
             multipartStateRef.current.uploadId = uploadId;
             multipartStateRef.current.key = key;
+            multipartStateRef.current.uploadToken = uploadToken;
+            multipartStateRef.current.videoCompletionToken = null;
             multipartStateRef.current.partNumber = 1;
             multipartStateRef.current.parts = [];
             multipartStateRef.current.buffer = [];
@@ -171,7 +189,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
         }
     }, [interviewId, onScreenShareEnded, handleDataAvailable]);
 
-    const stopVideoRecording = useCallback((): Promise<{ videoKey: string } | null> => {
+    const stopVideoRecording = useCallback((): Promise<{ videoKey: string; videoCompletionToken: string } | null> => {
         return new Promise((resolve) => {
             const mediaRecorder = mediaRecorderRef.current;
             const state = multipartStateRef.current;
@@ -197,18 +215,29 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
                 const finalBlob = state.buffer.length > 0 ? new Blob(state.buffer, { type: "video/webm" }) : null;
                 
                 state.uploadQueue = state.uploadQueue.then(async () => {
-                    if (finalBlob && finalBlob.size > 0 && state.uploadId && state.key) {
+                    if (finalBlob && finalBlob.size > 0 && state.uploadId && state.key && state.uploadToken) {
                         await flushBuffer(finalBlob);
                     }
                     
-                    if (state.uploadId && state.key && state.parts.length > 0) {
+                    if (state.uploadId && state.key && state.uploadToken && state.parts.length > 0) {
                         const compRes = await fetch("/api/s3/multipart/complete", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ key: state.key, uploadId: state.uploadId, parts: state.parts }),
+                            body: JSON.stringify({
+                                interviewId,
+                                key: state.key,
+                                uploadId: state.uploadId,
+                                uploadToken: state.uploadToken,
+                                parts: state.parts,
+                            }),
                         });
                         if (compRes.ok) {
-                            resolve({ videoKey: state.key });
+                            const { videoCompletionToken } = await compRes.json();
+                            if (!videoCompletionToken) {
+                                throw new Error("Backend did not return a video completion token");
+                            }
+                            state.videoCompletionToken = videoCompletionToken;
+                            resolve({ videoKey: state.key, videoCompletionToken });
                             return;
                         }
                     }
@@ -221,7 +250,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
 
             mediaRecorder.stop();
         });
-    }, []);
+    }, [flushBuffer, interviewId]);
 
     return {
         isRecordingVideo,
@@ -229,4 +258,3 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
         stopVideoRecording,
     };
 }
-

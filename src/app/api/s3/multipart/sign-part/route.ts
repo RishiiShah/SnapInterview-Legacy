@@ -3,7 +3,13 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiError, apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 import { requireAwsS3Env } from "@/lib/env";
+import { createRateLimiter } from "@/lib/rate-limit";
+import {
+  MULTIPART_UPLOAD_MAX_PARTS,
+  MULTIPART_UPLOAD_SIGNED_URL_TTL_SECONDS,
+} from "@/lib/s3/multipart-upload-constraints";
 import { withCsrfProtection } from "@/lib/route-security";
+import { verifyMultipartUploadToken } from "@/lib/s3/multipart-upload-token";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
 
@@ -17,10 +23,14 @@ const s3Client = new S3Client({
   },
 });
 
+const signPartLimiter = createRateLimiter("s3-multipart-sign-part", 60 * 60 * 1000, 120);
+
 const signPartSchema = z.object({
+  interviewId: z.string().uuid("interviewId must be a valid UUID"),
   key: z.string().min(1),
   uploadId: z.string().min(1),
-  partNumber: z.number().int().min(1).max(10000),
+  uploadToken: z.string().min(1),
+  partNumber: z.number().int().min(1).max(MULTIPART_UPLOAD_MAX_PARTS),
 });
 
 export const POST = withCsrfProtection(async (req: Request) => {
@@ -34,11 +44,23 @@ export const POST = withCsrfProtection(async (req: Request) => {
       return badRequestError(parsed.error.issues[0]?.message || "Invalid input");
     }
 
-    const { key, uploadId, partNumber } = parsed.data;
+    const { interviewId, key, uploadId, uploadToken, partNumber } = parsed.data;
+    const expectedKey = `${authUser.userId}/interview-${interviewId}.webm`;
 
-    // Security check to ensure users can only upload parts to their own keys
-    if (!key.startsWith(`${authUser.userId}/`)) {
+    if (
+      key !== expectedKey ||
+      !verifyMultipartUploadToken(uploadToken, {
+        userId: authUser.userId,
+        interviewId,
+        key,
+        uploadId,
+      })
+    ) {
       return apiError("Unauthorized to sign part for this key", 403);
+    }
+
+    if (await signPartLimiter.isLimited(`${authUser.userId}:${interviewId}:${uploadId}`)) {
+      return apiError("Too many upload part requests. Please try again later.", 429);
     }
 
     const command = new UploadPartCommand({
@@ -48,7 +70,9 @@ export const POST = withCsrfProtection(async (req: Request) => {
       PartNumber: partNumber,
     });
 
-    const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+    const url = await getSignedUrl(s3Client, command, {
+      expiresIn: MULTIPART_UPLOAD_SIGNED_URL_TTL_SECONDS,
+    });
 
     return apiJson({ url });
   } catch (error) {

@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextResponse } from "next/server";
-import { DELETE, GET } from "./route";
+import { DELETE, GET, POST } from "./route";
 
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
-import { listUserVideos } from "@/lib/s3/videos";
+import { getSignedVideoUrl, listUserVideos } from "@/lib/s3/videos";
 import { prisma } from "@/lib/prisma";
 
 const { s3SendMock } = vi.hoisted(() => ({
@@ -21,6 +21,7 @@ vi.mock("@/lib/server-auth", () => ({
 
 vi.mock("@/lib/s3/videos", () => ({
   listUserVideos: vi.fn(),
+  getSignedVideoUrl: vi.fn(),
 }));
 
 vi.mock("@/lib/env", () => ({
@@ -38,6 +39,7 @@ vi.mock("@/lib/env", () => ({
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     interviewSession: {
+      findFirst: vi.fn(),
       updateMany: vi.fn(),
       deleteMany: vi.fn(),
     },
@@ -97,6 +99,64 @@ describe("GET /api/s3/videos", () => {
       maxKeys: 12,
       continuationToken: undefined
     });
+  });
+
+  it("caps excessive list limits", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({
+      userId: "user-1",
+    } as never);
+    vi.mocked(listUserVideos).mockResolvedValue({ videos: [] } as never);
+
+    const req = new Request("http://localhost/api/s3/videos?limit=9999");
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    expect(listUserVideos).toHaveBeenCalledWith("user-1/", {
+      maxKeys: 48,
+      continuationToken: undefined
+    });
+  });
+});
+
+describe("POST /api/s3/videos", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+  });
+
+  it("rejects signing user-prefixed keys that are not linked to an interview", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({
+      userId: "user-1",
+    } as never);
+    vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue(null as never);
+
+    const req = new Request("http://localhost/api/s3/videos", {
+      method: "POST",
+      body: JSON.stringify({ key: "user-1/random-object.webm" }),
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(404);
+    expect(getSignedVideoUrl).not.toHaveBeenCalled();
+  });
+
+  it("signs a DB-linked video key for the authenticated owner", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({
+      userId: "user-1",
+    } as never);
+    vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue({ id: "int-1" } as never);
+    vi.mocked(getSignedVideoUrl).mockResolvedValue("https://signed.example/video");
+
+    const req = new Request("http://localhost/api/s3/videos", {
+      method: "POST",
+      body: JSON.stringify({ key: "user-1/interview-1.webm" }),
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({ url: "https://signed.example/video" });
   });
 });
 
@@ -158,6 +218,7 @@ describe("DELETE /api/s3/videos", () => {
     vi.mocked(getSessionUserIdentity).mockResolvedValue({
       userId: "user-1",
     } as never);
+    vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue({ id: "int-1" } as never);
     vi.mocked(prisma.interviewSession.updateMany).mockResolvedValue({ count: 1 } as never);
 
     const req = new Request("http://localhost/api/s3/videos", {
@@ -187,6 +248,7 @@ describe("DELETE /api/s3/videos", () => {
     vi.mocked(getSessionUserIdentity).mockResolvedValue({
       userId: "user-1",
     } as never);
+    vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue({ id: "int-1" } as never);
     vi.mocked(prisma.interviewSession.deleteMany).mockResolvedValue({ count: 1 } as never);
 
     const req = new Request("http://localhost/api/s3/videos", {
@@ -203,5 +265,23 @@ describe("DELETE /api/s3/videos", () => {
         videoKey: "user-1/interview-1.webm",
       },
     });
+  });
+
+  it("rejects deleting user-prefixed keys that are not linked to an interview", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({
+      userId: "user-1",
+    } as never);
+    vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue(null as never);
+
+    const req = new Request("http://localhost/api/s3/videos", {
+      method: "DELETE",
+      body: JSON.stringify({ key: "user-1/random-object.webm" }),
+    });
+
+    const res = await DELETE(req);
+
+    expect(res.status).toBe(404);
+    expect(s3SendMock).not.toHaveBeenCalled();
   });
 });

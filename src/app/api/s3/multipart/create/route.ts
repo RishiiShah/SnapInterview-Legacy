@@ -5,6 +5,7 @@ import { apiError, apiJson, badRequestError, internalServerError, unauthorizedEr
 import { requireAwsS3Env } from "@/lib/env";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
+import { createMultipartUploadToken } from "@/lib/s3/multipart-upload-token";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
 
@@ -62,7 +63,14 @@ export const POST = withCsrfProtection(async (req: Request) => {
 
     if (!response.UploadId) throw new Error("AWS did not return an UploadId");
 
-    return apiJson({ uploadId: response.UploadId, key });
+    const uploadToken = createMultipartUploadToken({
+      userId: authUser.userId,
+      interviewId,
+      key,
+      uploadId: response.UploadId,
+    });
+
+    return apiJson({ uploadId: response.UploadId, key, uploadToken });
   } catch (error) {
     logger.error("Error creating multipart upload", {
       error: error instanceof Error ? error.message : String(error),

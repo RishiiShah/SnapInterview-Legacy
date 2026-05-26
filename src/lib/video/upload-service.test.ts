@@ -50,7 +50,10 @@ describe("finalizeInterviewUpload", () => {
   });
 
   it("successfully finalizes upload with a video", async () => {
-    const stopVideoRecording = vi.fn().mockResolvedValue({ videoKey: "test-key" });
+    const stopVideoRecording = vi.fn().mockResolvedValue({
+      videoKey: "test-key",
+      videoCompletionToken: "completion-token",
+    });
     
     vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
@@ -64,11 +67,23 @@ describe("finalizeInterviewUpload", () => {
     });
 
     expect(result).toEqual({ type: "ok", videoKey: "test-key" });
-    expect(global.fetch).toHaveBeenCalledWith("/api/interview/session", expect.any(Object));
+    expect(global.fetch).toHaveBeenCalledWith("/api/interview/session", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        interviewId: "int-1",
+        videoKey: "test-key",
+        videoCompletionToken: "completion-token",
+        status: "COMPLETED",
+      }),
+    });
   });
 
   it("cleans up the uploaded recording when metadata persistence fails", async () => {
-    const stopVideoRecording = vi.fn().mockResolvedValue({ videoKey: "test-key" });
+    const stopVideoRecording = vi.fn().mockResolvedValue({
+      videoKey: "test-key",
+      videoCompletionToken: "completion-token",
+    });
     
     // Metadata update fails
     vi.mocked(global.fetch).mockResolvedValueOnce({

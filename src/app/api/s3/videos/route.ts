@@ -6,9 +6,11 @@ import {
   apiJson,
   badRequestError,
   internalServerError,
+  notFoundError,
   unauthorizedError,
 } from "@/lib/api-response";
 import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
+import { createRateLimiter } from "@/lib/rate-limit";
 import { requireAwsS3Env } from "@/lib/env";
 import { listUserVideos, getSignedVideoUrl } from "@/lib/s3/videos";
 import { S3Client } from "@aws-sdk/client-s3";
@@ -35,6 +37,28 @@ const signVideoSchema = z.object({
   key: z.string().min(1, "Missing key"),
 });
 
+const DEFAULT_VIDEO_LIST_LIMIT = 12;
+const MAX_VIDEO_LIST_LIMIT = 48;
+const listVideosLimiter = createRateLimiter("s3-videos-list", 60 * 1000, 60);
+const signVideoLimiter = createRateLimiter("s3-videos-sign", 60 * 1000, 60);
+const deleteVideoLimiter = createRateLimiter("s3-videos-delete", 60 * 1000, 30);
+
+function parseListLimit(value: string | null) {
+  const parsed = Number.parseInt(value || String(DEFAULT_VIDEO_LIST_LIMIT), 10);
+  if (!Number.isFinite(parsed)) return DEFAULT_VIDEO_LIST_LIMIT;
+  return Math.min(Math.max(parsed, 1), MAX_VIDEO_LIST_LIMIT);
+}
+
+async function findOwnedVideoSession(userId: string, key: string) {
+  return prisma.interviewSession.findFirst({
+    where: {
+      userId,
+      videoKey: key,
+    },
+    select: { id: true },
+  });
+}
+
 export async function GET(req: Request) {
   try {
     const authUser = await getSessionUserIdentity();
@@ -42,9 +66,13 @@ export async function GET(req: Request) {
       return unauthorizedError();
     }
 
+    if (await listVideosLimiter.isLimited(authUser.userId)) {
+      return apiError("Too many video list requests. Please try again later.", 429);
+    }
+
     const { searchParams } = new URL(req.url);
     const continuationToken = searchParams.get("cursor") || undefined;
-    const limit = parseInt(searchParams.get("limit") || "12", 10);
+    const limit = parseListLimit(searchParams.get("limit"));
 
     const prefix = `${authUser.userId}/`;
     const result = await listUserVideos(prefix, { 
@@ -85,6 +113,15 @@ export const POST = withCsrfProtection(async (req: Request) => {
       return apiError("Unauthorized access to key", 403);
     }
 
+    if (await signVideoLimiter.isLimited(authUser.userId)) {
+      return apiError("Too many video signing requests. Please try again later.", 429);
+    }
+
+    const session = await findOwnedVideoSession(authUser.userId, key);
+    if (!session) {
+      return notFoundError("Video not found");
+    }
+
     const url = await getSignedVideoUrl(key);
     return apiJson({ url });
   } catch (error) {
@@ -116,6 +153,15 @@ export const DELETE = withCsrfProtection(async (req: Request) => {
     // Ensure user can only delete their own videos
     if (!key.startsWith(`${authUser.userId}/`)) {
       return apiError("Unauthorized access to key", 403);
+    }
+
+    if (await deleteVideoLimiter.isLimited(authUser.userId)) {
+      return apiError("Too many video delete requests. Please try again later.", 429);
+    }
+
+    const session = await findOwnedVideoSession(authUser.userId, key);
+    if (!session) {
+      return notFoundError("Video not found");
     }
 
     const deleteCommand = new DeleteObjectCommand({

@@ -28,7 +28,7 @@
     "disposable-email-domains": "1.0.62",
     "framer-motion": "12.38.0",
     "groq-sdk": "1.1.2",
-    "lucide-react": "1.14.0",
+    "lucide-react": "^1.16.0",
     "next": "16.2.6",
     "nodemailer": "8.0.8",
     "pdf-parse": "2.4.5",

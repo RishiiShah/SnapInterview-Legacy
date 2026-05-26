@@ -5,8 +5,8 @@ const nonEmptyTrimmedString = z.string().trim().min(1);
 export const transcriptEvaluationResponseSchema = z.object({
   score: z.number().int().min(0).max(100),
   feedback: nonEmptyTrimmedString,
-  strengths: z.array(nonEmptyTrimmedString).min(1).max(4),
-  areasForImprovement: z.array(nonEmptyTrimmedString).min(1).max(4),
+  strengths: z.array(nonEmptyTrimmedString).max(4).default([]),
+  areasForImprovement: z.array(nonEmptyTrimmedString).max(4).default([]),
   // Sub-scores — optional for backwards compatibility with existing DB records
   communication: z.number().int().min(0).max(100).optional(),
   technicalDepth: z.number().int().min(0).max(100).optional(),

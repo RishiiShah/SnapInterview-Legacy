@@ -15,8 +15,7 @@ const sessionDateFormatter = new Intl.DateTimeFormat("en-GB", {
   year: "numeric",
   hour: "2-digit",
   minute: "2-digit",
-  hour12: false,
-  timeZone: "UTC",
+  hour12: true,
 });
 
 function formatSessionDate(value: string | Date) {
@@ -353,7 +352,7 @@ export default function RecordingsList({ initialSessions, initialHasMore }: Reco
                   </div>
                 </div>
                 <div className="mt-auto flex items-center justify-between pt-2">
-                  <p className="text-xs text-zinc-400">{date}</p>
+                  <p className="text-xs text-zinc-400" suppressHydrationWarning>{date}</p>
                   {session.type && (
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${TYPE_BADGE[session.type] ?? "bg-zinc-100 text-zinc-600"}`}>
                       {session.type === "system-design" ? "System Design" : session.type}

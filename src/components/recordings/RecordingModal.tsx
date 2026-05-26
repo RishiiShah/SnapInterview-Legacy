@@ -332,7 +332,7 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                                 )}
                             </div>
                             <div className="mt-2 flex items-center gap-3 text-sm text-zinc-500">
-                                <span>{videoDate}</span>
+                                <span suppressHydrationWarning>{videoDate}</span>
                                 {interviewData && (
                                     <>
                                         <span className="h-1 w-1 rounded-full bg-zinc-300" />

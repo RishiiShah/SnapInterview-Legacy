@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { sendEvaluationEmail, sendPracticeReminderEmail, sendWeeklyReportEmail } from "./email";
 
 const { sendMailMock } = vi.hoisted(() => ({
-  sendMailMock: vi.fn(() => Promise.resolve()),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sendMailMock: vi.fn<(...args: any[]) => Promise<void>>(() => Promise.resolve()),
 }));
 
 vi.mock("nodemailer", () => ({

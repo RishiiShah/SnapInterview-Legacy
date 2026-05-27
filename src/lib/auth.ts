@@ -265,6 +265,13 @@ export const auth = betterAuth({
 
   secret: env.AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
+  trustedOrigins: [
+    env.BETTER_AUTH_URL,
+    env.APP_URL,
+    env.NEXT_PUBLIC_APP_URL,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
+    process.env.VERCEL_BRANCH_URL ? `https://${process.env.VERCEL_BRANCH_URL}` : undefined,
+  ].filter((url): url is string => Boolean(url)),
 });
 
 export type Session = typeof auth.$Infer.Session;

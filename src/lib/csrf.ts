@@ -58,6 +58,16 @@ function getAllowedOrigins(): Set<string> {
     origins.add("http://127.0.0.1:3000");
   }
 
+  // Automatically trust the current Vercel deployment URLs (enables secure Preview Deployments)
+  if (process.env.VERCEL_URL) {
+    const normalized = normalizeOrigin(`https://${process.env.VERCEL_URL}`);
+    if (normalized) origins.add(normalized);
+  }
+  if (process.env.VERCEL_BRANCH_URL) {
+    const normalized = normalizeOrigin(`https://${process.env.VERCEL_BRANCH_URL}`);
+    if (normalized) origins.add(normalized);
+  }
+
   _allowedOrigins = origins;
   return _allowedOrigins;
 }

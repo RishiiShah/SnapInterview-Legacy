@@ -6,18 +6,16 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/utils/helpers";
+import { IconChevronUp } from "@/components/ui/icons";
 import {
-    IconChevronLeft,
-    IconChevronRight,
-    IconChevronUp,
-} from "@/components/ui/icons";
-import {
+    AnimatedSidebarCollapseIcon,
     AnimatedLogoutIcon,
     AnimatedSettingsIcon,
     AnimatedDashboardIcon,
     AnimatedMessageSquareIcon,
     AnimatedLibraryIcon,
     AnimatedChartLineIcon,
+    AnimatedSidebarOpenIcon,
     AnimatedVideoCameraIcon,
 } from "@/components/ui/animated-icons";
 
@@ -123,6 +121,8 @@ export function Sidebar({
     const userEmail = session?.user?.email || "";
     const userImage = session?.user?.image;
     const initials = getInitials(userName);
+    const [isSidebarOpenHovered, setIsSidebarOpenHovered] = useState(false);
+    const [isSidebarCollapseHovered, setIsSidebarCollapseHovered] = useState(false);
 
     const [accountOpen, setAccountOpen] = useState(false);
     const accountRef = useRef<HTMLDivElement>(null);
@@ -141,18 +141,42 @@ export function Sidebar({
             {/* Logo + Toggle */}
             <div className={`flex h-16 items-center border-b border-zinc-100 ${collapsed ? "justify-center px-2" : "justify-between px-3"}`}>
                 {collapsed ? (
-                    <button onClick={() => setCollapsed(false)} className="group/logo relative grid h-8 w-8 cursor-pointer place-items-center rounded-lg bg-zinc-900 transition-colors hover:bg-zinc-700" aria-label="Open sidebar" title="Open sidebar">
-                        <span className="text-[11px] font-bold leading-none tracking-tighter text-white transition-opacity group-hover/logo:opacity-0">SI</span>
-                        <IconChevronRight className="absolute inset-0 m-auto h-4 w-4 text-white opacity-0 transition-opacity group-hover/logo:opacity-100" />
+                    <button
+                        onClick={() => setCollapsed(false)}
+                        onMouseEnter={() => setIsSidebarOpenHovered(true)}
+                        onMouseLeave={() => setIsSidebarOpenHovered(false)}
+                        className="group/logo relative grid h-9 w-9 cursor-pointer place-items-center rounded-lg transition-colors hover:bg-zinc-100"
+                        aria-label="Open sidebar"
+                        title="Open sidebar"
+                    >
+                        <Image
+                            src="/logo.png"
+                            alt="SnapInterview Logo"
+                            width={36}
+                            height={36}
+                            className="rounded-lg transition-opacity duration-150 group-hover/logo:opacity-0"
+                        />
+                        <AnimatedSidebarOpenIcon
+                            className="absolute inset-0 m-auto h-5 w-5 text-zinc-900 opacity-0 transition-opacity duration-150 group-hover/logo:opacity-100"
+                            strokeWidth={1.8}
+                            isHovered={isSidebarOpenHovered}
+                        />
                     </button>
                 ) : (
                     <>
-                        <Link href="/dashboard" className="flex items-center gap-2.5 overflow-hidden">
-                            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-zinc-900 text-[11px] font-bold leading-none tracking-tighter text-white">SI</div>
+                        <Link href="/dashboard" className="flex items-center gap-1.5 overflow-hidden">
+                            <Image src="/logo.png" alt="SnapInterview Logo" width={28} height={28} className="shrink-0 rounded-lg" />
                             <span className="whitespace-nowrap text-lg font-semibold tracking-tight text-zinc-900">SnapInterview</span>
                         </Link>
-                        <button onClick={() => setCollapsed(true)} className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600" aria-label="Collapse sidebar">
-                            <IconChevronLeft className="h-4 w-4" />
+                        <button
+                            onClick={() => setCollapsed(true)}
+                            onMouseEnter={() => setIsSidebarCollapseHovered(true)}
+                            onMouseLeave={() => setIsSidebarCollapseHovered(false)}
+                            className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+                            aria-label="Collapse sidebar"
+                            title="Collapse sidebar"
+                        >
+                            <AnimatedSidebarCollapseIcon className="h-5 w-5" strokeWidth={1.9} isHovered={isSidebarCollapseHovered} />
                         </button>
                     </>
                 )}

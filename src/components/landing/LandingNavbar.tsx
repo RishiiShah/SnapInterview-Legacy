@@ -1,14 +1,13 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function LandingNavbar() {
   return (
     <nav className="fixed inset-x-0 top-0 z-50 border-b border-white/60 bg-white/72 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-[linear-gradient(145deg,#07111f,#0ea5e9)] text-[11px] font-bold leading-none tracking-tighter text-white shadow-[0_14px_30px_-18px_rgba(14,165,233,0.7)]">
-            SI
-          </div>
+        <Link href="/" className="flex items-center gap-1.5">
+          <Image src="/logo.png" alt="SnapInterview Logo" width={32} height={32} className="rounded-lg" />
           <span className="text-lg font-semibold tracking-tight">
             SnapInterview
           </span>

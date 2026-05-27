@@ -415,3 +415,69 @@ export const AnimatedSearchIcon = forwardRef<AnimatedIconHandle, AnimatedIconPro
   }
 );
 AnimatedSearchIcon.displayName = "AnimatedSearchIcon";
+
+// 10. Sidebar Open Icon
+export const AnimatedSidebarOpenIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
+  ({ size = 24, color = "currentColor", strokeWidth = 2, className = "", isHovered }, ref) => {
+    const [scope, animate] = useAnimate();
+
+    const start = () => {
+      animate(".chevron", { x: [0, 2, 0], opacity: [1, 0.7, 1] }, { duration: 1.1, ease: "easeInOut" });
+      animate(".sidebar", { x: [0, 1.5, 0] }, { duration: 1.1, ease: "easeInOut" });
+    };
+
+    const stop = () => {
+      animate(".chevron", { x: 0, opacity: 1 }, { duration: 0.18, ease: "easeInOut" });
+      animate(".sidebar", { x: 0 }, { duration: 0.18, ease: "easeInOut" });
+    };
+
+    useImperativeHandle(ref, () => ({ startAnimation: start, stopAnimation: stop }));
+    useHoverAnimation(isHovered, start, stop);
+
+    return (
+      <motion.svg
+        ref={scope} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
+        fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
+        className={`${className} cursor-pointer`} onHoverStart={start} onHoverEnd={stop}
+      >
+        <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+        <motion.path className="sidebar" d="M15 4v16" />
+        <motion.path className="chevron" d="M9 10l2 2l-2 2" />
+      </motion.svg>
+    );
+  }
+);
+AnimatedSidebarOpenIcon.displayName = "AnimatedSidebarOpenIcon";
+
+// 11. Sidebar Collapse Icon
+export const AnimatedSidebarCollapseIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
+  ({ size = 24, color = "currentColor", strokeWidth = 2, className = "", isHovered }, ref) => {
+    const [scope, animate] = useAnimate();
+
+    const start = () => {
+      animate(".chevron", { x: [0, -2, 0], opacity: [1, 0.7, 1] }, { duration: 1.1, ease: "easeInOut" });
+      animate(".sidebar", { x: [0, -1.5, 0] }, { duration: 1.1, ease: "easeInOut" });
+    };
+
+    const stop = () => {
+      animate(".chevron", { x: 0, opacity: 1 }, { duration: 0.18, ease: "easeInOut" });
+      animate(".sidebar", { x: 0 }, { duration: 0.18, ease: "easeInOut" });
+    };
+
+    useImperativeHandle(ref, () => ({ startAnimation: start, stopAnimation: stop }));
+    useHoverAnimation(isHovered, start, stop);
+
+    return (
+      <motion.svg
+        ref={scope} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
+        fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
+        className={`${className} cursor-pointer`} onHoverStart={start} onHoverEnd={stop}
+      >
+        <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+        <motion.path className="sidebar" d="M9 4v16" />
+        <motion.path className="chevron" d="M15 10l-2 2l2 2" />
+      </motion.svg>
+    );
+  }
+);
+AnimatedSidebarCollapseIcon.displayName = "AnimatedSidebarCollapseIcon";

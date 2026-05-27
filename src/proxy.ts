@@ -23,6 +23,38 @@ function deleteBetterAuthSessionCookies(response: NextResponse) {
     }
 }
 
+function createNonce() {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return btoa(String.fromCharCode(...bytes));
+}
+
+function createContentSecurityPolicy(nonce: string, isDev: boolean) {
+    return `
+        default-src 'self';
+        script-src 'self' 'nonce-${nonce}' ${isDev ? "'unsafe-eval'" : ""};
+        style-src 'self' 'unsafe-inline';
+        img-src 'self' https://lh3.googleusercontent.com data: blob:;
+        font-src 'self' data:;
+        object-src 'none';
+        base-uri 'self';
+        form-action 'self';
+        frame-ancestors 'none';
+        connect-src 'self' https://accounts.google.com https://www.googleapis.com https://*.amazonaws.com;
+        media-src 'self' https://*.amazonaws.com data: blob:;
+        upgrade-insecure-requests;
+    `.replace(/\s{2,}/g, " ").trim();
+}
+
+function applySecurityHeaders(response: NextResponse, cspHeader: string) {
+    response.headers.set("Content-Security-Policy", cspHeader);
+    response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+    response.headers.set("X-Frame-Options", "DENY");
+    response.headers.set("X-Content-Type-Options", "nosniff");
+    response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    response.headers.set("Permissions-Policy", "camera=(self), microphone=(self), geolocation=()");
+}
+
 /**
  * Validates the session with the Better Auth server.
  */
@@ -44,6 +76,12 @@ async function getSession(request: NextRequest) {
 
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
+    const isDev = env.NODE_ENV !== "production";
+    const nonce = createNonce();
+    const cspHeader = createContentSecurityPolicy(nonce, isDev);
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-nonce", nonce);
+    requestHeaders.set("Content-Security-Policy", cspHeader);
 
     // 1. Auth checks
     const protectedPaths = ["/dashboard", "/practice", "/questions", "/analytics", "/recordings", "/settings", "/onboarding", "/interview"];
@@ -56,7 +94,9 @@ export async function proxy(request: NextRequest) {
 
     if (isProtectedPath) {
         if (!token && !testIdentity) {
-            return NextResponse.redirect(new URL("/login", request.url));
+            const response = NextResponse.redirect(new URL("/login", request.url));
+            applySecurityHeaders(response, cspHeader);
+            return response;
         }
 
         const session = testIdentity
@@ -66,6 +106,7 @@ export async function proxy(request: NextRequest) {
             const response = NextResponse.redirect(new URL("/login", request.url));
             deleteBetterAuthSessionCookies(response);
             response.cookies.delete(E2E_TEST_AUTH_COOKIE);
+            applySecurityHeaders(response, cspHeader);
             return response;
         }
     } else if (pathname === "/" || pathname === "/login" || pathname === "/signup") {
@@ -75,36 +116,19 @@ export async function proxy(request: NextRequest) {
                 : await getSession(request);
             if (session?.user) {
                 const hasOnboarding = !!session.user.onboardingCompletedAt;
-                return NextResponse.redirect(new URL(hasOnboarding ? "/dashboard" : "/onboarding", request.url));
+                const response = NextResponse.redirect(new URL(hasOnboarding ? "/dashboard" : "/onboarding", request.url));
+                applySecurityHeaders(response, cspHeader);
+                return response;
             }
         }
     }
 
-    const response = NextResponse.next();
-
-    // 2. Apply Security Headers
-    const isDev = env.NODE_ENV !== "production";
-    const cspHeader = `
-        default-src 'self';
-        script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval'" : ""};
-        style-src 'self' 'unsafe-inline';
-        img-src 'self' https://lh3.googleusercontent.com data: blob:;
-        font-src 'self' data:;
-        object-src 'none';
-        base-uri 'self';
-        form-action 'self';
-        frame-ancestors 'none';
-        connect-src 'self' https://accounts.google.com https://www.googleapis.com https://*.amazonaws.com;
-        media-src 'self' https://*.amazonaws.com data: blob:;
-        upgrade-insecure-requests;
-    `.replace(/\s{2,}/g, " ").trim();
-
-    response.headers.set("Content-Security-Policy", cspHeader);
-    response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-    response.headers.set("X-Frame-Options", "DENY");
-    response.headers.set("X-Content-Type-Options", "nosniff");
-    response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-    response.headers.set("Permissions-Policy", "camera=(self), microphone=(self), geolocation=()");
+    const response = NextResponse.next({
+        request: {
+            headers: requestHeaders,
+        },
+    });
+    applySecurityHeaders(response, cspHeader);
 
     return response;
 }

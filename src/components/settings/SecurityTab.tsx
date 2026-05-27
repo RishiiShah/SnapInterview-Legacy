@@ -108,7 +108,7 @@ export default function SecurityTab() {
       <PasswordTab />
 
       <div className="rounded-2xl border border-zinc-200 bg-white">
-        <div className="flex items-center justify-between border-b border-zinc-100 px-8 py-6">
+        <div className="flex flex-col items-start justify-between gap-3 border-b border-zinc-100 px-4 py-5 sm:flex-row sm:items-center sm:px-6 lg:px-8 lg:py-6">
           <div>
             <h2 className="text-lg font-semibold text-zinc-900">Active Sessions</h2>
             <p className="mt-1 text-sm text-zinc-500">See where you are signed in and revoke devices you no longer trust.</p>
@@ -116,7 +116,7 @@ export default function SecurityTab() {
           <button
             onClick={() => void runAction({ action: "revokeOthers" })}
             disabled={busySessionId === "others"}
-            className="rounded-xl border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-xl border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             {busySessionId === "others" ? "Signing out…" : "Sign out other devices"}
           </button>
@@ -124,12 +124,12 @@ export default function SecurityTab() {
 
         <div className="divide-y divide-zinc-100">
           {loading ? (
-            <p className="px-8 py-6 text-sm text-zinc-500">Loading sessions…</p>
+            <p className="px-4 py-5 text-sm text-zinc-500 sm:px-6 lg:px-8 lg:py-6">Loading sessions…</p>
           ) : data.sessions.length === 0 ? (
-            <p className="px-8 py-6 text-sm text-zinc-500">No active sessions found.</p>
+            <p className="px-4 py-5 text-sm text-zinc-500 sm:px-6 lg:px-8 lg:py-6">No active sessions found.</p>
           ) : (
             data.sessions.map((session) => (
-              <div key={session.id} className="flex items-center justify-between gap-4 px-8 py-4">
+              <div key={session.id} className="flex flex-col items-start justify-between gap-3 px-4 py-4 sm:flex-row sm:items-center sm:px-6 lg:px-8">
                 <div>
                   <p className="text-sm font-medium text-zinc-900">
                     {describeUserAgent(session.userAgent)}
@@ -143,7 +143,7 @@ export default function SecurityTab() {
                   <button
                     onClick={() => void runAction({ action: "revoke", sessionId: session.id })}
                     disabled={busySessionId === session.id}
-                    className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                   >
                     {busySessionId === session.id ? "Revoking…" : "Revoke"}
                   </button>
@@ -155,19 +155,19 @@ export default function SecurityTab() {
       </div>
 
       <div className="rounded-2xl border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-100 px-8 py-6">
+        <div className="border-b border-zinc-100 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
           <h2 className="text-lg font-semibold text-zinc-900">Recent Security Activity</h2>
           <p className="mt-1 text-sm text-zinc-500">Keep an eye on sign-ins, password changes, and revoked sessions.</p>
         </div>
 
         <div className="divide-y divide-zinc-100">
           {loading ? (
-            <p className="px-8 py-6 text-sm text-zinc-500">Loading activity…</p>
+            <p className="px-4 py-5 text-sm text-zinc-500 sm:px-6 lg:px-8 lg:py-6">Loading activity…</p>
           ) : data.events.length === 0 ? (
-            <p className="px-8 py-6 text-sm text-zinc-500">No recent security events.</p>
+            <p className="px-4 py-5 text-sm text-zinc-500 sm:px-6 lg:px-8 lg:py-6">No recent security events.</p>
           ) : (
             data.events.map((event) => (
-              <div key={event.id} className="px-8 py-4">
+              <div key={event.id} className="px-4 py-4 sm:px-6 lg:px-8">
                 <p className="text-sm font-medium text-zinc-900">{formatEventLabel(event.type)}</p>
                 <p className="mt-1 text-xs text-zinc-500">
                   {formatDate(event.createdAt)} • {describeUserAgent(event.userAgent)}

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { getSession } from "@/lib/auth-client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -15,8 +16,11 @@ type ProfileTabProps = {
 
 export default function ProfileTab({ userName, userEmail, userImage, initials }: ProfileTabProps) {
   const router = useRouter();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(userName);
   const [savedName, setSavedName] = useState(userName);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(userImage ?? null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -45,6 +49,18 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
       });
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    setAvatarPreview(userImage ?? null);
+  }, [userImage]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
 
   async function handleSaveProfile() {
     const trimmedName = name.trim();
@@ -126,18 +142,81 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
 
   const wordCount = resumeText ? resumeText.trim().split(/\s+/).filter(Boolean).length : 0;
 
+  async function handleAvatarPick(file?: File) {
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setProfileError("Please choose an image file.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileError("Avatar image must be 5 MB or smaller.");
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    const previousAvatar = avatarPreview;
+    setAvatarPreview((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return objectUrl;
+    });
+    setProfileError(null);
+
+    setAvatarUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const res = await fetch("/api/settings/profile/avatar", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(typeof data?.error === "string" ? data.error : "Failed to upload avatar.");
+      }
+
+      const nextImage = typeof data?.user?.image === "string" ? data.user.image : null;
+      setAvatarPreview(nextImage);
+      if (typeof window !== "undefined") {
+        if (nextImage) {
+          localStorage.setItem("profile-image-override", nextImage);
+        } else {
+          localStorage.removeItem("profile-image-override");
+        }
+        window.dispatchEvent(new CustomEvent("profile-image-updated", {
+          detail: { image: nextImage },
+        }));
+      }
+      await getSession();
+      router.refresh();
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : "Failed to upload avatar.");
+      setAvatarPreview(previousAvatar ?? null);
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
+
   return (
     <div>
-      <div className="border-b border-zinc-100 px-8 py-6">
+      <div className="border-b border-zinc-100 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
         <h2 className="text-lg font-semibold text-zinc-900">Profile</h2>
         <p className="mt-1 text-sm text-zinc-500">Update your personal information and how others see you.</p>
       </div>
 
-      <div className="border-b border-zinc-100 px-8 py-6">
-        <div className="flex items-center gap-5">
-          <div className="relative group">
-            {userImage ? (
-              <Image src={userImage} alt={savedName} width={72} height={72} className="h-18 w-18 rounded-full object-cover ring-4 ring-zinc-100" />
+      <div className="border-b border-zinc-100 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-5">
+          <button
+            type="button"
+            onClick={() => avatarInputRef.current?.click()}
+            disabled={avatarUploading}
+            className="group relative cursor-pointer rounded-full disabled:cursor-not-allowed disabled:opacity-70"
+            aria-label="Upload avatar image"
+          >
+            {avatarPreview ? (
+              <Image src={avatarPreview} alt={savedName} width={72} height={72} className="h-18 w-18 rounded-full object-cover ring-4 ring-zinc-100" />
             ) : (
               <div className="grid h-18 w-18 place-items-center rounded-full bg-zinc-900 text-xl font-bold text-white ring-4 ring-zinc-100">{initials}</div>
             )}
@@ -147,16 +226,29 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
               </svg>
             </div>
-          </div>
+          </button>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              handleAvatarPick(file);
+              event.target.value = "";
+            }}
+          />
           <div>
             <p className="text-base font-semibold text-zinc-900">{savedName}</p>
             <p className="text-sm text-zinc-400">{userEmail}</p>
-            <p className="mt-1.5 text-xs text-zinc-400">Click avatar to upload a new photo</p>
+            <p className="mt-1.5 text-xs text-zinc-400">
+              {avatarUploading ? "Uploading avatar..." : "Click avatar to upload a new photo"}
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="border-b border-zinc-100 px-8 py-6 space-y-5">
+      <div className="space-y-5 border-b border-zinc-100 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-zinc-700">Display Name</label>
@@ -179,8 +271,8 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
       </div>
 
       {/* Resume Section */}
-      <div className="border-b border-zinc-100 px-8 py-6">
-        <div className="flex items-start justify-between gap-4">
+      <div className="border-b border-zinc-100 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+        <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:gap-4">
           <div>
             <h3 className="text-sm font-medium text-zinc-900">Saved Resume</h3>
             <p className="mt-0.5 text-xs text-zinc-500">
@@ -237,7 +329,7 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
               {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
               {resumeError && <p className="text-xs text-red-600">{resumeError}</p>}
 
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                 <label className="cursor-pointer text-xs text-blue-600 hover:text-blue-800 transition-colors">
                   Replace PDF
                   <input
@@ -262,7 +354,7 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
                     Clear saved resume
                   </button>
                 ) : (
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <span className="text-xs text-zinc-600">Remove your saved resume?</span>
                     <button
                       onClick={() => setConfirmingClear(false)}
@@ -317,7 +409,7 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
         </div>
       </div>
 
-      <div className="flex items-center gap-3 px-8 py-5">
+      <div className="flex flex-wrap items-center gap-3 px-4 py-5 sm:px-6 lg:px-8">
         <Button
           onClick={handleSaveProfile}
           disabled={name.trim() === savedName.trim()}

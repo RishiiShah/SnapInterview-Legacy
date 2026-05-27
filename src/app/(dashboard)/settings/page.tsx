@@ -106,14 +106,14 @@ export default function SettingsPage() {
         </SlideIn>
 
         <FadeIn delay={0.1} direction="up">
-          <div className="flex gap-6">
-            <nav className="w-56 shrink-0">
-              <div className="sticky top-6 space-y-1 rounded-2xl border border-zinc-200 bg-white p-2">
+          <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
+            <nav className="w-full shrink-0 lg:w-56">
+              <div className="space-y-1 overflow-x-auto rounded-2xl border border-zinc-200 bg-white p-2 lg:sticky lg:top-6">
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex w-full cursor-pointer items-center gap-3 rounded-xl px-4 py-3 text-left transition-all ${
+                    className={`flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all sm:px-4 sm:py-3 ${
                       activeTab === tab.id
                         ? "bg-zinc-900 text-white shadow-sm"
                         : tab.id === "danger"
@@ -126,7 +126,7 @@ export default function SettingsPage() {
                     </span>
                     <div>
                       <p className="text-sm font-medium leading-tight">{tab.label}</p>
-                      <p className={`text-[11px] leading-tight ${activeTab === tab.id ? "text-white/60" : tab.id === "danger" ? "text-red-400" : "text-zinc-400"}`}>
+                      <p className={`hidden text-[11px] leading-tight sm:block ${activeTab === tab.id ? "text-white/60" : tab.id === "danger" ? "text-red-400" : "text-zinc-400"}`}>
                         {tab.desc}
                       </p>
                     </div>
@@ -135,7 +135,7 @@ export default function SettingsPage() {
               </div>
             </nav>
 
-            <div className="flex-1 rounded-2xl border border-zinc-200 bg-white">
+            <div className="min-w-0 flex-1 rounded-2xl border border-zinc-200 bg-white">
               {activeTab === "profile" && (
                 <ProfileTab userName={userName} userEmail={userEmail} userImage={userImage} initials={initials} />
               )}

@@ -161,9 +161,18 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
 
             screenStreamRef.current = screenStream;
 
-            const mediaRecorder = new MediaRecorder(combinedStream, {
-                mimeType: "video/webm;codecs=vp8,opus",
-            });
+            let mimeType = "video/webm;codecs=vp8,opus";
+            if (typeof MediaRecorder.isTypeSupported === "function" && !MediaRecorder.isTypeSupported(mimeType)) {
+                if (MediaRecorder.isTypeSupported("video/webm")) {
+                    mimeType = "video/webm";
+                } else if (MediaRecorder.isTypeSupported("video/mp4")) {
+                    mimeType = "video/mp4";
+                } else {
+                    mimeType = ""; // Fallback to browser default
+                }
+            }
+
+            const mediaRecorder = new MediaRecorder(combinedStream, mimeType ? { mimeType } : undefined);
 
             mediaRecorder.ondataavailable = handleDataAvailable;
 

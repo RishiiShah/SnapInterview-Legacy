@@ -135,11 +135,9 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   }, [chat.messages]);
 
   const handlePermissionsGranted = useCallback(async () => {
-    const blockResult = await getInterviewBlockReason();
-    if (blockResult?.severity === "block") {
-      setJoinBlockedReason(blockResult);
-      return;
-    }
+    // Note: joinBlockedReason check is handled synchronously by the UI before calling this.
+    // We must call startScreenRecording synchronously here to preserve the user gesture 
+    // context required by Safari for getDisplayMedia.
 
     const started = await videoRecording.startScreenRecording(media.stream || undefined);
     if (!started) {

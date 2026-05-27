@@ -74,8 +74,8 @@ describe("proxy auth cookie handling", () => {
 
   it("clears both Better Auth session cookie names when validation fails", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({}), {
-        status: 200,
+      new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
         headers: { "content-type": "application/json" },
       }),
     );
@@ -107,7 +107,9 @@ describe("proxy security headers", () => {
     const response = await proxy(request);
     const scriptSrc = getCspDirective(response, "script-src");
 
-    expect(scriptSrc).toMatch(/^script-src 'self' 'nonce-[A-Za-z0-9+/]+=*'( 'unsafe-eval')?$/);
+    expect(scriptSrc).toMatch(
+      /^script-src 'self' 'nonce-[A-Za-z0-9+/]+=*' 'strict-dynamic' https:\/\/va\.vercel-scripts\.com( 'unsafe-eval')?$/,
+    );
     expect(scriptSrc).not.toContain("'unsafe-inline'");
   });
 });

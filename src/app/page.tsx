@@ -7,6 +7,7 @@ import CTASection from "@/components/landing/CTASection";
 import LandingFooter from "@/components/landing/LandingFooter";
 
 export default async function LandingPage() {
+  // Nonce-based CSP requires dynamic rendering so Next can stamp per-request script nonces.
   const nonce = (await headers()).get("x-nonce") ?? undefined;
   const jsonLd = {
     "@context": "https://schema.org",

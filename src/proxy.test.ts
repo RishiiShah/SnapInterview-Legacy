@@ -1,5 +1,15 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+const mockEnv = vi.hoisted(() => ({
+  NODE_ENV: "test" as const,
+  AUTH_SECRET: "test-auth-secret-32-chars-minimum",
+  BETTER_AUTH_URL: "http://localhost:3000",
+  ENABLE_TEST_AUTH: "0" as const,
+}));
+
+vi.mock("@/lib/env", () => ({ env: mockEnv }));
+
 import { proxy } from "./proxy";
 
 function getSetCookieHeaders(response: Response) {

@@ -81,6 +81,7 @@ export async function proxy(request: NextRequest) {
     const cspHeader = createContentSecurityPolicy(nonce, isDev);
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-nonce", nonce);
+    // Next.js reads the forwarded CSP request header while rendering to nonce its framework scripts.
     requestHeaders.set("Content-Security-Policy", cspHeader);
 
     // 1. Auth checks

@@ -40,7 +40,7 @@ function createContentSecurityPolicy(nonce: string, isDev: boolean) {
         base-uri 'self';
         form-action 'self';
         frame-ancestors 'none';
-        connect-src 'self' https://accounts.google.com https://www.googleapis.com https://*.amazonaws.com https://vitals.vercel-insights.com;
+        connect-src 'self' https://accounts.google.com https://www.googleapis.com https://*.amazonaws.com;
         media-src 'self' https://*.amazonaws.com data: blob:;
         upgrade-insecure-requests;
     `.replace(/\s{2,}/g, " ").trim();

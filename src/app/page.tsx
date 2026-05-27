@@ -32,6 +32,7 @@ export default async function LandingPage() {
     <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#f4f9ff_0%,#fcfeff_18%,#ffffff_42%,#f7fbff_100%)] text-zinc-900 font-(family-name:--font-geist-sans)">
       <script
         nonce={nonce}
+        suppressHydrationWarning
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />

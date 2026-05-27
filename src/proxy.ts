@@ -85,7 +85,7 @@ export async function proxy(request: NextRequest) {
     requestHeaders.set("Content-Security-Policy", cspHeader);
 
     // 1. Auth checks
-    const protectedPaths = ["/dashboard", "/practice", "/questions", "/analytics", "/recordings", "/settings", "/onboarding", "/interview"];
+    const protectedPaths = ["/dashboard", "/practice", "/questions", "/analytics", "/recordings", "/settings", "/onboarding", "/interview", "/admin"];
     const isProtectedPath = protectedPaths.some((path) => pathname.startsWith(path));
 
     const token = getBetterAuthSessionToken(request);

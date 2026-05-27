@@ -27,6 +27,7 @@ const envSchema = z.object({
   CSRF_TRUSTED_ORIGIN_SUFFIXES: z.string().optional(),
   CSRF_TRUSTED_ORIGINS: z.string().optional(),
   CRON_SECRET: z.string().min(1).optional(),
+  ADMIN_EMAILS: z.string().optional(),
 });
 
 const testEnvSchema = envSchema.extend({

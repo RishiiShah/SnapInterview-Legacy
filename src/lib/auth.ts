@@ -277,9 +277,11 @@ export const auth = betterAuth({
       try {
         return new URL(url).origin.toLowerCase();
       } catch {
-        return url;
+        // Fail closed: invalid URLs are silently excluded from the allowlist
+        return null;
       }
-    }),
+    })
+    .filter((origin): origin is string => Boolean(origin)),
 });
 
 export type Session = typeof auth.$Infer.Session;

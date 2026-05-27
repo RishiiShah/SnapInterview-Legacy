@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { csrfRejectIfInvalid, validateRequestOrigin, _resetOriginCacheForTesting } from "./csrf";
 
 // vi.mock is hoisted, so mockEnv must be declared with vi.hoisted to be accessible
@@ -25,6 +25,12 @@ describe("csrf utilities", () => {
     mockEnv.NODE_ENV = "test";
     // Flush the module-level cache so each test starts fresh.
     _resetOriginCacheForTesting();
+  });
+
+  afterEach(() => {
+    // Always clean up stubbed env vars even if assertions throw,
+    // preventing leakage into subsequent tests.
+    vi.unstubAllEnvs();
   });
 
   it("rejects when origin header is missing or invalid", () => {
@@ -154,8 +160,6 @@ describe("csrf utilities", () => {
       headers: { origin: "https://attacker.vercel.app" },
     });
     expect(validateRequestOrigin(invalidReq).isValid).toBe(false);
-    
-    vi.unstubAllEnvs();
   });
 
   it("automatically trusts the exact VERCEL_BRANCH_URL if present", () => {
@@ -175,7 +179,5 @@ describe("csrf utilities", () => {
       headers: { origin: "https://other.vercel.app" },
     });
     expect(validateRequestOrigin(invalidReq).isValid).toBe(false);
-    
-    vi.unstubAllEnvs();
   });
 });

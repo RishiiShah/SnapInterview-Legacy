@@ -32,7 +32,7 @@ function createNonce() {
 function createContentSecurityPolicy(nonce: string, isDev: boolean) {
     return `
         default-src 'self';
-        script-src 'self' 'nonce-${nonce}' ${isDev ? "'unsafe-eval'" : ""};
+        script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://va.vercel-scripts.com ${isDev ? "'unsafe-eval'" : ""};
         style-src 'self' 'unsafe-inline';
         img-src 'self' https://lh3.googleusercontent.com data: blob:;
         font-src 'self' data:;
@@ -40,7 +40,7 @@ function createContentSecurityPolicy(nonce: string, isDev: boolean) {
         base-uri 'self';
         form-action 'self';
         frame-ancestors 'none';
-        connect-src 'self' https://accounts.google.com https://www.googleapis.com https://*.amazonaws.com;
+        connect-src 'self' https://accounts.google.com https://www.googleapis.com https://*.amazonaws.com https://vitals.vercel-insights.com;
         media-src 'self' https://*.amazonaws.com data: blob:;
         upgrade-insecure-requests;
     `.replace(/\s{2,}/g, " ").trim();

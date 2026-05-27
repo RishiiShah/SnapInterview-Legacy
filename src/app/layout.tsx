@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import Providers from "./providers";
 import "./globals.css";
 
@@ -48,11 +49,13 @@ export const metadata: Metadata = {
     },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+    const headersList = await headers();
+    const nonce = headersList.get("x-nonce") || undefined;
     return (
         <html lang="en" suppressHydrationWarning className="overflow-x-hidden bg-white dark:bg-zinc-950">
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen w-full flex flex-col overflow-x-hidden`}>

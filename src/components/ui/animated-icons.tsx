@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useEffect, useImperativeHandle } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { motion, useAnimate, stagger } from "framer-motion";
 import type { SVGProps } from "react";
 
@@ -18,10 +18,18 @@ export interface AnimatedIconHandle {
 }
 
 function useHoverAnimation(isHovered: boolean | undefined, start: () => void, stop: () => void) {
+  const startRef = useRef(start);
+  const stopRef = useRef(stop);
+  
   useEffect(() => {
-    if (isHovered === true) start();
-    else if (isHovered === false) stop();
-  }, [isHovered, start, stop]);
+    startRef.current = start;
+    stopRef.current = stop;
+  }, [start, stop]);
+
+  useEffect(() => {
+    if (isHovered === true) startRef.current();
+    else if (isHovered === false) stopRef.current();
+  }, [isHovered]);
 }
 
 // Landing / Sparkles

@@ -139,7 +139,23 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     // We must call startScreenRecording synchronously here to preserve the user gesture 
     // context required by Safari for getDisplayMedia.
 
-    const started = await videoRecording.startScreenRecording(media.stream || undefined);
+    const pendingRaw = sessionStorage.getItem(`pending_interview_${interviewId}`);
+    let sessionPromise = Promise.resolve();
+    
+    if (pendingRaw) {
+      const payload = JSON.parse(pendingRaw);
+      payload.id = interviewId;
+      sessionPromise = fetch("/api/interview/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).then(res => {
+        if (!res.ok) throw new Error("Server rejected session creation");
+        sessionStorage.removeItem(`pending_interview_${interviewId}`);
+      });
+    }
+
+    const started = await videoRecording.startScreenRecording(media.stream || undefined, sessionPromise);
     if (!started) {
       setModal({
         isOpen: true,
@@ -150,29 +166,18 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
       return;
     }
 
-    const pendingRaw = sessionStorage.getItem(`pending_interview_${interviewId}`);
-    if (pendingRaw) {
-      try {
-        const payload = JSON.parse(pendingRaw);
-        payload.id = interviewId;
-        const res = await fetch("/api/interview/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error("Server rejected session creation");
-        sessionStorage.removeItem(`pending_interview_${interviewId}`);
-      } catch (err) {
-        console.error("Failed to persist session to DB", err);
-        setModal({
-          isOpen: true,
-          title: "Connection Error",
-          description: "Failed to establish interview session. Please try again.",
-          variant: "danger",
-        });
-        void videoRecording.stopVideoRecording();
-        return;
-      }
+    try {
+      await sessionPromise;
+    } catch (err) {
+      console.error("Failed to persist session to DB", err);
+      setModal({
+        isOpen: true,
+        title: "Connection Error",
+        description: "Failed to establish interview session. Please try again.",
+        variant: "danger",
+      });
+      void videoRecording.stopVideoRecording();
+      return;
     }
 
     setShowPreJoin(false);

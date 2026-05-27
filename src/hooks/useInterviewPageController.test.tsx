@@ -168,7 +168,7 @@ describe("useInterviewPageController", () => {
       await result.current.handlePermissionsGranted();
     });
 
-    expect(startScreenRecording).toHaveBeenCalledWith(expect.objectContaining({ id: "mock-stream" }));
+    expect(startScreenRecording).toHaveBeenCalledWith(expect.objectContaining({ id: "mock-stream" }), expect.any(Promise));
     expect(fetch).toHaveBeenCalledWith("/api/interview/session", expect.objectContaining({
       method: "POST",
       body: JSON.stringify({

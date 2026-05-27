@@ -113,7 +113,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
         }
     }, [flushBuffer]);
 
-    const startScreenRecording = useCallback(async (micStream?: MediaStream) => {
+    const startScreenRecording = useCallback(async (micStream?: MediaStream, sessionPromise?: Promise<void>) => {
         try {
             // Request screen share first to ensure it is triggered by user gesture
             const screenStream = await navigator.mediaDevices.getDisplayMedia({
@@ -126,6 +126,11 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
                 selfBrowserSurface: "include",
                 surfaceSwitching: "include",
             });
+
+            // Wait for interview session creation in DB before creating multipart upload
+            if (sessionPromise) {
+                await sessionPromise;
+            }
 
             // Initialize multipart upload after getting stream
             const initRes = await fetch("/api/s3/multipart/create", {

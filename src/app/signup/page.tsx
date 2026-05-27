@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signIn, useSession } from "@/lib/auth-client";
@@ -109,10 +110,8 @@ export default function SignupPage() {
             <div className="flex w-full flex-col items-center justify-center bg-white px-6 lg:w-1/2">
                 {/* Mobile logo */}
                 <div className="mb-10 lg:hidden">
-                    <Link href="/" className="flex items-center gap-2.5">
-                        <div className="grid h-8 w-8 place-items-center rounded-lg bg-zinc-900 text-[11px] font-bold leading-none tracking-tighter text-white">
-                            SI
-                        </div>
+                    <Link href="/" className="flex items-center gap-1.5">
+                        <Image src="/logo.png" alt="SnapInterview Logo" width={32} height={32} className="rounded-lg" />
                         <span className="text-lg font-semibold tracking-tight text-zinc-900">
                             SnapInterview
                         </span>

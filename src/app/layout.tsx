@@ -43,9 +43,12 @@ export const metadata: Metadata = {
         title: "SnapInterview | AI Mock Interview Platform",
         description: "Practice mock interviews with AI, get instant feedback, and land your dream job.",
     },
+    icons: {
+        icon: "/logo.png",
+    },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;

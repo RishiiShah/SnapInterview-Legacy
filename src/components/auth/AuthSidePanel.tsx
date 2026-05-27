@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 interface AuthSidePanelProps {
     title: string;
@@ -8,10 +9,8 @@ interface AuthSidePanelProps {
 export function AuthSidePanel({ title, subtitle }: AuthSidePanelProps) {
     return (
         <div className="hidden w-1/2 flex-col justify-between bg-zinc-900 p-12 lg:flex">
-            <Link href="/" className="flex items-center gap-2.5">
-                <div className="grid h-8 w-8 place-items-center rounded-lg bg-white text-[11px] font-bold leading-none tracking-tighter text-zinc-900">
-                    SI
-                </div>
+            <Link href="/" className="flex items-center gap-1.5">
+                <Image src="/logo.png" alt="SnapInterview Logo" width={32} height={32} className="rounded-lg" />
                 <span className="text-lg font-semibold tracking-tight text-white">
                     SnapInterview
                 </span>

@@ -157,9 +157,9 @@ checkout → Node 24 → `npm ci` → `npm audit` → `prisma generate` → lint
 
 | Job                  | Schedule              | Purpose                                  |
 | -------------------- | --------------------- | ---------------------------------------- |
-| `/api/cron/cleanup`  | Daily 02:00 UTC       | Hard-delete sessions soft-deleted 30+ days ago |
-| `/api/cron/practice-reminder` | Daily 09:00 UTC | Email inactive users                     |
-| `/api/cron/weekly-report` | Mondays 08:00 UTC | Weekly progress summary emails            |
+| `/api/cron/cleanup`  | Daily 02:00 Server Time       | Hard-delete sessions soft-deleted 30+ days ago |
+| `/api/cron/practice-reminder` | Daily 09:00 Server Time | Email inactive users                     |
+| `/api/cron/weekly-report` | Mondays 08:00 Server Time | Weekly progress summary emails            |
 
 ## Secrets Management
 

@@ -271,7 +271,15 @@ export const auth = betterAuth({
     env.NEXT_PUBLIC_APP_URL,
     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
     process.env.VERCEL_BRANCH_URL ? `https://${process.env.VERCEL_BRANCH_URL}` : undefined,
-  ].filter((url): url is string => Boolean(url)),
+  ]
+    .filter((url): url is string => Boolean(url))
+    .map((url) => {
+      try {
+        return new URL(url).origin.toLowerCase();
+      } catch {
+        return url;
+      }
+    }),
 });
 
 export type Session = typeof auth.$Infer.Session;

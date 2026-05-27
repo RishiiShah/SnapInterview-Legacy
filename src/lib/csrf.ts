@@ -58,7 +58,10 @@ function getAllowedOrigins(): Set<string> {
     origins.add("http://127.0.0.1:3000");
   }
 
-  // Automatically trust the current Vercel deployment URLs (enables secure Preview Deployments)
+  // Automatically trust the current Vercel deployment URLs (enables secure Preview Deployments).
+  // Note: These values are read and cached here for the lifetime of the warm serverless instance
+  // (see _allowedOrigins cache). On Vercel, these are baked into the deployment so this is perfectly fine,
+  // but it means the allowlist cannot be reset by changing the env vars dynamically at runtime.
   if (process.env.VERCEL_URL) {
     const normalized = normalizeOrigin(`https://${process.env.VERCEL_URL}`);
     if (normalized) origins.add(normalized);

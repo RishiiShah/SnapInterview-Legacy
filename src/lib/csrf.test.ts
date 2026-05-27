@@ -136,4 +136,46 @@ describe("csrf utilities", () => {
 
     expect(validateRequestOrigin(req).isValid).toBe(false);
   });
+
+  it("automatically trusts the exact VERCEL_URL if present", () => {
+    vi.stubEnv("VERCEL_URL", "snapinterview-123456-team.vercel.app");
+    _resetOriginCacheForTesting(); // reload cache with new process.env
+
+    // The deployment URL itself is valid
+    const validReq = new Request("https://snapinterview.app/api/test", {
+      method: "POST",
+      headers: { origin: "https://snapinterview-123456-team.vercel.app" },
+    });
+    expect(validateRequestOrigin(validReq).isValid).toBe(true);
+
+    // But another random Vercel URL is NOT valid
+    const invalidReq = new Request("https://snapinterview.app/api/test", {
+      method: "POST",
+      headers: { origin: "https://attacker.vercel.app" },
+    });
+    expect(validateRequestOrigin(invalidReq).isValid).toBe(false);
+    
+    vi.unstubAllEnvs();
+  });
+
+  it("automatically trusts the exact VERCEL_BRANCH_URL if present", () => {
+    vi.stubEnv("VERCEL_BRANCH_URL", "snapinterview-git-main-team.vercel.app");
+    _resetOriginCacheForTesting(); // reload cache with new process.env
+
+    // The deployment URL itself is valid
+    const validReq = new Request("https://snapinterview.app/api/test", {
+      method: "POST",
+      headers: { origin: "https://snapinterview-git-main-team.vercel.app" },
+    });
+    expect(validateRequestOrigin(validReq).isValid).toBe(true);
+
+    // But another random Vercel URL is NOT valid
+    const invalidReq = new Request("https://snapinterview.app/api/test", {
+      method: "POST",
+      headers: { origin: "https://other.vercel.app" },
+    });
+    expect(validateRequestOrigin(invalidReq).isValid).toBe(false);
+    
+    vi.unstubAllEnvs();
+  });
 });

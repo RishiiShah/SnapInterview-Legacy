@@ -7,7 +7,8 @@ import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/utils/helpers";
 import { Notification } from "@/data/types";
-import { IconBell, IconLogout, IconSearch, IconSettings } from "@/components/ui/icons";
+import { IconSearch } from "@/components/ui/icons";
+import { AnimatedSettingsIcon, AnimatedBellIcon, AnimatedLogoutIcon, AnimatedSearchIcon } from "@/components/ui/animated-icons";
 import { navItems } from "./Sidebar";
 
 type DashboardSession = {
@@ -72,6 +73,72 @@ function NotificationPanel({
     );
 }
 
+function SettingsLink({ onClose }: { onClose: () => void }) {
+    const [isHovered, setIsHovered] = useState(false);
+    return (
+        <Link 
+            href="/settings" 
+            onClick={onClose} 
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
+        >
+            <AnimatedSettingsIcon className="h-4 w-4 text-zinc-400" isHovered={isHovered} />
+            Settings
+        </Link>
+    );
+}
+
+function HeaderLogoutButton() {
+    const [isHovered, setIsHovered] = useState(false);
+    return (
+        <button 
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            onClick={() => signOut({ fetchOptions: { onSuccess: () => { window.location.href = "/login"; } } })} 
+            className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
+        >
+            <AnimatedLogoutIcon className="h-4 w-4 text-zinc-400" isHovered={isHovered} />
+            Log out
+        </button>
+    );
+}
+
+function HeaderNotifButton({ handleNotifOpen, unreadCount }: { handleNotifOpen: () => void, unreadCount: number }) {
+    const [isHovered, setIsHovered] = useState(false);
+    return (
+        <button
+            onClick={handleNotifOpen}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className="relative rounded-xl p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
+        >
+            <AnimatedBellIcon className="h-5 w-5" isHovered={isHovered} />
+            {unreadCount > 0 && (
+                <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                    {unreadCount}
+                </span>
+            )}
+        </button>
+    );
+}
+
+function HeaderSearchButton({ onSearchOpen }: { onSearchOpen: () => void }) {
+    const [isHovered, setIsHovered] = useState(false);
+    return (
+        <button 
+            onClick={onSearchOpen} 
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className="hidden items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-400 cursor-pointer transition-colors hover:border-zinc-300 hover:bg-zinc-100 sm:flex"
+        >
+            <AnimatedSearchIcon className="h-4 w-4" isHovered={isHovered} />
+            <span>Search…</span>
+            <kbd className="ml-6 rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">⌘K</kbd>
+        </button>
+    );
+}
+
 function AvatarDropdown({
     open,
     onClose,
@@ -92,14 +159,8 @@ function AvatarDropdown({
                 <p className="text-xs text-zinc-500">{userEmail}</p>
             </div>
             <div className="p-1">
-                <Link href="/settings" onClick={onClose} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100">
-                    <IconSettings className="h-4 w-4 text-zinc-400" />
-                    Settings
-                </Link>
-                <button onClick={() => signOut({ fetchOptions: { onSuccess: () => { window.location.href = "/login"; } } })} className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100">
-                    <IconLogout className="h-4 w-4 text-zinc-400" />
-                    Log out
-                </button>
+                <SettingsLink onClose={onClose} />
+                <HeaderLogoutButton />
             </div>
         </div>
     );
@@ -174,25 +235,11 @@ export function Header({ onSearchOpen, session }: { onSearchOpen: () => void; se
             <h2 className="text-sm font-semibold text-zinc-900">{pageTitle}</h2>
             <div className="flex items-center gap-3">
                 {/* Search */}
-                <button onClick={onSearchOpen} className="hidden items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-400 transition-colors hover:border-zinc-300 hover:bg-zinc-100 sm:flex">
-                    <IconSearch className="h-4 w-4" />
-                    <span>Search…</span>
-                    <kbd className="ml-6 rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">⌘K</kbd>
-                </button>
+                <HeaderSearchButton onSearchOpen={onSearchOpen} />
 
                 {/* Notifications */}
                 <div ref={notifRef} className="relative">
-                    <button
-                        onClick={handleNotifOpen}
-                        className="relative rounded-xl p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
-                    >
-                        <IconBell className="h-5 w-5" />
-                        {unreadCount > 0 && (
-                            <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
-                                {unreadCount}
-                            </span>
-                        )}
-                    </button>
+                    <HeaderNotifButton handleNotifOpen={handleNotifOpen} unreadCount={unreadCount} />
                     <NotificationPanel
                         open={notifOpen}
                         notifications={notifications}

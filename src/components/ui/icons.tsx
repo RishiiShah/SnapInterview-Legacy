@@ -61,8 +61,15 @@ type IconProps = LucideProps;
 const PREMIUM_STROKE_WIDTH = 1.9;
 
 function makeIcon(Icon: LucideIcon) {
-  return function PremiumIcon({ strokeWidth = PREMIUM_STROKE_WIDTH, ...props }: IconProps) {
-    return <Icon absoluteStrokeWidth strokeWidth={strokeWidth} {...props} />;
+  return function PremiumIcon({ strokeWidth = PREMIUM_STROKE_WIDTH, className = "", ...props }: IconProps) {
+    return (
+      <Icon 
+        absoluteStrokeWidth 
+        strokeWidth={strokeWidth} 
+        className={`transition-transform hover:scale-110 group-hover:scale-110 active:scale-95 will-change-transform ${className}`}
+        {...props} 
+      />
+    );
   };
 }
 

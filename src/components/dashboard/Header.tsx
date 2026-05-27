@@ -7,7 +7,6 @@ import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/utils/helpers";
 import { Notification } from "@/data/types";
-import { IconSearch } from "@/components/ui/icons";
 import { AnimatedSettingsIcon, AnimatedBellIcon, AnimatedLogoutIcon, AnimatedSearchIcon } from "@/components/ui/animated-icons";
 import { navItems } from "./Sidebar";
 

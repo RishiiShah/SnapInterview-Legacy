@@ -10,16 +10,15 @@ import {
     IconChevronLeft,
     IconChevronRight,
     IconChevronUp,
-    IconSettings,
 } from "@/components/ui/icons";
 import {
-    AnimatedDashboardIcon,
-    AnimatedTargetIcon,
-    AnimatedQuestionBankIcon,
-    AnimatedChartBarsIcon,
-    AnimatedClapperboardIcon,
     AnimatedLogoutIcon,
     AnimatedSettingsIcon,
+    AnimatedDashboardIcon,
+    AnimatedMessageSquareIcon,
+    AnimatedLibraryIcon,
+    AnimatedChartLineIcon,
+    AnimatedVideoCameraIcon,
 } from "@/components/ui/animated-icons";
 
 type DashboardSession = {
@@ -30,30 +29,36 @@ type DashboardSession = {
     } | null;
 } | null;
 
-export const navItems = [
+type NavItem = {
+    label: string;
+    href: string;
+    icon: React.ReactElement<{ isHovered?: boolean }>;
+};
+
+export const navItems: NavItem[] = [
     {
         label: "Dashboard", href: "/dashboard",
         icon: <AnimatedDashboardIcon className="h-5 w-5 shrink-0" strokeWidth={1.9} />,
     },
     {
         label: "Practice", href: "/practice",
-        icon: <AnimatedTargetIcon className="h-5 w-5 shrink-0" strokeWidth={1.9} />,
+        icon: <AnimatedMessageSquareIcon className="h-5 w-5 shrink-0" strokeWidth={1.9} />,
     },
     {
         label: "Question Bank", href: "/questions",
-        icon: <AnimatedQuestionBankIcon className="h-5 w-5 shrink-0" strokeWidth={1.9} />,
+        icon: <AnimatedLibraryIcon className="h-5 w-5 shrink-0" strokeWidth={1.9} />,
     },
     {
         label: "Analytics", href: "/analytics",
-        icon: <AnimatedChartBarsIcon className="h-5 w-5 shrink-0" strokeWidth={1.9} />,
+        icon: <AnimatedChartLineIcon className="h-5 w-5 shrink-0" strokeWidth={1.9} />,
     },
     {
         label: "Recordings", href: "/recordings",
-        icon: <AnimatedClapperboardIcon className="h-5 w-5 shrink-0" strokeWidth={1.9} />,
+        icon: <AnimatedVideoCameraIcon className="h-5 w-5 shrink-0" strokeWidth={1.9} />,
     },
 ];
 
-function SidebarNavItem({ item, active, collapsed }: { item: any, active: boolean, collapsed: boolean }) {
+function SidebarNavItem({ item, active, collapsed }: { item: NavItem, active: boolean, collapsed: boolean }) {
     const [isHovered, setIsHovered] = useState(false);
     return (
         <Link 
@@ -62,7 +67,7 @@ function SidebarNavItem({ item, active, collapsed }: { item: any, active: boolea
             onMouseLeave={() => setIsHovered(false)}
             className={`group/nav relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${active ? "bg-zinc-100 text-zinc-900" : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"} ${collapsed ? "justify-center" : ""}`}
         >
-            {React.isValidElement(item.icon) ? React.cloneElement(item.icon as React.ReactElement, { isHovered }) : item.icon}
+            {React.cloneElement(item.icon, { isHovered })}
             {!collapsed && <span className="whitespace-nowrap overflow-hidden text-ellipsis">{item.label}</span>}
             {collapsed && (
                 <span className="absolute left-full ml-4 hidden rounded-md bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 transition-opacity group-hover/nav:block group-hover/nav:opacity-100 z-50 shadow-sm border border-zinc-800">

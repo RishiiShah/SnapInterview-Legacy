@@ -1,41 +1,41 @@
 import { FadeIn, FadeInStagger, FadeInStaggerItem } from "@/components/ui/motion";
 import {
-  IconChartBars,
-  IconClock,
-  IconQuestionBank,
-  IconStarBurst,
-  IconTrendingUp,
-  IconVideoCamera,
-} from "@/components/ui/icons";
+  AnimatedChartBarsIcon,
+  AnimatedClockIcon,
+  AnimatedQuestionBankIcon,
+  AnimatedSparklesIcon,
+  AnimatedTrendingUpIcon,
+  AnimatedVideoCameraIcon,
+} from "@/components/ui/animated-icons";
 
 const features = [
   {
-    icon: <IconStarBurst className="h-5 w-5" />,
+    icon: <AnimatedSparklesIcon className="h-5 w-5" strokeWidth={1.5} />,
     title: "Live Follow-Ups",
     desc: "The interviewer pushes on weak spots instead of stopping at canned one-shot prompts.",
   },
   {
-    icon: <IconChartBars className="h-5 w-5" />,
+    icon: <AnimatedChartBarsIcon className="h-5 w-5" strokeWidth={1.5} />,
     title: "Useful Scorecards",
     desc: "See where you rambled, where you lacked depth, and where your answer actually landed.",
   },
   {
-    icon: <IconQuestionBank className="h-5 w-5" />,
+    icon: <AnimatedQuestionBankIcon className="h-5 w-5" strokeWidth={1.5} />,
     title: "Targeted Question Sets",
     desc: "Practice by role, company style, and interview type instead of digging through random prompts.",
   },
   {
-    icon: <IconVideoCamera className="h-5 w-5" strokeWidth={1.5} />,
+    icon: <AnimatedVideoCameraIcon className="h-5 w-5" strokeWidth={1.5} />,
     title: "Replay The Session",
     desc: "Review the exact answer you gave, not the polished version you remember afterward.",
   },
   {
-    icon: <IconTrendingUp className="h-5 w-5" />,
+    icon: <AnimatedTrendingUpIcon className="h-5 w-5" strokeWidth={1.5} />,
     title: "Track Real Improvement",
     desc: "Watch your pacing, clarity, and confidence change across repeated reps over time.",
   },
   {
-    icon: <IconClock className="h-5 w-5" />,
+    icon: <AnimatedClockIcon className="h-5 w-5" strokeWidth={1.5} />,
     title: "Always Ready",
     desc: "Run a quick rep before work, a full mock at night, or a last-minute warmup before the interview.",
   },

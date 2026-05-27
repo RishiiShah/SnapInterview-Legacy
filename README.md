@@ -21,7 +21,7 @@ AI-powered technical interview practice platform. Users conduct voice-based mock
 
 ## Prerequisites
 
-- Node.js 22+ through 24.12.0
+- Node.js 22+ through 24.12.0 (newer Node 24 releases currently break Playwright in this project)
 - npm 10+
 - PostgreSQL database
 

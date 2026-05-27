@@ -19,7 +19,14 @@ function getBetterAuthSessionToken(request: NextRequest) {
 
 function deleteBetterAuthSessionCookies(response: NextResponse) {
     for (const cookieName of BETTER_AUTH_COOKIE_NAMES) {
-        response.cookies.delete(cookieName);
+        response.cookies.set(cookieName, "", {
+            expires: new Date(0),
+            maxAge: 0,
+            path: "/",
+            httpOnly: true,
+            sameSite: "lax",
+            secure: cookieName.startsWith("__Secure-"),
+        });
     }
 }
 
@@ -32,7 +39,7 @@ function createNonce() {
 function createContentSecurityPolicy(nonce: string, isDev: boolean) {
     return `
         default-src 'self';
-        script-src 'self' 'nonce-${nonce}' ${isDev ? "'unsafe-eval'" : ""};
+        script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://va.vercel-scripts.com ${isDev ? "'unsafe-eval'" : ""};
         style-src 'self' 'unsafe-inline';
         img-src 'self' https://lh3.googleusercontent.com data: blob:;
         font-src 'self' data:;

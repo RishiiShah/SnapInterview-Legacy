@@ -1,23 +1,23 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/utils/helpers";
+import { IconChevronUp } from "@/components/ui/icons";
 import {
-    IconChartBars,
-    IconChevronLeft,
-    IconChevronRight,
-    IconChevronUp,
-    IconDashboard,
-    IconLogout,
-    IconPractice,
-    IconQuestionBank,
-    IconRecordings,
-    IconSettings,
-} from "@/components/ui/icons";
+    AnimatedSidebarCollapseIcon,
+    AnimatedLogoutIcon,
+    AnimatedSettingsIcon,
+    AnimatedDashboardIcon,
+    AnimatedMessageSquareIcon,
+    AnimatedLibraryIcon,
+    AnimatedChartLineIcon,
+    AnimatedSidebarOpenIcon,
+    AnimatedVideoCameraIcon,
+} from "@/components/ui/animated-icons";
 
 type DashboardSession = {
     user?: {
@@ -27,28 +27,85 @@ type DashboardSession = {
     } | null;
 } | null;
 
-export const navItems = [
+type NavItem = {
+    label: string;
+    href: string;
+    icon: React.ReactElement<{ isHovered?: boolean }>;
+};
+
+export const navItems: NavItem[] = [
     {
         label: "Dashboard", href: "/dashboard",
-        icon: <IconDashboard className="h-5 w-5 shrink-0" />,
+        icon: <AnimatedDashboardIcon className="h-5 w-5 shrink-0" strokeWidth={1.9} />,
     },
     {
         label: "Practice", href: "/practice",
-        icon: <IconPractice className="h-5 w-5 shrink-0" />,
+        icon: <AnimatedMessageSquareIcon className="h-5 w-5 shrink-0" strokeWidth={1.9} />,
     },
     {
         label: "Question Bank", href: "/questions",
-        icon: <IconQuestionBank className="h-5 w-5 shrink-0" />,
+        icon: <AnimatedLibraryIcon className="h-5 w-5 shrink-0" strokeWidth={1.9} />,
     },
     {
         label: "Analytics", href: "/analytics",
-        icon: <IconChartBars className="h-5 w-5 shrink-0" />,
+        icon: <AnimatedChartLineIcon className="h-5 w-5 shrink-0" strokeWidth={1.9} />,
     },
     {
         label: "Recordings", href: "/recordings",
-        icon: <IconRecordings className="h-5 w-5 shrink-0" />,
+        icon: <AnimatedVideoCameraIcon className="h-5 w-5 shrink-0" strokeWidth={1.9} />,
     },
 ];
+
+function SidebarNavItem({ item, active, collapsed }: { item: NavItem, active: boolean, collapsed: boolean }) {
+    const [isHovered, setIsHovered] = useState(false);
+    return (
+        <Link 
+            href={item.href}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className={`group/nav relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${active ? "bg-zinc-100 text-zinc-900" : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"} ${collapsed ? "justify-center" : ""}`}
+        >
+            {React.cloneElement(item.icon, { isHovered })}
+            {!collapsed && <span className="whitespace-nowrap overflow-hidden text-ellipsis">{item.label}</span>}
+            {collapsed && (
+                <span className="absolute left-full ml-4 hidden rounded-md bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 transition-opacity group-hover/nav:block group-hover/nav:opacity-100 z-50 shadow-sm border border-zinc-800">
+                    {item.label}
+                </span>
+            )}
+        </Link>
+    );
+}
+
+function SidebarLogoutButton() {
+    const [isHovered, setIsHovered] = useState(false);
+    return (
+        <button
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            onClick={() => signOut({ fetchOptions: { onSuccess: () => { window.location.href = "/login"; } } })}
+            className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
+        >
+            <AnimatedLogoutIcon className="h-4 w-4 text-zinc-400" isHovered={isHovered} />
+            Log out
+        </button>
+    );
+}
+
+function SidebarSettingsLink({ onClick }: { onClick: () => void }) {
+    const [isHovered, setIsHovered] = useState(false);
+    return (
+        <Link 
+            href="/settings" 
+            onClick={onClick}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
+        >
+            <AnimatedSettingsIcon className="h-4 w-4 text-zinc-400" isHovered={isHovered} />
+            Settings
+        </Link>
+    );
+}
 
 export function Sidebar({
     collapsed,
@@ -64,6 +121,8 @@ export function Sidebar({
     const userEmail = session?.user?.email || "";
     const userImage = session?.user?.image;
     const initials = getInitials(userName);
+    const [isSidebarOpenHovered, setIsSidebarOpenHovered] = useState(false);
+    const [isSidebarCollapseHovered, setIsSidebarCollapseHovered] = useState(false);
 
     const [accountOpen, setAccountOpen] = useState(false);
     const accountRef = useRef<HTMLDivElement>(null);
@@ -82,18 +141,42 @@ export function Sidebar({
             {/* Logo + Toggle */}
             <div className={`flex h-16 items-center border-b border-zinc-100 ${collapsed ? "justify-center px-2" : "justify-between px-3"}`}>
                 {collapsed ? (
-                    <button onClick={() => setCollapsed(false)} className="group/logo relative grid h-8 w-8 cursor-pointer place-items-center rounded-lg bg-zinc-900 transition-colors hover:bg-zinc-700" aria-label="Open sidebar" title="Open sidebar">
-                        <span className="text-[11px] font-bold leading-none tracking-tighter text-white transition-opacity group-hover/logo:opacity-0">SI</span>
-                        <IconChevronRight className="absolute inset-0 m-auto h-4 w-4 text-white opacity-0 transition-opacity group-hover/logo:opacity-100" />
+                    <button
+                        onClick={() => setCollapsed(false)}
+                        onMouseEnter={() => setIsSidebarOpenHovered(true)}
+                        onMouseLeave={() => setIsSidebarOpenHovered(false)}
+                        className="group/logo relative grid h-9 w-9 cursor-pointer place-items-center rounded-lg transition-colors hover:bg-zinc-100"
+                        aria-label="Open sidebar"
+                        title="Open sidebar"
+                    >
+                        <Image
+                            src="/logo.png"
+                            alt="SnapInterview Logo"
+                            width={36}
+                            height={36}
+                            className="rounded-lg transition-opacity duration-150 group-hover/logo:opacity-0"
+                        />
+                        <AnimatedSidebarOpenIcon
+                            className="absolute inset-0 m-auto h-5 w-5 text-zinc-900 opacity-0 transition-opacity duration-150 group-hover/logo:opacity-100"
+                            strokeWidth={1.8}
+                            isHovered={isSidebarOpenHovered}
+                        />
                     </button>
                 ) : (
                     <>
-                        <Link href="/dashboard" className="flex items-center gap-2.5 overflow-hidden">
-                            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-zinc-900 text-[11px] font-bold leading-none tracking-tighter text-white">SI</div>
+                        <Link href="/dashboard" className="flex items-center gap-1.5 overflow-hidden">
+                            <Image src="/logo.png" alt="SnapInterview Logo" width={28} height={28} className="shrink-0 rounded-lg" />
                             <span className="whitespace-nowrap text-lg font-semibold tracking-tight text-zinc-900">SnapInterview</span>
                         </Link>
-                        <button onClick={() => setCollapsed(true)} className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600" aria-label="Collapse sidebar">
-                            <IconChevronLeft className="h-4 w-4" />
+                        <button
+                            onClick={() => setCollapsed(true)}
+                            onMouseEnter={() => setIsSidebarCollapseHovered(true)}
+                            onMouseLeave={() => setIsSidebarCollapseHovered(false)}
+                            className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+                            aria-label="Collapse sidebar"
+                            title="Collapse sidebar"
+                        >
+                            <AnimatedSidebarCollapseIcon className="h-5 w-5" strokeWidth={1.9} isHovered={isSidebarCollapseHovered} />
                         </button>
                     </>
                 )}
@@ -103,18 +186,7 @@ export function Sidebar({
             <nav className="flex-1 space-y-1 px-2 py-4">
                 {navItems.map((item) => {
                     const active = pathname === item.href || pathname.startsWith(item.href + '/');
-                    return (
-                        <Link key={item.href} href={item.href}
-                            className={`group/nav relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${active ? "bg-zinc-100 text-zinc-900" : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"} ${collapsed ? "justify-center" : ""}`}>
-                            {item.icon}
-                            {!collapsed && <span className="whitespace-nowrap overflow-hidden text-ellipsis">{item.label}</span>}
-                            {collapsed && (
-                                <span className="absolute left-full ml-4 hidden rounded-md bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 transition-opacity group-hover/nav:block group-hover/nav:opacity-100 z-50 shadow-sm border border-zinc-800">
-                                    {item.label}
-                                </span>
-                            )}
-                        </Link>
-                    );
+                    return <SidebarNavItem key={item.href} item={item} active={active} collapsed={collapsed} />;
                 })}
             </nav>
 
@@ -157,17 +229,8 @@ export function Sidebar({
                             </div>
                         )}
                         <div className="p-1">
-                            <Link href="/settings" onClick={() => setAccountOpen(false)}
-                                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100">
-                                <IconSettings className="h-4 w-4 text-zinc-400" />
-                                Settings
-                            </Link>
-                            <button
-                                onClick={() => signOut({ fetchOptions: { onSuccess: () => { window.location.href = "/login"; } } })}
-                                className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100">
-                                <IconLogout className="h-4 w-4 text-zinc-400" />
-                                Log out
-                            </button>
+                            <SidebarSettingsLink onClick={() => setAccountOpen(false)} />
+                            <SidebarLogoutButton />
                         </div>
                     </div>
                 )}

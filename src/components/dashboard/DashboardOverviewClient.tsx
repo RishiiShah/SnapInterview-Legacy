@@ -6,6 +6,7 @@ import Link from "next/link";
 import { getScoreColor, getScoreLabel } from "@/utils/helpers";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 import { motion } from "framer-motion";
+import { useSidebar } from "@/app/providers";
 import RecordingModal from "@/components/recordings/RecordingModal";
 import {
   IconCheckCircle,
@@ -76,6 +77,7 @@ export default function DashboardOverviewClient({
   const [selectedVideo, setSelectedVideo] = useState<{ url: string; interviewId: string; date: string } | null>(null);
   const [isOpening, setIsOpening] = useState<string | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
+  const { setCollapsed } = useSidebar();
 
   useEffect(() => {
     try {
@@ -83,12 +85,15 @@ export default function DashboardOverviewClient({
       if (!dismissed && isFirstLogin) {
         // Schedule the state update asynchronously to avoid synchronous setState
         // inside the effect which can trigger cascading renders.
-        void Promise.resolve().then(() => setShowWelcome(true));
+        void Promise.resolve().then(() => {
+          setShowWelcome(true);
+          setCollapsed(true);
+        });
       }
     } catch {
       // ignore storage errors
     }
-  }, [userId, isFirstLogin]);
+  }, [userId, isFirstLogin, setCollapsed]);
 
   function dismissWelcome() {
     localStorage.setItem(`snap-welcome-dismissed-${userId}`, "1");
@@ -246,7 +251,7 @@ export default function DashboardOverviewClient({
 
       {/* Welcome / onboarding modal */}
       {showWelcome && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/50" onClick={dismissWelcome}>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 backdrop-blur-sm bg-black/50" onClick={dismissWelcome}>
           <div
             className="relative w-full max-w-lg rounded-2xl bg-white p-8 shadow-2xl ring-1 ring-black/5"
             onClick={(e) => e.stopPropagation()}

@@ -12,6 +12,8 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
     const { data: session } = useSession();
     const { collapsed, setCollapsed } = useSidebar();
     const [searchOpen, setSearchOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [sessionImageOverride, setSessionImageOverride] = useState<string | null>(null);
     const mainRef = useRef<HTMLElement>(null);
 
@@ -62,6 +64,25 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 1023px)");
+
+    const syncIsMobile = () => {
+      setIsMobile(mediaQuery.matches);
+      if (!mediaQuery.matches) {
+        setMobileSidebarOpen(false);
+      }
+    };
+
+    syncIsMobile();
+    mediaQuery.addEventListener("change", syncIsMobile);
+    return () => mediaQuery.removeEventListener("change", syncIsMobile);
+  }, []);
+
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [pathname]);
+
   const effectiveSession = sessionImageOverride
     ? {
       ...session,
@@ -71,9 +92,20 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
 
     return (
         <div className="flex h-screen overflow-hidden bg-zinc-50 font-sans">
-      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} session={effectiveSession} />
-            <div className={`${collapsed ? "ml-16" : "ml-64"} flex h-screen flex-1 flex-col overflow-hidden transition-all duration-300 ease-in-out`}>
-        <Header onSearchOpen={() => setSearchOpen(true)} session={effectiveSession} />
+      <Sidebar
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+        session={effectiveSession}
+        isMobile={isMobile}
+        mobileOpen={mobileSidebarOpen}
+        onMobileClose={() => setMobileSidebarOpen(false)}
+      />
+            <div className={`${isMobile ? "ml-0" : collapsed ? "ml-16" : "ml-64"} flex h-screen flex-1 flex-col overflow-hidden transition-all duration-300 ease-in-out`}>
+        <Header
+          onSearchOpen={() => setSearchOpen(true)}
+          session={effectiveSession}
+          onSidebarToggle={isMobile ? () => setMobileSidebarOpen(true) : undefined}
+        />
                 <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto p-6 pb-2">{children}</main>
             </div>
             {searchOpen && <SearchModal onClose={() => setSearchOpen(false)} />}

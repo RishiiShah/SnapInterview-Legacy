@@ -54,10 +54,16 @@ export function Sidebar({
     collapsed,
     setCollapsed,
     session,
+    isMobile,
+    mobileOpen,
+    onMobileClose,
 }: {
     collapsed: boolean;
     setCollapsed: (v: boolean) => void;
     session: DashboardSession;
+    isMobile: boolean;
+    mobileOpen: boolean;
+    onMobileClose: () => void;
 }) {
     const pathname = usePathname();
     const userName = session?.user?.name || "User";
@@ -78,10 +84,29 @@ export function Sidebar({
     }, []);
 
     return (
-        <aside className={`fixed inset-y-0 left-0 z-60 flex ${collapsed ? "w-16" : "w-64"} flex-col border-r border-zinc-200 bg-white transition-all duration-300 ease-in-out`}>
+        <>
+            {isMobile && mobileOpen ? (
+                <button
+                    type="button"
+                    className="fixed inset-0 z-40 bg-zinc-900/40 backdrop-blur-[1px] lg:hidden"
+                    onClick={onMobileClose}
+                    aria-label="Close sidebar"
+                />
+            ) : null}
+            <aside
+                className={`fixed inset-y-0 left-0 z-50 flex ${
+                    isMobile ? "w-72" : collapsed ? "w-16" : "w-64"
+                } flex-col border-r border-zinc-200 bg-white transition-all duration-300 ease-in-out ${
+                    isMobile ? (mobileOpen ? "translate-x-0" : "-translate-x-full") : "translate-x-0"
+                }`}
+            >
             {/* Logo + Toggle */}
-            <div className={`flex h-16 items-center border-b border-zinc-100 ${collapsed ? "justify-center px-2" : "justify-between px-3"}`}>
-                {collapsed ? (
+            <div
+                className={`flex h-16 items-center border-b border-zinc-100 ${
+                    !isMobile && collapsed ? "justify-center px-2" : "justify-between px-3"
+                }`}
+            >
+                {!isMobile && collapsed ? (
                     <button onClick={() => setCollapsed(false)} className="group/logo relative grid h-8 w-8 cursor-pointer place-items-center rounded-lg bg-zinc-900 transition-colors hover:bg-zinc-700" aria-label="Open sidebar" title="Open sidebar">
                         <span className="text-[11px] font-bold leading-none tracking-tighter text-white transition-opacity group-hover/logo:opacity-0">SI</span>
                         <IconChevronRight className="absolute inset-0 m-auto h-4 w-4 text-white opacity-0 transition-opacity group-hover/logo:opacity-100" />
@@ -92,9 +117,19 @@ export function Sidebar({
                             <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-zinc-900 text-[11px] font-bold leading-none tracking-tighter text-white">SI</div>
                             <span className="whitespace-nowrap text-lg font-semibold tracking-tight text-zinc-900">SnapInterview</span>
                         </Link>
-                        <button onClick={() => setCollapsed(true)} className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600" aria-label="Collapse sidebar">
-                            <IconChevronLeft className="h-4 w-4" />
-                        </button>
+                        {isMobile ? (
+                            <button
+                                onClick={onMobileClose}
+                                className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
+                                aria-label="Close sidebar"
+                            >
+                                <IconChevronLeft className="h-4 w-4" />
+                            </button>
+                        ) : (
+                            <button onClick={() => setCollapsed(true)} className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600" aria-label="Collapse sidebar">
+                                <IconChevronLeft className="h-4 w-4" />
+                            </button>
+                        )}
                     </>
                 )}
             </div>
@@ -105,10 +140,11 @@ export function Sidebar({
                     const active = pathname === item.href || pathname.startsWith(item.href + '/');
                     return (
                         <Link key={item.href} href={item.href}
-                            className={`group/nav relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${active ? "bg-zinc-100 text-zinc-900" : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"} ${collapsed ? "justify-center" : ""}`}>
+                            onClick={isMobile ? onMobileClose : undefined}
+                            className={`group/nav relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${active ? "bg-zinc-100 text-zinc-900" : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"} ${!isMobile && collapsed ? "justify-center" : ""}`}>
                             {item.icon}
-                            {!collapsed && <span className="whitespace-nowrap overflow-hidden text-ellipsis">{item.label}</span>}
-                            {collapsed && (
+                            {(isMobile || !collapsed) && <span className="whitespace-nowrap overflow-hidden text-ellipsis">{item.label}</span>}
+                            {!isMobile && collapsed && (
                                 <span className="absolute left-full ml-4 hidden rounded-md bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 transition-opacity group-hover/nav:block group-hover/nav:opacity-100 z-50 shadow-sm border border-zinc-800">
                                     {item.label}
                                 </span>
@@ -123,8 +159,8 @@ export function Sidebar({
                 {/* Account Button */}
                 <button
                     onClick={() => setAccountOpen(!accountOpen)}
-                    title={collapsed ? userName : undefined}
-                    className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-zinc-100 ${collapsed ? "justify-center" : ""}`}
+                    title={!isMobile && collapsed ? userName : undefined}
+                    className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-zinc-100 ${!isMobile && collapsed ? "justify-center" : ""}`}
                 >
                     {userImage ? (
                         <div className="relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full">
@@ -133,7 +169,7 @@ export function Sidebar({
                     ) : (
                         <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-zinc-900 text-[10px] font-bold text-white">{initials}</div>
                     )}
-                    {!collapsed && (
+                    {(isMobile || !collapsed) && (
                         <>
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-medium text-zinc-900">{userName}</p>
@@ -150,7 +186,7 @@ export function Sidebar({
                         className={`absolute bottom-full mb-2 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl ${collapsed ? "left-2 w-48" : "left-2 right-2"}`}
                         style={{ animation: "fadeSlideUp 0.15s ease-out" }}
                     >
-                        {collapsed && (
+                        {!isMobile && collapsed && (
                             <div className="border-b border-zinc-100 px-4 py-3">
                                 <p className="text-sm font-medium text-zinc-900">{userName}</p>
                                 <p className="truncate text-xs text-zinc-400">{userEmail}</p>
@@ -172,6 +208,7 @@ export function Sidebar({
                     </div>
                 )}
             </div>
-        </aside>
+            </aside>
+        </>
     );
 }

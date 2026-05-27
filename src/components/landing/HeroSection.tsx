@@ -25,15 +25,6 @@ export default function HeroSection() {
     <section className="relative flex min-h-[90vh] flex-col items-center justify-center overflow-hidden px-6 pt-32 pb-18 text-center md:px-12">
       <div className="pointer-events-none absolute inset-x-0 top-20 mx-auto h-72 max-w-5xl rounded-full bg-[radial-gradient(circle,#31b6ff20_0,#31b6ff0d_34%,transparent_72%)] blur-3xl" />
 
-      <SlideIn delay={0.04}>
-        <span className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-sky-200/90 bg-white/86 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-sky-700 shadow-[0_12px_34px_-24px_rgba(20,157,255,0.75)] backdrop-blur-sm">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-sky-500" />
-          </span>
-          Built For Interview Reps That Actually Feel Real
-        </span>
-      </SlideIn>
 
       <SlideIn delay={0.1}>
         <h1 className="mx-auto max-w-5xl text-[clamp(2.7rem,6vw,5rem)] font-bold leading-[1.02] tracking-tight text-zinc-950">

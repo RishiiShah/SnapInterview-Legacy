@@ -2,10 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/utils/helpers";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Notification } from "@/data/types";
 import { AnimatedSettingsIcon, AnimatedBellIcon, AnimatedLogoutIcon, AnimatedSearchIcon } from "@/components/ui/animated-icons";
 import { navItems } from "./Sidebar";
@@ -250,11 +250,15 @@ export function Header({ onSearchOpen, session }: { onSearchOpen: () => void; se
                 {/* Avatar */}
                 <div ref={avatarRef} className="relative">
                     <button onClick={() => { setAvatarOpen(!avatarOpen); setNotifOpen(false); }} className="relative flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full ring-2 ring-transparent transition-all hover:ring-zinc-200">
-                        {userImage ? (
-                            <Image src={userImage} alt={userName} fill sizes="32px" className="object-cover" />
-                        ) : (
-                            <div className="grid h-full w-full place-items-center bg-zinc-900 text-xs font-bold text-white">{initials}</div>
-                        )}
+                        <UserAvatar
+                            src={userImage}
+                            alt={userName}
+                            initials={initials}
+                            size={32}
+                            sizes="32px"
+                            className="h-full w-full object-cover"
+                            initialsClassName="grid h-full w-full place-items-center bg-zinc-900 text-xs font-bold text-white"
+                        />
                     </button>
                     <AvatarDropdown
                         open={avatarOpen}

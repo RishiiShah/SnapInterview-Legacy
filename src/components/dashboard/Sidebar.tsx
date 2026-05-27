@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/utils/helpers";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { IconChevronUp } from "@/components/ui/icons";
 import {
     AnimatedSidebarCollapseIcon,
@@ -198,13 +199,15 @@ export function Sidebar({
                     title={collapsed ? userName : undefined}
                     className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-zinc-100 ${collapsed ? "justify-center" : ""}`}
                 >
-                    {userImage ? (
-                        <div className="relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full">
-                            <Image src={userImage} alt={userName} fill sizes="28px" className="object-cover" />
-                        </div>
-                    ) : (
-                        <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-zinc-900 text-[10px] font-bold text-white">{initials}</div>
-                    )}
+                    <UserAvatar
+                        src={userImage}
+                        alt={userName}
+                        initials={initials}
+                        size={28}
+                        sizes="28px"
+                        className="h-7 w-7 shrink-0 rounded-full object-cover"
+                        initialsClassName="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-zinc-900 text-[10px] font-bold text-white"
+                    />
                     {!collapsed && (
                         <>
                             <div className="min-w-0 flex-1">

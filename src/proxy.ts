@@ -3,8 +3,25 @@ import { env } from "@/lib/env";
 import { decodeE2ETestIdentity, E2E_TEST_AUTH_COOKIE, isTestAuthEnabled } from "@/lib/test-auth";
 import { logger } from "@/utils/logger";
 
-// Better Auth sets this cookie on login
-const BETTER_AUTH_COOKIE = "better-auth.session_token";
+// Better Auth prefixes secure cookies on HTTPS production origins.
+const BETTER_AUTH_COOKIE_NAMES = [
+    "better-auth.session_token",
+    "__Secure-better-auth.session_token",
+] as const;
+
+function getBetterAuthSessionToken(request: NextRequest) {
+    for (const cookieName of BETTER_AUTH_COOKIE_NAMES) {
+        const value = request.cookies.get(cookieName)?.value;
+        if (value) return value;
+    }
+    return undefined;
+}
+
+function deleteBetterAuthSessionCookies(response: NextResponse) {
+    for (const cookieName of BETTER_AUTH_COOKIE_NAMES) {
+        response.cookies.delete(cookieName);
+    }
+}
 
 /**
  * Validates the session with the Better Auth server.
@@ -26,18 +43,13 @@ async function getSession(request: NextRequest) {
 }
 
 export async function proxy(request: NextRequest) {
-    // 1. Setup headers for the request (e.g., nonce for CSP)
-    const requestHeaders = new Headers(request.headers);
-    const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
-    requestHeaders.set("x-nonce", nonce);
-
     const { pathname } = request.nextUrl;
 
-    // 2. Auth checks
+    // 1. Auth checks
     const protectedPaths = ["/dashboard", "/practice", "/questions", "/analytics", "/recordings", "/settings", "/onboarding", "/interview"];
     const isProtectedPath = protectedPaths.some((path) => pathname.startsWith(path));
 
-    const token = request.cookies.get(BETTER_AUTH_COOKIE)?.value;
+    const token = getBetterAuthSessionToken(request);
     const testIdentity = isTestAuthEnabled()
         ? await decodeE2ETestIdentity(request.cookies.get(E2E_TEST_AUTH_COOKIE)?.value)
         : null;
@@ -52,7 +64,7 @@ export async function proxy(request: NextRequest) {
             : await getSession(request);
         if (!session) {
             const response = NextResponse.redirect(new URL("/login", request.url));
-            response.cookies.delete(BETTER_AUTH_COOKIE);
+            deleteBetterAuthSessionCookies(response);
             response.cookies.delete(E2E_TEST_AUTH_COOKIE);
             return response;
         }
@@ -68,17 +80,13 @@ export async function proxy(request: NextRequest) {
         }
     }
 
-    const response = NextResponse.next({
-        request: {
-            headers: requestHeaders,
-        },
-    });
+    const response = NextResponse.next();
 
-    // 3. Apply Security Headers
+    // 2. Apply Security Headers
     const isDev = env.NODE_ENV !== "production";
     const cspHeader = `
         default-src 'self';
-        script-src 'self' 'nonce-${nonce}' ${isDev ? "'unsafe-eval'" : ""};
+        script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval'" : ""};
         style-src 'self' 'unsafe-inline';
         img-src 'self' https://lh3.googleusercontent.com data: blob:;
         font-src 'self' data:;

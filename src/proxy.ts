@@ -19,7 +19,14 @@ function getBetterAuthSessionToken(request: NextRequest) {
 
 function deleteBetterAuthSessionCookies(response: NextResponse) {
     for (const cookieName of BETTER_AUTH_COOKIE_NAMES) {
-        response.cookies.delete(cookieName);
+        response.cookies.set(cookieName, "", {
+            expires: new Date(0),
+            maxAge: 0,
+            path: "/",
+            httpOnly: true,
+            sameSite: "lax",
+            secure: cookieName.startsWith("__Secure-"),
+        });
     }
 }
 

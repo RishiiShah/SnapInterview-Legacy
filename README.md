@@ -21,7 +21,7 @@ AI-powered technical interview practice platform. Users conduct voice-based mock
 
 ## Prerequisites
 
-- Node.js 22+
+- Node.js 22+ through 24.12.0
 - npm 10+
 - PostgreSQL database
 
@@ -144,7 +144,7 @@ All state-changing routes are protected by origin-based CSRF (`csrfRejectIfInval
 
 GitHub Actions (`.github/workflows/ci.yml`) on push/PR to `main`:
 
-checkout → Node 24 → `npm ci` → `npm audit` → `prisma generate` → lint → typecheck → test → build → Playwright E2E
+checkout → Node 24.12.0 → `npm ci` → `npm audit` → `prisma generate` → lint → typecheck → test → build → Playwright E2E
 
 ## Deployment (Vercel)
 

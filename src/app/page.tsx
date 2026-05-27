@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import LandingNavbar from "@/components/landing/LandingNavbar";
 import HeroSection from "@/components/landing/HeroSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
@@ -5,7 +6,9 @@ import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import CTASection from "@/components/landing/CTASection";
 import LandingFooter from "@/components/landing/LandingFooter";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  // Nonce-based CSP requires dynamic rendering so Next can stamp per-request script nonces.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
@@ -29,6 +32,8 @@ export default function LandingPage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#f4f9ff_0%,#fcfeff_18%,#ffffff_42%,#f7fbff_100%)] text-zinc-900 font-(family-name:--font-geist-sans)">
       <script
+        nonce={nonce}
+        suppressHydrationWarning
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />

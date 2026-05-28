@@ -7,10 +7,11 @@ export default async function AdminQuestionsEditPage({
   params,
   searchParams,
 }: {
-  params: { id: string };
-  searchParams?: { error?: string };
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ error?: string }>;
 }) {
-  const idNum = Number(params.id);
+  const p = await params;
+  const idNum = Number(p.id);
   if (!Number.isFinite(idNum)) {
     redirect("/admin/questions");
   }
@@ -23,7 +24,8 @@ export default async function AdminQuestionsEditPage({
     redirect("/admin/questions");
   }
 
-  const error = searchParams?.error ? decodeURIComponent(searchParams.error) : undefined;
+  const sp = searchParams ? await searchParams : undefined;
+  const error = sp?.error ? decodeURIComponent(sp.error) : undefined;
 
   return (
     <AdminQuestionForm

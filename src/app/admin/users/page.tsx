@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { revalidatePath } from "next/cache";
+import Link from "next/link";
+import { ConfirmActionForm } from "@/components/admin/ConfirmActionForm";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 
 function formatDate(value: Date | null) {
   if (!value) return "-";
@@ -11,7 +15,19 @@ function formatDate(value: Date | null) {
   }).format(value);
 }
 
-export default async function AdminUsersPage() {
+const filterSelectClass =
+  "w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none transition-all focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100";
+
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{
+    q?: string;
+    lock?: "all" | "locked" | "active";
+    onboarding?: "all" | "completed" | "pending";
+    page?: string;
+  }>;
+}) {
   async function lockUserAction(formData: FormData) {
     "use server";
     await requireAdminSession();
@@ -63,14 +79,44 @@ export default async function AdminUsersPage() {
   }
 
   const now = new Date();
+  const sp = searchParams ? await searchParams : undefined;
+  const q = (sp?.q ?? "").trim();
+  const lockFilter = sp?.lock ?? "all";
+  const onboardingFilter = sp?.onboarding ?? "all";
+  const page = Math.max(1, Number(sp?.page ?? "1") || 1);
+  const pageSize = 20;
 
-  const [totalUsers, onboardedUsers, lockedUsers, users] = await Promise.all([
+  const where = {
+    ...(q
+      ? {
+          OR: [
+            { name: { contains: q, mode: "insensitive" as const } },
+            { email: { contains: q, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+    ...(lockFilter === "locked"
+      ? { lockedUntil: { gt: now } }
+      : lockFilter === "active"
+        ? { OR: [{ lockedUntil: null }, { lockedUntil: { lte: now } }] }
+        : {}),
+    ...(onboardingFilter === "completed"
+      ? { onboardingCompletedAt: { not: null } }
+      : onboardingFilter === "pending"
+        ? { onboardingCompletedAt: null }
+        : {}),
+  };
+
+  const [totalUsers, onboardedUsers, lockedUsers, filteredUsersCount, users] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { onboardingCompletedAt: { not: null } } }),
     prisma.user.count({ where: { lockedUntil: { gt: now } } }),
+    prisma.user.count({ where }),
     prisma.user.findMany({
+      where,
       orderBy: { createdAt: "desc" },
-      take: 30,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
       select: {
         id: true,
         name: true,
@@ -83,6 +129,19 @@ export default async function AdminUsersPage() {
       },
     }),
   ]);
+  const totalPages = Math.max(1, Math.ceil(filteredUsersCount / pageSize));
+  const prevPage = Math.max(1, page - 1);
+  const nextPage = Math.min(totalPages, page + 1);
+
+  const paramsForPage = (targetPage: number) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (lockFilter !== "all") params.set("lock", lockFilter);
+    if (onboardingFilter !== "all") params.set("onboarding", onboardingFilter);
+    params.set("page", String(targetPage));
+    return `/admin/users?${params.toString()}`;
+  };
+  const filterFormKey = `${q}|${lockFilter}|${onboardingFilter}`;
 
   return (
     <div className="space-y-6">
@@ -104,6 +163,43 @@ export default async function AdminUsersPage() {
           <p className="text-sm text-zinc-500">Currently Locked</p>
           <p className="mt-2 text-2xl font-semibold text-zinc-900">{lockedUsers.toLocaleString()}</p>
         </div>
+      </section>
+
+      <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <form key={filterFormKey} className="grid gap-3 md:grid-cols-5">
+          <Input
+            type="text"
+            name="q"
+            defaultValue={q}
+            placeholder="Search name or email"
+          />
+          <select
+            name="lock"
+            defaultValue={lockFilter}
+            className={filterSelectClass}
+          >
+            <option value="all">All lock states</option>
+            <option value="locked">Locked only</option>
+            <option value="active">Active only</option>
+          </select>
+          <select
+            name="onboarding"
+            defaultValue={onboardingFilter}
+            className={filterSelectClass}
+          >
+            <option value="all">All onboarding states</option>
+            <option value="completed">Completed</option>
+            <option value="pending">Pending</option>
+          </select>
+          <Button type="submit" size="md" className="w-full">
+            Apply filters
+          </Button>
+          <Link href="/admin/users" className="w-full">
+            <Button type="button" variant="secondary" size="md" className="w-full">
+              Clear filters
+            </Button>
+          </Link>
+        </form>
       </section>
 
       <section className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
@@ -144,35 +240,33 @@ export default async function AdminUsersPage() {
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
                       {isLocked ? (
-                        <form action={unlockUserAction}>
-                          <input type="hidden" name="userId" value={user.id} />
-                          <button
-                            type="submit"
-                            className="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
-                          >
-                            Unlock
-                          </button>
-                        </form>
+                        <ConfirmActionForm
+                          action={unlockUserAction}
+                          hiddenFields={{ userId: user.id }}
+                          buttonLabel="Unlock"
+                          buttonClassName="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
+                          confirmMessage={`Unlock ${user.email}?`}
+                        />
                       ) : (
-                        <form action={lockUserAction}>
-                          <input type="hidden" name="userId" value={user.id} />
-                          <button
-                            type="submit"
-                            className="rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
-                          >
-                            Lock 24h
-                          </button>
-                        </form>
+                        <ConfirmActionForm
+                          action={lockUserAction}
+                          hiddenFields={{ userId: user.id }}
+                          buttonLabel="Lock 24h"
+                          buttonClassName="rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
+                          confirmMessage={`Lock ${user.email} for 24 hours?`}
+                          reasonRequired
+                          reasonPrompt="Reason for locking this user"
+                        />
                       )}
-                      <form action={revokeSessionsAction}>
-                        <input type="hidden" name="userId" value={user.id} />
-                        <button
-                          type="submit"
-                          className="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
-                        >
-                          Revoke Sessions
-                        </button>
-                      </form>
+                      <ConfirmActionForm
+                        action={revokeSessionsAction}
+                        hiddenFields={{ userId: user.id }}
+                        buttonLabel="Revoke Sessions"
+                        buttonClassName="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
+                        confirmMessage={`Revoke all sessions for ${user.email}?`}
+                        reasonRequired
+                        reasonPrompt="Reason for revoking sessions"
+                      />
                     </div>
                   </td>
                 </tr>
@@ -180,6 +274,28 @@ export default async function AdminUsersPage() {
             })}
           </tbody>
         </table>
+      </section>
+
+      <section className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm">
+        <p className="text-zinc-600">
+          Showing {(page - 1) * pageSize + 1}-
+          {Math.min(page * pageSize, filteredUsersCount)} of {filteredUsersCount}
+        </p>
+        <div className="flex items-center gap-2">
+          <Link
+            href={paramsForPage(prevPage)}
+            className={`rounded-md border px-3 py-1.5 ${page === 1 ? "pointer-events-none border-zinc-100 text-zinc-300" : "border-zinc-200 text-zinc-700 hover:bg-zinc-100"}`}
+          >
+            Previous
+          </Link>
+          <span className="text-zinc-500">Page {page} / {totalPages}</span>
+          <Link
+            href={paramsForPage(nextPage)}
+            className={`rounded-md border px-3 py-1.5 ${page === totalPages ? "pointer-events-none border-zinc-100 text-zinc-300" : "border-zinc-200 text-zinc-700 hover:bg-zinc-100"}`}
+          >
+            Next
+          </Link>
+        </div>
       </section>
     </div>
   );

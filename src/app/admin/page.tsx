@@ -1,56 +1,95 @@
-import Link from "next/link";
-
 import { prisma } from "@/lib/prisma";
+import AdminOverviewDashboard from "@/components/admin/AdminOverviewDashboard";
 
 export default async function AdminPage() {
-  const [totalUsers, totalQuestions, totalInterviews, completedInterviews, lockedUsers] = await Promise.all([
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(now.getDate() - 6);
+  start.setHours(0, 0, 0, 0);
+
+  const [totalUsers, totalQuestions, totalInterviews, completedInterviews, lockedUsers, statusCounts, recentInterviews, recentUsers] = await Promise.all([
     prisma.user.count(),
     prisma.practiceQuestion.count(),
     prisma.interviewSession.count(),
     prisma.interviewSession.count({ where: { status: "COMPLETED", deletedAt: null } }),
-    prisma.user.count({ where: { lockedUntil: { gt: new Date() } } }),
+    prisma.user.count({ where: { lockedUntil: { gt: now } } }),
+    prisma.interviewSession.groupBy({
+      by: ["status"],
+      where: { deletedAt: null },
+      _count: { _all: true },
+    }),
+    prisma.interviewSession.findMany({
+      where: { createdAt: { gte: start } },
+      select: {
+        id: true,
+        createdAt: true,
+        status: true,
+        role: true,
+        user: { select: { name: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 12,
+    }),
+    prisma.user.findMany({
+      where: { createdAt: { gte: start } },
+      select: { createdAt: true },
+    }),
   ]);
 
   const completionRate = totalInterviews > 0 ? Math.round((completedInterviews / totalInterviews) * 100) : 0;
 
   const cards = [
-    { label: "Total Users", value: totalUsers.toLocaleString() },
-    { label: "Question Bank Size", value: totalQuestions.toLocaleString() },
-    { label: "Total Interviews", value: totalInterviews.toLocaleString() },
-    { label: "Interview Completion Rate", value: `${completionRate}%` },
-    { label: "Currently Locked Users", value: lockedUsers.toLocaleString() },
+    { label: "Total Users", value: totalUsers.toLocaleString(), hint: "All registered users" },
+    { label: "Question Bank", value: totalQuestions.toLocaleString(), hint: "Published practice questions" },
+    { label: "Total Interviews", value: totalInterviews.toLocaleString(), hint: "All sessions recorded" },
+    { label: "Completion Rate", value: `${completionRate}%`, hint: "Completed / total interviews" },
+    { label: "Locked Accounts", value: lockedUsers.toLocaleString(), hint: "Currently locked users" },
   ];
 
-  return (
-    <div className="space-y-8">
-      <section>
-        <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">Overview</h2>
-        <p className="mt-1 text-sm text-zinc-500">Operational summary across users, questions, and interviews.</p>
-      </section>
+  const dayKeys = Array.from({ length: 7 }).map((_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    const key = date.toISOString().slice(0, 10);
+    const label = date.toLocaleDateString("en-US", { weekday: "short" });
+    return { key, label };
+  });
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {cards.map((card) => (
-          <div key={card.label} className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <p className="text-sm text-zinc-500">{card.label}</p>
-            <p className="mt-2 text-2xl font-semibold text-zinc-900">{card.value}</p>
-          </div>
-        ))}
-      </section>
+  const interviewCountMap = new Map<string, number>();
+  recentInterviews.forEach((row) => {
+    const key = row.createdAt.toISOString().slice(0, 10);
+    interviewCountMap.set(key, (interviewCountMap.get(key) ?? 0) + 1);
+  });
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-        <h3 className="text-base font-semibold text-zinc-900">Modules</h3>
-        <div className="mt-3 flex flex-wrap gap-3">
-          <Link href="/admin/users" className="rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100">
-            User Management
-          </Link>
-          <Link href="/admin/questions" className="rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100">
-            Question Bank
-          </Link>
-          <Link href="/admin/interviews" className="rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100">
-            Interview Sessions
-          </Link>
-        </div>
-      </section>
-    </div>
-  );
+  const userCountMap = new Map<string, number>();
+  recentUsers.forEach((row) => {
+    const key = row.createdAt.toISOString().slice(0, 10);
+    userCountMap.set(key, (userCountMap.get(key) ?? 0) + 1);
+  });
+
+  const trends = dayKeys.map(({ key, label }) => ({
+    label,
+    interviews: interviewCountMap.get(key) ?? 0,
+    users: userCountMap.get(key) ?? 0,
+  }));
+
+  const statusBreakdown = statusCounts.map((entry) => ({
+    status: entry.status,
+    count: entry._count._all,
+  }));
+
+  const recentActivity = recentInterviews.map((item) => ({
+    id: item.id,
+    candidateName: item.user.name ?? "Unknown",
+    candidateEmail: item.user.email ?? "unknown@snapinterview.local",
+    role: item.role,
+    status: item.status,
+    createdAt: item.createdAt.toLocaleString("en-US", {
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  }));
+
+  return <AdminOverviewDashboard cards={cards} trends={trends} statusBreakdown={statusBreakdown} recentActivity={recentActivity} />;
 }

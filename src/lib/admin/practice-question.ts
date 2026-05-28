@@ -42,21 +42,38 @@ function parseTags(raw: string | null) {
     .filter(Boolean);
 }
 
-export function parsePracticeQuestionForm(formData: FormData) {
-  const slugInput = String(formData.get("slug") ?? "").trim();
-  const text = String(formData.get("text") ?? "");
+function normalizeTags(raw: unknown) {
+  if (Array.isArray(raw)) {
+    return raw.map((tag) => String(tag).trim()).filter(Boolean);
+  }
+  if (typeof raw === "string") {
+    return parseTags(raw);
+  }
+  return [];
+}
 
-  const slug = slugInput || slugifyQuestionTitle(text);
+export function parsePracticeQuestionInput(input: {
+  slug?: unknown;
+  text?: unknown;
+  category?: unknown;
+  difficulty?: unknown;
+  estimatedTime?: unknown;
+  tags?: unknown;
+  hint?: unknown;
+  sampleAnswer?: unknown;
+}) {
+  const rawText = String(input.text ?? "");
+  const rawSlug = String(input.slug ?? "").trim();
 
   const result = practiceQuestionSchema.safeParse({
-    slug,
-    text,
-    category: String(formData.get("category") ?? ""),
-    difficulty: String(formData.get("difficulty") ?? ""),
-    estimatedTime: String(formData.get("estimatedTime") ?? "").trim() || undefined,
-    tags: parseTags(formData.get("tags") as string | null),
-    hint: String(formData.get("hint") ?? "").trim() || undefined,
-    sampleAnswer: String(formData.get("sampleAnswer") ?? "").trim() || undefined,
+    slug: rawSlug || slugifyQuestionTitle(rawText),
+    text: rawText,
+    category: String(input.category ?? ""),
+    difficulty: String(input.difficulty ?? ""),
+    estimatedTime: String(input.estimatedTime ?? "").trim() || undefined,
+    tags: normalizeTags(input.tags),
+    hint: String(input.hint ?? "").trim() || undefined,
+    sampleAnswer: String(input.sampleAnswer ?? "").trim() || undefined,
   });
 
   if (!result.success) {
@@ -73,4 +90,17 @@ export function parsePracticeQuestionForm(formData: FormData) {
       sampleAnswer: result.data.sampleAnswer ?? null,
     },
   };
+}
+
+export function parsePracticeQuestionForm(formData: FormData) {
+  return parsePracticeQuestionInput({
+    slug: formData.get("slug"),
+    text: formData.get("text"),
+    category: formData.get("category"),
+    difficulty: formData.get("difficulty"),
+    estimatedTime: formData.get("estimatedTime"),
+    tags: parseTags(formData.get("tags") as string | null),
+    hint: formData.get("hint"),
+    sampleAnswer: formData.get("sampleAnswer"),
+  });
 }

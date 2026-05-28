@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { env } from "@/lib/env";
@@ -24,16 +25,21 @@ export function isAdminEmail(email: string | null | undefined): boolean {
   return getAdminAllowlist().has(normalizeEmail(email));
 }
 
-export async function requireAdminSession() {
+export const getAdminSessionOrNull = cache(async function getAdminSessionOrNull() {
   const session = await getServerAuthSession();
-
-  if (!session?.user) {
-    redirect("/login");
+  if (!session?.user || !isAdminEmail(session.user.email)) {
+    return null;
   }
+  return session;
+});
 
-  if (!isAdminEmail(session.user.email)) {
-    redirect("/dashboard");
+export const requireAdminSession = cache(async function requireAdminSession() {
+  const session = await getAdminSessionOrNull();
+
+  if (!session) {
+    const authSession = await getServerAuthSession();
+    redirect(authSession?.user ? "/dashboard" : "/login");
   }
 
   return session;
-}
+});

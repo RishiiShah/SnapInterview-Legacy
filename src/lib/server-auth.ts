@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
@@ -11,8 +13,9 @@ export type SessionUserIdentity = {
 
 /**
  * Returns the full Better Auth session for use in Server Components/Route Handlers.
+ * Cached per request so layout + pages + actions share one session lookup.
  */
-export async function getServerAuthSession() {
+export const getServerAuthSession = cache(async function getServerAuthSession() {
   const testIdentity = await getE2ETestIdentity();
   if (testIdentity) {
     const user = await prisma.user.findUnique({
@@ -65,7 +68,7 @@ export async function getServerAuthSession() {
   return auth.api.getSession({
     headers: await headers(),
   });
-}
+});
 
 /**
  * Returns a lightweight { userId, email } identity object for use in API routes.

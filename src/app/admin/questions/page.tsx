@@ -1,7 +1,16 @@
 import Link from "next/link";
 
+import { getAdminQuestionFacets } from "@/lib/admin/question-facets";
 import { prisma } from "@/lib/prisma";
 import { deletePracticeQuestionAction, importPracticeQuestionsAction } from "./actions";
+import {
+  adminActionLinkClass,
+  adminDangerButtonClass,
+  adminPaginationLinkClass,
+  adminPaginationLinkDisabledClass,
+  adminPrimaryLinkClass,
+  adminSecondaryLinkClass,
+} from "@/components/admin/admin-styles";
 import { ConfirmActionForm } from "@/components/admin/ConfirmActionForm";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -36,46 +45,26 @@ export default async function AdminQuestionsPage({
     ...(difficulty ? { difficulty } : {}),
   };
 
-  const distinctCategories = await prisma.practiceQuestion.findMany({
-    select: { category: true },
-    distinct: ["category"],
-    orderBy: { category: "asc" },
-  });
+  const [{ totalQuestions, categories, difficulties }, filteredCount, recentQuestions] =
+    await Promise.all([
+      getAdminQuestionFacets(),
+      prisma.practiceQuestion.count({ where }),
+      prisma.practiceQuestion.findMany({
+        where,
+        orderBy: { updatedAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          slug: true,
+          category: true,
+          difficulty: true,
+          tags: true,
+          updatedAt: true,
+        },
+      }),
+    ]);
 
-  const distinctDifficulties = await prisma.practiceQuestion.findMany({
-    select: { difficulty: true },
-    distinct: ["difficulty"],
-    orderBy: { difficulty: "asc" },
-  });
-
-  const [totalQuestions, categories, difficulties, recentQuestions] = await Promise.all([
-    prisma.practiceQuestion.count(),
-    prisma.practiceQuestion.groupBy({
-      by: ["category"],
-      _count: { _all: true },
-      orderBy: { _count: { category: "desc" } },
-    }),
-    prisma.practiceQuestion.groupBy({
-      by: ["difficulty"],
-      _count: { _all: true },
-      orderBy: { _count: { difficulty: "desc" } },
-    }),
-    prisma.practiceQuestion.findMany({
-      where,
-      orderBy: { updatedAt: "desc" },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      select: {
-        id: true,
-        slug: true,
-        category: true,
-        difficulty: true,
-        tags: true,
-        updatedAt: true,
-      },
-    }),
-  ]);
-  const filteredCount = await prisma.practiceQuestion.count({ where });
   const totalPages = Math.max(1, Math.ceil(filteredCount / pageSize));
   const prevPage = Math.max(1, page - 1);
   const nextPage = Math.min(totalPages, page + 1);
@@ -101,7 +90,7 @@ export default async function AdminQuestionsPage({
 
           <Link
             href="/admin/questions/new"
-            className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700"
+            className={adminPrimaryLinkClass}
           >
             + Add Question
           </Link>
@@ -122,9 +111,9 @@ export default async function AdminQuestionsPage({
             className={filterSelectClass}
           >
             <option value="">All categories</option>
-            {distinctCategories.map((item) => (
-              <option key={item.category} value={item.category}>
-                {item.category}
+            {categories.map((entry) => (
+              <option key={entry.category} value={entry.category}>
+                {entry.category}
               </option>
             ))}
           </select>
@@ -134,9 +123,9 @@ export default async function AdminQuestionsPage({
             className={filterSelectClass}
           >
             <option value="">All difficulties</option>
-            {distinctDifficulties.map((item) => (
-              <option key={item.difficulty} value={item.difficulty}>
-                {item.difficulty}
+            {difficulties.map((entry) => (
+              <option key={entry.difficulty} value={entry.difficulty}>
+                {entry.difficulty}
               </option>
             ))}
           </select>
@@ -171,13 +160,13 @@ export default async function AdminQuestionsPage({
           <div className="flex flex-wrap gap-2">
             <a
               href="/api/admin/questions/export?format=csv"
-              className="rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+              className={adminSecondaryLinkClass}
             >
               Export CSV
             </a>
             <a
               href="/api/admin/questions/export?format=json"
-              className="rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+              className={adminSecondaryLinkClass}
             >
               Export JSON
             </a>
@@ -210,11 +199,14 @@ export default async function AdminQuestionsPage({
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
           <p className="text-sm text-zinc-500">Top Categories</p>
           <div className="mt-2 space-y-1 text-sm text-zinc-700">
-            {categories.slice(0, 4).map((entry) => (
-              <p key={entry.category}>
-                {entry.category}: <span className="font-medium">{entry._count._all}</span>
-              </p>
-            ))}
+            {[...categories]
+              .sort((a, b) => b._count._all - a._count._all)
+              .slice(0, 4)
+              .map((entry) => (
+                <p key={entry.category}>
+                  {entry.category}: <span className="font-medium">{entry._count._all}</span>
+                </p>
+              ))}
           </div>
         </div>
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
@@ -255,7 +247,7 @@ export default async function AdminQuestionsPage({
                   <div className="flex flex-wrap gap-2">
                     <Link
                       href={`/admin/questions/${question.id}/edit`}
-                      className="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
+                      className={adminActionLinkClass}
                     >
                       Edit
                     </Link>
@@ -264,7 +256,7 @@ export default async function AdminQuestionsPage({
                       action={deletePracticeQuestionAction}
                       hiddenFields={{ questionId: question.id }}
                       buttonLabel="Delete"
-                      buttonClassName="rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
+                      buttonClassName={adminDangerButtonClass}
                       confirmMessage={`Delete question "${question.slug}"?`}
                       reasonRequired
                       reasonPrompt="Reason for deleting this question"
@@ -285,14 +277,14 @@ export default async function AdminQuestionsPage({
         <div className="flex items-center gap-2">
           <Link
             href={paramsForPage(prevPage)}
-            className={`rounded-md border px-3 py-1.5 ${page === 1 ? "pointer-events-none border-zinc-100 text-zinc-300" : "border-zinc-200 text-zinc-700 hover:bg-zinc-100"}`}
+            className={page === 1 ? adminPaginationLinkDisabledClass : adminPaginationLinkClass}
           >
             Previous
           </Link>
           <span className="text-zinc-500">Page {page} / {totalPages}</span>
           <Link
             href={paramsForPage(nextPage)}
-            className={`rounded-md border px-3 py-1.5 ${page === totalPages ? "pointer-events-none border-zinc-100 text-zinc-300" : "border-zinc-200 text-zinc-700 hover:bg-zinc-100"}`}
+            className={page === totalPages ? adminPaginationLinkDisabledClass : adminPaginationLinkClass}
           >
             Next
           </Link>

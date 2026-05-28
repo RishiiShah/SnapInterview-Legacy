@@ -24,7 +24,6 @@ vi.mock("@/repositories/interview-repo", async (importOriginal) => {
   return {
     ...actual,
     getQuestionFeedbackForSession: vi.fn().mockResolvedValue([]),
-    softDeleteInterviewSession: vi.fn(),
   };
 });
 

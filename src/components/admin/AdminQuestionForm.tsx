@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { adminSecondaryLinkClass } from "@/components/admin/admin-styles";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import {
@@ -63,7 +64,7 @@ export function AdminQuestionForm({
         </div>
         <Link
           href="/admin/questions"
-          className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+          className={adminSecondaryLinkClass}
         >
           Back to list
         </Link>

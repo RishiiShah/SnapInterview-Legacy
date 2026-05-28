@@ -5,7 +5,8 @@ import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { logger } from "@/utils/logger";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
-import { softDeleteInterviewSession, getQuestionFeedbackForSession } from "@/repositories/interview-repo";
+import { getQuestionFeedbackForSession } from "@/repositories/interview-repo";
+import { hardDeleteInterviewSessionForUser } from "@/lib/interview/hard-delete-session";
 import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 
 const interviewIdSchema = z.string().uuid();
@@ -25,7 +26,10 @@ export async function DELETE(
     if (!parsedId.success) return badRequestError("Invalid interview ID");
 
     try {
-        const deleted = await softDeleteInterviewSession({ id: parsedId.data, userId: authUser.userId });
+        const deleted = await hardDeleteInterviewSessionForUser({
+            id: parsedId.data,
+            userId: authUser.userId,
+        });
         if (!deleted) return notFoundError("Interview session not found");
 
         invalidateInterviewMetricsCache(authUser.userId);

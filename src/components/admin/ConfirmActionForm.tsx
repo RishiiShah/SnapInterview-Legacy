@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 import { Input } from "@/components/ui/Input";
+import { cn } from "@/utils/helpers";
 
 type ConfirmActionFormProps = {
   action: (formData: FormData) => void | Promise<void>;
@@ -58,7 +59,11 @@ export function ConfirmActionForm({
           <input key={key} type="hidden" name={key} value={String(value)} />
         ))}
         <input ref={reasonRef} type="hidden" name="reason" />
-        <button type="button" className={buttonClassName} onClick={() => setIsOpen(true)}>
+        <button
+          type="button"
+          className={cn("cursor-pointer", buttonClassName)}
+          onClick={() => setIsOpen(true)}
+        >
           {buttonLabel}
         </button>
       </form>

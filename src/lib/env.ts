@@ -130,6 +130,15 @@ export function requireGroqApiKey(): string {
   return env.GROQ_API_KEY;
 }
 
+export function isAwsS3Configured(): boolean {
+  return Boolean(
+    env.AWS_REGION &&
+      env.AWS_ACCESS_KEY_ID &&
+      env.AWS_SECRET_ACCESS_KEY &&
+      env.S3_BUCKET_NAME,
+  );
+}
+
 export function requireAwsS3Env() {
   const region = env.AWS_REGION;
   const accessKeyId = env.AWS_ACCESS_KEY_ID;

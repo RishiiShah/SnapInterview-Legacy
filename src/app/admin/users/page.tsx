@@ -1,7 +1,14 @@
+import { getAdminUserGlobalStats } from "@/lib/admin/user-stats";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
+import {
+  adminActionButtonClass,
+  adminDangerButtonClass,
+  adminPaginationLinkClass,
+  adminPaginationLinkDisabledClass,
+} from "@/components/admin/admin-styles";
 import { ConfirmActionForm } from "@/components/admin/ConfirmActionForm";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -107,10 +114,8 @@ export default async function AdminUsersPage({
         : {}),
   };
 
-  const [totalUsers, onboardedUsers, lockedUsers, filteredUsersCount, users] = await Promise.all([
-    prisma.user.count(),
-    prisma.user.count({ where: { onboardingCompletedAt: { not: null } } }),
-    prisma.user.count({ where: { lockedUntil: { gt: now } } }),
+  const [{ totalUsers, onboardedUsers, lockedUsers }, filteredUsersCount, users] = await Promise.all([
+    getAdminUserGlobalStats(),
     prisma.user.count({ where }),
     prisma.user.findMany({
       where,
@@ -125,7 +130,11 @@ export default async function AdminUsersPage({
         onboardingCompletedAt: true,
         failedLoginCount: true,
         lockedUntil: true,
-        interviewSessions: { where: { deletedAt: null }, select: { id: true } },
+        _count: {
+          select: {
+            interviewSessions: { where: { deletedAt: null } },
+          },
+        },
       },
     }),
   ]);
@@ -226,7 +235,7 @@ export default async function AdminUsersPage({
                   </td>
                   <td className="px-4 py-3 text-zinc-700">{formatDate(user.createdAt)}</td>
                   <td className="px-4 py-3 text-zinc-700">{user.onboardingCompletedAt ? "Completed" : "Pending"}</td>
-                  <td className="px-4 py-3 text-zinc-700">{user.interviewSessions.length}</td>
+                  <td className="px-4 py-3 text-zinc-700">{user._count.interviewSessions}</td>
                   <td className="px-4 py-3 text-zinc-700">{user.failedLoginCount}</td>
                   <td className="px-4 py-3">
                     <span
@@ -244,7 +253,7 @@ export default async function AdminUsersPage({
                           action={unlockUserAction}
                           hiddenFields={{ userId: user.id }}
                           buttonLabel="Unlock"
-                          buttonClassName="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
+                          buttonClassName={adminActionButtonClass}
                           confirmMessage={`Unlock ${user.email}?`}
                         />
                       ) : (
@@ -252,7 +261,7 @@ export default async function AdminUsersPage({
                           action={lockUserAction}
                           hiddenFields={{ userId: user.id }}
                           buttonLabel="Lock 24h"
-                          buttonClassName="rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
+                          buttonClassName={adminDangerButtonClass}
                           confirmMessage={`Lock ${user.email} for 24 hours?`}
                           reasonRequired
                           reasonPrompt="Reason for locking this user"
@@ -262,7 +271,7 @@ export default async function AdminUsersPage({
                         action={revokeSessionsAction}
                         hiddenFields={{ userId: user.id }}
                         buttonLabel="Revoke Sessions"
-                        buttonClassName="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
+                        buttonClassName={adminActionButtonClass}
                         confirmMessage={`Revoke all sessions for ${user.email}?`}
                         reasonRequired
                         reasonPrompt="Reason for revoking sessions"
@@ -284,14 +293,14 @@ export default async function AdminUsersPage({
         <div className="flex items-center gap-2">
           <Link
             href={paramsForPage(prevPage)}
-            className={`rounded-md border px-3 py-1.5 ${page === 1 ? "pointer-events-none border-zinc-100 text-zinc-300" : "border-zinc-200 text-zinc-700 hover:bg-zinc-100"}`}
+            className={page === 1 ? adminPaginationLinkDisabledClass : adminPaginationLinkClass}
           >
             Previous
           </Link>
           <span className="text-zinc-500">Page {page} / {totalPages}</span>
           <Link
             href={paramsForPage(nextPage)}
-            className={`rounded-md border px-3 py-1.5 ${page === totalPages ? "pointer-events-none border-zinc-100 text-zinc-300" : "border-zinc-200 text-zinc-700 hover:bg-zinc-100"}`}
+            className={page === totalPages ? adminPaginationLinkDisabledClass : adminPaginationLinkClass}
           >
             Next
           </Link>

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { isAdminEmail } from "@/lib/admin-auth";
+import { getAdminSessionOrNull } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
-import { getServerAuthSession } from "@/lib/server-auth";
 
 function csvCell(value: string | null | undefined) {
   const safe = String(value ?? "");
@@ -13,8 +12,8 @@ function csvCell(value: string | null | undefined) {
 }
 
 export async function GET(request: Request) {
-  const session = await getServerAuthSession();
-  if (!session?.user?.email || !isAdminEmail(session.user.email)) {
+  const session = await getAdminSessionOrNull();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

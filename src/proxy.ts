@@ -100,15 +100,21 @@ export async function proxy(request: NextRequest) {
             return response;
         }
 
-        const session = testIdentity
-            ? { user: { id: testIdentity.userId, email: testIdentity.email, onboardingCompletedAt: testIdentity.onboardingCompletedAt ?? null } }
-            : await getSession(request);
-        if (!session) {
-            const response = NextResponse.redirect(new URL("/login", request.url));
-            deleteBetterAuthSessionCookies(response);
-            response.cookies.delete(E2E_TEST_AUTH_COOKIE);
-            applySecurityHeaders(response, cspHeader);
-            return response;
+        // Admin routes run full auth + allowlist checks in the admin layout.
+        // Skipping the proxy HTTP session round-trip avoids doubling get-session latency.
+        const skipProxySessionValidation = pathname.startsWith("/admin");
+
+        if (!skipProxySessionValidation) {
+            const session = testIdentity
+                ? { user: { id: testIdentity.userId, email: testIdentity.email, onboardingCompletedAt: testIdentity.onboardingCompletedAt ?? null } }
+                : await getSession(request);
+            if (!session) {
+                const response = NextResponse.redirect(new URL("/login", request.url));
+                deleteBetterAuthSessionCookies(response);
+                response.cookies.delete(E2E_TEST_AUTH_COOKIE);
+                applySecurityHeaders(response, cspHeader);
+                return response;
+            }
         }
     } else if (pathname === "/" || pathname === "/login" || pathname === "/signup") {
         if (token || testIdentity) {

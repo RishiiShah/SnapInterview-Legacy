@@ -1,6 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+
+import { ADMIN_QUESTION_FACETS_TAG } from "@/lib/admin/question-facets";
 import { redirect } from "next/navigation";
 
 import { requireAdminSession } from "@/lib/admin-auth";
@@ -13,6 +15,10 @@ function redirectWithError(path: string, message: string): never {
 
 function redirectWithMessage(path: string, message: string): never {
   redirect(`${path}?message=${encodeURIComponent(message)}`);
+}
+
+function revalidateQuestionFacets() {
+  revalidateTag(ADMIN_QUESTION_FACETS_TAG, "max");
 }
 
 async function ensurePracticeQuestionIdSequence() {
@@ -132,6 +138,7 @@ export async function createPracticeQuestionAction(formData: FormData) {
   }
 
   revalidatePath("/admin/questions");
+  revalidateQuestionFacets();
   redirect("/admin/questions");
 }
 
@@ -167,6 +174,7 @@ export async function updatePracticeQuestionAction(formData: FormData) {
 
   revalidatePath("/admin/questions");
   revalidatePath(`/admin/questions/${id}/edit`);
+  revalidateQuestionFacets();
   redirect("/admin/questions");
 }
 
@@ -179,6 +187,7 @@ export async function deletePracticeQuestionAction(formData: FormData) {
   await prisma.practiceQuestion.delete({ where: { id } });
 
   revalidatePath("/admin/questions");
+  revalidateQuestionFacets();
 }
 
 export async function importPracticeQuestionsAction(formData: FormData) {
@@ -284,6 +293,7 @@ export async function importPracticeQuestionsAction(formData: FormData) {
   }
 
   revalidatePath("/admin/questions");
+  revalidateQuestionFacets();
   redirectWithMessage(
     "/admin/questions",
     `Import complete: created ${created}, updated ${updated}, skipped ${skipped}.`,

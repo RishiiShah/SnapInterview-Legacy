@@ -201,11 +201,23 @@ model InterviewSession {
   deletedAt       DateTime?
   createdAt       DateTime        @default(now())
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transcript       TranscriptEntry[]
-  questionFeedback QuestionFeedback[]
+  transcript         TranscriptEntry[]
+  questionFeedback   QuestionFeedback[]
+  moderationNotes    InterviewModerationNote[]
 
   @@index([userId])
   @@index([userId, deletedAt])
+}
+
+model InterviewModerationNote {
+  id                 String           @id @default(cuid())
+  interviewSessionId String
+  authorEmail        String
+  note               String           @db.Text
+  createdAt          DateTime         @default(now())
+  interviewSession   InterviewSession @relation(fields: [interviewSessionId], references: [id], onDelete: Cascade)
+
+  @@index([interviewSessionId, createdAt])
 }
 
 model QuestionFeedback {

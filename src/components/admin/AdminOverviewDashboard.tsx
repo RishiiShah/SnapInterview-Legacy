@@ -81,13 +81,13 @@ export default function AdminOverviewDashboard({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setMetric("interviews")}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium ${metric === "interviews" ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}
+                className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium ${metric === "interviews" ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}
               >
                 Interviews
               </button>
               <button
                 onClick={() => setMetric("users")}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium ${metric === "users" ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}
+                className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium ${metric === "users" ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}
               >
                 New Users
               </button>
@@ -145,7 +145,7 @@ export default function AdminOverviewDashboard({
       <section className="rounded-2xl border border-zinc-200 bg-white">
         <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
           <h3 className="text-sm font-semibold text-zinc-900">Recent Interview Activity</h3>
-          <Link href="/admin/interviews" className="text-xs font-medium text-zinc-500 hover:text-zinc-900">
+          <Link href="/admin/interviews" className="cursor-pointer text-xs font-medium text-zinc-500 hover:text-zinc-900">
             View all
           </Link>
         </div>
@@ -172,9 +172,10 @@ export default function AdminOverviewDashboard({
       <section className="rounded-2xl border border-zinc-200 bg-white p-4">
         <h3 className="text-sm font-semibold text-zinc-900">Quick Admin Access</h3>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Link href="/admin/users" className="rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100">Users</Link>
-          <Link href="/admin/questions" className="rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100">Questions</Link>
-          <Link href="/admin/interviews" className="rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100">Interviews</Link>
+          <Link href="/admin/users" className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100">Users</Link>
+          <Link href="/admin/questions" className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100">Questions</Link>
+          <Link href="/admin/interviews" className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100">Interviews</Link>
+          <Link href="/admin/analytics" className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100">Analytics</Link>
         </div>
       </section>
     </div>

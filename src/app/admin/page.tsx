@@ -1,5 +1,8 @@
-import { prisma } from "@/lib/prisma";
 import AdminOverviewDashboard from "@/components/admin/AdminOverviewDashboard";
+import { getAdminDailyInterviewCounts, getAdminDailySignupCounts } from "@/lib/admin/analytics-queries";
+import { getAdminOverviewStats } from "@/lib/admin/overview-stats";
+import { getAdminQuestionFacets } from "@/lib/admin/question-facets";
+import { prisma } from "@/lib/prisma";
 
 export default async function AdminPage() {
   const now = new Date();
@@ -7,19 +10,19 @@ export default async function AdminPage() {
   start.setDate(now.getDate() - 6);
   start.setHours(0, 0, 0, 0);
 
-  const [totalUsers, totalQuestions, totalInterviews, completedInterviews, lockedUsers, statusCounts, recentInterviews, recentUsers] = await Promise.all([
-    prisma.user.count(),
-    prisma.practiceQuestion.count(),
-    prisma.interviewSession.count(),
-    prisma.interviewSession.count({ where: { status: "COMPLETED", deletedAt: null } }),
-    prisma.user.count({ where: { lockedUntil: { gt: now } } }),
-    prisma.interviewSession.groupBy({
-      by: ["status"],
-      where: { deletedAt: null },
-      _count: { _all: true },
-    }),
+  const [
+    { totalUsers, totalInterviews, completedInterviews, lockedUsers, statusCounts },
+    { totalQuestions },
+    signupsByDay,
+    interviewsByDay,
+    recentInterviews,
+  ] = await Promise.all([
+    getAdminOverviewStats(),
+    getAdminQuestionFacets(),
+    getAdminDailySignupCounts(start),
+    getAdminDailyInterviewCounts(start),
     prisma.interviewSession.findMany({
-      where: { createdAt: { gte: start } },
+      where: { deletedAt: null, createdAt: { gte: start } },
       select: {
         id: true,
         createdAt: true,
@@ -30,13 +33,10 @@ export default async function AdminPage() {
       orderBy: { createdAt: "desc" },
       take: 12,
     }),
-    prisma.user.findMany({
-      where: { createdAt: { gte: start } },
-      select: { createdAt: true },
-    }),
   ]);
 
-  const completionRate = totalInterviews > 0 ? Math.round((completedInterviews / totalInterviews) * 100) : 0;
+  const completionRate =
+    totalInterviews > 0 ? Math.round((completedInterviews / totalInterviews) * 100) : 0;
 
   const cards = [
     { label: "Total Users", value: totalUsers.toLocaleString(), hint: "All registered users" },
@@ -54,22 +54,10 @@ export default async function AdminPage() {
     return { key, label };
   });
 
-  const interviewCountMap = new Map<string, number>();
-  recentInterviews.forEach((row) => {
-    const key = row.createdAt.toISOString().slice(0, 10);
-    interviewCountMap.set(key, (interviewCountMap.get(key) ?? 0) + 1);
-  });
-
-  const userCountMap = new Map<string, number>();
-  recentUsers.forEach((row) => {
-    const key = row.createdAt.toISOString().slice(0, 10);
-    userCountMap.set(key, (userCountMap.get(key) ?? 0) + 1);
-  });
-
   const trends = dayKeys.map(({ key, label }) => ({
     label,
-    interviews: interviewCountMap.get(key) ?? 0,
-    users: userCountMap.get(key) ?? 0,
+    interviews: interviewsByDay.get(key) ?? 0,
+    users: signupsByDay.get(key) ?? 0,
   }));
 
   const statusBreakdown = statusCounts.map((entry) => ({
@@ -91,5 +79,12 @@ export default async function AdminPage() {
     }),
   }));
 
-  return <AdminOverviewDashboard cards={cards} trends={trends} statusBreakdown={statusBreakdown} recentActivity={recentActivity} />;
+  return (
+    <AdminOverviewDashboard
+      cards={cards}
+      trends={trends}
+      statusBreakdown={statusBreakdown}
+      recentActivity={recentActivity}
+    />
+  );
 }

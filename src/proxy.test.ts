@@ -57,6 +57,21 @@ describe("proxy auth cookie handling", () => {
     expect(response.headers.get("location")).toBeNull();
   });
 
+  it("skips proxy session fetch for admin routes when a session cookie is present", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+
+    const request = new NextRequest("https://snapinterview.app/admin/questions/new", {
+      headers: {
+        cookie: "better-auth.session_token=plain-token",
+      },
+    });
+
+    const response = await proxy(request);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBeNull();
+  });
+
   it("clears both Better Auth session cookie names when validation fails", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({}), {

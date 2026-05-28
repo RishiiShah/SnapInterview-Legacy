@@ -296,24 +296,6 @@ export async function listCompletedSessionsForUser(params: {
   return { sessions, hasMore };
 }
 
-export async function softDeleteInterviewSession(params: {
-  id: string;
-  userId: string;
-}): Promise<boolean> {
-  const result = await prisma.interviewSession.updateMany({
-    where: { id: params.id, userId: params.userId, deletedAt: null },
-    data: { deletedAt: new Date() },
-  });
-  return result.count > 0;
-}
-
-export async function hardDeleteSoftDeletedSessions(olderThan: Date): Promise<number> {
-  const result = await prisma.interviewSession.deleteMany({
-    where: { deletedAt: { lte: olderThan } },
-  });
-  return result.count;
-}
-
 export async function upsertQuestionFeedback(params: {
   interviewSessionId: string;
   questionOrder: number;

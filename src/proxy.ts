@@ -43,7 +43,7 @@ function createContentSecurityPolicy(nonce: string, isDev: boolean) {
         default-src 'self';
         script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://va.vercel-scripts.com ${isDev ? "'unsafe-eval'" : ""};
         style-src 'self' 'unsafe-inline';
-        img-src 'self' https://lh3.googleusercontent.com data: blob:;
+        img-src 'self' https://*.googleusercontent.com data: blob:;
         font-src 'self' data:;
         object-src 'none';
         base-uri 'self';

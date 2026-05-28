@@ -13,14 +13,28 @@ type AppLogoProps = {
   size?: AppLogoSize;
   className?: string;
   priority?: boolean;
+  /**
+   * When true (default), the mark is decorative because brand text or an
+   * aria-label on the parent already names the control.
+   */
+  decorative?: boolean;
+  /** Used when decorative is false (standalone logo without adjacent label). */
+  alt?: string;
 };
 
 /** App mark with width/height aligned to CSS so Next/Image does not warn in dev. */
-export function AppLogo({ size = 32, className, priority }: AppLogoProps) {
+export function AppLogo({
+  size = 32,
+  className,
+  priority,
+  decorative = true,
+  alt,
+}: AppLogoProps) {
   return (
     <Image
       src="/logo.png"
-      alt="SnapInterview Logo"
+      alt={decorative ? "" : (alt ?? "SnapInterview")}
+      aria-hidden={decorative ? true : undefined}
       width={size}
       height={size}
       priority={priority}

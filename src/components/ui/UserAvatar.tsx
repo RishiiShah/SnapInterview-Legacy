@@ -10,9 +10,15 @@ type UserAvatarProps = {
   height?: number;
 };
 
+const GOOGLE_AVATAR_HOST = "googleusercontent.com";
+
+export function isGoogleAvatarHostname(hostname: string) {
+  return hostname === GOOGLE_AVATAR_HOST || hostname.endsWith(`.${GOOGLE_AVATAR_HOST}`);
+}
+
 function isGoogleAvatarUrl(src: string) {
   try {
-    return new URL(src).hostname.endsWith("googleusercontent.com");
+    return isGoogleAvatarHostname(new URL(src).hostname);
   } catch {
     return false;
   }

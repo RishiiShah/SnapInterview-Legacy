@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { AppLogo } from "@/components/ui/AppLogo";
 
 interface AuthSidePanelProps {
     title: string;
@@ -10,7 +10,7 @@ export function AuthSidePanel({ title, subtitle }: AuthSidePanelProps) {
     return (
         <div className="hidden w-1/2 flex-col justify-between bg-zinc-900 p-12 lg:flex">
             <Link href="/" className="flex items-center gap-1.5">
-                <Image src="/logo.png" alt="SnapInterview Logo" width={32} height={32} className="rounded-lg" />
+                <AppLogo size={32} />
                 <span className="text-lg font-semibold tracking-tight text-white">
                     SnapInterview
                 </span>

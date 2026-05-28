@@ -1,11 +1,11 @@
-import Image from "next/image";
+import { AppLogo } from "@/components/ui/AppLogo";
 
 export default function LandingFooter() {
   return (
     <footer className="border-t border-zinc-100 bg-white py-12 px-6">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 md:flex-row">
         <div className="flex items-center gap-1.5">
-          <Image src="/logo.png" alt="SnapInterview Logo" width={28} height={28} className="rounded-md" />
+          <AppLogo size={28} className="rounded-md" />
           <span className="text-sm font-semibold tracking-tight">
             SnapInterview
           </span>

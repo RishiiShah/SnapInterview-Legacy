@@ -467,7 +467,7 @@ export const AnimatedSidebarOpenIcon = forwardRef<AnimatedIconHandle, AnimatedIc
       >
         <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
         <motion.path className="sidebar" d="M15 4v16" />
-        <motion.path className="chevron" d="M9 10l2 2l-2 2" />
+        <motion.path className="chevron" d="M9 10l2 2l-2 2" opacity={1} />
       </motion.svg>
     );
   }
@@ -501,7 +501,7 @@ export const AnimatedSidebarCollapseIcon = forwardRef<AnimatedIconHandle, Animat
       >
         <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
         <motion.path className="sidebar" d="M9 4v16" />
-        <motion.path className="chevron" d="M15 10l-2 2l2 2" />
+        <motion.path className="chevron" d="M15 10l-2 2l2 2" opacity={1} />
       </motion.svg>
     );
   }

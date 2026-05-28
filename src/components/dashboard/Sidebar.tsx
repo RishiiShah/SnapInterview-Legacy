@@ -2,7 +2,8 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { AppLogo } from "@/components/ui/AppLogo";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/utils/helpers";
@@ -149,12 +150,9 @@ export function Sidebar({
                         aria-label="Open sidebar"
                         title="Open sidebar"
                     >
-                        <Image
-                            src="/logo.png"
-                            alt="SnapInterview Logo"
-                            width={36}
-                            height={36}
-                            className="rounded-lg transition-opacity duration-150 group-hover/logo:opacity-0"
+                        <AppLogo
+                            size={36}
+                            className="transition-opacity duration-150 group-hover/logo:opacity-0"
                         />
                         <AnimatedSidebarOpenIcon
                             className="absolute inset-0 m-auto h-5 w-5 text-zinc-900 opacity-0 transition-opacity duration-150 group-hover/logo:opacity-100"
@@ -165,7 +163,7 @@ export function Sidebar({
                 ) : (
                     <>
                         <Link href="/dashboard" className="flex items-center gap-1.5 overflow-hidden">
-                            <Image src="/logo.png" alt="SnapInterview Logo" width={28} height={28} className="shrink-0 rounded-lg" />
+                            <AppLogo size={28} />
                             <span className="whitespace-nowrap text-lg font-semibold tracking-tight text-zinc-900">SnapInterview</span>
                         </Link>
                         <button
@@ -200,7 +198,7 @@ export function Sidebar({
                 >
                     {userImage ? (
                         <div className="relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full">
-                            <Image src={userImage} alt={userName} fill sizes="28px" className="object-cover" />
+                            <UserAvatar src={userImage} alt={userName} fill sizes="28px" className="object-cover" />
                         </div>
                     ) : (
                         <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-zinc-900 text-[10px] font-bold text-white">{initials}</div>

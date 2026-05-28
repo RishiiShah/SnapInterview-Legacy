@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -137,7 +137,7 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
         <div className="flex items-center gap-5">
           <div className="relative group">
             {userImage ? (
-              <Image src={userImage} alt={savedName} width={72} height={72} className="h-18 w-18 rounded-full object-cover ring-4 ring-zinc-100" />
+              <UserAvatar src={userImage} alt={savedName} width={72} height={72} className="h-18 w-18 rounded-full object-cover ring-4 ring-zinc-100" />
             ) : (
               <div className="grid h-18 w-18 place-items-center rounded-full bg-zinc-900 text-xl font-bold text-white ring-4 ring-zinc-100">{initials}</div>
             )}

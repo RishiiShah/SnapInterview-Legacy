@@ -44,7 +44,10 @@ export const metadata: Metadata = {
         description: "Practice mock interviews with AI, get instant feedback, and land your dream job.",
     },
     icons: {
-        icon: "/logo.png",
+        icon: [{ url: "/favicon.ico", sizes: "any" }],
+        shortcut: "/favicon.ico",
+        // PNG stays sharper for sidebar/login; .ico is for browser tabs only.
+        apple: "/logo.png",
     },
 };
 

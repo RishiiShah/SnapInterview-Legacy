@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { AppLogo } from "@/components/ui/AppLogo";
 
 export default function LandingNavbar() {
   return (
@@ -7,7 +7,7 @@ export default function LandingNavbar() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-1.5">
-          <Image src="/logo.png" alt="SnapInterview Logo" width={32} height={32} className="rounded-lg" />
+          <AppLogo size={32} />
           <span className="text-lg font-semibold tracking-tight">
             SnapInterview
           </span>

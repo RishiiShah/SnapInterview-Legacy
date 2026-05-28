@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import { AppLogo } from "@/components/ui/AppLogo";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signIn, useSession } from "@/lib/auth-client";
@@ -62,7 +62,7 @@ export default function LoginPage() {
                 {/* Mobile logo */}
                 <div className="mb-10 lg:hidden">
                     <Link href="/" className="flex items-center gap-1.5">
-                        <Image src="/logo.png" alt="SnapInterview Logo" width={32} height={32} className="rounded-lg" />
+                        <AppLogo size={32} />
                         <span className="text-lg font-semibold tracking-tight text-zinc-900">
                             SnapInterview
                         </span>

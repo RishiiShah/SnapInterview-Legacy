@@ -72,6 +72,23 @@ export const getServerAuthSession = cache(async function getServerAuthSession() 
   });
 
   const userId = session?.user?.id ?? session?.session?.userId ?? null;
+  const sessionToken = session?.session?.token ?? null;
+
+  if (userId && sessionToken) {
+    const activeSession = await prisma.session.findFirst({
+      where: {
+        token: sessionToken,
+        userId,
+        expiresAt: { gt: new Date() },
+      },
+      select: { id: true },
+    });
+    if (!activeSession) {
+      await auth.api.signOut({ headers: await headers() });
+      return null;
+    }
+  }
+
   if (userId) {
     const lockState = await prisma.user.findUnique({
       where: { id: userId },

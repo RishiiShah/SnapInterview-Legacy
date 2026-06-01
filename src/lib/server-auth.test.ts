@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   signOut: vi.fn(),
   headers: vi.fn(),
   userFindUnique: vi.fn(),
+  sessionFindFirst: vi.fn(),
   getE2ETestIdentity: vi.fn(),
   revokeUserSessions: vi.fn(),
 }));
@@ -27,6 +28,9 @@ vi.mock("@/lib/prisma", () => ({
     user: {
       findUnique: mocks.userFindUnique,
     },
+    session: {
+      findFirst: mocks.sessionFindFirst,
+    },
   },
 }));
 
@@ -46,17 +50,19 @@ describe("server auth helpers", () => {
     mocks.signOut.mockReset();
     mocks.headers.mockReset();
     mocks.userFindUnique.mockReset();
+    mocks.sessionFindFirst.mockReset();
     mocks.getE2ETestIdentity.mockReset();
     mocks.revokeUserSessions.mockReset();
     mocks.revokeUserSessions.mockResolvedValue(0);
     mocks.signOut.mockResolvedValue(undefined);
+    mocks.sessionFindFirst.mockResolvedValue({ id: "session-1" });
   });
 
   it("delegates to Better Auth with request headers when test auth is unavailable", async () => {
     const requestHeaders = new Headers({ cookie: "session=abc" });
     const session = {
       user: { id: "user-1", email: "USER@EXAMPLE.COM" },
-      session: { id: "session-1", userId: "user-1" },
+      session: { id: "session-1", userId: "user-1", token: "token-1" },
     };
     mocks.getE2ETestIdentity.mockResolvedValue(null);
     mocks.headers.mockResolvedValue(requestHeaders);
@@ -81,17 +87,34 @@ describe("server auth helpers", () => {
     mocks.headers.mockResolvedValue(requestHeaders);
     mocks.getSession.mockResolvedValue({
       user: { id: "user-1", email: "user@example.com" },
-      session: { id: "session-1", userId: "user-1" },
+      session: { id: "session-1", userId: "user-1", token: "token-1" },
     });
     mocks.userFindUnique.mockResolvedValue({ lockedUntil });
 
     await expect(getServerAuthSession()).resolves.toBeNull();
 
+    expect(mocks.sessionFindFirst).toHaveBeenCalled();
     expect(mocks.revokeUserSessions).toHaveBeenCalledWith({
       userId: "user-1",
       reason: "account_locked",
     });
     expect(mocks.signOut).toHaveBeenCalledWith({ headers: requestHeaders });
+  });
+
+  it("signs out and returns null when the session was revoked server-side", async () => {
+    const requestHeaders = new Headers({ cookie: "session=abc" });
+    mocks.getE2ETestIdentity.mockResolvedValue(null);
+    mocks.headers.mockResolvedValue(requestHeaders);
+    mocks.getSession.mockResolvedValue({
+      user: { id: "user-1", email: "user@example.com" },
+      session: { id: "session-1", userId: "user-1", token: "revoked-token" },
+    });
+    mocks.sessionFindFirst.mockResolvedValue(null);
+
+    await expect(getServerAuthSession()).resolves.toBeNull();
+
+    expect(mocks.signOut).toHaveBeenCalledWith({ headers: requestHeaders });
+    expect(mocks.revokeUserSessions).not.toHaveBeenCalled();
   });
 
   it("builds an E2E session from the database user when test identity is present", async () => {
@@ -190,7 +213,7 @@ describe("server auth helpers", () => {
     mocks.headers.mockResolvedValue(new Headers());
     mocks.getSession.mockResolvedValue({
       user: { email: " USER@Example.COM " },
-      session: { id: "session-1", userId: "session-user" },
+      session: { id: "session-1", userId: "session-user", token: "token-1" },
     });
     mocks.userFindUnique.mockResolvedValue({ lockedUntil: null });
 

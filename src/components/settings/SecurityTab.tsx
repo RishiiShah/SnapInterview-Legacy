@@ -44,7 +44,11 @@ function formatDate(value: string) {
 
 function formatProvider(provider: string | null) {
   if (!provider) return "Email";
-  if (provider === "credentials") return "Email";
+  const normalized = provider.toLowerCase();
+  if (normalized === "credentials" || normalized === "email") return "Email";
+  if (normalized === "google") return "Google";
+  // Ignore malformed/legacy provider values stored in older events.
+  if (normalized.length <= 3) return "Email";
   return provider.charAt(0).toUpperCase() + provider.slice(1);
 }
 
@@ -68,6 +72,10 @@ export default function SecurityTab() {
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
+        if (response.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
         setError(typeof payload?.error === "string" ? payload.error : "Failed to load security settings.");
         return;
       }

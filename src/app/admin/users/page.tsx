@@ -105,13 +105,28 @@ export default async function AdminUsersPage({
 
   async function revokeSessionsAction(formData: FormData) {
     "use server";
-    await requireAdminSession();
+    const adminSession = await requireAdminSession();
 
     const userId = String(formData.get("userId") ?? "");
     if (!userId) return;
 
-    await prisma.session.deleteMany({
-      where: { userId },
+    const reason = String(formData.get("reason") ?? "").trim() || "admin_manual_revoke";
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true },
+    });
+    if (!user) return;
+
+    await revokeUserSessions({
+      userId: user.id,
+      email: normalizeEmail(user.email),
+      reason: "admin_revoke",
+      auditMetadata: {
+        adminReason: reason,
+        adminUserId: adminSession.user.id,
+        adminEmail: adminSession.user.email,
+      },
     });
 
     revalidatePath("/admin/users");

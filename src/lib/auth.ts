@@ -60,7 +60,7 @@ export const auth = betterAuth({
     cookieCache: {
       enabled: true,
       maxAge: 60 * 5, // 5-minute cookie cache to reduce DB fetches on every request
-      version: async (_session, user) => getSessionCookieCacheVersion(user.id),
+      version: async (session, user) => getSessionCookieCacheVersion(session, user),
     },
   },
 
@@ -347,25 +347,48 @@ export const auth = betterAuth({
         return;
       }
 
-      // ── Reject cached or DB sessions for locked accounts (prevents login ↔ dashboard loop) ──
+      // ── Reject cached or DB sessions for locked/revoked accounts ──
       if (ctx.path === "/get-session") {
         const returned = (ctx as {
-          context?: { returned?: { user?: { id?: string } } | null };
+          context?: {
+            returned?: {
+              user?: { id?: string };
+              session?: { token?: string };
+            } | null;
+          };
         }).context?.returned;
         const userId = returned?.user?.id;
-        if (!userId) return;
+        if (!userId || returned === null) return;
 
         const lockState = await prisma.user.findUnique({
           where: { id: userId },
           select: { lockedUntil: true },
         });
-        if (!isAccountLocked(lockState?.lockedUntil)) return;
-
-        await revokeUserSessions({ userId, reason: "account_locked" });
-        if (ctx.request) {
-          await auth.api.signOut({ headers: ctx.request.headers });
+        if (isAccountLocked(lockState?.lockedUntil)) {
+          await revokeUserSessions({ userId, reason: "account_locked" });
+          if (ctx.request) {
+            await auth.api.signOut({ headers: ctx.request.headers });
+          }
+          return { response: null };
         }
-        return { response: null };
+
+        const token = returned.session?.token;
+        if (token) {
+          const activeSession = await prisma.session.findFirst({
+            where: {
+              token,
+              userId,
+              expiresAt: { gt: new Date() },
+            },
+            select: { id: true },
+          });
+          if (!activeSession) {
+            if (ctx.request) {
+              await auth.api.signOut({ headers: ctx.request.headers });
+            }
+            return { response: null };
+          }
+        }
       }
     }),
   },

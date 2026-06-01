@@ -173,21 +173,22 @@ export default async function AdminQuestionsPage({
           </div>
         </div>
 
-        <form action={importPracticeQuestionsAction} className="mt-4 grid gap-3 md:grid-cols-[1.2fr_1fr_1fr]">
-          <input
-            type="file"
-            name="file"
-            accept=".csv,application/json"
-            required
-            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-700 file:mr-3 file:rounded-md file:border-0 file:bg-zinc-900 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white"
-          />
-          <select name="mode" defaultValue="skip" className={filterSelectClass}>
-            <option value="skip">Skip duplicates</option>
-            <option value="upsert">Update duplicates</option>
-          </select>
-          <Button type="submit" size="md" className="w-full">
-            Import file
-          </Button>
+        <form action={importPracticeQuestionsAction} className="mt-4 space-y-2">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <input
+              type="file"
+              name="file"
+              accept=".csv,application/json"
+              required
+              className="min-w-0 flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-700 file:mr-3 file:rounded-md file:border-0 file:bg-zinc-900 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white"
+            />
+            <Button type="submit" size="md" className="w-full shrink-0 sm:w-auto">
+              Import file
+            </Button>
+          </div>
+          <p className="text-xs text-zinc-500">
+            New slugs are added. Existing slugs only get new tags merged in—edit a question to remove tags that do not fit.
+          </p>
         </form>
       </section>
 

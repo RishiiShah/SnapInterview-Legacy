@@ -190,11 +190,22 @@ export async function deletePracticeQuestionAction(formData: FormData) {
   revalidateQuestionFacets();
 }
 
+function mergeQuestionTags(existing: string[], incoming: string[]) {
+  const seen = new Set(existing);
+  const merged = [...existing];
+  for (const tag of incoming) {
+    if (!seen.has(tag)) {
+      seen.add(tag);
+      merged.push(tag);
+    }
+  }
+  return merged;
+}
+
 export async function importPracticeQuestionsAction(formData: FormData) {
   await requireAdminSession();
 
   const file = formData.get("file");
-  const mode = String(formData.get("mode") ?? "skip");
   if (!(file instanceof File) || file.size === 0) {
     redirectWithError("/admin/questions", "Please choose a non-empty file.");
   }
@@ -265,37 +276,38 @@ export async function importPracticeQuestionsAction(formData: FormData) {
   }
 
   let created = 0;
-  let updated = 0;
-  let skipped = 0;
+  let tagsMerged = 0;
 
   await ensurePracticeQuestionIdSequence();
   for (const item of normalized) {
     if (!item) continue;
-    if (mode === "upsert") {
-      const existed = await prisma.practiceQuestion.findUnique({ where: { slug: item.slug }, select: { id: true } });
-      await prisma.practiceQuestion.upsert({
-        where: { slug: item.slug },
-        update: item,
-        create: item,
-      });
-      if (existed) updated += 1;
-      else created += 1;
+
+    const existing = await prisma.practiceQuestion.findUnique({
+      where: { slug: item.slug },
+      select: { id: true, tags: true },
+    });
+
+    if (existing) {
+      const mergedTags = mergeQuestionTags(existing.tags, item.tags);
+      if (mergedTags.length > existing.tags.length) {
+        await prisma.practiceQuestion.update({
+          where: { id: existing.id },
+          data: { tags: mergedTags },
+        });
+        tagsMerged += 1;
+      }
       continue;
     }
 
-    const existing = await prisma.practiceQuestion.findUnique({ where: { slug: item.slug }, select: { id: true } });
-    if (existing) {
-      skipped += 1;
-      continue;
-    }
     await prisma.practiceQuestion.create({ data: item });
     created += 1;
   }
 
   revalidatePath("/admin/questions");
   revalidateQuestionFacets();
-  redirectWithMessage(
-    "/admin/questions",
-    `Import complete: created ${created}, updated ${updated}, skipped ${skipped}.`,
-  );
+  const parts = [`created ${created}`];
+  if (tagsMerged > 0) {
+    parts.push(`merged tags on ${tagsMerged} existing question${tagsMerged === 1 ? "" : "s"}`);
+  }
+  redirectWithMessage("/admin/questions", `Import complete: ${parts.join(", ")}.`);
 }

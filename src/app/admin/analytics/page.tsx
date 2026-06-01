@@ -1,7 +1,7 @@
 import type { Prisma } from "@/generated/prisma/client";
 
 import AdminAnalyticsDashboard from "@/components/admin/AdminAnalyticsDashboard";
-import { getAdminDailyInterviewCounts, getAdminDailySignupCounts } from "@/lib/admin/analytics-queries";
+import { getAdminDailySignupCounts } from "@/lib/admin/analytics-queries";
 import { normalizeTranscriptEvaluation } from "@/lib/interview/evaluation";
 import { prisma } from "@/lib/prisma";
 
@@ -32,7 +32,7 @@ export default async function AdminAnalyticsPage() {
 
   const [
     signupsByDay,
-    interviewsByDay,
+    usersBeforePeriod,
     activeSessions,
     completedCount,
     evaluatedSessionsCount,
@@ -47,7 +47,7 @@ export default async function AdminAnalyticsPage() {
     recentEvaluations,
   ] = await Promise.all([
     getAdminDailySignupCounts(last14Start),
-    getAdminDailyInterviewCounts(last14Start),
+    prisma.user.count({ where: { createdAt: { lt: last14Start } } }),
     prisma.interviewSession.count({ where: { deletedAt: null } }),
     prisma.interviewSession.count({ where: { deletedAt: null, status: "COMPLETED" } }),
     prisma.interviewSession.count({
@@ -86,14 +86,19 @@ export default async function AdminAnalyticsPage() {
     }),
   ]);
 
-  const growth = Array.from({ length: 14 }).map((_, index) => {
+  let runningUserTotal = usersBeforePeriod;
+  const userBase = Array.from({ length: 14 }).map((_, index) => {
     const day = addDays(last14Start, index);
     const key = day.toISOString().slice(0, 10);
+    runningUserTotal += signupsByDay.get(key) ?? 0;
     return {
-      key,
-      label: day.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      users: signupsByDay.get(key) ?? 0,
-      interviews: interviewsByDay.get(key) ?? 0,
+      label: day.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+      axisLabel: day.toLocaleDateString("en-US", { month: "numeric", day: "numeric" }),
+      totalUsers: runningUserTotal,
     };
   });
 
@@ -206,7 +211,7 @@ export default async function AdminAnalyticsPage() {
 
   return (
     <AdminAnalyticsDashboard
-      growth={growth}
+      userBase={userBase}
       funnel={funnel}
       retention={retention}
       aiHealthCards={aiHealthCards}

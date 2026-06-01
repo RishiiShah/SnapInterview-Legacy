@@ -1,8 +1,9 @@
-type GrowthPoint = {
-  key: string;
+import { AdminUserBaseLineChart } from "@/components/admin/AdminUserBaseLineChart";
+
+type UserBasePoint = {
   label: string;
-  users: number;
-  interviews: number;
+  axisLabel: string;
+  totalUsers: number;
 };
 
 type FunnelItem = {
@@ -24,7 +25,7 @@ type AiHealthCard = {
 };
 
 type AdminAnalyticsDashboardProps = {
-  growth: GrowthPoint[];
+  userBase: UserBasePoint[];
   funnel: FunnelItem[];
   retention: RetentionSnapshot[];
   aiHealthCards: AiHealthCard[];
@@ -50,18 +51,15 @@ function toneClass(tone: AiHealthCard["tone"]) {
 }
 
 export default function AdminAnalyticsDashboard({
-  growth,
+  userBase,
   funnel,
   retention,
   aiHealthCards,
   averageScore,
   subScores,
 }: AdminAnalyticsDashboardProps) {
-  const maxGrowth = Math.max(
-    1,
-    ...growth.map((point) => Math.max(point.users, point.interviews)),
-  );
   const funnelBase = Math.max(1, funnel[0]?.value ?? 1);
+  const latestTotalUsers = userBase[userBase.length - 1]?.totalUsers;
 
   return (
     <div className="space-y-6 pb-8">
@@ -76,47 +74,19 @@ export default function AdminAnalyticsDashboard({
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-          <h3 className="text-sm font-semibold text-zinc-900">14-Day Growth</h3>
-          <p className="text-xs text-zinc-400">
-            New users vs interviews started each day.
-          </p>
-          <div className="mt-4 flex min-h-[200px] items-end gap-2">
-            {growth.map((point) => {
-              const usersHeight = Math.max(4, (point.users / maxGrowth) * 100);
-              const interviewsHeight = Math.max(
-                4,
-                (point.interviews / maxGrowth) * 100,
-              );
-              return (
-                <div
-                  key={point.key}
-                  className="group flex flex-1 flex-col items-center gap-2"
-                >
-                  <div className="flex h-40 w-full items-end justify-center gap-1">
-                    <div
-                      className="w-2 rounded-sm bg-blue-400"
-                      style={{ height: `${usersHeight}%` }}
-                      title={`${point.label}: ${point.users} users`}
-                    />
-                    <div
-                      className="w-2 rounded-sm bg-zinc-800"
-                      style={{ height: `${interviewsHeight}%` }}
-                      title={`${point.label}: ${point.interviews} interviews`}
-                    />
-                  </div>
-                  <span className="text-[10px] text-zinc-400">{point.label}</span>
-                </div>
-              );
-            })}
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-900">Total User Base</h3>
+              <p className="text-xs text-zinc-400">Last 14 days</p>
+            </div>
+            {latestTotalUsers != null ? (
+              <p className="text-lg font-semibold text-zinc-900">
+                {latestTotalUsers.toLocaleString()}
+                <span className="ml-1 text-xs font-normal text-zinc-500">users today</span>
+              </p>
+            ) : null}
           </div>
-          <div className="mt-2 flex items-center gap-4 text-xs text-zinc-500">
-            <span className="inline-flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-blue-400" /> Users
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-zinc-800" /> Interviews
-            </span>
-          </div>
+          <AdminUserBaseLineChart data={userBase} />
         </div>
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-5">

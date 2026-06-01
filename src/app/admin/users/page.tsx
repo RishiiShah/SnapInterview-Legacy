@@ -1,6 +1,8 @@
 import { getAdminUserGlobalStats } from "@/lib/admin/user-stats";
+import { recordSecurityEvent, revokeUserSessions } from "@/lib/account-security";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/admin-auth";
+import { normalizeEmail } from "@/lib/security";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import {
@@ -37,34 +39,64 @@ export default async function AdminUsersPage({
 }) {
   async function lockUserAction(formData: FormData) {
     "use server";
-    await requireAdminSession();
+    const adminSession = await requireAdminSession();
 
     const userId = String(formData.get("userId") ?? "");
     if (!userId) return;
 
-    await prisma.user.update({
+    const reason = String(formData.get("reason") ?? "").trim() || "admin_manual_lock";
+
+    const user = await prisma.user.update({
       where: { id: userId },
       data: {
         lockedUntil: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        failedLoginCount: 5,
+      },
+      select: { id: true, email: true },
+    });
+
+    await recordSecurityEvent({
+      type: "ACCOUNT_LOCKED",
+      userId: user.id,
+      email: normalizeEmail(user.email),
+      metadata: {
+        reason,
+        adminUserId: adminSession.user.id,
+        adminEmail: adminSession.user.email,
+        lockDurationHours: 24,
       },
     });
+
+    await revokeUserSessions({ userId: user.id, reason: "account_locked" });
 
     revalidatePath("/admin/users");
   }
 
   async function unlockUserAction(formData: FormData) {
     "use server";
-    await requireAdminSession();
+    const adminSession = await requireAdminSession();
 
     const userId = String(formData.get("userId") ?? "");
     if (!userId) return;
 
-    await prisma.user.update({
+    const reason = String(formData.get("reason") ?? "").trim() || "admin_manual_unlock";
+
+    const user = await prisma.user.update({
       where: { id: userId },
       data: {
         lockedUntil: null,
         failedLoginCount: 0,
+      },
+      select: { id: true, email: true },
+    });
+
+    await recordSecurityEvent({
+      type: "ACCOUNT_UNLOCKED",
+      userId: user.id,
+      email: normalizeEmail(user.email),
+      metadata: {
+        reason,
+        adminUserId: adminSession.user.id,
+        adminEmail: adminSession.user.email,
       },
     });
 
@@ -255,6 +287,8 @@ export default async function AdminUsersPage({
                           buttonLabel="Unlock"
                           buttonClassName={adminActionButtonClass}
                           confirmMessage={`Unlock ${user.email}?`}
+                          reasonRequired
+                          reasonPrompt="Reason for unlocking this user"
                         />
                       ) : (
                         <ConfirmActionForm

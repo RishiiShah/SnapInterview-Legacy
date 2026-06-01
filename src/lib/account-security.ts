@@ -1,6 +1,16 @@
 import type { Prisma, SecurityEventType } from "@/generated/prisma/client";
+import { isAccountLocked } from "@/lib/account-lock";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/utils/logger";
+
+/** Bust Better Auth cookie cache when an account is locked so get-session revalidates against the DB. */
+export async function getSessionCookieCacheVersion(userId: string): Promise<string> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { lockedUntil: true },
+  });
+  return isAccountLocked(user?.lockedUntil) ? "locked" : "1";
+}
 
 export async function recordSecurityEvent(params: {
   type: SecurityEventType;
@@ -36,7 +46,7 @@ export async function recordSecurityEvent(params: {
 export async function revokeUserSessions(params: {
   userId: string;
   excludeSessionToken?: string | null;
-  reason: "password_changed" | "password_reset" | "manual_revoke";
+  reason: "password_changed" | "password_reset" | "manual_revoke" | "account_locked";
 }) {
   const { userId, excludeSessionToken, reason } = params;
   const now = new Date();

@@ -1,6 +1,8 @@
 import { cache } from "react";
 
 import { auth } from "@/lib/auth";
+import { revokeUserSessions } from "@/lib/account-security";
+import { isAccountLocked } from "@/lib/account-lock";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { normalizeEmail } from "@/lib/security";
@@ -65,9 +67,24 @@ export const getServerAuthSession = cache(async function getServerAuthSession() 
     };
   }
 
-  return auth.api.getSession({
+  const session = await auth.api.getSession({
     headers: await headers(),
   });
+
+  const userId = session?.user?.id ?? session?.session?.userId ?? null;
+  if (userId) {
+    const lockState = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { lockedUntil: true },
+    });
+    if (isAccountLocked(lockState?.lockedUntil)) {
+      await revokeUserSessions({ userId, reason: "account_locked" });
+      await auth.api.signOut({ headers: await headers() });
+      return null;
+    }
+  }
+
+  return session;
 });
 
 /**

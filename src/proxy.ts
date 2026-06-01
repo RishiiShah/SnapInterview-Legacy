@@ -7,6 +7,8 @@ import { logger } from "@/utils/logger";
 const BETTER_AUTH_COOKIE_NAMES = [
     "better-auth.session_token",
     "__Secure-better-auth.session_token",
+    "better-auth.session_data",
+    "__Secure-better-auth.session_data",
 ] as const;
 
 function getBetterAuthSessionToken(request: NextRequest) {
@@ -124,6 +126,16 @@ export async function proxy(request: NextRequest) {
             if (session?.user) {
                 const hasOnboarding = !!session.user.onboardingCompletedAt;
                 const response = NextResponse.redirect(new URL(hasOnboarding ? "/dashboard" : "/onboarding", request.url));
+                applySecurityHeaders(response, cspHeader);
+                return response;
+            }
+
+            // Stale session cookies after lock/revoke — clear them so login is not bounced back to dashboard.
+            if (token && !session) {
+                const response = NextResponse.next({
+                    request: { headers: requestHeaders },
+                });
+                deleteBetterAuthSessionCookies(response);
                 applySecurityHeaders(response, cspHeader);
                 return response;
             }

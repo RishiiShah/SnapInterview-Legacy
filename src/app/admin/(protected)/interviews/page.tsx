@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { hardDeleteInterviewAction } from "@/app/admin/interviews/actions";
+import { hardDeleteInterviewAction } from "@/app/admin/(protected)/interviews/actions";
 import {
   adminActionLinkClass,
   adminDangerButtonClass,

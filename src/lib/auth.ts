@@ -173,7 +173,6 @@ export const auth = betterAuth({
         ? extractRequestContext(ctx.request.headers).userAgent
         : undefined;
 
-      // 1. Check IP Ban Limit (Tarpit) - Consumes a token for ALL attempts
       if (ipHash && await loginIpBanLimiter.isLimited(ipHash)) {
         await recordSecurityEvent({
           type: "LOGIN_FAILED",
@@ -183,7 +182,6 @@ export const auth = betterAuth({
           metadata: { reason: "ip_tarpit_triggered" },
         });
 
-        // Randomized delay 5-30s
         const delayMs = 5000 + Math.random() * 25000;
         await new Promise((resolve) => setTimeout(resolve, delayMs));
 
@@ -192,7 +190,6 @@ export const auth = betterAuth({
         });
       }
 
-      // 2. Check Primary IP Limit (Failures only) - Peek without consuming
       if (ipHash && await loginIpLimiter.checkLimit(ipHash)) {
         await recordSecurityEvent({
           type: "LOGIN_FAILED",
@@ -206,7 +203,6 @@ export const auth = betterAuth({
         });
       }
 
-      // 3. Distributed Postgres-backed email rate limit check.
       if (await loginLimiter.isLimited(email)) {
         await recordSecurityEvent({
           type: "LOGIN_FAILED",
@@ -220,7 +216,6 @@ export const auth = betterAuth({
         });
       }
 
-      // Database-level lockout check
       const user = await prisma.user.findUnique({ where: { email } });
       if (user) {
         await rejectLockedAccount({
@@ -249,7 +244,6 @@ export const auth = betterAuth({
         const hookContext = (ctx as { context?: AuthAfterHookContext }).context;
         const isSuccess = isSignInAfterHookSuccess(hookContext);
         
-        // Consume IP rate limit token ONLY on failure
         if (!isSuccess && ipHash) {
           await loginIpLimiter.isLimited(ipHash);
         }

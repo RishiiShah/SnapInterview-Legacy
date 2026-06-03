@@ -126,7 +126,8 @@ See `.env.example` for the canonical list. Key groups:
 | CSRF     | `CSRF_TRUSTED_ORIGINS`, `CSRF_TRUSTED_ORIGIN_SUFFIXES`               |
 | URLs     | `NEXT_PUBLIC_APP_URL`, `APP_URL`                                     |
 | Cron     | `CRON_SECRET`                                                        |
-| Admin    | `ADMIN_EMAILS` (comma-separated allowlist)                           |
+
+Admin access uses `User.isAdmin` in the database. Sign in at `/login` (email or Google), then open `/admin`. Set `isAdmin = true` on the user row in your database (Prisma Studio, SQL, etc.).
 
 ### CSRF & Origins
 

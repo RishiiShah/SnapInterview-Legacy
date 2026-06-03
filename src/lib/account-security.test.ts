@@ -103,7 +103,7 @@ describe("account-security helpers", () => {
   });
 
   it("returns revoked when the cached session token no longer exists", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({ lockedUntil: null });
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ lockedUntil: null } as never);
     vi.mocked(prisma.session.findFirst).mockResolvedValue(null);
 
     await expect(
@@ -114,7 +114,7 @@ describe("account-security helpers", () => {
   it("returns locked when the account is locked", async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue({
       lockedUntil: new Date(Date.now() + 60_000),
-    });
+    } as never);
 
     await expect(
       getSessionCookieCacheVersion({ token: "token-1" }, { id: "user-1" }),

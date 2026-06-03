@@ -1,35 +1,32 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 
-import { env } from "@/lib/env";
+import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/server-auth";
-import { normalizeEmail } from "@/lib/security";
 
-function getAdminAllowlist(): Set<string> {
-  if (!env.ADMIN_EMAILS) {
-    return new Set();
-  }
+export async function isAdminUser(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isAdmin: true },
+  });
 
-  return new Set(
-    env.ADMIN_EMAILS.split(",")
-      .map((email) => normalizeEmail(email))
-      .filter(Boolean),
-  );
+  return user?.isAdmin ?? false;
 }
 
-export function isAdminEmail(email: string | null | undefined): boolean {
-  if (!email) {
-    return false;
-  }
+const getCachedIsAdmin = cache(isAdminUser);
 
-  return getAdminAllowlist().has(normalizeEmail(email));
+function getSessionUserId(session: NonNullable<Awaited<ReturnType<typeof getServerAuthSession>>>) {
+  return session.user?.id ?? session.session?.userId ?? null;
 }
 
 export const getAdminSessionOrNull = cache(async function getAdminSessionOrNull() {
   const session = await getServerAuthSession();
-  if (!session?.user || !isAdminEmail(session.user.email)) {
+  const userId = session ? getSessionUserId(session) : null;
+
+  if (!userId || !(await getCachedIsAdmin(userId))) {
     return null;
   }
+
   return session;
 });
 

@@ -21,6 +21,7 @@ model User {
   updatedAt     DateTime @updatedAt
 
   // ─── App-specific user fields ───
+  isAdmin                Boolean   @default(false)
   isFirstLogin           Boolean   @default(true)
   failedLoginCount       Int       @default(0)
   lockedUntil            DateTime?

@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   addInterviewModerationNoteAction,
   hardDeleteInterviewAction,
-} from "@/app/admin/interviews/actions";
+} from "@/app/admin/(protected)/interviews/actions";
 import { RecordingEvaluation } from "@/components/recordings/RecordingEvaluation";
 import { Button } from "@/components/ui/Button";
 import type { AdminInterviewDetail } from "@/lib/admin/interview-detail";

@@ -102,7 +102,7 @@ export async function proxy(request: NextRequest) {
             return response;
         }
 
-        // Admin routes run full auth + allowlist checks in the admin layout.
+        // Admin routes run full auth + isAdmin checks in the admin layout.
         // Skipping the proxy HTTP session round-trip avoids doubling get-session latency.
         const skipProxySessionValidation = pathname.startsWith("/admin");
 

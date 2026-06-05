@@ -5,7 +5,7 @@ import { apiJson, badRequestError, notFoundError, unauthorizedError, internalSer
 import { generateShareToken, revokeShareToken, getShareToken } from "@/repositories/interview-repo";
 import { logger } from "@/utils/logger";
 
-const interviewIdSchema = z.string().uuid();
+const interviewIdSchema = z.string().min(1);
 
 export async function GET(
   _req: Request,

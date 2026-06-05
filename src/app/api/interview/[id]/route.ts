@@ -9,7 +9,7 @@ import { getQuestionFeedbackForSession } from "@/repositories/interview-repo";
 import { hardDeleteInterviewSessionForUser } from "@/lib/interview/hard-delete-session";
 import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 
-const interviewIdSchema = z.string().uuid();
+const interviewIdSchema = z.string().min(1);
 
 export async function DELETE(
     request: Request,

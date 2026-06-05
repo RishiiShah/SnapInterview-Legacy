@@ -9,7 +9,7 @@ import { getNotificationPrefs } from "@/repositories/user-repo";
 import { logger } from "@/utils/logger";
 
 const evaluateTranscriptSchema = z.object({
-    interviewId: z.string().uuid(),
+    interviewId: z.string().min(1),
 });
 
 const interviewEvaluateLimiter = createRateLimiter("interview-evaluate", 10 * 60 * 1000, 5);

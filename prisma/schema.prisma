@@ -182,7 +182,7 @@ enum InterviewStatus {
 }
 
 model InterviewSession {
-  id              String          @id @default(uuid())
+  id              String          @id @default(cuid())
   userId          String
   role            String
   company         String?
@@ -236,7 +236,7 @@ model QuestionFeedback {
 }
 
 model TranscriptEntry {
-  id                 String           @id @default(uuid())
+  id                 String           @id @default(cuid())
   interviewSessionId String
   order              Int
   question           String           @db.Text

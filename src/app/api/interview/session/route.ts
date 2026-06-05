@@ -21,7 +21,7 @@ import { verifyMultipartCompletionToken } from "@/lib/s3/multipart-upload-token"
 import { logger } from "@/utils/logger";
 
 const createSessionSchema = z.object({
-    id: z.string().uuid().optional(),
+    id: z.string().min(1).optional(),
     role: z.string().trim().min(1, "Role is required").max(200),
     company: z.string().trim().max(200).optional().default(""),
     type: interviewTypeSchema,
@@ -49,9 +49,9 @@ export async function GET(req: Request) {
             return badRequestError("interviewId is required");
         }
 
-        const parsedId = z.string().uuid().safeParse(rawInterviewId);
+        const parsedId = z.string().min(1).safeParse(rawInterviewId);
         if (!parsedId.success) {
-            return badRequestError("interviewId must be a valid UUID");
+            return badRequestError("interviewId must be a valid string");
         }
         const interviewId = parsedId.data;
 
@@ -217,9 +217,9 @@ export const DELETE = withCsrfProtection(async (req: Request) => {
             return badRequestError("interviewId is required");
         }
 
-        const parsedId = z.string().uuid().safeParse(rawInterviewId);
+        const parsedId = z.string().min(1).safeParse(rawInterviewId);
         if (!parsedId.success) {
-            return badRequestError("interviewId must be a valid UUID");
+            return badRequestError("interviewId must be a valid string");
         }
         const interviewId = parsedId.data;
 

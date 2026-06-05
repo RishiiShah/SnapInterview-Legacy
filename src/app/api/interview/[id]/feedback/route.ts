@@ -6,7 +6,7 @@ import { upsertQuestionFeedback } from "@/repositories/interview-repo";
 import { getInterviewSession } from "@/repositories/interview-repo";
 import { logger } from "@/utils/logger";
 
-const interviewIdSchema = z.string().uuid();
+const interviewIdSchema = z.string().min(1);
 
 const feedbackBodySchema = z.object({
   questionOrder: z.number().int().min(0),

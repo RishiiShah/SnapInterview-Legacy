@@ -67,6 +67,7 @@ describe("server auth helpers", () => {
     mocks.getE2ETestIdentity.mockResolvedValue(null);
     mocks.headers.mockResolvedValue(requestHeaders);
     mocks.getSession.mockResolvedValue(session);
+    mocks.userFindUnique.mockResolvedValue({ lockedUntil: null });
 
     await expect(getServerAuthSession()).resolves.toBe(session);
 

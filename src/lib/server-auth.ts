@@ -1,6 +1,8 @@
 import { cache } from "react";
 
 import { auth } from "@/lib/auth";
+import { revokeUserSessions } from "@/lib/account-security";
+import { isAccountLocked } from "@/lib/account-lock";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { normalizeEmail } from "@/lib/security";

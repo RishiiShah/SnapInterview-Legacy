@@ -6,6 +6,7 @@ import { requireAwsS3Env } from "@/lib/env";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
 import { createMultipartUploadToken } from "@/lib/s3/multipart-upload-token";
+import { interviewIdSchema } from "@/lib/interview/domain";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
 
@@ -20,7 +21,7 @@ const s3Client = new S3Client({
 });
 
 const createSchema = z.object({
-  interviewId: z.string().uuid("interviewId must be a valid UUID"),
+  interviewId: interviewIdSchema,
 });
 
 const createLimiter = createRateLimiter("s3-multipart-create", 10 * 60 * 1000, 20);

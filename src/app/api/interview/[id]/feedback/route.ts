@@ -4,9 +4,8 @@ import { apiJson, badRequestError, internalServerError, notFoundError, unauthori
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { upsertQuestionFeedback } from "@/repositories/interview-repo";
 import { getInterviewSession } from "@/repositories/interview-repo";
+import { interviewIdSchema } from "@/lib/interview/domain";
 import { logger } from "@/utils/logger";
-
-const interviewIdSchema = z.string().min(1);
 
 const feedbackBodySchema = z.object({
   questionOrder: z.number().int().min(0),

@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { z } from "zod/v4";
 import { normalizeTranscriptEvaluation } from "@/lib/interview/evaluation";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
@@ -8,8 +7,7 @@ import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getQuestionFeedbackForSession } from "@/repositories/interview-repo";
 import { hardDeleteInterviewSessionForUser } from "@/lib/interview/hard-delete-session";
 import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
-
-const interviewIdSchema = z.string().min(1);
+import { interviewIdSchema } from "@/lib/interview/domain";
 
 export async function DELETE(
     request: Request,

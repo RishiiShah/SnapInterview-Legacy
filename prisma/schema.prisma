@@ -182,7 +182,7 @@ enum InterviewStatus {
 }
 
 model InterviewSession {
-  id              String          @id @default(cuid())
+  id              String          @id @default(uuid())
   userId          String
   role            String
   company         String?

@@ -23,8 +23,7 @@ vi.mock("@/utils/logger", () => ({
 }));
 
 const VALID_ID = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
-// IDs are cuids, so any non-empty string is accepted; only an empty id is rejected.
-const INVALID_ID = "";
+const INVALID_ID = "not-a-uuid";
 
 function makeParams(id: string) {
   return { params: Promise.resolve({ id }) };

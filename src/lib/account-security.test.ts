@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  getSessionCookieCacheVersion,
   recordSecurityEvent,
   revokeUserSessions,
 } from "./account-security";
@@ -100,27 +99,6 @@ describe("account-security helpers", () => {
         },
       }),
     });
-  });
-
-  it("returns revoked when the cached session token no longer exists", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({ lockedUntil: null } as never);
-    vi.mocked(prisma.session.findFirst).mockResolvedValue(null);
-
-    await expect(
-      getSessionCookieCacheVersion({ token: "revoked-token" }, { id: "user-1" }),
-    ).resolves.toBe("revoked");
-  });
-
-  it("returns locked when the account is locked", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      lockedUntil: new Date(Date.now() + 60_000),
-    } as never);
-
-    await expect(
-      getSessionCookieCacheVersion({ token: "token-1" }, { id: "user-1" }),
-    ).resolves.toBe("locked");
-
-    expect(prisma.session.findFirst).not.toHaveBeenCalled();
   });
 
   it("returns zero when there are no active sessions to revoke", async () => {

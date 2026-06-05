@@ -7,9 +7,11 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    // Use process.env instead of Prisma's env() helper so that `prisma generate`
-    // succeeds during postinstall when DATABASE_URL may not yet be available.
-    // Generate only needs the schema, not a live database connection.
-    url: process.env.DATABASE_URL ?? "",
+    // CLI-only connection (migrate / db execute). Prefer DIRECT_URL: a
+    // transaction-mode pooler can't run migrations reliably, and the runtime
+    // client uses its own adapter connection, not this URL.
+    // Use process.env (not Prisma's env() helper) so `prisma generate` succeeds
+    // during postinstall when no DB URL is available — generate needs only the schema.
+    url: process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? "",
   },
 });

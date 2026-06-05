@@ -6,10 +6,11 @@ import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
 import { sendEvaluationEmail } from "@/lib/email";
 import { getNotificationPrefs } from "@/repositories/user-repo";
+import { interviewIdSchema } from "@/lib/interview/domain";
 import { logger } from "@/utils/logger";
 
 const evaluateTranscriptSchema = z.object({
-    interviewId: z.string().min(1),
+    interviewId: interviewIdSchema,
 });
 
 const interviewEvaluateLimiter = createRateLimiter("interview-evaluate", 10 * 60 * 1000, 5);

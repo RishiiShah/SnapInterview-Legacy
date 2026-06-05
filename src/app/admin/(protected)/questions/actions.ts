@@ -31,58 +31,69 @@ async function ensurePracticeQuestionIdSequence() {
   `;
 }
 
-function parseCsvLine(line: string): string[] {
-  const out: string[] = [];
-  let curr = "";
+// Record-aware CSV tokenizer: walks the whole text so newlines inside quoted fields
+// (e.g. multi-paragraph sample answers from our own CSV export) stay within the field
+// instead of being split into bogus rows.
+function parseCsvRecords(text: string): string[][] {
+  const records: string[][] = [];
+  let field = "";
+  let record: string[] = [];
   let inQuotes = false;
 
-  for (let i = 0; i < line.length; i += 1) {
-    const char = line[i];
-    const next = line[i + 1];
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
 
-    if (char === '"' && inQuotes && next === '"') {
-      curr += '"';
-      i += 1;
+    if (inQuotes) {
+      if (char === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i += 1;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += char;
+      }
       continue;
     }
 
     if (char === '"') {
-      inQuotes = !inQuotes;
-      continue;
+      inQuotes = true;
+    } else if (char === ",") {
+      record.push(field);
+      field = "";
+    } else if (char === "\n") {
+      record.push(field);
+      records.push(record);
+      field = "";
+      record = [];
+    } else if (char !== "\r") {
+      field += char;
     }
-
-    if (char === "," && !inQuotes) {
-      out.push(curr);
-      curr = "";
-      continue;
-    }
-
-    curr += char;
   }
 
-  out.push(curr);
-  return out.map((value) => value.trim());
+  record.push(field);
+  records.push(record);
+
+  // Drop blank records (blank lines / a trailing newline yield a single empty field).
+  return records.filter((cells) => !(cells.length === 1 && cells[0].trim() === ""));
 }
 
 function parseCsvQuestions(text: string) {
-  const lines = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
+  const records = parseCsvRecords(text).map((cells) => cells.map((value) => value.trim()));
 
-  if (lines.length < 2) {
+  if (records.length < 2) {
     return { success: false as const, error: "CSV must include a header and at least one row." };
   }
 
-  const header = parseCsvLine(lines[0]).map((h) => h.toLowerCase());
+  const header = records[0].map((h) => h.toLowerCase());
   const required = ["text", "category", "difficulty"];
   const missing = required.filter((field) => !header.includes(field));
   if (missing.length > 0) {
     return { success: false as const, error: `CSV missing required columns: ${missing.join(", ")}` };
   }
 
-  const rows = lines.slice(1).map((line, rowIndex) => {
-    const cells = parseCsvLine(line);
+  const rows = records.slice(1).map((cells, rowIndex) => {
     const record: Record<string, string> = {};
     header.forEach((h, idx) => {
       record[h] = cells[idx] ?? "";

@@ -15,10 +15,13 @@ const isStale =
   globalForPrisma.prisma && 
   (!("user" in globalForPrisma.prisma) || !("practiceQuestion" in globalForPrisma.prisma));
 
+// Cap the per-instance pg pool. On serverless each invocation handles ~one request
+// at a time, so a single connection is enough; this stops a burst of warm instances
+// from exhausting the database pooler. Pair with a transaction-mode pooler URL in prod.
 const prisma =
     (globalForPrisma.prisma && !isStale) ?
     globalForPrisma.prisma :
-    new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+    new PrismaClient({ adapter: new PrismaPg({ connectionString, max: 1 }) });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 

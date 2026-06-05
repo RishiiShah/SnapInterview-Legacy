@@ -73,48 +73,10 @@ describe("server auth helpers", () => {
 
     expect(mocks.headers).toHaveBeenCalledTimes(1);
     expect(mocks.getSession).toHaveBeenCalledWith({ headers: requestHeaders });
-    expect(mocks.userFindUnique).toHaveBeenCalledWith({
-      where: { id: "user-1" },
-      select: { lockedUntil: true },
-    });
+    // Session is served from Better Auth's cookie cache — no per-request DB lookups.
+    expect(mocks.sessionFindFirst).not.toHaveBeenCalled();
+    expect(mocks.userFindUnique).not.toHaveBeenCalled();
     expect(mocks.signOut).not.toHaveBeenCalled();
-  });
-
-  it("signs out and returns null when the account is locked", async () => {
-    const requestHeaders = new Headers({ cookie: "session=abc" });
-    const lockedUntil = new Date(Date.now() + 60_000);
-    mocks.getE2ETestIdentity.mockResolvedValue(null);
-    mocks.headers.mockResolvedValue(requestHeaders);
-    mocks.getSession.mockResolvedValue({
-      user: { id: "user-1", email: "user@example.com" },
-      session: { id: "session-1", userId: "user-1", token: "token-1" },
-    });
-    mocks.userFindUnique.mockResolvedValue({ lockedUntil });
-
-    await expect(getServerAuthSession()).resolves.toBeNull();
-
-    expect(mocks.sessionFindFirst).toHaveBeenCalled();
-    expect(mocks.revokeUserSessions).toHaveBeenCalledWith({
-      userId: "user-1",
-      reason: "account_locked",
-    });
-    expect(mocks.signOut).toHaveBeenCalledWith({ headers: requestHeaders });
-  });
-
-  it("signs out and returns null when the session was revoked server-side", async () => {
-    const requestHeaders = new Headers({ cookie: "session=abc" });
-    mocks.getE2ETestIdentity.mockResolvedValue(null);
-    mocks.headers.mockResolvedValue(requestHeaders);
-    mocks.getSession.mockResolvedValue({
-      user: { id: "user-1", email: "user@example.com" },
-      session: { id: "session-1", userId: "user-1", token: "revoked-token" },
-    });
-    mocks.sessionFindFirst.mockResolvedValue(null);
-
-    await expect(getServerAuthSession()).resolves.toBeNull();
-
-    expect(mocks.signOut).toHaveBeenCalledWith({ headers: requestHeaders });
-    expect(mocks.revokeUserSessions).not.toHaveBeenCalled();
   });
 
   it("builds an E2E session from the database user when test identity is present", async () => {

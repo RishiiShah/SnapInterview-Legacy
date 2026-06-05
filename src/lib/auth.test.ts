@@ -37,7 +37,6 @@ vi.mock("@/lib/rate-limit", () => ({
 vi.mock("@/lib/account-security", () => ({
   recordSecurityEvent: vi.fn(),
   revokeUserSessions: vi.fn(),
-  getSessionCookieCacheVersion: vi.fn(),
 }));
 
 vi.mock("@/lib/security", () => ({
@@ -73,7 +72,8 @@ describe("auth configuration", () => {
       };
       session: {
         cookieCache: {
-          version: (session: unknown, user: { id: string }) => Promise<string>;
+          enabled: boolean;
+          version?: unknown;
         };
       };
     };
@@ -81,6 +81,8 @@ describe("auth configuration", () => {
     expect(config.emailAndPassword.password.hash).toBeDefined();
     expect(config.emailAndPassword.password.verify).toBeDefined();
     expect(config.emailAndPassword.sendResetPassword).toBeUndefined();
-    expect(config.session.cookieCache.version).toBeTypeOf("function");
+    expect(config.session.cookieCache.enabled).toBe(true);
+    // No version() callback — it defeated the cache; lock/revocation is enforced by the after-hook.
+    expect(config.session.cookieCache.version).toBeUndefined();
   });
 });

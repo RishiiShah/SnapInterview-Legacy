@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
@@ -141,7 +141,7 @@ export function AdminSidebar({
         >
           {userImage ? (
             <div className="relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full">
-              <Image src={userImage} alt={userName} fill sizes="28px" className="object-cover" />
+              <UserAvatar src={userImage} alt={userName} fill sizes="28px" className="object-cover" />
             </div>
           ) : (
             <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-zinc-900 text-[10px] font-bold text-white">

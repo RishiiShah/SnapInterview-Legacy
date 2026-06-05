@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
@@ -96,7 +96,7 @@ export function AdminHeader({ user }: { user: AdminUser }) {
           className="relative flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full ring-2 ring-transparent transition-all hover:ring-zinc-200"
         >
           {userImage ? (
-            <Image src={userImage} alt={userName} fill sizes="32px" className="object-cover" />
+            <UserAvatar src={userImage} alt={userName} fill sizes="32px" className="object-cover" />
           ) : (
             <div className="grid h-full w-full place-items-center bg-zinc-900 text-xs font-bold text-white">
               {initials}

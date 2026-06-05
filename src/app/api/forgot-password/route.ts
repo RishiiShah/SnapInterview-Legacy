@@ -15,6 +15,8 @@ const schema = z.object({
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_REQUESTS = 3;
 const forgotPasswordLimiter = createRateLimiter("forgot-password", 60 * 1000, 6);
+// Email-scoped atomic limiter — IP-rotation-proof backstop for the non-atomic recentCount check.
+const forgotPasswordEmailLimiter = createRateLimiter("forgot-password-email", WINDOW_MS, MAX_REQUESTS);
 const GENERIC_FORGOT_PASSWORD_RESPONSE = {
     success: true,
     message: "If an account with that email exists, a reset code has been sent.",
@@ -35,6 +37,11 @@ export const POST = withCsrfProtection(async (req: Request) => {
 
         if (await forgotPasswordLimiter.isLimited(limiterKey)) {
             return apiError("Too many reset requests. Please try again later.", 429);
+        }
+
+        // Email-scoped backstop, checked uniformly so it leaks no enumeration signal.
+        if (await forgotPasswordEmailLimiter.isLimited(email)) {
+            return apiJson(GENERIC_FORGOT_PASSWORD_RESPONSE);
         }
 
         // Always respond with success to prevent email enumeration

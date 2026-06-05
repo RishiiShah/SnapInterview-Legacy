@@ -35,6 +35,8 @@ const registerSchema = z.object({
 
 // ── Postgres-backed distributed rate limiter (per hashed IP) ──
 const registerLimiter = createRateLimiter("register", 60 * 1000, 5); // 5 per minute per IP
+// Email-scoped atomic limiter — backstops the lastOtpSentAt throttle against IP rotation / concurrent bursts.
+const registerEmailLimiter = createRateLimiter("register-email", 60 * 1000, 1);
 const GENERIC_REGISTER_RESPONSE = {
   success: true,
   message: "If this email can be registered, a verification code will be sent.",
@@ -60,6 +62,11 @@ export const POST = withCsrfProtection(async (req: Request) => {
 
     const { name, email, password } = result.data;
     const normalizedEmail = normalizeEmail(email);
+
+    // Generic response on trip to avoid leaking whether the email is already pending.
+    if (await registerEmailLimiter.isLimited(normalizedEmail)) {
+      return apiJson(GENERIC_REGISTER_RESPONSE);
+    }
 
     // Block disposable/temporary email services
     const emailCheck = await isDisposableEmail(normalizedEmail);

@@ -20,6 +20,17 @@ vi.mock("@/lib/account-security", () => ({
   recordSecurityEvent: vi.fn(),
 }));
 
+const { isLimitedMock } = vi.hoisted(() => ({
+  isLimitedMock: vi.fn().mockResolvedValue(false),
+}));
+
+vi.mock("@/lib/rate-limit", () => ({
+  createRateLimiter: vi.fn(() => ({
+    isLimited: isLimitedMock,
+    checkLimit: vi.fn().mockResolvedValue(false),
+  })),
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => callback({
@@ -56,6 +67,7 @@ vi.mock("@/lib/prisma", () => ({
 describe("POST /api/verify-otp", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    isLimitedMock.mockResolvedValue(false);
     vi.mocked(prisma.$transaction).mockImplementation(async (callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma));
   });
 
@@ -178,7 +190,7 @@ describe("POST /api/verify-otp", () => {
 
     const { verifyOneTimeCode } = await import("@/lib/security");
     vi.mocked(verifyOneTimeCode).mockReturnValue(false);
-    vi.mocked(prisma.pendingUser.update).mockResolvedValue({} as never);
+    vi.mocked(prisma.pendingUser.update).mockResolvedValue({ attemptCount: 1 } as never);
 
     const req = new Request("http://localhost/api/verify-otp", {
       method: "POST",
@@ -196,7 +208,7 @@ describe("POST /api/verify-otp", () => {
     expect(body.error).toBe("Invalid or expired verification code.");
     expect(prisma.pendingUser.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ attemptCount: 1 }),
+        data: { attemptCount: { increment: 1 } },
       }),
     );
     expect(recordSecurityEvent).toHaveBeenCalledWith(
@@ -217,7 +229,7 @@ describe("POST /api/verify-otp", () => {
 
     const { verifyOneTimeCode } = await import("@/lib/security");
     vi.mocked(verifyOneTimeCode).mockReturnValue(false);
-    vi.mocked(prisma.pendingUser.update).mockResolvedValue({} as never);
+    vi.mocked(prisma.pendingUser.update).mockResolvedValue({ attemptCount: 5 } as never);
 
     const req = new Request("http://localhost/api/verify-otp", {
       method: "POST",
@@ -233,12 +245,16 @@ describe("POST /api/verify-otp", () => {
 
     expect(res.status).toBe(400);
     expect(body.error).toBe("Invalid or expired verification code.");
-    expect(prisma.pendingUser.update).toHaveBeenCalledWith(
+    expect(prisma.pendingUser.update).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
-        data: expect.objectContaining({
-          attemptCount: 5,
-          lockedUntil: expect.any(Date),
-        }),
+        data: { attemptCount: { increment: 1 } },
+      }),
+    );
+    expect(prisma.pendingUser.update).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        data: expect.objectContaining({ lockedUntil: expect.any(Date) }),
       }),
     );
   });
@@ -391,5 +407,31 @@ describe("POST /api/verify-otp", () => {
     expect(res.status).toBe(400);
     expect(body.error).toBe("Invalid or expired verification code.");
     expect(prisma.pendingUser.delete).toHaveBeenCalledWith({ where: { email: "user@example.com" } });
+  });
+
+  it("returns a generic verification failure when the email-scoped limiter trips", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+
+    // Both limiters share isLimitedMock: the IP limiter is keyed by the IP hash
+    // ("hashed-ip") and passes; the email limiter is keyed by the normalized
+    // email and trips.
+    isLimitedMock.mockImplementation(async (key: string) => key === "user@example.com");
+
+    const req = new Request("http://localhost/api/verify-otp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: JSON.stringify({ email: "user@example.com", otp: "123456" }),
+    });
+
+    const res = await POST(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toBe("Invalid or expired verification code.");
+    // The limiter short-circuits before any pending-user lookup or mutation.
+    expect(prisma.pendingUser.findUnique).not.toHaveBeenCalled();
   });
 });

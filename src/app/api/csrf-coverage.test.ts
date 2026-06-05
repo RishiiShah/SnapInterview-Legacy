@@ -9,11 +9,8 @@ type MutatingMethod = (typeof MUTATING_METHODS)[number];
 // Routes that enforce request-origin protection through a mechanism other than our
 // withCsrfProtection/csrfRejectIfInvalid helpers, so the static scan can't see it:
 //   - auth/[...all]: Better Auth's handler validates trustedOrigins internally.
-//   - csp-report: invoked by the browser reporting pipeline (no credentials, no
-//     enforceable Origin) and only logs — it changes no state.
 const CSRF_EXEMPT_ROUTES = new Set([
   path.join("auth", "[...all]", "route.ts"),
-  path.join("csp-report", "route.ts"),
 ]);
 
 function isCsrfExempt(routeFile: string): boolean {

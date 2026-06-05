@@ -48,9 +48,10 @@ describe("GET /api/interview/[id]", () => {
   it("returns 400 for invalid interview id", async () => {
     vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
 
-    const request = new Request("http://localhost/api/interview/not-a-uuid");
+    // IDs are cuids, so any non-empty string is accepted; only an empty id is rejected.
+    const request = new Request("http://localhost/api/interview/");
     const response = await GET(request, {
-      params: Promise.resolve({ id: "not-a-uuid" }),
+      params: Promise.resolve({ id: "" }),
     });
 
     expect(response.status).toBe(400);

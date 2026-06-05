@@ -38,11 +38,13 @@ function createNonce() {
     return btoa(String.fromCharCode(...bytes));
 }
 
-function createContentSecurityPolicy(nonce: string, isDev: boolean) {
+// Shared CSP directives. The style portion is parameterized so the enforcing and
+// report-only policies differ only in how styles are handled.
+function buildCspDirectives(nonce: string, isDev: boolean, styleDirectives: string, extra = "") {
     return `
         default-src 'self';
         script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://va.vercel-scripts.com ${isDev ? "'unsafe-eval'" : ""};
-        style-src 'self' 'unsafe-inline';
+        ${styleDirectives}
         img-src 'self' https://*.googleusercontent.com data: blob:;
         font-src 'self' data:;
         object-src 'none';
@@ -52,11 +54,26 @@ function createContentSecurityPolicy(nonce: string, isDev: boolean) {
         connect-src 'self' https://accounts.google.com https://www.googleapis.com https://*.amazonaws.com;
         media-src 'self' https://*.amazonaws.com data: blob:;
         upgrade-insecure-requests;
+        ${extra}
     `.replace(/\s{2,}/g, " ").trim();
 }
 
-function applySecurityHeaders(response: NextResponse, cspHeader: string) {
+function createContentSecurityPolicy(nonce: string, isDev: boolean) {
+    return buildCspDirectives(nonce, isDev, "style-src 'self' 'unsafe-inline';");
+}
+
+// Non-blocking probe for tightening style-src: forbids injected <style>/stylesheets
+// (style-src-elem) while still permitting inline style="" attributes (style-src-attr).
+// Violations are reported to /api/csp-report so we can confirm it's clean before enforcing.
+function createReportOnlyCsp(nonce: string, isDev: boolean) {
+    const styleDirectives = `style-src 'self'; style-src-elem 'self' 'nonce-${nonce}'; style-src-attr 'unsafe-inline';`;
+    return buildCspDirectives(nonce, isDev, styleDirectives, "report-uri /api/csp-report; report-to csp-endpoint;");
+}
+
+function applySecurityHeaders(response: NextResponse, cspHeader: string, cspReportOnly: string) {
     response.headers.set("Content-Security-Policy", cspHeader);
+    response.headers.set("Content-Security-Policy-Report-Only", cspReportOnly);
+    response.headers.set("Reporting-Endpoints", 'csp-endpoint="/api/csp-report"');
     response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
     response.headers.set("X-Frame-Options", "DENY");
     response.headers.set("X-Content-Type-Options", "nosniff");
@@ -88,6 +105,7 @@ export async function proxy(request: NextRequest) {
     const isDev = env.NODE_ENV !== "production";
     const nonce = createNonce();
     const cspHeader = createContentSecurityPolicy(nonce, isDev);
+    const cspReportOnly = createReportOnlyCsp(nonce, isDev);
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-nonce", nonce);
     // Next.js reads the forwarded CSP request header while rendering to nonce its framework scripts.
@@ -105,7 +123,7 @@ export async function proxy(request: NextRequest) {
     if (isProtectedPath) {
         if (!token && !testIdentity) {
             const response = NextResponse.redirect(new URL("/login", request.url));
-            applySecurityHeaders(response, cspHeader);
+            applySecurityHeaders(response, cspHeader, cspReportOnly);
             return response;
         }
 
@@ -121,7 +139,7 @@ export async function proxy(request: NextRequest) {
                 const response = NextResponse.redirect(new URL("/login", request.url));
                 deleteBetterAuthSessionCookies(response);
                 response.cookies.delete(E2E_TEST_AUTH_COOKIE);
-                applySecurityHeaders(response, cspHeader);
+                applySecurityHeaders(response, cspHeader, cspReportOnly);
                 return response;
             }
         }
@@ -133,7 +151,7 @@ export async function proxy(request: NextRequest) {
             if (session?.user) {
                 const hasOnboarding = !!session.user.onboardingCompletedAt;
                 const response = NextResponse.redirect(new URL(hasOnboarding ? "/dashboard" : "/onboarding", request.url));
-                applySecurityHeaders(response, cspHeader);
+                applySecurityHeaders(response, cspHeader, cspReportOnly);
                 return response;
             }
 
@@ -143,7 +161,7 @@ export async function proxy(request: NextRequest) {
                     request: { headers: requestHeaders },
                 });
                 deleteBetterAuthSessionCookies(response);
-                applySecurityHeaders(response, cspHeader);
+                applySecurityHeaders(response, cspHeader, cspReportOnly);
                 return response;
             }
         }
@@ -154,7 +172,7 @@ export async function proxy(request: NextRequest) {
             headers: requestHeaders,
         },
     });
-    applySecurityHeaders(response, cspHeader);
+    applySecurityHeaders(response, cspHeader, cspReportOnly);
 
     return response;
 }

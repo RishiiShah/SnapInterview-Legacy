@@ -4,7 +4,12 @@ import { getAdminSessionOrNull } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
 
 function csvCell(value: string | null | undefined) {
-  const safe = String(value ?? "");
+  let safe = String(value ?? "");
+  // Neutralize spreadsheet formula injection: a leading =, +, -, @, or control
+  // character can make Excel/Sheets execute the cell as a formula on open.
+  if (/^[=+\-@\t\r]/.test(safe)) {
+    safe = `'${safe}`;
+  }
   if (safe.includes('"') || safe.includes(",") || safe.includes("\n")) {
     return `"${safe.replace(/"/g, '""')}"`;
   }

@@ -127,6 +127,8 @@ See `.env.example` for the canonical list. Key groups:
 | URLs     | `NEXT_PUBLIC_APP_URL`, `APP_URL`                                     |
 | Cron     | `CRON_SECRET`                                                        |
 
+Admin access uses `User.isAdmin` in the database. Sign in at `/login` (email or Google), then open `/admin`. Set `isAdmin = true` on the user row in your database (Prisma Studio, SQL, etc.).
+
 ### CSRF & Origins
 
 All state-changing routes are protected by origin-based CSRF (`csrfRejectIfInvalid`). Valid origins come from `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, `APP_URL`, and the `CSRF_TRUSTED_*` variables. `localhost:3000` is auto-allowed in dev.

@@ -10,6 +10,7 @@ import {
 } from "@/lib/s3/multipart-upload-constraints";
 import { withCsrfProtection } from "@/lib/route-security";
 import { verifyMultipartUploadToken } from "@/lib/s3/multipart-upload-token";
+import { interviewIdSchema } from "@/lib/interview/domain";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
 
@@ -26,7 +27,7 @@ const s3Client = new S3Client({
 const signPartLimiter = createRateLimiter("s3-multipart-sign-part", 60 * 60 * 1000, 120);
 
 const signPartSchema = z.object({
-  interviewId: z.string().uuid("interviewId must be a valid UUID"),
+  interviewId: interviewIdSchema,
   key: z.string().min(1),
   uploadId: z.string().min(1),
   uploadToken: z.string().min(1),

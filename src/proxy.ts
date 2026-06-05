@@ -7,6 +7,8 @@ import { logger } from "@/utils/logger";
 const BETTER_AUTH_COOKIE_NAMES = [
     "better-auth.session_token",
     "__Secure-better-auth.session_token",
+    "better-auth.session_data",
+    "__Secure-better-auth.session_data",
 ] as const;
 
 function getBetterAuthSessionToken(request: NextRequest) {
@@ -37,10 +39,14 @@ function createNonce() {
 }
 
 function createContentSecurityPolicy(nonce: string, isDev: boolean) {
+    // style-src is split so injected <style>/stylesheets are forbidden (style-src-elem),
+    // while inline style="" attributes from React/Framer Motion still work (style-src-attr).
     return `
         default-src 'self';
         script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://va.vercel-scripts.com ${isDev ? "'unsafe-eval'" : ""};
-        style-src 'self' 'unsafe-inline';
+        style-src 'self';
+        style-src-elem 'self' 'nonce-${nonce}';
+        style-src-attr 'unsafe-inline';
         img-src 'self' https://*.googleusercontent.com data: blob:;
         font-src 'self' data:;
         object-src 'none';
@@ -92,7 +98,7 @@ export async function proxy(request: NextRequest) {
     requestHeaders.set("Content-Security-Policy", cspHeader);
 
     // 1. Auth checks
-    const protectedPaths = ["/dashboard", "/practice", "/questions", "/analytics", "/recordings", "/settings", "/onboarding", "/interview"];
+    const protectedPaths = ["/dashboard", "/practice", "/questions", "/analytics", "/recordings", "/settings", "/onboarding", "/interview", "/admin"];
     const isProtectedPath = protectedPaths.some((path) => pathname.startsWith(path));
 
     const token = getBetterAuthSessionToken(request);
@@ -107,15 +113,21 @@ export async function proxy(request: NextRequest) {
             return response;
         }
 
-        const session = testIdentity
-            ? { user: { id: testIdentity.userId, email: testIdentity.email, onboardingCompletedAt: testIdentity.onboardingCompletedAt ?? null } }
-            : await getSession(request);
-        if (!session) {
-            const response = NextResponse.redirect(new URL("/login", request.url));
-            deleteBetterAuthSessionCookies(response);
-            response.cookies.delete(E2E_TEST_AUTH_COOKIE);
-            applySecurityHeaders(response, cspHeader);
-            return response;
+        // Admin routes run full auth + isAdmin checks in the admin layout.
+        // Skipping the proxy HTTP session round-trip avoids doubling get-session latency.
+        const skipProxySessionValidation = pathname.startsWith("/admin");
+
+        if (!skipProxySessionValidation) {
+            const session = testIdentity
+                ? { user: { id: testIdentity.userId, email: testIdentity.email, onboardingCompletedAt: testIdentity.onboardingCompletedAt ?? null } }
+                : await getSession(request);
+            if (!session) {
+                const response = NextResponse.redirect(new URL("/login", request.url));
+                deleteBetterAuthSessionCookies(response);
+                response.cookies.delete(E2E_TEST_AUTH_COOKIE);
+                applySecurityHeaders(response, cspHeader);
+                return response;
+            }
         }
     } else if (pathname === "/" || pathname === "/login" || pathname === "/signup") {
         if (token || testIdentity) {
@@ -125,6 +137,16 @@ export async function proxy(request: NextRequest) {
             if (session?.user) {
                 const hasOnboarding = !!session.user.onboardingCompletedAt;
                 const response = NextResponse.redirect(new URL(hasOnboarding ? "/dashboard" : "/onboarding", request.url));
+                applySecurityHeaders(response, cspHeader);
+                return response;
+            }
+
+            // Stale session cookies after lock/revoke — clear them so login is not bounced back to dashboard.
+            if (token && !session) {
+                const response = NextResponse.next({
+                    request: { headers: requestHeaders },
+                });
+                deleteBetterAuthSessionCookies(response);
                 applySecurityHeaders(response, cspHeader);
                 return response;
             }

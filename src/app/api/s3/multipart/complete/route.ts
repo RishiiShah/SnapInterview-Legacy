@@ -14,6 +14,7 @@ import {
   MULTIPART_UPLOAD_MAX_PARTS,
 } from "@/lib/s3/multipart-upload-constraints";
 import { createMultipartCompletionToken, verifyMultipartUploadToken } from "@/lib/s3/multipart-upload-token";
+import { interviewIdSchema } from "@/lib/interview/domain";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
 
@@ -36,7 +37,7 @@ type UploadedPart = {
 };
 
 const completeSchema = z.object({
-  interviewId: z.string().uuid("interviewId must be a valid UUID"),
+  interviewId: interviewIdSchema,
   key: z.string().min(1),
   uploadId: z.string().min(1),
   uploadToken: z.string().min(1),

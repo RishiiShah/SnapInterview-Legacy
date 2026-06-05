@@ -4,6 +4,17 @@ import { prisma } from "@/lib/prisma";
 import { sendOtpEmail } from "@/lib/email";
 import { logger } from "@/utils/logger";
 
+const { isLimitedMock } = vi.hoisted(() => ({
+  isLimitedMock: vi.fn().mockResolvedValue(false),
+}));
+
+vi.mock("@/lib/rate-limit", () => ({
+  createRateLimiter: vi.fn(() => ({
+    isLimited: isLimitedMock,
+    checkLimit: vi.fn().mockResolvedValue(false),
+  })),
+}));
+
 vi.mock("@/lib/csrf", () => ({
   csrfRejectIfInvalid: vi.fn(() => null),
 }));
@@ -42,6 +53,7 @@ vi.mock("@/lib/prisma", () => ({
 describe("POST /api/forgot-password", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    isLimitedMock.mockResolvedValue(false);
   });
 
   it("returns success even when OTP email delivery fails", async () => {

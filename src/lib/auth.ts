@@ -3,7 +3,17 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { createAuthMiddleware, APIError } from "better-auth/api";
 import { prisma } from "@/lib/prisma";
 import { createRateLimiter } from "@/lib/rate-limit";
-import { recordSecurityEvent } from "@/lib/account-security";
+import {
+  getSessionCookieCacheVersion,
+  recordSecurityEvent,
+  revokeUserSessions,
+} from "@/lib/account-security";
+import { ACCOUNT_LOCKED_MESSAGE, isAccountLocked } from "@/lib/account-lock";
+import {
+  type AuthAfterHookContext,
+  getSignInAfterHookUser,
+  isSignInAfterHookSuccess,
+} from "@/lib/auth-sign-in-success";
 import { extractRequestContext, normalizeEmail } from "@/lib/security";
 import { hashCredentialPassword, verifyCredentialPassword } from "@/lib/password";
 import { env } from "@/lib/env";
@@ -13,6 +23,30 @@ const loginIpLimiter = createRateLimiter("login_ip", 60 * 1000, 15);
 const loginIpBanLimiter = createRateLimiter("login_ip_ban", 60 * 1000, 50);
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
+
+async function rejectLockedAccount(params: {
+  user: { id: string; lockedUntil: Date | null };
+  email: string;
+  ipHash?: string;
+  userAgent?: string;
+}) {
+  if (!isAccountLocked(params.user.lockedUntil)) {
+    return;
+  }
+
+  await recordSecurityEvent({
+    type: "LOGIN_FAILED",
+    userId: params.user.id,
+    email: params.email,
+    ipHash: params.ipHash,
+    userAgent: params.userAgent,
+    metadata: { reason: "locked" },
+  });
+
+  throw new APIError("FORBIDDEN", {
+    message: ACCOUNT_LOCKED_MESSAGE,
+  });
+}
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -26,6 +60,7 @@ export const auth = betterAuth({
     cookieCache: {
       enabled: true,
       maxAge: 60 * 5, // 5-minute cookie cache to reduce DB fetches on every request
+      version: async (session, user) => getSessionCookieCacheVersion(session, user),
     },
   },
 
@@ -100,6 +135,28 @@ export const auth = betterAuth({
     },
   },
 
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => {
+          const userId = String(session.userId ?? "");
+          if (!userId) return;
+
+          const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, email: true, lockedUntil: true },
+          });
+          if (!user) return;
+
+          await rejectLockedAccount({
+            user,
+            email: normalizeEmail(user.email),
+          });
+        },
+      },
+    },
+  },
+
   // ─── Hooks for rate limiting, lockout, and security event recording ───
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
@@ -116,7 +173,6 @@ export const auth = betterAuth({
         ? extractRequestContext(ctx.request.headers).userAgent
         : undefined;
 
-      // 1. Check IP Ban Limit (Tarpit) - Consumes a token for ALL attempts
       if (ipHash && await loginIpBanLimiter.isLimited(ipHash)) {
         await recordSecurityEvent({
           type: "LOGIN_FAILED",
@@ -126,7 +182,6 @@ export const auth = betterAuth({
           metadata: { reason: "ip_tarpit_triggered" },
         });
 
-        // Randomized delay 5-30s
         const delayMs = 5000 + Math.random() * 25000;
         await new Promise((resolve) => setTimeout(resolve, delayMs));
 
@@ -135,7 +190,6 @@ export const auth = betterAuth({
         });
       }
 
-      // 2. Check Primary IP Limit (Failures only) - Peek without consuming
       if (ipHash && await loginIpLimiter.checkLimit(ipHash)) {
         await recordSecurityEvent({
           type: "LOGIN_FAILED",
@@ -149,7 +203,6 @@ export const auth = betterAuth({
         });
       }
 
-      // 3. Distributed Postgres-backed email rate limit check.
       if (await loginLimiter.isLimited(email)) {
         await recordSecurityEvent({
           type: "LOGIN_FAILED",
@@ -163,19 +216,13 @@ export const auth = betterAuth({
         });
       }
 
-      // Database-level lockout check
       const user = await prisma.user.findUnique({ where: { email } });
-      if (user?.lockedUntil && new Date(user.lockedUntil) > new Date()) {
-        await recordSecurityEvent({
-          type: "LOGIN_FAILED",
-          userId: user.id,
+      if (user) {
+        await rejectLockedAccount({
+          user,
           email,
-          ipHash,
-          userAgent,
-          metadata: { reason: "locked" },
-        });
-        throw new APIError("TOO_MANY_REQUESTS", {
-          message: "Too many login attempts. Please try again later.",
+          ipHash: ipHash ?? undefined,
+          userAgent: userAgent ?? undefined,
         });
       }
     }),
@@ -194,10 +241,9 @@ export const auth = betterAuth({
         const email = body?.email ? normalizeEmail(body.email) : null;
         if (!email) return;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const isSuccess = !!(ctx as any).context?.session;
+        const hookContext = (ctx as { context?: AuthAfterHookContext }).context;
+        const isSuccess = isSignInAfterHookSuccess(hookContext);
         
-        // Consume IP rate limit token ONLY on failure
         if (!isSuccess && ipHash) {
           await loginIpLimiter.isLimited(ipHash);
         }
@@ -227,10 +273,17 @@ export const auth = betterAuth({
             },
           });
         } else {
-          if (user.failedLoginCount !== 0 || user.lockedUntil) {
+          const updates: { failedLoginCount?: number; lockedUntil?: null } = {};
+          if (user.failedLoginCount !== 0) {
+            updates.failedLoginCount = 0;
+          }
+          if (user.lockedUntil && !isAccountLocked(user.lockedUntil)) {
+            updates.lockedUntil = null;
+          }
+          if (Object.keys(updates).length > 0) {
             await prisma.user.update({
               where: { id: user.id },
-              data: { failedLoginCount: 0, lockedUntil: null },
+              data: updates,
             });
           }
           await recordSecurityEvent({
@@ -245,12 +298,33 @@ export const auth = betterAuth({
         return;
       }
 
-      // ── Social sign-in success tracking ──
-      if (ctx.path === "/sign-in/social") {
-        const provider = (ctx.body as { provider?: string } | undefined)?.provider;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const sessionUser = (ctx as any).context?.session?.user;
-        if (!sessionUser?.email || !provider) return;
+      // ── Social sign-in success tracking (OAuth callback creates newSession) ──
+      if (ctx.path.startsWith("/callback/")) {
+        const provider = ctx.path.split("/").pop();
+        const sessionUser = getSignInAfterHookUser(
+          (ctx as { context?: AuthAfterHookContext }).context,
+        );
+        if (!sessionUser?.id || !sessionUser.email || !provider) return;
+
+        const user = await prisma.user.findUnique({
+          where: { id: sessionUser.id },
+          select: { id: true, email: true, lockedUntil: true },
+        });
+        if (!user) return;
+
+        if (isAccountLocked(user.lockedUntil)) {
+          await revokeUserSessions({ userId: user.id, reason: "account_locked" });
+          await recordSecurityEvent({
+            type: "LOGIN_FAILED",
+            userId: user.id,
+            email: normalizeEmail(user.email),
+            ipHash,
+            userAgent,
+            metadata: { reason: "locked", provider },
+          });
+          return;
+        }
+
         await recordSecurityEvent({
           type: "LOGIN_SUCCESS",
           userId: sessionUser.id,
@@ -259,6 +333,56 @@ export const auth = betterAuth({
           userAgent,
           metadata: { provider },
         });
+        return;
+      }
+
+      // Initiating social sign-in returns an OAuth URL — no session yet.
+      if (ctx.path === "/sign-in/social") {
+        return;
+      }
+
+      // ── Reject cached or DB sessions for locked/revoked accounts ──
+      if (ctx.path === "/get-session") {
+        const returned = (ctx as {
+          context?: {
+            returned?: {
+              user?: { id?: string };
+              session?: { token?: string };
+            } | null;
+          };
+        }).context?.returned;
+        const userId = returned?.user?.id;
+        if (!userId || returned === null) return;
+
+        const lockState = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { lockedUntil: true },
+        });
+        if (isAccountLocked(lockState?.lockedUntil)) {
+          await revokeUserSessions({ userId, reason: "account_locked" });
+          if (ctx.request) {
+            await auth.api.signOut({ headers: ctx.request.headers });
+          }
+          return { response: null };
+        }
+
+        const token = returned.session?.token;
+        if (token) {
+          const activeSession = await prisma.session.findFirst({
+            where: {
+              token,
+              userId,
+              expiresAt: { gt: new Date() },
+            },
+            select: { id: true },
+          });
+          if (!activeSession) {
+            if (ctx.request) {
+              await auth.api.signOut({ headers: ctx.request.headers });
+            }
+            return { response: null };
+          }
+        }
       }
     }),
   },

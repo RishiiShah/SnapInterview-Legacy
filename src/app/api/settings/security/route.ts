@@ -4,6 +4,11 @@ import { auth } from "@/lib/auth";
 import { recordSecurityEvent } from "@/lib/account-security";
 import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 import { getSessionUserIdentity, getCurrentSession } from "@/lib/server-auth";
+import {
+  buildUserSecurityActivity,
+  groupActiveSessionsByDevice,
+  userAgentFromDeviceKey,
+} from "@/lib/security-activity";
 import { headers } from "next/headers";
 import { withCsrfProtection } from "@/lib/route-security";
 import { logger } from "@/utils/logger";
@@ -11,7 +16,40 @@ import { logger } from "@/utils/logger";
 const securityActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("revoke"), sessionId: z.string().min(1) }),
   z.object({ action: z.literal("revokeOthers") }),
+  z.object({
+    action: z.literal("revokeDevice"),
+    deviceKey: z.string().min(1),
+  }),
 ]);
+
+const ACTIVITY_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
+
+async function revokeSessionsByIds(params: {
+  sessionIds: string[];
+  userId: string;
+  currentSessionId: string | undefined;
+}) {
+  const { sessionIds, userId, currentSessionId } = params;
+  const requestHeaders = await headers();
+
+  const targets = await prisma.session.findMany({
+    where: {
+      id: { in: sessionIds },
+      userId,
+      ...(currentSessionId ? { NOT: { id: currentSessionId } } : {}),
+    },
+    select: { id: true, token: true },
+  });
+
+  for (const target of targets) {
+    await auth.api.revokeSession({
+      headers: requestHeaders,
+      body: { token: target.token },
+    });
+  }
+
+  return targets.length;
+}
 
 export async function GET() {
   try {
@@ -22,18 +60,19 @@ export async function GET() {
 
     const currentSession = await getCurrentSession();
     const now = new Date();
+    const activitySince = new Date(now.getTime() - ACTIVITY_LOOKBACK_MS);
 
     const eventWhere = authUser.email
       ? { OR: [{ userId: authUser.userId }, { email: authUser.email }] }
       : { userId: authUser.userId };
 
-    const [sessions, events] = await Promise.all([
+    const [sessions, loginEvents] = await Promise.all([
       prisma.session.findMany({
         where: {
           userId: authUser.userId,
           expiresAt: { gt: now },
         },
-        orderBy: { expiresAt: "desc" },
+        orderBy: { updatedAt: "desc" },
         select: {
           id: true,
           expiresAt: true,
@@ -42,9 +81,13 @@ export async function GET() {
         },
       }),
       prisma.securityEvent.findMany({
-        where: eventWhere,
+        where: {
+          ...eventWhere,
+          createdAt: { gte: activitySince },
+          type: { in: ["LOGIN_SUCCESS", "LOGIN_FAILED"] },
+        },
         orderBy: { createdAt: "desc" },
-        take: 12,
+        take: 100,
         select: {
           id: true,
           type: true,
@@ -55,21 +98,29 @@ export async function GET() {
       }),
     ]);
 
+    const devices = groupActiveSessionsByDevice(sessions, currentSession?.id);
+    const activity = buildUserSecurityActivity(loginEvents, now);
+
     return apiJson({
-      sessions: sessions.map((session) => ({
-        id: session.id,
-        current: currentSession?.id === session.id,
-        expiresAt: session.expiresAt.toISOString(),
-        lastSeenAt: session.updatedAt.toISOString(),
-        revokedAt: null,
-        userAgent: session.userAgent,
+      devices: devices.map((device) => ({
+        deviceKey: device.deviceKey,
+        userAgent: device.userAgent,
+        sessionIds: device.sessionIds,
+        current: device.current,
+        lastSeenAt: device.lastSeenAt.toISOString(),
+        expiresAt: device.expiresAt.toISOString(),
       })),
-      events: events.map((event) => ({
-        id: event.id,
-        type: event.type,
-        createdAt: event.createdAt.toISOString(),
-        userAgent: event.userAgent,
-        metadata: event.metadata,
+      loginSuccesses: activity.loginSuccesses.map((entry) => ({
+        id: entry.id,
+        createdAt: entry.createdAt.toISOString(),
+        userAgent: entry.userAgent,
+        provider: entry.provider,
+      })),
+      failedLoginAttempts: activity.failedLoginAttempts.map((entry) => ({
+        deviceKey: entry.deviceKey,
+        userAgent: entry.userAgent,
+        attemptCount: entry.attemptCount,
+        lastAttemptAt: entry.lastAttemptAt.toISOString(),
       })),
     });
   } catch (error) {
@@ -96,28 +147,63 @@ export const PATCH = withCsrfProtection(async (req: Request) => {
     }
 
     if (parsed.data.action === "revokeOthers") {
-      // Use Better Auth's built-in revokeOtherSessions endpoint
       await auth.api.revokeOtherSessions({
         headers: await headers(),
       });
 
-      const revokedCount = await recordSecurityEvent({
+      await recordSecurityEvent({
         type: "SESSION_REVOKED",
         userId: authUser.userId,
         email: authUser.email,
         metadata: { reason: "manual_revoke_others" },
       });
-      void revokedCount;
 
       return apiJson({ success: true });
     }
 
-    // Revoke a specific session
+    if (parsed.data.action === "revokeDevice") {
+      const userAgent = userAgentFromDeviceKey(parsed.data.deviceKey);
+      const sessionsOnDevice = await prisma.session.findMany({
+        where: {
+          userId: authUser.userId,
+          expiresAt: { gt: new Date() },
+          userAgent: userAgent ?? null,
+        },
+        select: { id: true },
+      });
+
+      if (sessionsOnDevice.length === 0) {
+        return badRequestError("No active sessions found for this device.");
+      }
+
+      const revokedCount = await revokeSessionsByIds({
+        sessionIds: sessionsOnDevice.map((session) => session.id),
+        userId: authUser.userId,
+        currentSessionId: currentSession?.id,
+      });
+
+      if (revokedCount === 0) {
+        return badRequestError("Cannot revoke your current session. Use sign out instead.");
+      }
+
+      await recordSecurityEvent({
+        type: "SESSION_REVOKED",
+        userId: authUser.userId,
+        email: authUser.email,
+        metadata: {
+          reason: "manual_revoke_device",
+          deviceKey: parsed.data.deviceKey,
+          count: revokedCount,
+        },
+      });
+
+      return apiJson({ success: true, revokedCount });
+    }
+
     if (currentSession?.id === parsed.data.sessionId) {
       return badRequestError("Use sign out to end your current session.");
     }
 
-    // Verify the session belongs to this user
     const targetSession = await prisma.session.findFirst({
       where: {
         id: parsed.data.sessionId,
@@ -130,7 +216,6 @@ export const PATCH = withCsrfProtection(async (req: Request) => {
       return badRequestError("Session not found.");
     }
 
-    // Use Better Auth's built-in revokeSession endpoint
     await auth.api.revokeSession({
       headers: await headers(),
       body: { token: targetSession.token },

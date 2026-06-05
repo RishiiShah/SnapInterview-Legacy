@@ -18,6 +18,8 @@ const GENERIC_VERIFICATION_ERROR = "Invalid or expired verification code.";
 
 // IP-based Postgres-backed distributed rate limiter
 const otpVerifyLimiter = createRateLimiter("otp-verify", 60 * 1000, 10); // 10 per minute per IP
+// Email-scoped atomic limiter — survives IP rotation and concurrent bursts.
+const otpVerifyEmailLimiter = createRateLimiter("otp-verify-email", LOCKOUT_MS, MAX_OTP_ATTEMPTS);
 
 export const POST = withCsrfProtection(async (req: Request) => {
     try {
@@ -37,6 +39,10 @@ export const POST = withCsrfProtection(async (req: Request) => {
 
         const { email, otp } = result.data;
         const normalizedEmail = normalizeEmail(email);
+
+        if (await otpVerifyEmailLimiter.isLimited(normalizedEmail)) {
+            return badRequestError(GENERIC_VERIFICATION_ERROR);
+        }
 
         // Find the pending user record
         const pendingUser = await prisma.pendingUser.findUnique({
@@ -60,14 +66,19 @@ export const POST = withCsrfProtection(async (req: Request) => {
 
         // Validate OTP
         if (!verifyOneTimeCode(otp, pendingUser.otpHash)) {
-            const attemptCount = pendingUser.attemptCount + 1;
-            const lockedUntil =
-                attemptCount >= MAX_OTP_ATTEMPTS ? new Date(Date.now() + LOCKOUT_MS) : null;
-
-            await prisma.pendingUser.update({
+            // Atomic increment so concurrent attempts can't share a stale count and bypass the lockout.
+            const { attemptCount } = await prisma.pendingUser.update({
                 where: { id: pendingUser.id },
-                data: { attemptCount, lockedUntil },
+                data: { attemptCount: { increment: 1 } },
+                select: { attemptCount: true },
             });
+
+            if (attemptCount >= MAX_OTP_ATTEMPTS) {
+                await prisma.pendingUser.update({
+                    where: { id: pendingUser.id },
+                    data: { lockedUntil: new Date(Date.now() + LOCKOUT_MS) },
+                });
+            }
 
             await recordSecurityEvent({
                 type: "REGISTRATION_OTP_FAILED",

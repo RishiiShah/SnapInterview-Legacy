@@ -1,6 +1,7 @@
 import type { InterviewStatus } from "@/generated/prisma/client";
 import {
     interviewDifficultySchema,
+    interviewIdSchema,
     interviewPersonaSchema,
     interviewQuestionCountSchema,
     interviewTypeSchema,
@@ -21,7 +22,7 @@ import { verifyMultipartCompletionToken } from "@/lib/s3/multipart-upload-token"
 import { logger } from "@/utils/logger";
 
 const createSessionSchema = z.object({
-    id: z.string().uuid().optional(),
+    id: interviewIdSchema.optional(),
     role: z.string().trim().min(1, "Role is required").max(200),
     company: z.string().trim().max(200).optional().default(""),
     type: interviewTypeSchema,
@@ -49,7 +50,7 @@ export async function GET(req: Request) {
             return badRequestError("interviewId is required");
         }
 
-        const parsedId = z.string().uuid().safeParse(rawInterviewId);
+        const parsedId = interviewIdSchema.safeParse(rawInterviewId);
         if (!parsedId.success) {
             return badRequestError("interviewId must be a valid UUID");
         }
@@ -120,7 +121,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
 });
 
 const patchSessionSchema = z.object({
-    interviewId: z.string().uuid("interviewId must be a valid UUID"),
+    interviewId: interviewIdSchema,
     videoKey: z.string().trim().min(1).nullable().optional(),
     videoCompletionToken: z.string().min(1).optional(),
     status: z.string().refine(
@@ -217,7 +218,7 @@ export const DELETE = withCsrfProtection(async (req: Request) => {
             return badRequestError("interviewId is required");
         }
 
-        const parsedId = z.string().uuid().safeParse(rawInterviewId);
+        const parsedId = interviewIdSchema.safeParse(rawInterviewId);
         if (!parsedId.success) {
             return badRequestError("interviewId must be a valid UUID");
         }

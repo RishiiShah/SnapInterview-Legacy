@@ -36,6 +36,8 @@ vi.mock("@/lib/rate-limit", () => ({
 
 vi.mock("@/lib/account-security", () => ({
   recordSecurityEvent: vi.fn(),
+  revokeUserSessions: vi.fn(),
+  getSessionCookieCacheVersion: vi.fn(),
 }));
 
 vi.mock("@/lib/security", () => ({
@@ -69,10 +71,16 @@ describe("auth configuration", () => {
         };
         sendResetPassword?: unknown;
       };
+      session: {
+        cookieCache: {
+          version: (session: unknown, user: { id: string }) => Promise<string>;
+        };
+      };
     };
 
     expect(config.emailAndPassword.password.hash).toBeDefined();
     expect(config.emailAndPassword.password.verify).toBeDefined();
     expect(config.emailAndPassword.sendResetPassword).toBeUndefined();
+    expect(config.session.cookieCache.version).toBeTypeOf("function");
   });
 });

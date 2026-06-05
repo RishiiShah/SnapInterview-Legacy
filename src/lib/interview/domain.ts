@@ -5,6 +5,10 @@ export const INTERVIEW_DIFFICULTY_VALUES = ["easy", "medium", "hard"] as const;
 export const INTERVIEW_PERSONA_VALUES = ["friendly", "balanced", "strict"] as const;
 export const INTERVIEW_QUESTION_COUNT_VALUES = [5, 10, 15] as const;
 
+// Interview session IDs are UUIDs (client-generated and DB default). Shared by every
+// route that accepts an interviewId so validation stays consistent in one place.
+export const interviewIdSchema = z.string().uuid("interviewId must be a valid UUID");
+
 export const interviewTypeSchema = z.enum(INTERVIEW_TYPE_VALUES);
 export const interviewDifficultySchema = z.enum(INTERVIEW_DIFFICULTY_VALUES);
 export const interviewPersonaSchema = z.enum(INTERVIEW_PERSONA_VALUES);

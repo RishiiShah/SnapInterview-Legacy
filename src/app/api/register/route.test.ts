@@ -8,6 +8,17 @@ import { sendOtpEmail } from "@/lib/email";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { extractRequestContext } from "@/lib/security";
 
+const { isLimitedMock } = vi.hoisted(() => ({
+  isLimitedMock: vi.fn().mockResolvedValue(false),
+}));
+
+vi.mock("@/lib/rate-limit", () => ({
+  createRateLimiter: vi.fn(() => ({
+    isLimited: isLimitedMock,
+    checkLimit: vi.fn().mockResolvedValue(false),
+  })),
+}));
+
 vi.mock("@/lib/password", () => ({
   hashCredentialPassword: vi.fn().mockResolvedValue("hashed-password"),
 }));
@@ -46,6 +57,7 @@ vi.mock("@/lib/prisma", () => ({
 describe("POST /api/register", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    isLimitedMock.mockResolvedValue(false);
   });
 
   it("short-circuits when CSRF validation fails", async () => {
@@ -92,45 +104,27 @@ describe("POST /api/register", () => {
 
   it("rate limits repeated requests from the same IP hash", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
-    vi.mocked(isDisposableEmail).mockResolvedValue({ disposable: false } as never);
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(null as never);
-    vi.mocked(prisma.pendingUser.findUnique).mockResolvedValue(null as never);
-    vi.mocked(prisma.pendingUser.upsert).mockResolvedValue({ id: "pending-1" } as never);
-    vi.mocked(sendOtpEmail).mockResolvedValue(undefined as never);
+    isLimitedMock.mockResolvedValue(true);
 
-    const makeRequest = () =>
-      POST(
-        new Request("http://localhost/api/register", {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            origin: "http://localhost:3000",
-          },
-          body: JSON.stringify({
-            name: "Test User",
-            email: "user@example.com",
-            password: "Password1!",
-          }),
+    const res = await POST(
+      new Request("http://localhost/api/register", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "http://localhost:3000",
+        },
+        body: JSON.stringify({
+          name: "Test User",
+          email: "user@example.com",
+          password: "Password1!",
         }),
-      );
+      }),
+    );
 
-    let sawRateLimit = false;
-    for (let i = 0; i < 10; i++) {
-      const res = await makeRequest();
-      if (res.status === 429) {
-        sawRateLimit = true;
-        const body = await res.json();
-        expect(body).toMatchObject({
-          error: "Too many requests. Please try again later.",
-        });
-        break;
-      } else {
-        expect(res.status).toBe(200);
-      }
-    }
-
-    expect(sawRateLimit).toBe(true);
-
+    expect(res.status).toBe(429);
+    await expect(res.json()).resolves.toMatchObject({
+      error: "Too many requests. Please try again later.",
+    });
     expect(extractRequestContext).toHaveBeenCalled();
   });
 

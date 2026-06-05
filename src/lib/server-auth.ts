@@ -1,4 +1,8 @@
+import { cache } from "react";
+
 import { auth } from "@/lib/auth";
+import { revokeUserSessions } from "@/lib/account-security";
+import { isAccountLocked } from "@/lib/account-lock";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { normalizeEmail } from "@/lib/security";
@@ -11,8 +15,9 @@ export type SessionUserIdentity = {
 
 /**
  * Returns the full Better Auth session for use in Server Components/Route Handlers.
+ * Cached per request so layout + pages + actions share one session lookup.
  */
-export async function getServerAuthSession() {
+export const getServerAuthSession = cache(async function getServerAuthSession() {
   const testIdentity = await getE2ETestIdentity();
   if (testIdentity) {
     const user = await prisma.user.findUnique({
@@ -62,10 +67,42 @@ export async function getServerAuthSession() {
     };
   }
 
-  return auth.api.getSession({
+  const session = await auth.api.getSession({
     headers: await headers(),
   });
-}
+
+  const userId = session?.user?.id ?? session?.session?.userId ?? null;
+  const sessionToken = session?.session?.token ?? null;
+
+  if (userId && sessionToken) {
+    const activeSession = await prisma.session.findFirst({
+      where: {
+        token: sessionToken,
+        userId,
+        expiresAt: { gt: new Date() },
+      },
+      select: { id: true },
+    });
+    if (!activeSession) {
+      await auth.api.signOut({ headers: await headers() });
+      return null;
+    }
+  }
+
+  if (userId) {
+    const lockState = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { lockedUntil: true },
+    });
+    if (isAccountLocked(lockState?.lockedUntil)) {
+      await revokeUserSessions({ userId, reason: "account_locked" });
+      await auth.api.signOut({ headers: await headers() });
+      return null;
+    }
+  }
+
+  return session;
+});
 
 /**
  * Returns a lightweight { userId, email } identity object for use in API routes.

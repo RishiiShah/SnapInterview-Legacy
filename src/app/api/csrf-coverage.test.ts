@@ -6,6 +6,18 @@ const API_ROOT = path.join(process.cwd(), "src/app/api");
 const MUTATING_METHODS = ["POST", "PUT", "PATCH", "DELETE"] as const;
 type MutatingMethod = (typeof MUTATING_METHODS)[number];
 
+// Routes that enforce request-origin protection through a mechanism other than our
+// withCsrfProtection/csrfRejectIfInvalid helpers, so the static scan can't see it:
+//   - auth/[...all]: Better Auth's handler validates trustedOrigins internally.
+const CSRF_EXEMPT_ROUTES = new Set([
+  path.join("auth", "[...all]", "route.ts"),
+]);
+
+function isCsrfExempt(routeFile: string): boolean {
+  const relative = path.relative(API_ROOT, routeFile);
+  return CSRF_EXEMPT_ROUTES.has(relative);
+}
+
 function getRouteFiles(root: string): string[] {
   const entries = fs.readdirSync(root, { withFileTypes: true });
 
@@ -63,6 +75,7 @@ describe("API CSRF coverage", () => {
     const missingCoverage: string[] = [];
 
     for (const routeFile of routeFiles) {
+      if (isCsrfExempt(routeFile)) continue;
       const source = fs.readFileSync(routeFile, "utf8");
 
       for (const method of MUTATING_METHODS) {

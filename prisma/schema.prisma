@@ -21,6 +21,7 @@ model User {
   updatedAt     DateTime @updatedAt
 
   // ─── App-specific user fields ───
+  isAdmin                Boolean   @default(false)
   isFirstLogin           Boolean   @default(true)
   failedLoginCount       Int       @default(0)
   lockedUntil            DateTime?
@@ -118,6 +119,8 @@ enum SecurityEventType {
   REGISTRATION_OTP_FAILED
   REGISTRATION_OTP_VERIFIED
   ACCOUNT_DELETED
+  ACCOUNT_LOCKED
+  ACCOUNT_UNLOCKED
 }
 
 model PasswordResetCode {
@@ -201,11 +204,23 @@ model InterviewSession {
   deletedAt       DateTime?
   createdAt       DateTime        @default(now())
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transcript       TranscriptEntry[]
-  questionFeedback QuestionFeedback[]
+  transcript         TranscriptEntry[]
+  questionFeedback   QuestionFeedback[]
+  moderationNotes    InterviewModerationNote[]
 
   @@index([userId])
   @@index([userId, deletedAt])
+}
+
+model InterviewModerationNote {
+  id                 String           @id @default(cuid())
+  interviewSessionId String
+  authorEmail        String
+  note               String           @db.Text
+  createdAt          DateTime         @default(now())
+  interviewSession   InterviewSession @relation(fields: [interviewSessionId], references: [id], onDelete: Cascade)
+
+  @@index([interviewSessionId, createdAt])
 }
 
 model QuestionFeedback {
@@ -221,7 +236,7 @@ model QuestionFeedback {
 }
 
 model TranscriptEntry {
-  id                 String           @id @default(uuid())
+  id                 String           @id @default(cuid())
   interviewSessionId String
   order              Int
   question           String           @db.Text

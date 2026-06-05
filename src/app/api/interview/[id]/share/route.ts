@@ -1,11 +1,9 @@
-import { z } from "zod/v4";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiJson, badRequestError, notFoundError, unauthorizedError, internalServerError } from "@/lib/api-response";
 import { generateShareToken, revokeShareToken, getShareToken } from "@/repositories/interview-repo";
+import { interviewIdSchema } from "@/lib/interview/domain";
 import { logger } from "@/utils/logger";
-
-const interviewIdSchema = z.string().uuid();
 
 export async function GET(
   _req: Request,

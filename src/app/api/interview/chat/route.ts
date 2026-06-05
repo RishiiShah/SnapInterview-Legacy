@@ -9,11 +9,12 @@ import { getSessionUserIdentity } from "@/lib/server-auth";
 import { runInterviewChat } from "@/services/interview-service";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
+import { interviewIdSchema } from "@/lib/interview/domain";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
 
 const chatSchema = z.object({
-  interviewId: z.string().uuid("interviewId must be a valid UUID"),
+  interviewId: interviewIdSchema,
   expectedCurrentQuestion: z.number().int().min(0),
   messages: z.array(
     z.object({

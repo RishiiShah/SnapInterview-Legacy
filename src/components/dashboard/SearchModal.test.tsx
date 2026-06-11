@@ -53,9 +53,10 @@ describe("SearchModal", () => {
   });
 
   it("debounces API search and renders dynamic session and question results", async () => {
+    const interviewId = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa";
     vi.mocked(fetch).mockResolvedValue(mockSearchResponse({
       sessions: [{
-        id: "session-1",
+        id: interviewId,
         role: "Frontend Developer",
         company: "OpenAI",
         type: "technical",
@@ -78,9 +79,10 @@ describe("SearchModal", () => {
     });
 
     await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith("/api/search?q=react");
+    expect(fetch).toHaveBeenCalledWith("/api/search?q=react");
     });
     expect(screen.getByText("Frontend Developer — OpenAI")).not.toBeNull();
+    expect(screen.getByRole("link", { name: /Frontend Developer/i }).getAttribute("href")).toBe(`/recordings?interviewId=${interviewId}`);
     expect(screen.getByText("Technical")).not.toBeNull();
     expect(screen.getByText("Explain React state updates")).not.toBeNull();
     expect(screen.getByText("Medium")).not.toBeNull();

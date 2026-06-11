@@ -106,7 +106,7 @@ describe("GET /api/search", () => {
 
     expect(prisma.interviewSession.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ userId: "u1" }),
+        where: expect.objectContaining({ userId: "u1", status: "COMPLETED" }),
       }),
     );
   });

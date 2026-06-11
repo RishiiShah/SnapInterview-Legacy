@@ -1,10 +1,15 @@
 
 import { SlideIn } from "@/components/ui/motion";
 import RecordingsList from "@/components/recordings/RecordingsList";
+import { interviewIdSchema } from "@/lib/interview/domain";
 import { getServerAuthSession } from "@/lib/server-auth";
-import { listCompletedSessionsForUser } from "@/repositories/interview-repo";
+import { getCompletedSessionCardForUser, listCompletedSessionsForUser } from "@/repositories/interview-repo";
 
-export default async function RecordingsPage() {
+type RecordingsPageProps = {
+  searchParams?: Promise<{ interviewId?: string }>;
+};
+
+export default async function RecordingsPage({ searchParams }: RecordingsPageProps) {
   const session = await getServerAuthSession();
 
   if (!session?.user?.email) {
@@ -26,7 +31,18 @@ export default async function RecordingsPage() {
   }
 
   const userId = session.user.id;
-  const { sessions, hasMore } = await listCompletedSessionsForUser({ userId, limit: 12, offset: 0 });
+  const sp = searchParams ? await searchParams : undefined;
+  const parsedDeepLinkId = interviewIdSchema.safeParse(sp?.interviewId);
+  const deepLinkInterviewId = parsedDeepLinkId.success ? parsedDeepLinkId.data : null;
+  const [sessionList, deepLinkedSession] = await Promise.all([
+    listCompletedSessionsForUser({ userId, limit: 12, offset: 0 }),
+    deepLinkInterviewId
+      ? getCompletedSessionCardForUser({ userId, interviewId: deepLinkInterviewId })
+      : Promise.resolve(null),
+  ]);
+  const sessions = deepLinkedSession && !sessionList.sessions.some((item) => item.id === deepLinkedSession.id)
+    ? [deepLinkedSession, ...sessionList.sessions]
+    : sessionList.sessions;
   const initialSessions = sessions.map((s) => ({ ...s, createdAt: s.createdAt.toISOString() }));
 
   return (
@@ -41,7 +57,8 @@ export default async function RecordingsPage() {
 
         <RecordingsList
           initialSessions={initialSessions}
-          initialHasMore={hasMore}
+          initialHasMore={sessionList.hasMore}
+          initialOpenInterviewId={deepLinkedSession?.id ?? null}
         />
       </div>
     </>

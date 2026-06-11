@@ -1,7 +1,11 @@
 import Link from "next/link";
 
-import { hardDeleteInterviewAction } from "@/app/admin/(protected)/interviews/actions";
 import {
+  hardDeleteInterviewAction,
+  repairLegacyRecordingMetadataAction,
+} from "@/app/admin/(protected)/interviews/actions";
+import {
+  adminActionButtonClass,
   adminActionLinkClass,
   adminDangerButtonClass,
   adminPaginationLinkClass,
@@ -274,15 +278,25 @@ export default async function AdminInterviewsPage({
                               </Link>
                             </td>
                             <td className="px-3 py-2">
-                              <ConfirmActionForm
-                                action={hardDeleteInterviewAction}
-                                hiddenFields={{ interviewId: session.id }}
-                                buttonLabel="Delete"
-                                buttonClassName={adminDangerButtonClass}
-                                confirmMessage="Permanently delete this interview, transcript, feedback, moderation notes, and S3 recording? This cannot be undone."
-                                reasonRequired
-                                reasonPrompt="Reason for deletion"
-                              />
+                              <div className="flex flex-wrap items-center gap-2">
+                                {integrity.status === "url_without_key" && (
+                                  <form action={repairLegacyRecordingMetadataAction}>
+                                    <input type="hidden" name="interviewId" value={session.id} />
+                                    <button type="submit" className={adminActionButtonClass}>
+                                      Repair
+                                    </button>
+                                  </form>
+                                )}
+                                <ConfirmActionForm
+                                  action={hardDeleteInterviewAction}
+                                  hiddenFields={{ interviewId: session.id }}
+                                  buttonLabel="Delete"
+                                  buttonClassName={adminDangerButtonClass}
+                                  confirmMessage="Permanently delete this interview, transcript, feedback, moderation notes, and S3 recording? This cannot be undone."
+                                  reasonRequired
+                                  reasonPrompt="Reason for deletion"
+                                />
+                              </div>
                             </td>
                           </tr>
                         );

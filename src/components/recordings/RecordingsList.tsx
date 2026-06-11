@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { FadeIn } from "@/components/ui/motion";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
@@ -51,9 +51,10 @@ type SessionCard = {
 type RecordingsListProps = {
   initialSessions: SessionCard[];
   initialHasMore: boolean;
+  initialOpenInterviewId?: string | null;
 };
 
-export default function RecordingsList({ initialSessions, initialHasMore }: RecordingsListProps) {
+export default function RecordingsList({ initialSessions, initialHasMore, initialOpenInterviewId = null }: RecordingsListProps) {
   const [sessions, setSessions] = useState<SessionCard[]>(initialSessions);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -61,6 +62,7 @@ export default function RecordingsList({ initialSessions, initialHasMore }: Reco
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [sortBy, setSortBy] = useState<SortBy>("date");
   const isFirstRender = useRef(true);
+  const autoOpenedInterviewId = useRef<string | null>(null);
   const [isOpening, setIsOpening] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sessionToDelete, setSessionToDelete] = useState<SessionCard | null>(null);
@@ -122,7 +124,7 @@ export default function RecordingsList({ initialSessions, initialHasMore }: Reco
     }
   };
 
-  const openSession = async (session: SessionCard) => {
+  const openSession = useCallback(async (session: SessionCard) => {
     if (isOpening) return;
     const date = formatSessionDate(session.createdAt);
 
@@ -146,7 +148,23 @@ export default function RecordingsList({ initialSessions, initialHasMore }: Reco
     } finally {
       setIsOpening(null);
     }
-  };
+  }, [isOpening]);
+
+  useEffect(() => {
+    if (!initialOpenInterviewId || autoOpenedInterviewId.current === initialOpenInterviewId) return;
+
+    const target = sessions.find((session) => session.id === initialOpenInterviewId);
+    if (!target) return;
+
+    autoOpenedInterviewId.current = initialOpenInterviewId;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void openSession(target);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialOpenInterviewId, openSession, sessions]);
 
   const handleDeleteVideo = async () => {
     if (!sessionToDelete) return;

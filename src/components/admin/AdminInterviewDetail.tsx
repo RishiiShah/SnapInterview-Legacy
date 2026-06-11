@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   addInterviewModerationNoteAction,
   hardDeleteInterviewAction,
+  repairLegacyRecordingMetadataAction,
 } from "@/app/admin/(protected)/interviews/actions";
 import { RecordingEvaluation } from "@/components/recordings/RecordingEvaluation";
 import { Button } from "@/components/ui/Button";
@@ -12,7 +13,7 @@ import { AdminOrphanedRecordings } from "./AdminOrphanedRecordings";
 import { AdminInterviewTranscript } from "./AdminInterviewTranscript";
 import { CopyableField } from "./CopyableField";
 import { IntegrityBadge } from "./IntegrityBadge";
-import { adminDangerButtonClass } from "./admin-styles";
+import { adminActionButtonClass, adminDangerButtonClass } from "./admin-styles";
 import { ConfirmActionForm } from "./ConfirmActionForm";
 
 const textareaClass =
@@ -103,6 +104,14 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
           <div className="mt-4">
             <CopyableField label="Stored video URL" value={interview.videoUrl} />
           </div>
+        )}
+        {interview.recordingIntegrity.status === "url_without_key" && (
+          <form action={repairLegacyRecordingMetadataAction} className="mt-4">
+            <input type="hidden" name="interviewId" value={interview.id} />
+            <button type="submit" className={`${adminActionButtonClass} px-3 py-1.5 text-sm`}>
+              Repair recording metadata
+            </button>
+          </form>
         )}
         {interview.signedPlaybackUrl && (
           <p className="mt-4">

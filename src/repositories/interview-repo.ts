@@ -246,6 +246,33 @@ export type CompletedSessionCard = {
   createdAt: Date;
 };
 
+function mapCompletedSessionCard(s: {
+  id: string;
+  role: string;
+  company: string | null;
+  type: string;
+  videoKey: string | null;
+  evaluation: unknown;
+  questionCount: number;
+  currentQuestion: number;
+  createdAt: Date;
+}): CompletedSessionCard {
+  const evalData = s.evaluation as { score?: number } | null;
+  const score = typeof evalData?.score === "number"
+    ? evalData.score
+    : Math.round(Math.min(100, Math.max(0, (Math.min(s.currentQuestion, s.questionCount) / Math.max(1, s.questionCount)) * 80 + 20)));
+
+  return {
+    id: s.id,
+    role: s.role,
+    company: s.company,
+    type: s.type as InterviewType,
+    videoKey: s.videoKey,
+    score,
+    createdAt: s.createdAt,
+  };
+}
+
 export async function listCompletedSessionsForUser(params: {
   userId: string;
   limit: number;
@@ -279,21 +306,36 @@ export async function listCompletedSessionsForUser(params: {
   });
 
   const hasMore = rows.length > limit;
-  const sessions = rows.slice(0, limit).map((s) => {
-    const evalData = s.evaluation as { score?: number } | null;
-    const score = typeof evalData?.score === "number" ? evalData.score : Math.round(Math.min(100, Math.max(0, (Math.min(s.currentQuestion, s.questionCount) / Math.max(1, s.questionCount)) * 80 + 20)));
-    return {
-      id: s.id,
-      role: s.role,
-      company: s.company,
-      type: s.type as InterviewType,
-      videoKey: s.videoKey,
-      score,
-      createdAt: s.createdAt,
-    };
-  });
+  const sessions = rows.slice(0, limit).map(mapCompletedSessionCard);
 
   return { sessions, hasMore };
+}
+
+export async function getCompletedSessionCardForUser(params: {
+  userId: string;
+  interviewId: string;
+}): Promise<CompletedSessionCard | null> {
+  const row = await prisma.interviewSession.findFirst({
+    where: {
+      id: params.interviewId,
+      userId: params.userId,
+      deletedAt: null,
+      status: "COMPLETED",
+    },
+    select: {
+      id: true,
+      role: true,
+      company: true,
+      type: true,
+      videoKey: true,
+      evaluation: true,
+      questionCount: true,
+      currentQuestion: true,
+      createdAt: true,
+    },
+  });
+
+  return row ? mapCompletedSessionCard(row) : null;
 }
 
 export async function upsertQuestionFeedback(params: {

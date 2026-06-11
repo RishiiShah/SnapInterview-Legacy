@@ -55,6 +55,7 @@ export async function GET(req: Request) {
         where: {
           userId: authUser.userId,
           deletedAt: null,
+          status: "COMPLETED",
           OR: [
             { role: { contains: q, mode: "insensitive" } },
             { company: { contains: q, mode: "insensitive" } },

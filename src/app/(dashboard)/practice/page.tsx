@@ -1,5 +1,5 @@
 import PracticePageClient from "@/components/practice/PracticePageClient";
-import { extractInterviewIdFromVideoKey } from "@/lib/interview/recordings";
+import { filterSessionsWithListedRecordingObjects } from "@/lib/interview/recordings";
 import { getRecentPracticeSessionsByUserId } from "@/lib/interview/metrics";
 import { parsePracticeRetakeDefaults, type PracticeRetakeSearchParams } from "@/lib/practice/retake-defaults";
 import { listUserVideos } from "@/lib/s3/videos";
@@ -25,14 +25,9 @@ export default async function PracticePage({ searchParams }: PracticePageProps) 
     listUserVideos(`${identity.userId}/`, { maxKeys: 1000 }),
   ]);
 
-  const interviewIdsWithRecordings = new Set(
-    recordings.videos
-      .map((video) => extractInterviewIdFromVideoKey(video.key))
-      .filter((id): id is string => Boolean(id)),
-  );
-
-  const recordingBackedRecentPractice = recentPractice.filter((session) =>
-    interviewIdsWithRecordings.has(session.id),
+  const recordingBackedRecentPractice = filterSessionsWithListedRecordingObjects(
+    recentPractice,
+    recordings.videos,
   );
 
   return (

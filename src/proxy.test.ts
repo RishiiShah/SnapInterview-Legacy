@@ -30,7 +30,69 @@ describe("proxy auth cookie handling", () => {
     vi.restoreAllMocks();
   });
 
-  it("accepts Better Auth secure session cookies in production-style requests", async () => {
+  it.each([
+    "/dashboard",
+    "/practice",
+    "/questions",
+    "/questions/two-sum",
+    "/analytics",
+    "/recordings",
+    "/settings",
+    "/onboarding",
+    "/interview/interview-123",
+  ])("skips proxy session fetch for server-guarded protected route %s when a session cookie is present", async (path) => {
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+
+    const request = new NextRequest(`https://snapinterview.app${path}`, {
+      headers: {
+        cookie: `__Secure-better-auth.session_token=protected-route-token-${encodeURIComponent(path)}`,
+      },
+    });
+
+    const response = await proxy(request);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("does not redirect public auth pages when session validation is temporarily unavailable", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("pool exhausted"));
+
+    const request = new NextRequest("https://snapinterview.app/login", {
+      headers: {
+        cookie: "__Secure-better-auth.session_token=validation-outage-token",
+      },
+    });
+
+    const response = await proxy(request);
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("does not clear session cookies on public auth pages when validation returns a transient server error", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: "DB unavailable" }), {
+        status: 503,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    const request = new NextRequest("https://snapinterview.app/login", {
+      headers: {
+        cookie: "__Secure-better-auth.session_token=validation-503-token",
+      },
+    });
+
+    const response = await proxy(request);
+    const setCookieHeaders = getSetCookieHeaders(response).join("\n");
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(response.headers.get("location")).toBeNull();
+    expect(setCookieHeaders).not.toContain("__Secure-better-auth.session_token=");
+  });
+
+  it("prioritizes secure Better Auth session cookies when selecting the session cache key", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({
         user: {
@@ -45,16 +107,24 @@ describe("proxy auth cookie handling", () => {
       }),
     );
 
-    const request = new NextRequest("https://snapinterview.app/dashboard", {
+    const secureToken = "secure-priority-token";
+    const firstRequest = new NextRequest("https://snapinterview.app/login", {
       headers: {
-        cookie: "__Secure-better-auth.session_token=signed-token",
+        cookie: `better-auth.session_token=plain-token-one; __Secure-better-auth.session_token=${secureToken}`,
+      },
+    });
+    const secondRequest = new NextRequest("https://snapinterview.app/login", {
+      headers: {
+        cookie: `better-auth.session_token=plain-token-two; __Secure-better-auth.session_token=${secureToken}`,
       },
     });
 
-    const response = await proxy(request);
+    const firstResponse = await proxy(firstRequest);
+    const secondResponse = await proxy(secondRequest);
 
     expect(fetchMock).toHaveBeenCalledOnce();
-    expect(response.headers.get("location")).toBeNull();
+    expect(firstResponse.headers.get("location")).toBe("https://snapinterview.app/dashboard");
+    expect(secondResponse.headers.get("location")).toBe("https://snapinterview.app/dashboard");
   });
 
   it("skips proxy session fetch for admin routes when a session cookie is present", async () => {
@@ -72,7 +142,7 @@ describe("proxy auth cookie handling", () => {
     expect(response.headers.get("location")).toBeNull();
   });
 
-  it("clears both Better Auth session cookie names when validation fails", async () => {
+  it("clears both Better Auth session cookie names on public auth pages when validation fails", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -80,7 +150,7 @@ describe("proxy auth cookie handling", () => {
       }),
     );
 
-    const request = new NextRequest("https://snapinterview.app/dashboard", {
+    const request = new NextRequest("https://snapinterview.app/login", {
       headers: {
         cookie: "better-auth.session_token=plain-token; __Secure-better-auth.session_token=secure-token",
       },
@@ -89,7 +159,7 @@ describe("proxy auth cookie handling", () => {
     const response = await proxy(request);
     const setCookieHeaders = getSetCookieHeaders(response).join("\n");
 
-    expect(response.headers.get("location")).toBe("https://snapinterview.app/login");
+    expect(response.headers.get("location")).toBeNull();
     expect(setCookieHeaders).toContain("better-auth.session_token=");
     expect(setCookieHeaders).toContain("__Secure-better-auth.session_token=");
     expect(setCookieHeaders).toContain("Expires=Thu, 01 Jan 1970 00:00:00 GMT");

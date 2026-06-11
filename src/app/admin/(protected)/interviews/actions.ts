@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { requireAdminSession } from "@/lib/admin-auth";
 import { ADMIN_OVERVIEW_STATS_TAG } from "@/lib/admin/overview-stats";
+import { repairLegacyRecordingMetadata } from "@/lib/admin/recording-repair";
 import { hardDeleteInterviewSessionById } from "@/lib/interview/hard-delete-session";
 import { prisma } from "@/lib/prisma";
 
@@ -49,4 +50,18 @@ export async function hardDeleteInterviewAction(formData: FormData) {
   revalidatePath("/admin/interviews");
   revalidateTag(ADMIN_OVERVIEW_STATS_TAG, "max");
   redirect("/admin/interviews");
+}
+
+export async function repairLegacyRecordingMetadataAction(formData: FormData) {
+  await requireAdminSession();
+
+  const interviewId = String(formData.get("interviewId") ?? "").trim();
+  if (!interviewId) {
+    return;
+  }
+
+  await repairLegacyRecordingMetadata({ interviewId });
+
+  revalidatePath("/admin/interviews");
+  revalidatePath(`/admin/interviews/${interviewId}`);
 }

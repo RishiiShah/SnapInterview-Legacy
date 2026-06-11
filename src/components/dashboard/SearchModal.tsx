@@ -106,7 +106,7 @@ export function SearchModal({ onClose }: { onClose: () => void }) {
                                     {results.sessions.map((s) => (
                                         <Link
                                             key={s.id}
-                                            href={`/practice/session?interviewId=${s.id}`}
+                                            href={`/recordings?interviewId=${s.id}`}
                                             onClick={onClose}
                                             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
                                         >

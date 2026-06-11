@@ -100,6 +100,7 @@ export type PracticeRecentSession = {
   type: InterviewType;
   score: number;
   date: string;
+  videoKey: string | null;
 };
 
 type AnalyticsMonthlyComparison = {
@@ -386,6 +387,7 @@ export async function getRecentPracticeSessionsByUserId(
         type: parsedType.data,
         score: getSessionScore(session),
         date: formatSessionDate(session.createdAt),
+        videoKey: session.videoKey,
       } satisfies PracticeRecentSession;
     })
     .filter((session): session is PracticeRecentSession => session !== null)

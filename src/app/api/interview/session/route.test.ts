@@ -61,7 +61,7 @@ describe("POST /api/interview/session", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      error: "Invalid option: expected one of \"behavioral\"|\"technical\"|\"system-design\"|\"leadership\"",
+      error: "Invalid option: expected one of \"behavioral\"|\"technical\"|\"system-design\"|\"leadership\"|\"coding\"",
     });
     expect(startInterviewSession).not.toHaveBeenCalled();
   });

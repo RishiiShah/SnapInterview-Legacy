@@ -17,7 +17,7 @@ type QuestionsPageClientProps = {
 };
 
 const DIFFICULTY_ORDER: Record<Difficulty, number> = { easy: 0, medium: 1, hard: 2 };
-const CATEGORY_ORDER: Record<InterviewType, number> = { behavioral: 0, technical: 1, "system-design": 2, leadership: 3 };
+const CATEGORY_ORDER: Record<InterviewType, number> = { behavioral: 0, technical: 1, "system-design": 2, leadership: 3, coding: 4 };
 
 function getMinutes(t: string): number {
   const m = t.match(/(\d+)/);

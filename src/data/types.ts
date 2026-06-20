@@ -59,6 +59,12 @@ export interface Question {
     tags: string[];
     hint?: string;
     sampleAnswer?: string;
+    type?: "text" | "coding";
+    description?: string;
+    constraints?: string;
+    starterCode?: Record<string, string>;
+    testCases?: Array<{ input: string; expectedOutput: string; isHidden: boolean }>;
+    solutionCode?: Record<string, string>;
 }
 
 /* ─────────────── Analytics ─────────────── */

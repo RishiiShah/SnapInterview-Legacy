@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 
-export const INTERVIEW_TYPE_VALUES = ["behavioral", "technical", "system-design", "leadership"] as const;
+export const INTERVIEW_TYPE_VALUES = ["behavioral", "technical", "system-design", "leadership", "coding"] as const;
 export const INTERVIEW_DIFFICULTY_VALUES = ["easy", "medium", "hard"] as const;
 export const INTERVIEW_PERSONA_VALUES = ["friendly", "balanced", "strict"] as const;
 export const INTERVIEW_QUESTION_COUNT_VALUES = [5, 10, 15] as const;

@@ -31,6 +31,7 @@ export const CATEGORIES: { value: InterviewType; label: string; color: string }[
     { value: "technical", label: "Technical", color: "bg-purple-100 text-purple-700" },
     { value: "system-design", label: "System Design", color: "bg-amber-100 text-amber-700" },
     { value: "leadership", label: "Leadership", color: "bg-emerald-100 text-emerald-700" },
+    { value: "coding", label: "Coding", color: "bg-cyan-100 text-cyan-700" },
 ];
 
 export const DIFFICULTIES: { value: Difficulty; label: string; color: string }[] = [

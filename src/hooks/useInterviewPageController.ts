@@ -344,6 +344,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     handlePermissionsGranted,
     handleExitInterview,
     handleVideoMount,
+    codingChallenge: chat.codingChallenge,
     modal,
     closeModal,
   };

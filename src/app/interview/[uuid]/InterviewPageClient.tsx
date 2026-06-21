@@ -31,6 +31,7 @@ export default function InterviewPageClient() {
     handlePermissionsGranted,
     handleExitInterview,
     handleVideoMount,
+    codingChallenge,
     modal,
     closeModal,
   } = useInterviewPageController({ interviewId });
@@ -104,6 +105,11 @@ export default function InterviewPageClient() {
           onSendTextAnswer={(text) => {
             tts.cancel();
             void chat.sendMessage(text);
+          }}
+          codingChallenge={codingChallenge}
+          onSubmitCode={(message) => {
+            tts.cancel();
+            void chat.sendMessage(message);
           }}
         />
       )}

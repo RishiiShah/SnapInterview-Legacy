@@ -6,6 +6,8 @@ import {
   IconVideoCamera,
   IconVideoCameraOff,
 } from "@/components/ui/icons";
+import type { CodingChallenge } from "@/lib/interview/coding-challenge";
+import { InterviewCodingPanel } from "@/components/interview/InterviewCodingPanel";
 
 type ChatMessage = {
   role: "ai" | "user";
@@ -40,6 +42,8 @@ type ActiveInterviewScreenProps = {
   toggleCamera: () => void;
   toggleRecording: () => void;
   onSendTextAnswer: (text: string) => void;
+  codingChallenge?: CodingChallenge | null;
+  onSubmitCode?: (message: string) => void;
 };
 
 export default function ActiveInterviewScreen({
@@ -69,6 +73,8 @@ export default function ActiveInterviewScreen({
   toggleCamera,
   toggleRecording,
   onSendTextAnswer,
+  codingChallenge,
+  onSubmitCode,
 }: ActiveInterviewScreenProps) {
   const [textDraft, setTextDraft] = useState("");
 
@@ -125,71 +131,152 @@ export default function ActiveInterviewScreen({
           </button>
         </div>
 
-        {/* Main content: video + chat */}
+        {/* Main content */}
         <div className="flex w-full flex-1 min-h-0 gap-5 relative">
-          {/* Video feed */}
-          <div className="relative w-full lg:w-[70%] flex-col flex overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-lg shadow-black/40 shrink-0">
-            <video
-              ref={onVideoMount}
-              autoPlay
-              playsInline
-              muted
-              className="h-full w-full object-cover"
-              style={{ transform: "scaleX(-1)" }}
-            />
-            <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full bg-zinc-900/80 px-3 py-1.5 backdrop-blur-sm border border-zinc-800/60">
-              <div className={`h-1.5 w-1.5 rounded-full ${isRecordingVideo ? 'bg-red-500 animate-[pulse_1.5s_ease-in-out_infinite]' : 'bg-zinc-600'}`} />
-              <span className="text-[11px] font-semibold tracking-wide text-zinc-300">
-                {isRecordingVideo ? 'Recording' : 'Not Recording'}
-              </span>
-            </div>
-          </div>
-
-          {/* Chat panel */}
-          <div className="hidden lg:flex flex-col flex-1 bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden relative">
-            <div className="absolute top-0 w-full h-8 bg-linear-to-b from-zinc-950 to-transparent z-10 pointer-events-none" />
-            <div ref={chatScrollContainerRef} className="flex-1 overflow-y-auto p-5 space-y-4 flex flex-col pt-8 pb-12">
-              {messages.map((msg, idx) => (
-                <div key={idx} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${msg.role === 'user'
-                    ? 'bg-blue-600 text-white rounded-br-sm'
-                    : 'bg-zinc-800 text-zinc-100 rounded-bl-sm ring-1 ring-white/5'
-                    }`}>
-                    {msg.text}
+          {codingChallenge ? (
+            <>
+              {/* Left: video (compact) + chat */}
+              <div className="flex w-[40%] flex-col gap-3 min-h-0">
+                {/* Compact video */}
+                <div className="relative shrink-0 h-32 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
+                  <video
+                    ref={onVideoMount}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="h-full w-full object-cover"
+                    style={{ transform: "scaleX(-1)" }}
+                  />
+                  <div className="absolute right-2 top-2 flex items-center gap-1.5 rounded-full bg-zinc-900/80 px-2 py-1 backdrop-blur-sm border border-zinc-800/60">
+                    <div className={`h-1.5 w-1.5 rounded-full ${isRecordingVideo ? 'bg-red-500 animate-[pulse_1.5s_ease-in-out_infinite]' : 'bg-zinc-600'}`} />
+                    <span className="text-[10px] font-semibold tracking-wide text-zinc-300">
+                      {isRecordingVideo ? 'REC' : 'OFF'}
+                    </span>
                   </div>
                 </div>
-              ))}
 
-              {currentStreamedText && (
-                <div className="flex w-full justify-start">
-                  <div className="max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed bg-zinc-800 text-zinc-100 rounded-bl-sm ring-1 ring-white/5">
-                    {currentStreamedText}
-                    <span className="inline-block w-1 h-3.5 ml-1 align-middle bg-zinc-400 animate-pulse rounded-sm" />
-                  </div>
-                </div>
-              )}
+                {/* Chat panel */}
+                <div className="flex flex-col flex-1 bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden relative min-h-0">
+                  <div className="absolute top-0 w-full h-8 bg-linear-to-b from-zinc-950 to-transparent z-10 pointer-events-none" />
+                  <div ref={chatScrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 flex flex-col pt-8 pb-10">
+                    {messages.map((msg, idx) => (
+                      <div key={idx} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[90%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${msg.role === 'user'
+                          ? 'bg-blue-600 text-white rounded-br-sm'
+                          : 'bg-zinc-800 text-zinc-100 rounded-bl-sm ring-1 ring-white/5'
+                          }`}>
+                          {msg.text}
+                        </div>
+                      </div>
+                    ))}
 
-              {isThinking && !currentStreamedText && (
-                <div className="flex w-full justify-start">
-                  <div className="max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed bg-zinc-800 text-zinc-400 rounded-bl-sm ring-1 ring-white/5 flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
-                </div>
-              )}
+                    {currentStreamedText && (
+                      <div className="flex w-full justify-start">
+                        <div className="max-w-[90%] rounded-2xl px-3 py-2 text-sm leading-relaxed bg-zinc-800 text-zinc-100 rounded-bl-sm ring-1 ring-white/5">
+                          {currentStreamedText}
+                          <span className="inline-block w-1 h-3.5 ml-1 align-middle bg-zinc-400 animate-pulse rounded-sm" />
+                        </div>
+                      </div>
+                    )}
 
-              {(interimTranscript || volatileTranscript) && (
-                <div className="flex w-full justify-end">
-                  <div className="max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed bg-blue-600/40 text-white rounded-br-sm border border-blue-500/20 animate-pulse">
-                    {interimTranscript} <span className="opacity-60">{volatileTranscript}</span>
+                    {isThinking && !currentStreamedText && (
+                      <div className="flex w-full justify-start">
+                        <div className="max-w-[90%] rounded-2xl px-3 py-2 text-sm leading-relaxed bg-zinc-800 text-zinc-400 rounded-bl-sm ring-1 ring-white/5 flex items-center gap-1.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                      </div>
+                    )}
+
+                    {(interimTranscript || volatileTranscript) && (
+                      <div className="flex w-full justify-end">
+                        <div className="max-w-[90%] rounded-2xl px-3 py-2 text-sm leading-relaxed bg-blue-600/40 text-white rounded-br-sm border border-blue-500/20 animate-pulse">
+                          {interimTranscript} <span className="opacity-60">{volatileTranscript}</span>
+                        </div>
+                      </div>
+                    )}
+                    <div ref={chatBottomRef} />
                   </div>
+                  <div className="absolute bottom-0 w-full h-10 bg-linear-to-t from-zinc-950 to-transparent z-10 pointer-events-none" />
                 </div>
-              )}
-              <div ref={chatBottomRef} />
-            </div>
-            <div className="absolute bottom-0 w-full h-12 bg-linear-to-t from-zinc-950 to-transparent z-10 pointer-events-none" />
-          </div>
+              </div>
+
+              {/* Right: coding panel */}
+              <div className="flex-1 min-h-0">
+                <InterviewCodingPanel
+                  challenge={codingChallenge}
+                  onSubmitCode={onSubmitCode!}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Video feed */}
+              <div className="relative w-full lg:w-[70%] flex-col flex overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-lg shadow-black/40 shrink-0">
+                <video
+                  ref={onVideoMount}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="h-full w-full object-cover"
+                  style={{ transform: "scaleX(-1)" }}
+                />
+                <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full bg-zinc-900/80 px-3 py-1.5 backdrop-blur-sm border border-zinc-800/60">
+                  <div className={`h-1.5 w-1.5 rounded-full ${isRecordingVideo ? 'bg-red-500 animate-[pulse_1.5s_ease-in-out_infinite]' : 'bg-zinc-600'}`} />
+                  <span className="text-[11px] font-semibold tracking-wide text-zinc-300">
+                    {isRecordingVideo ? 'Recording' : 'Not Recording'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Chat panel */}
+              <div className="hidden lg:flex flex-col flex-1 bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden relative">
+                <div className="absolute top-0 w-full h-8 bg-linear-to-b from-zinc-950 to-transparent z-10 pointer-events-none" />
+                <div ref={chatScrollContainerRef} className="flex-1 overflow-y-auto p-5 space-y-4 flex flex-col pt-8 pb-12">
+                  {messages.map((msg, idx) => (
+                    <div key={idx} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${msg.role === 'user'
+                        ? 'bg-blue-600 text-white rounded-br-sm'
+                        : 'bg-zinc-800 text-zinc-100 rounded-bl-sm ring-1 ring-white/5'
+                        }`}>
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))}
+
+                  {currentStreamedText && (
+                    <div className="flex w-full justify-start">
+                      <div className="max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed bg-zinc-800 text-zinc-100 rounded-bl-sm ring-1 ring-white/5">
+                        {currentStreamedText}
+                        <span className="inline-block w-1 h-3.5 ml-1 align-middle bg-zinc-400 animate-pulse rounded-sm" />
+                      </div>
+                    </div>
+                  )}
+
+                  {isThinking && !currentStreamedText && (
+                    <div className="flex w-full justify-start">
+                      <div className="max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed bg-zinc-800 text-zinc-400 rounded-bl-sm ring-1 ring-white/5 flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {(interimTranscript || volatileTranscript) && (
+                    <div className="flex w-full justify-end">
+                      <div className="max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed bg-blue-600/40 text-white rounded-br-sm border border-blue-500/20 animate-pulse">
+                        {interimTranscript} <span className="opacity-60">{volatileTranscript}</span>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={chatBottomRef} />
+                </div>
+                <div className="absolute bottom-0 w-full h-12 bg-linear-to-t from-zinc-950 to-transparent z-10 pointer-events-none" />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Control bar */}

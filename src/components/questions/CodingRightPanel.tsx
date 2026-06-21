@@ -125,6 +125,8 @@ export function CodingRightPanel({ question, onSolved }: CodingRightPanelProps) 
             automaticLayout: true,
             tabSize: 2,
             padding: { top: 12 },
+            dropIntoEditor: { enabled: false },
+            dragAndDrop: false,
           }}
         />
       </div>

@@ -52,7 +52,7 @@ export function TestResultPanel({
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="font-bold">
+            <span className={`font-bold ${r.passed ? "text-emerald-700" : "text-red-700"}`}>
               {r.passed ? "✓" : "✗"} Case {i + 1}
             </span>
             <span className="text-zinc-400 font-mono">{r.executionTimeMs}ms</span>
@@ -68,11 +68,11 @@ export function TestResultPanel({
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <p className="font-semibold text-zinc-500">Expected:</p>
-                  <pre className="mt-0.5 font-mono whitespace-pre-wrap">{r.expectedOutput}</pre>
+                  <pre className="mt-0.5 font-mono whitespace-pre-wrap text-zinc-800">{r.expectedOutput}</pre>
                 </div>
                 <div>
                   <p className="font-semibold text-zinc-500">Got:</p>
-                  <pre className="mt-0.5 font-mono whitespace-pre-wrap">{r.stdout || "(empty)"}</pre>
+                  <pre className="mt-0.5 font-mono whitespace-pre-wrap text-zinc-800">{r.stdout || "(empty)"}</pre>
                 </div>
               </div>
             </div>

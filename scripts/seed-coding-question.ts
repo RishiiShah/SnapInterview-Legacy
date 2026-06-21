@@ -75,12 +75,23 @@ nums = json.loads(input())
 target = int(input())
 
 def two_sum(nums, target):
-    seen = {}
-    for i, n in enumerate(nums):
-        complement = target - n
-        if complement in seen:
-            return [seen[complement], i]
-        seen[n] = i
+    0/2 passed
+✗ Case 1
+18ms
+Expected:
+
+[0,1]
+Got:
+
+[0, 1]
+✗ Case 2
+18ms
+Expected:
+
+[1,2]
+Got:
+
+[1, 2]
 
 print(json.dumps(two_sum(nums, target)))`,
     cpp: `#include <iostream>

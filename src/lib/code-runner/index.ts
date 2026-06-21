@@ -40,7 +40,7 @@ export async function runTestCases(
     const result = await executeCode(code, language, tc.input);
     results.push({
       ...result,
-      passed: result.stderr === "" && result.stdout.trim() === tc.expectedOutput.trim(),
+      passed: result.stderr === "" && result.stdout.trim().replace(/\s/g, "") === tc.expectedOutput.trim().replace(/\s/g, ""),
       input: tc.input,
       expectedOutput: tc.expectedOutput,
     });

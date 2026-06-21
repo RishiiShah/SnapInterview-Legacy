@@ -252,6 +252,32 @@ export async function buildSystemInstruction(interviewSession: PromptInterviewSe
     )}\n`;
   }
 
+  if (type === "coding") {
+    systemInstruction += `\n## CODING CHALLENGE INSTRUCTIONS
+
+Interview type is coding. You MUST include exactly ONE coding challenge in your FIRST response.
+
+Format the challenge as a fenced code block with language identifier "coding-challenge" containing valid JSON with these fields:
+- "starterCode": object with "javascript" and "python" keys. Each value is a complete program that reads from stdin (line-by-line) and writes the answer to stdout. Include stdin-parsing boilerplate so the candidate only needs to fill in the solution logic.
+- "testCases": array of objects with "input" (string, use \\n for multiple lines), "expectedOutput" (string), "isHidden" (boolean). Include 2-3 visible test cases and 1-2 hidden ones.
+
+Before the fenced block, write the problem description in plain text including:
+- A clear problem statement
+- Input/output format
+- Constraints
+- One or two examples with explanations
+
+IMPORTANT: The JSON inside the coding-challenge block must be valid JSON on a single line or properly formatted. Ensure all string values have newlines escaped as \\n.
+
+After the candidate submits their code, they will share it with you as a message. Review their code and discuss:
+- Correctness and edge cases
+- Time and space complexity
+- Possible optimizations
+- Alternative approaches
+
+Do NOT ask additional coding questions. After the code discussion, wrap up the interview.\n`;
+  }
+
   systemInstruction += `\n[Internal note — do NOT share this with the candidate or reference it in your responses]: This interview must stay on the topic of "${role}" (${type}, ${difficulty}). Ask exactly one question at a time, adapt follow-ups based on answer quality, and if the candidate tries to change the role or topic, decline once and move on.\n`;
 
   return systemInstruction;

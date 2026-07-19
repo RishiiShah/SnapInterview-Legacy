@@ -1,6 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  createAudioBufferFromPcm,
+  isLocalTtsEnabled,
+  mergePendingTtsText,
+  splitTtsText,
+  type BrowserTtsEngine,
+  type BrowserTtsStatus,
+} from "@/lib/tts/browser-tts";
+import { getSharedKokoroWorkerClient } from "@/lib/tts/kokoro-worker-client";
 
 const STORAGE_KEY = "tts_muted";
 const SPEED_STORAGE_KEY = "tts_speed";
@@ -53,12 +62,17 @@ export function useStreamingTTS({
   completedText,
   enabled = true,
   persona,
+  localTtsEnabled,
+  ttsEngine,
 }: {
   streamingText?: string;
   completedText: string;
   enabled?: boolean;
   persona?: string | null;
+  localTtsEnabled?: boolean;
+  ttsEngine?: BrowserTtsEngine;
 }) {
+  const localEnabled = localTtsEnabled ?? isLocalTtsEnabled();
   const personaRef = useRef(persona);
 
   useLayoutEffect(() => {
@@ -78,12 +92,54 @@ export function useStreamingTTS({
   const activeResponseRef = useRef("");
   const speakNextRef = useRef<() => void>(() => {});
   const isSpeakingRef = useRef(false);
+  const generationRef = useRef(0);
+  const engineRef = useRef<BrowserTtsEngine | null>(null);
+  const preloadPromiseRef = useRef<Promise<void> | null>(null);
+  const localFailureRef = useRef(!localEnabled);
+  const [status, setStatus] = useState<BrowserTtsStatus>(localEnabled ? "idle" : "fallback");
+
+  useEffect(() => {
+    if (!localEnabled) {
+      localFailureRef.current = true;
+      return;
+    }
+
+    const engine = ttsEngine ?? getSharedKokoroWorkerClient();
+    engineRef.current = engine;
+    localFailureRef.current = false;
+    const unsubscribe = engine.subscribe((nextStatus) => {
+      if (nextStatus === "error") {
+        localFailureRef.current = true;
+        setStatus("fallback");
+        return;
+      }
+      setStatus(nextStatus);
+    });
+
+    const preloadPromise = engine.preload();
+    preloadPromiseRef.current = preloadPromise;
+    void preloadPromise
+      .then(() => setStatus("ready"))
+      .catch(() => {
+        localFailureRef.current = true;
+        setStatus("fallback");
+      });
+
+    return () => {
+      unsubscribe();
+      if (ttsEngine) engine.dispose();
+      if (engineRef.current === engine) engineRef.current = null;
+      if (preloadPromiseRef.current === preloadPromise) preloadPromiseRef.current = null;
+    };
+  }, [localEnabled, ttsEngine]);
 
   const cancel = useCallback(() => {
+    generationRef.current += 1;
     queueRef.current = [];
     spokenPrefixRef.current = "";
     activeResponseRef.current = "";
     isSpeakingRef.current = false;
+    engineRef.current?.cancel();
     if (currentSourceRef.current) {
       try {
         currentSourceRef.current.onended = null;
@@ -104,45 +160,71 @@ export function useStreamingTTS({
 
     isSpeakingRef.current = true;
     const rate = getSpeechRate();
+    const requestGeneration = generationRef.current;
 
-    fetch("/api/tts", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: nextText, persona: personaRef.current }),
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const detail = await res.text().catch(() => "");
-          throw new Error(`TTS API ${res.status}: ${detail}`);
+    const playAudio = (audioBuffer: AudioBuffer) => {
+      if (requestGeneration !== generationRef.current || mutedRef.current) return;
+      const ctx = getOrCreateAudioContext(audioContextRef);
+      const source = ctx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.playbackRate.value = rate;
+      source.connect(ctx.destination);
+      source.onended = () => {
+        currentSourceRef.current = null;
+        isSpeakingRef.current = false;
+        speakNextRef.current();
+      };
+      currentSourceRef.current = source;
+      source.start();
+    };
+
+    const fetchRemoteAudio = async () => {
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: nextText, persona: personaRef.current }),
+      });
+      if (!res.ok) {
+        const detail = await res.text().catch(() => "");
+        throw new Error(`TTS API ${res.status}: ${detail}`);
+      }
+      return res.arrayBuffer();
+    };
+
+    const synthesize = async () => {
+      const engine = engineRef.current;
+      if (localEnabled && !localFailureRef.current && engine) {
+        try {
+          await preloadPromiseRef.current;
+          const audio = await engine.synthesize(nextText, { persona: personaRef.current });
+          if (requestGeneration !== generationRef.current) return;
+          playAudio(createAudioBufferFromPcm(getOrCreateAudioContext(audioContextRef), audio));
+          return;
+        } catch (error) {
+          if (requestGeneration !== generationRef.current) return;
+          localFailureRef.current = true;
+          setStatus("fallback");
+          console.error("[TTS] local playback error:", error);
         }
-        return res.arrayBuffer();
-      })
-      .then((arrayBuffer) => {
-        const ctx = getOrCreateAudioContext(audioContextRef);
-        return ctx.decodeAudioData(arrayBuffer).then((audioBuffer) => {
-          if (mutedRef.current) return; // cancelled while decoding
+      }
 
-          const source = ctx.createBufferSource();
-          source.buffer = audioBuffer;
-          source.playbackRate.value = rate;
-          source.connect(ctx.destination);
-          source.onended = () => {
-            currentSourceRef.current = null;
-            isSpeakingRef.current = false;
-            speakNextRef.current();
-          };
-          currentSourceRef.current = source;
-          source.start();
-        });
-      })
+      const arrayBuffer = await fetchRemoteAudio();
+      if (requestGeneration !== generationRef.current) return;
+      const ctx = getOrCreateAudioContext(audioContextRef);
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      playAudio(audioBuffer);
+    };
+
+    void synthesize()
       .catch((err) => {
+        if (requestGeneration !== generationRef.current) return;
         console.error("[TTS] playback error:", err);
         currentSourceRef.current = null;
         isSpeakingRef.current = false;
         speakNextRef.current(); // skip failed sentence, continue queue
       });
-  }, [enabled]);
+  }, [enabled, localEnabled]);
 
   useEffect(() => {
     speakNextRef.current = speakNext;
@@ -152,7 +234,15 @@ export function useStreamingTTS({
     (text: string) => {
       const cleaned = stripMarkdown(text);
       if (!cleaned) return;
-      queueRef.current.push(cleaned);
+
+      for (const chunk of splitTtsText(cleaned)) {
+        if (queueRef.current.length >= 3) {
+          const lastIndex = queueRef.current.length - 1;
+          queueRef.current[lastIndex] = mergePendingTtsText(queueRef.current[lastIndex], chunk);
+        } else {
+          queueRef.current.push(chunk);
+        }
+      }
       speakNext();
     },
     [speakNext]
@@ -245,8 +335,10 @@ export function useStreamingTTS({
         void audioContextRef.current.close();
         audioContextRef.current = null;
       }
+      generationRef.current += 1;
+      engineRef.current?.cancel();
     };
   }, []);
 
-  return { muted, setMuted, cancel };
+  return { muted, setMuted, cancel, status };
 }

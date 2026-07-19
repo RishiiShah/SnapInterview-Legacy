@@ -45,6 +45,7 @@ export default function InterviewPageClient() {
             media.stopStream();
             router.push("/practice");
           }}
+          ttsStatus={tts.status}
           onPermissionsGranted={handlePermissionsGranted}
           hasPermission={media.hasPermission}
           isLoading={media.isLoading}

@@ -1,10 +1,12 @@
 import { motion } from "framer-motion";
 import PermissionRequest, { type PermissionRequestProps } from "@/components/interview/PermissionRequest";
 import { IconChevronLeft } from "@/components/ui/icons";
+import type { BrowserTtsStatus } from "@/lib/tts/browser-tts";
 
-type PreJoinScreenProps = {
+export type PreJoinScreenProps = {
   onBack: () => void;
   onPermissionsGranted: () => void;
+  ttsStatus: BrowserTtsStatus;
 } & Omit<
   PermissionRequestProps,
   "isOpen" | "onPermissionsGranted"
@@ -13,6 +15,7 @@ type PreJoinScreenProps = {
 export default function PreJoinScreen({
   onBack,
   onPermissionsGranted,
+  ttsStatus,
   hasPermission,
   isLoading,
   error,
@@ -57,6 +60,17 @@ export default function PreJoinScreen({
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Join interview</h1>
           <p className="mt-1 text-sm text-zinc-500">Allow camera and microphone, then join when you are ready.</p>
         </div>
+
+        {ttsStatus === "loading" && (
+          <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800" role="status">
+            Preparing interview voice…
+          </div>
+        )}
+        {(ttsStatus === "fallback" || ttsStatus === "error") && (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="status">
+            Using backup interview voice
+          </div>
+        )}
 
         <PermissionRequest
           isOpen={true}

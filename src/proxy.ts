@@ -65,7 +65,8 @@ function createContentSecurityPolicy(nonce: string, isDev: boolean) {
     // while inline style="" attributes from React/Framer Motion still work (style-src-attr).
     return `
         default-src 'self';
-        script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://va.vercel-scripts.com ${isDev ? "'unsafe-eval'" : ""};
+        script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://va.vercel-scripts.com 'wasm-unsafe-eval' ${isDev ? "'unsafe-eval'" : ""};
+        worker-src 'self' blob:;
         style-src 'self';
         style-src-elem 'self' 'nonce-${nonce}';
         style-src-attr 'unsafe-inline';
@@ -75,7 +76,7 @@ function createContentSecurityPolicy(nonce: string, isDev: boolean) {
         base-uri 'self';
         form-action 'self';
         frame-ancestors 'none';
-        connect-src 'self' https://accounts.google.com https://www.googleapis.com https://*.amazonaws.com;
+        connect-src 'self' https://accounts.google.com https://www.googleapis.com https://*.amazonaws.com https://huggingface.co https://cdn-lfs.huggingface.co https://cdn-lfs.hf.co;
         media-src 'self' https://*.amazonaws.com data: blob:;
         upgrade-insecure-requests;
     `.replace(/\s{2,}/g, " ").trim();

@@ -2,6 +2,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useStreamingTTS } from "./useStreamingTTS";
+import type { BrowserTtsAudio, BrowserTtsEngine } from "@/lib/tts/browser-tts";
 
 type TTSRequestPayload = {
   text: string;
@@ -34,6 +35,7 @@ class MockAudioContext {
   resume = mockAudioContextResume.mockResolvedValue(undefined);
   close = mockAudioContextClose.mockResolvedValue(undefined);
   decodeAudioData = mockDecodeAudioData.mockResolvedValue({});
+  createBuffer = vi.fn(() => ({ copyToChannel: vi.fn() }));
   createBufferSource = mockCreateBufferSource.mockImplementation(() => {
     const source: MockAudioSource = {
       buffer: null,
@@ -81,10 +83,36 @@ async function waitForSourceReady() {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function renderTTS(initialCompleted = "", initialStreaming = "") {
+function createLocalTtsEngine(overrides: Partial<BrowserTtsEngine> = {}): BrowserTtsEngine {
+  return {
+    preload: vi.fn().mockResolvedValue(undefined),
+    synthesize: vi.fn().mockResolvedValue({
+      pcm: new Float32Array([0.1, -0.1]),
+      sampleRate: 24_000,
+    }),
+    cancel: vi.fn(),
+    dispose: vi.fn(),
+    subscribe: vi.fn((listener: (status: "idle" | "loading" | "ready" | "fallback" | "error") => void) => {
+      listener("ready");
+      return () => {};
+    }),
+    ...overrides,
+  };
+}
+
+function renderTTS(
+  initialCompleted = "",
+  initialStreaming = "",
+  options: { localTtsEnabled?: boolean; ttsEngine?: BrowserTtsEngine } = {},
+) {
   return renderHook(
     ({ completedText, streamingText }: { completedText: string; streamingText: string }) =>
-      useStreamingTTS({ completedText, streamingText }),
+      useStreamingTTS({
+        completedText,
+        streamingText,
+        localTtsEnabled: options.localTtsEnabled ?? false,
+        ttsEngine: options.ttsEngine,
+      }),
     { initialProps: { completedText: initialCompleted, streamingText: initialStreaming } }
   );
 }
@@ -107,6 +135,75 @@ afterEach(() => {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe("useStreamingTTS", () => {
+  describe("browser-local provider", () => {
+    it("preloads the local engine and reports ready without waiting for playback", async () => {
+      const engine = createLocalTtsEngine();
+      const { result } = renderTTS("", "", { localTtsEnabled: true, ttsEngine: engine });
+
+      await waitFor(() => {
+        expect(engine.preload).toHaveBeenCalledTimes(1);
+        expect(result.current.status).toBe("ready");
+      });
+    });
+
+    it("uses local synthesis without calling the server TTS route", async () => {
+      const engine = createLocalTtsEngine();
+      const { rerender } = renderTTS("", "", { localTtsEnabled: true, ttsEngine: engine });
+
+      act(() => {
+        rerender({ completedText: "Local interviewer voice.", streamingText: "" });
+      });
+
+      await waitFor(() => {
+        expect(engine.synthesize).toHaveBeenCalledWith("Local interviewer voice.", { persona: undefined });
+      });
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("switches to server fallback once after local synthesis fails", async () => {
+      const engine = createLocalTtsEngine({
+        synthesize: vi.fn().mockRejectedValue(new Error("local engine unavailable")),
+      });
+      const { rerender, result } = renderTTS("", "", { localTtsEnabled: true, ttsEngine: engine });
+
+      act(() => {
+        rerender({ completedText: "First local attempt.", streamingText: "" });
+      });
+
+      await expectFetchText("First local attempt.");
+      expect(result.current.status).toBe("fallback");
+
+      expect(engine.synthesize).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not call server fallback when local synthesis is cancelled by unmount", async () => {
+      let rejectSynthesis: ((error: Error) => void) | undefined;
+      const engine = createLocalTtsEngine({
+        synthesize: vi.fn(
+          () =>
+            new Promise<BrowserTtsAudio>((_, reject) => {
+              rejectSynthesis = reject;
+            }),
+        ),
+        cancel: vi.fn(() => rejectSynthesis?.(new Error("cancelled"))),
+        dispose: vi.fn(() => rejectSynthesis?.(new Error("disposed"))),
+      });
+      const { rerender, unmount } = renderTTS("", "", { localTtsEnabled: true, ttsEngine: engine });
+
+      act(() => {
+        rerender({ completedText: "Pending local speech.", streamingText: "" });
+      });
+      await waitFor(() => expect(engine.synthesize).toHaveBeenCalledTimes(1));
+
+      unmount();
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+  });
+
   describe("speaking completed text", () => {
     it("speaks the full text when completedText is provided", async () => {
       const { rerender } = renderTTS("");

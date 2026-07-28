@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { env } from "@/lib/env";
 
 type OriginValidationResult = {
@@ -118,10 +117,10 @@ export function validateRequestOrigin(req: Request): OriginValidationResult {
   return { isValid, normalizedOrigin };
 }
 
-export function csrfRejectIfInvalid(req: Request): NextResponse | null {
+export function csrfRejectIfInvalid(req: Request): Response | null {
   const { isValid } = validateRequestOrigin(req);
   if (!isValid) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   return null;

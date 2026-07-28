@@ -1,7 +1,5 @@
-import { NextResponse } from "next/server";
-
 export function apiJson<T>(body: T, status = 200) {
-  return NextResponse.json(body, { status });
+  return Response.json(body, { status });
 }
 
 export function apiError(message: string, status: number) {

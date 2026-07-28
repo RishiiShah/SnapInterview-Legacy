@@ -33,7 +33,7 @@ describe("csrf utilities", () => {
     vi.unstubAllEnvs();
   });
 
-  it("rejects when origin header is missing or invalid", () => {
+  it("rejects when origin header is missing or invalid", async () => {
     const req = new Request("http://localhost/api/test", { method: "POST" });
 
     const result = validateRequestOrigin(req);
@@ -41,7 +41,27 @@ describe("csrf utilities", () => {
     expect(result.normalizedOrigin).toBeNull();
 
     const res = csrfRejectIfInvalid(req);
+    expect(res).toBeInstanceOf(Response);
     expect(res?.status).toBe(403);
+    await expect(res!.json()).resolves.toEqual({ error: "Forbidden" });
+  });
+
+  it("rejects invalid origins with 403 and { error: Forbidden }", async () => {
+    mockEnv.BETTER_AUTH_URL = "https://app.example.com";
+
+    const req = new Request("https://api.example.com/api/test", {
+      method: "POST",
+      headers: { origin: "https://evil.example.com" },
+    });
+
+    const result = validateRequestOrigin(req);
+    expect(result.isValid).toBe(false);
+    expect(result.normalizedOrigin).toBe("https://evil.example.com");
+
+    const res = csrfRejectIfInvalid(req);
+    expect(res).toBeInstanceOf(Response);
+    expect(res?.status).toBe(403);
+    await expect(res!.json()).resolves.toEqual({ error: "Forbidden" });
   });
 
   it("accepts origins that match configured allowed origins", () => {

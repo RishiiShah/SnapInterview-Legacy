@@ -23,6 +23,7 @@
 /.agents/
 /.claude/
 CLAUDE.md
+AGENTS.md
 
 # production
 /build

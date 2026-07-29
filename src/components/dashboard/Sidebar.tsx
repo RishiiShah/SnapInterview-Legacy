@@ -112,10 +112,16 @@ export function Sidebar({
     collapsed,
     setCollapsed,
     session,
+    isMobile,
+    mobileOpen,
+    onMobileClose,
 }: {
     collapsed: boolean;
     setCollapsed: (v: boolean) => void;
     session: DashboardSession;
+    isMobile: boolean;
+    mobileOpen: boolean;
+    onMobileClose: () => void;
 }) {
     const pathname = usePathname();
     const userName = session?.user?.name || "User";
@@ -138,10 +144,19 @@ export function Sidebar({
     }, []);
 
     return (
-        <aside className={`fixed inset-y-0 left-0 z-60 flex ${collapsed ? "w-16" : "w-64"} flex-col border-r border-zinc-200 bg-white transition-all duration-300 ease-in-out`}>
+        <>
+            {isMobile && mobileOpen ? (
+                <button
+                    type="button"
+                    className="fixed inset-0 z-40 bg-zinc-900/40 backdrop-blur-[1px] lg:hidden"
+                    onClick={onMobileClose}
+                    aria-label="Close sidebar"
+                />
+            ) : null}
+            <aside className={`fixed inset-y-0 left-0 z-50 flex ${isMobile ? "w-72" : collapsed ? "w-16" : "w-64"} flex-col border-r border-zinc-200 bg-white transition-all duration-300 ease-in-out ${isMobile ? (mobileOpen ? "translate-x-0" : "-translate-x-full") : "translate-x-0"}`}>
             {/* Logo + Toggle */}
-            <div className={`flex h-16 items-center border-b border-zinc-100 ${collapsed ? "justify-center px-2" : "justify-between px-3"}`}>
-                {collapsed ? (
+            <div className={`flex h-16 items-center border-b border-zinc-100 ${!isMobile && collapsed ? "justify-center px-2" : "justify-between px-3"}`}>
+                {!isMobile && collapsed ? (
                     <button
                         onClick={() => setCollapsed(false)}
                         onMouseEnter={() => setIsSidebarOpenHovered(true)}
@@ -167,12 +182,12 @@ export function Sidebar({
                             <span className="whitespace-nowrap text-lg font-semibold tracking-tight text-zinc-900">SnapInterview</span>
                         </Link>
                         <button
-                            onClick={() => setCollapsed(true)}
+                            onClick={isMobile ? onMobileClose : () => setCollapsed(true)}
                             onMouseEnter={() => setIsSidebarCollapseHovered(true)}
                             onMouseLeave={() => setIsSidebarCollapseHovered(false)}
                             className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
-                            aria-label="Collapse sidebar"
-                            title="Collapse sidebar"
+                            aria-label={isMobile ? "Close sidebar" : "Collapse sidebar"}
+                            title={isMobile ? "Close sidebar" : "Collapse sidebar"}
                         >
                             <AnimatedSidebarCollapseIcon className="h-5 w-5" strokeWidth={1.9} isHovered={isSidebarCollapseHovered} />
                         </button>
@@ -184,7 +199,7 @@ export function Sidebar({
             <nav className="flex-1 space-y-1 px-2 py-4">
                 {navItems.map((item) => {
                     const active = pathname === item.href || pathname.startsWith(item.href + '/');
-                    return <SidebarNavItem key={item.href} item={item} active={active} collapsed={collapsed} />;
+                    return <SidebarNavItem key={item.href} item={item} active={active} collapsed={!isMobile && collapsed} />;
                 })}
             </nav>
 
@@ -193,8 +208,8 @@ export function Sidebar({
                 {/* Account Button */}
                 <button
                     onClick={() => setAccountOpen(!accountOpen)}
-                    title={collapsed ? userName : undefined}
-                    className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-zinc-100 ${collapsed ? "justify-center" : ""}`}
+                    title={!isMobile && collapsed ? userName : undefined}
+                    className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-zinc-100 ${!isMobile && collapsed ? "justify-center" : ""}`}
                 >
                     {userImage ? (
                         <div className="relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full">
@@ -203,7 +218,7 @@ export function Sidebar({
                     ) : (
                         <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-zinc-900 text-[10px] font-bold text-white">{initials}</div>
                     )}
-                    {!collapsed && (
+                    {(isMobile || !collapsed) && (
                         <>
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-medium text-zinc-900">{userName}</p>
@@ -217,10 +232,10 @@ export function Sidebar({
                 {/* Drop-up Menu */}
                 {accountOpen && (
                     <div
-                        className={`absolute bottom-full mb-2 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl ${collapsed ? "left-2 w-48" : "left-2 right-2"}`}
+                        className={`absolute bottom-full mb-2 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl ${!isMobile && collapsed ? "left-2 w-48" : "left-2 right-2"}`}
                         style={{ animation: "fadeSlideUp 0.15s ease-out" }}
                     >
-                        {collapsed && (
+                        {!isMobile && collapsed && (
                             <div className="border-b border-zinc-100 px-4 py-3">
                                 <p className="text-sm font-medium text-zinc-900">{userName}</p>
                                 <p className="truncate text-xs text-zinc-400">{userEmail}</p>
@@ -233,6 +248,7 @@ export function Sidebar({
                     </div>
                 )}
             </div>
-        </aside>
+            </aside>
+        </>
     );
 }

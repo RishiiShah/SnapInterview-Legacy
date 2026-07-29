@@ -25,6 +25,7 @@ import {
   Mail,
   Mic,
   MicOff,
+  Menu,
   Pencil,
   Play,
   Plus,
@@ -107,6 +108,7 @@ export const IconEyeOpen = makeIcon(Eye);
 export const IconEyeClosed = makeIcon(EyeOff);
 export const IconMicrophoneSolid = makeIcon(Mic);
 export const IconMicrophoneOffSolid = makeIcon(MicOff);
+export const IconMenu = makeIcon(Menu);
 export const IconVideoCamera = makeIcon(Video);
 export const IconVideoCameraOff = makeIcon(VideoOff);
 export const IconTag = makeIcon(Tag);

@@ -59,14 +59,14 @@ export default function InterviewPreferencesTab({ initialValues }: InterviewPref
       />
 
       <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="border-b border-zinc-100 px-8 py-6">
+        <div className="border-b border-zinc-100 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
           <h2 className="text-xl font-semibold text-zinc-900">AI Voice</h2>
           <p className="mt-1 text-sm text-zinc-500">
             Control whether the AI interviewer speaks and how fast.
           </p>
         </div>
         <div className="divide-y divide-zinc-100">
-          <div className="flex items-center justify-between px-8 py-5">
+          <div className="flex items-center justify-between gap-3 px-4 py-5 sm:px-6 lg:px-8">
             <div>
               <p className="text-sm font-medium text-zinc-900">AI voice</p>
               <p className="text-xs text-zinc-500 mt-0.5">Read questions aloud during interviews</p>
@@ -86,9 +86,9 @@ export default function InterviewPreferencesTab({ initialValues }: InterviewPref
               />
             </button>
           </div>
-          <div className={`px-8 py-5 ${muted ? "opacity-40 pointer-events-none" : ""}`}>
+          <div className={`px-4 py-5 sm:px-6 lg:px-8 ${muted ? "opacity-40 pointer-events-none" : ""}`}>
             <p className="text-sm font-medium text-zinc-900 mb-3">Speaking speed</p>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {SPEED_OPTIONS.map((option) => (
               <button
                 key={option.value}

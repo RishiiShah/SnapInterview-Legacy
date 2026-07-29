@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Difficulty, InterviewType } from "@/lib/interview/domain";
 import { RecordingEvaluation } from "./RecordingEvaluation";
 import { RecordingTranscript } from "./RecordingTranscript";
+import ModalPortal from "@/components/ui/ModalPortal";
 
 type RecordingModalProps = {
     isOpen: boolean;
@@ -184,18 +185,6 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
         };
     }, [isOpen, interviewId]);
 
-    // Prevent background scrolling when modal is open
-    useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = "hidden";
-        } else {
-            document.body.style.overflow = "unset";
-        }
-        return () => {
-            document.body.style.overflow = "unset";
-        };
-    }, [isOpen]);
-
     useEffect(() => {
         if (!isOpen) return;
 
@@ -216,12 +205,14 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
         : error;
 
     return (
-        <AnimatePresence>
+        <ModalPortal isOpen={isOpen}>
+            <AnimatePresence>
+                {isOpen && (
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/60"
+                className="fixed inset-0 z-[80] flex min-h-dvh items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
                 onClick={onClose}
             >
                 <motion.div
@@ -428,6 +419,8 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                     </div>
                 </motion.div>
             </motion.div>
-        </AnimatePresence>
+                )}
+            </AnimatePresence>
+        </ModalPortal>
     );
 }

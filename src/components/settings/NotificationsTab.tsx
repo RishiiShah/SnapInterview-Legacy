@@ -80,16 +80,16 @@ export default function NotificationsTab({ initialPrefs }: NotificationsTabProps
 
   return (
     <div>
-      <div className="border-b border-zinc-100 px-8 py-6">
+      <div className="border-b border-zinc-100 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
         <h2 className="text-lg font-semibold text-zinc-900">Notification Preferences</h2>
         <p className="mt-1 text-sm text-zinc-500">Choose what notifications you want to receive.</p>
       </div>
 
-      <div className="px-8 py-6">
+      <div className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
         <div className="space-y-2">
           {preferenceItems.map((pref) => (
-            <div key={pref.label} className="flex items-center justify-between rounded-xl border border-zinc-100 px-5 py-4 transition-all hover:border-zinc-200 hover:shadow-sm">
-              <div className="flex items-center gap-4">
+            <div key={pref.label} className="flex flex-col items-start justify-between gap-3 rounded-xl border border-zinc-100 px-4 py-4 transition-all hover:border-zinc-200 hover:shadow-sm sm:flex-row sm:items-center sm:gap-4 sm:px-5">
+              <div className="flex items-center gap-3 sm:gap-4">
                 <span className={`shrink-0 ${pref.value ? "text-zinc-700" : "text-zinc-300"} transition-colors`}>{pref.icon}</span>
                 <div>
                   <p className="text-sm font-medium text-zinc-900">{pref.label}</p>

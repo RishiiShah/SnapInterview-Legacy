@@ -33,23 +33,26 @@ export default function SubScoreTrendChart({ trends, delay = 0.4 }: SubScoreTren
       triggerOnView={false}
       delay={delay}
       direction="up"
-      className="rounded-2xl border border-zinc-200 bg-white p-[18px]"
+      className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-6"
     >
       <h3 className="mb-1 text-sm font-semibold text-zinc-900">Sub-score Trends</h3>
-      <p className="mb-4 text-xs text-zinc-400">Weekly breakdown by dimension</p>
-      <div className="grid grid-cols-3 gap-4">
+      <p className="mb-4 text-xs text-zinc-400 md:mb-5">Weekly breakdown by dimension</p>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-4">
         {SUB_SCORES.map(({ key, label, color }, seriesIndex) => {
           const data = trends[key];
           const hasData = data.some((d) => d.value > 0);
           return (
-            <div key={key}>
-              <p className="mb-2 text-[11px] font-medium text-zinc-500">{label}</p>
+            <div
+              key={key}
+              className="min-w-0 border-b border-zinc-100 pb-6 last:border-b-0 last:pb-0 md:border-b-0 md:pb-0"
+            >
+              <p className="mb-2 text-xs font-medium text-zinc-500 md:text-[11px]">{label}</p>
               {hasData ? (
-                <div className="flex h-[80px] items-end gap-1">
+                <div className="flex h-24 items-end gap-1.5 md:h-20 md:gap-1">
                   {data.map((d, i) => (
                     <div
                       key={d.label}
-                      className="group flex h-full flex-1 flex-col items-center justify-end gap-1"
+                      className="group flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1"
                     >
                       <div className="relative flex w-full flex-1 items-end">
                         <motion.div
@@ -65,19 +68,21 @@ export default function SubScoreTrendChart({ trends, delay = 0.4 }: SubScoreTren
                           }}
                         >
                           {d.value > 0 && (
-                            <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-medium text-zinc-500 opacity-0 transition-opacity group-hover:opacity-100 whitespace-nowrap">
+                            <span className="absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium text-zinc-500 opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100">
                               {d.value}
                             </span>
                           )}
                         </motion.div>
                       </div>
-                      <span className="text-[9px] text-zinc-400">{d.label}</span>
+                      <span className="w-full truncate text-center text-[10px] text-zinc-400 md:text-[9px]">
+                        {d.label}
+                      </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="flex h-[80px] items-center justify-center rounded-lg border border-dashed border-zinc-100">
-                  <p className="text-[10px] text-zinc-400 italic">No data yet</p>
+                <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-zinc-100 md:h-20">
+                  <p className="text-xs text-zinc-400 italic md:text-[10px]">No data yet</p>
                 </div>
               )}
             </div>

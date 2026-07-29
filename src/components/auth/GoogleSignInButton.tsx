@@ -24,7 +24,7 @@ export function GoogleSignInButton({
                     }
                 })
             }
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-100 bg-white py-2.5 text-sm font-medium text-zinc-700 transition-all hover:border-zinc-200 hover:bg-zinc-50"
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-zinc-100 bg-white py-2.5 text-sm font-medium text-zinc-700 transition-all hover:border-zinc-200 hover:bg-zinc-50"
         >
             <svg className="h-4 w-4" viewBox="0 0 24 24">
                 <path

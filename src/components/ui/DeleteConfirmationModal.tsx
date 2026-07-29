@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import type { ReactNode } from "react";
+import ModalPortal from "./ModalPortal";
 
 interface DeleteConfirmationModalProps {
     isOpen: boolean;
@@ -23,22 +24,22 @@ export default function DeleteConfirmationModal({
     extraContent,
 }: DeleteConfirmationModalProps) {
     return (
-        <AnimatePresence>
-            {isOpen && (
-                <>
+        <ModalPortal isOpen={isOpen}>
+            <AnimatePresence>
+                {isOpen && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={isDeleting ? undefined : onClose}
-                        className="fixed inset-0 z-50 bg-zinc-900/40 backdrop-blur-sm"
-                    />
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        className="fixed inset-0 z-[80] flex min-h-dvh items-center justify-center bg-zinc-900/40 p-4 backdrop-blur-sm"
+                    >
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 10 }}
                             transition={{ type: "spring", duration: 0.3 }}
+                            onClick={(e) => e.stopPropagation()}
                             className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl shadow-zinc-900/10 ring-1 ring-zinc-200"
                         >
                             <div className="p-6">
@@ -80,9 +81,9 @@ export default function DeleteConfirmationModal({
                                 </button>
                             </div>
                         </motion.div>
-                    </div>
-                </>
-            )}
-        </AnimatePresence>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </ModalPortal>
     );
 }

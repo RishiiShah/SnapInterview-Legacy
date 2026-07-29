@@ -8,6 +8,7 @@ import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/utils/helpers";
 import { Notification } from "@/data/types";
 import { AnimatedSettingsIcon, AnimatedBellIcon, AnimatedLogoutIcon, AnimatedSearchIcon } from "@/components/ui/animated-icons";
+import { IconMenu } from "@/components/ui/icons";
 import { navItems } from "./Sidebar";
 
 type DashboardSession = {
@@ -165,7 +166,15 @@ function AvatarDropdown({
     );
 }
 
-export function Header({ onSearchOpen, session }: { onSearchOpen: () => void; session: DashboardSession }) {
+export function Header({
+    onSearchOpen,
+    session,
+    onSidebarToggle,
+}: {
+    onSearchOpen: () => void;
+    session: DashboardSession;
+    onSidebarToggle?: () => void;
+}) {
     const pathname = usePathname();
     const userName = session?.user?.name || "User";
     const userEmail = session?.user?.email || null;
@@ -230,8 +239,20 @@ export function Header({ onSearchOpen, session }: { onSearchOpen: () => void; se
     const pageTitle = navItems.find((i) => pathname === i.href || pathname.startsWith(i.href + '/'))?.label ?? "Dashboard";
 
     return (
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-zinc-200 bg-white/80 px-8 backdrop-blur-lg">
-            <h2 className="text-sm font-semibold text-zinc-900">{pageTitle}</h2>
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-zinc-200 bg-white/80 px-4 backdrop-blur-lg sm:px-6 lg:px-8">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                {onSidebarToggle ? (
+                    <button
+                        type="button"
+                        onClick={onSidebarToggle}
+                        className="-ml-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 lg:hidden"
+                        aria-label="Open sidebar menu"
+                    >
+                        <IconMenu className="h-5 w-5" />
+                    </button>
+                ) : null}
+                <h2 className="truncate text-sm font-semibold text-zinc-900">{pageTitle}</h2>
+            </div>
             <div className="flex items-center gap-3">
                 {/* Search */}
                 <HeaderSearchButton onSearchOpen={onSearchOpen} />

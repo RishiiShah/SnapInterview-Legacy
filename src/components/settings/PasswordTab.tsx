@@ -89,12 +89,12 @@ export default function PasswordTab() {
 
   return (
     <div>
-      <div className="border-b border-zinc-100 px-8 py-6">
+      <div className="border-b border-zinc-100 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
         <h2 className="text-lg font-semibold text-zinc-900">Change Password</h2>
         <p className="mt-1 text-sm text-zinc-500">Update your password to keep your account secure. Other active devices will be signed out.</p>
       </div>
 
-      <div className="px-8 py-6 space-y-5">
+      <div className="space-y-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
         <div>
           <label className="mb-1.5 block text-sm font-medium text-zinc-700">Current Password</label>
           <div className="relative">
@@ -142,7 +142,7 @@ export default function PasswordTab() {
 
         <div className="rounded-xl bg-zinc-50 p-4">
           <p className="text-xs font-medium text-zinc-500 mb-2">Password requirements:</p>
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
             {[
               { rule: "At least 8 characters", met: newPassword.length >= 8 },
               { rule: "One uppercase letter", met: /[A-Z]/.test(newPassword) },
@@ -159,13 +159,13 @@ export default function PasswordTab() {
       </div>
 
       {passwordError && (
-        <div className="mx-8 mb-4 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mx-4 mb-4 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 sm:mx-6 lg:mx-8">
           <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
           {passwordError}
         </div>
       )}
 
-      <div className="flex items-center gap-3 border-t border-zinc-100 px-8 py-5">
+      <div className="flex flex-wrap items-center gap-3 border-t border-zinc-100 px-4 py-5 sm:px-6 lg:px-8">
         <Button onClick={handleChangePassword} disabled={!currentPassword || !newPassword} loading={passwordSaving}>
           {passwordSaving ? "Updating…" : "Update Password"}
         </Button>

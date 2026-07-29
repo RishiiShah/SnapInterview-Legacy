@@ -77,9 +77,21 @@ export function QuestionLeftPanel({
 
                         {/* Description text */}
                         <div className="space-y-4 text-sm text-zinc-600 leading-relaxed">
-                            <p>
-                                Prepare a structured response to this interview question. Think about specific examples from your experience and how they demonstrate the required competencies.
-                            </p>
+                            {question.type === "coding" && question.description ? (
+                                <>
+                                    <div className="whitespace-pre-wrap">{question.description}</div>
+                                    {question.constraints && (
+                                        <div className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-4">
+                                            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Constraints</p>
+                                            <pre className="text-xs text-zinc-700 font-mono whitespace-pre-wrap">{question.constraints}</pre>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <p>
+                                    Prepare a structured response to this interview question. Think about specific examples from your experience and how they demonstrate the required competencies.
+                                </p>
+                            )}
                             <div className="grid grid-cols-2 gap-4 rounded-xl border border-zinc-100 bg-zinc-50/50 p-4">
                                 <div>
                                     <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Category</p>

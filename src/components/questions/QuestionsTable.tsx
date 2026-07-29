@@ -87,7 +87,10 @@ export default function QuestionsTable({
               <Link key={q.id} href={`/questions/${q.slug}`} className="group grid grid-cols-[48px_1fr_140px_100px_80px] items-center px-4 py-3.5 transition-colors hover:bg-zinc-50">
                 <span className="text-sm font-medium text-zinc-400">{q.id}</span>
                 <span className="line-clamp-1 pr-4 text-sm font-medium text-zinc-900 group-hover:text-zinc-700">{q.text}</span>
-                <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${cat?.color || ""}`}>{cat?.label}</span>
+                <span className={`inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${cat?.color || ""}`}>
+                  {q.type === "coding" && <span className="font-bold">{"</>"}</span>}
+                  {cat?.label}
+                </span>
                 <span className={`text-sm font-medium ${diff.color}`}>{diff.text}</span>
                 <span className="text-right text-sm text-zinc-400">{q.estimatedTime}</span>
               </Link>

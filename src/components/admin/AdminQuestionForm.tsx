@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 
 import { adminSecondaryLinkClass } from "@/components/admin/admin-styles";
@@ -7,6 +10,7 @@ import {
   INTERVIEW_DIFFICULTY_VALUES,
   INTERVIEW_TYPE_VALUES,
 } from "@/lib/interview/domain";
+import { AdminCodingFields } from "./AdminCodingFields";
 
 export type AdminQuestionFormValues = {
   slug: string;
@@ -17,6 +21,12 @@ export type AdminQuestionFormValues = {
   tags: string;
   hint: string;
   sampleAnswer: string;
+  type?: string;
+  description?: string;
+  constraints?: string;
+  starterCode?: Record<string, string>;
+  testCases?: Array<{ input: string; expectedOutput: string; isHidden: boolean }>;
+  solutionCode?: Record<string, string>;
 };
 
 const defaultValues: AdminQuestionFormValues = {
@@ -50,6 +60,7 @@ export function AdminQuestionForm({
 }: AdminQuestionFormProps) {
   const values = { ...defaultValues, ...initialValues };
   const title = mode === "create" ? "Add Question" : "Edit Question";
+  const [questionType, setQuestionType] = useState(values.type ?? "text");
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -80,19 +91,40 @@ export function AdminQuestionForm({
         {mode === "edit" && questionId != null ? (
           <input type="hidden" name="questionId" value={questionId} />
         ) : null}
+        <input type="hidden" name="type" value={questionType} />
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-zinc-700">Type</label>
+          <div className="flex items-center gap-2">
+            {(["text", "coding"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setQuestionType(t)}
+                className={`cursor-pointer rounded-lg px-4 py-2 text-xs font-bold capitalize transition-all ${
+                  questionType === t
+                    ? "bg-zinc-900 text-white"
+                    : "border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div>
           <label htmlFor="text" className="mb-1.5 block text-sm font-medium text-zinc-700">
-            Question text
+            {questionType === "coding" ? "Title" : "Question text"}
           </label>
           <textarea
             id="text"
             name="text"
             required
-            rows={4}
+            rows={questionType === "coding" ? 2 : 4}
             defaultValue={values.text}
             className={fieldClass}
-            placeholder="Tell me about a time you..."
+            placeholder={questionType === "coding" ? "Two Sum" : "Tell me about a time you..."}
           />
         </div>
 
@@ -122,7 +154,7 @@ export function AdminQuestionForm({
             <label htmlFor="category" className="mb-1.5 block text-sm font-medium text-zinc-700">
               Category
             </label>
-            <select id="category" name="category" defaultValue={values.category} className={fieldClass}>
+            <select id="category" name="category" defaultValue={questionType === "coding" ? "coding" : values.category} className={fieldClass}>
               {INTERVIEW_TYPE_VALUES.map((value) => (
                 <option key={value} value={value}>
                   {value}
@@ -164,18 +196,56 @@ export function AdminQuestionForm({
           <textarea id="hint" name="hint" rows={3} defaultValue={values.hint} className={fieldClass} />
         </div>
 
-        <div>
-          <label htmlFor="sampleAnswer" className="mb-1.5 block text-sm font-medium text-zinc-700">
-            Sample answer (optional)
-          </label>
-          <textarea
-            id="sampleAnswer"
-            name="sampleAnswer"
-            rows={5}
-            defaultValue={values.sampleAnswer}
-            className={fieldClass}
-          />
-        </div>
+        {questionType === "text" && (
+          <div>
+            <label htmlFor="sampleAnswer" className="mb-1.5 block text-sm font-medium text-zinc-700">
+              Sample answer (optional)
+            </label>
+            <textarea
+              id="sampleAnswer"
+              name="sampleAnswer"
+              rows={5}
+              defaultValue={values.sampleAnswer}
+              className={fieldClass}
+            />
+          </div>
+        )}
+
+        {questionType === "coding" && (
+          <>
+            <div>
+              <label htmlFor="description" className="mb-1.5 block text-sm font-medium text-zinc-700">
+                Problem Description
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                rows={6}
+                defaultValue={values.description ?? ""}
+                className={fieldClass}
+                placeholder="Given an array of integers nums and an integer target..."
+              />
+            </div>
+            <div>
+              <label htmlFor="constraints" className="mb-1.5 block text-sm font-medium text-zinc-700">
+                Constraints
+              </label>
+              <textarea
+                id="constraints"
+                name="constraints"
+                rows={3}
+                defaultValue={values.constraints ?? ""}
+                className={fieldClass}
+                placeholder="1 <= nums.length <= 10^4"
+              />
+            </div>
+            <AdminCodingFields
+              initialStarterCode={values.starterCode}
+              initialTestCases={values.testCases}
+              initialSolutionCode={values.solutionCode}
+            />
+          </>
+        )}
 
         <div className="flex flex-wrap gap-3 pt-2">
           <Button type="submit">{mode === "create" ? "Create question" : "Save changes"}</Button>

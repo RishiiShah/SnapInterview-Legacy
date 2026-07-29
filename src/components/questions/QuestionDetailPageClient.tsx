@@ -6,6 +6,7 @@ import type { Question } from "@/data/types";
 import { IconChevronLeft, IconChevronRight } from "@/components/ui/icons";
 import { QuestionLeftPanel, type LeftTab } from "@/components/questions/QuestionLeftPanel";
 import { QuestionRightPanel, type RightTab } from "@/components/questions/QuestionRightPanel";
+import { CodingRightPanel } from "@/components/questions/CodingRightPanel";
 
 type QuestionDetailPageClientProps = {
   question: Question;
@@ -209,18 +210,29 @@ export default function QuestionDetailPageClient({
           solveError={solveError}
           handleToggleSolved={handleToggleSolved}
         />
-        <QuestionRightPanel
-          question={question}
-          answerText={answerText}
-          setAnswerText={setAnswerText}
-          timeRemaining={timeRemaining}
-          isTimerStarted={isTimerStarted}
-          score={score}
-          rightTab={rightTab}
-          setRightTab={setRightTab}
-          handleStart={handleStart}
-          handleSubmit={handleSubmit}
-        />
+        {question.type === "coding" ? (
+          <CodingRightPanel
+            question={question}
+            onSolved={() => {
+              if (!isSolved) {
+                void handleToggleSolved();
+              }
+            }}
+          />
+        ) : (
+          <QuestionRightPanel
+            question={question}
+            answerText={answerText}
+            setAnswerText={setAnswerText}
+            timeRemaining={timeRemaining}
+            isTimerStarted={isTimerStarted}
+            score={score}
+            rightTab={rightTab}
+            setRightTab={setRightTab}
+            handleStart={handleStart}
+            handleSubmit={handleSubmit}
+          />
+        )}
       </div>
     </div>
   );

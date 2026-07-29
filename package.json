@@ -24,6 +24,7 @@
     "@aws-sdk/s3-request-presigner": "3.1096.0",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
+    "@monaco-editor/react": "^4.7.0",
     "@vercel/analytics": "^2.0.1",
     "bcrypt": "^6.0.0",
     "better-auth": "^1.6.25",
@@ -68,7 +69,8 @@
     "sharp": "^0.35.3",
     "esbuild": "^0.28.1",
     "brace-expansion": "^5.0.8",
-    "minimatch": "^10.2.6"
+    "minimatch": "^10.2.6",
+    "dompurify": "^3.4.12"
   },
   "engines": {
     "node": ">=22 <=24.12.0"

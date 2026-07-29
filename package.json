@@ -1,7 +1,7 @@
 {
   "name": "snap-interview",
   "version": "0.1.0",
-  "packageManager": "npm@11.6.2",
+  "packageManager": "npm@11.16.0",
   "type": "module",
   "private": true,
   "scripts": {
@@ -19,9 +19,9 @@
     "cleanup:evaluations": "npx prisma db execute --file src/lib/maintenance/sql/cleanup-invalid-evaluations.sql"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.1096.0",
-    "@aws-sdk/s3-presigned-post": "3.1096.0",
-    "@aws-sdk/s3-request-presigner": "3.1096.0",
+    "@aws-sdk/client-s3": "3.1097.0",
+    "@aws-sdk/s3-presigned-post": "3.1097.0",
+    "@aws-sdk/s3-request-presigner": "3.1097.0",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "@monaco-editor/react": "^4.7.0",
@@ -29,8 +29,8 @@
     "bcrypt": "^6.0.0",
     "better-auth": "^1.6.25",
     "disposable-email-domains": "1.0.62",
-    "framer-motion": "12.42.2",
-    "groq-sdk": "1.4.0",
+    "framer-motion": "12.43.0",
+    "groq-sdk": "1.4.1",
     "kokoro-js": "1.2.1",
     "lucide-react": "^1.27.0",
     "next": "^16.2.12",

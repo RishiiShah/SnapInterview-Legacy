@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { apiError, apiJson, badRequestError, internalServerError } from "@/lib/api-response";
+import { apiError, badRequestError, internalServerError } from "@/lib/api-response";
 import { withCsrfProtection } from "@/lib/route-security";
 import { E2E_TEST_AUTH_COOKIE, encodeE2ETestIdentity, isTestAuthEnabled } from "@/lib/test-auth";
 import { logger } from "@/utils/logger";
+import { NextResponse } from "next/server";
 import { z } from "zod/v4";
 
 const sessionSchema = z.object({
@@ -54,7 +55,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
       },
     });
 
-    const response = apiJson({ ok: true, userId: user.id, email: user.email });
+    const response = NextResponse.json({ ok: true, userId: user.id, email: user.email });
     response.cookies.set(E2E_TEST_AUTH_COOKIE, await encodeE2ETestIdentity({
       userId: user.id,
       email: user.email,
@@ -80,7 +81,7 @@ export const DELETE = withCsrfProtection(async (req: Request) => {
 
   void req;
 
-  const response = apiJson({ ok: true });
+  const response = NextResponse.json({ ok: true });
   response.cookies.delete(E2E_TEST_AUTH_COOKIE);
   return response;
 });

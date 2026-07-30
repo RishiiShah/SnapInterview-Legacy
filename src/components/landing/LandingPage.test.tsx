@@ -91,6 +91,17 @@ describe("landing experience", () => {
     expect(document.querySelector(".landing-workspace-shell .landing-workspace")).toBeTruthy();
   });
 
+  it("wraps editor code instead of creating a horizontal scroller", () => {
+    render(<HeroSection />);
+
+    const codeEditor = screen.getByRole("region", { name: "Code editor" });
+    const codeContent = codeEditor.querySelector("[data-landing-code-content]");
+
+    expect(codeContent).toBeTruthy();
+    expect(codeContent?.className).toContain("overflow-hidden");
+    expect(codeContent?.className).not.toContain("overflow-x-auto");
+  });
+
   it("keeps the floating navbar actions available", () => {
     render(<LandingNavbar />);
 

@@ -104,17 +104,20 @@ export default function HeroWorkspace() {
               </span>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden px-3 py-4 font-mono text-[clamp(0.62rem,1vw,0.78rem)] leading-[1.8]">
+            <div
+              data-landing-code-content
+              className="min-h-0 flex-1 overflow-hidden px-3 py-4 font-mono text-[clamp(0.62rem,1vw,0.78rem)] leading-[1.8]"
+            >
               {CODE_LINES.map((line, index) => (
                 <motion.div
                   key={line.text}
                   initial={reducedMotion ? false : { opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={reducedMotion ? undefined : { delay: 0.85 + index * 0.12, duration: 0.28 }}
-                  className={`flex min-w-max rounded-md px-1 ${index === 5 ? "bg-cyan-400/[0.08]" : ""}`}
+                  className={`flex min-w-0 max-w-full rounded-md px-1 ${index === 5 ? "bg-cyan-400/[0.08]" : ""}`}
                 >
                   <span className="mr-4 w-4 shrink-0 select-none text-right text-[#3D4F73]">{index + 1}</span>
-                  <code className={`whitespace-pre ${line.color}`}>{line.text}</code>
+                  <code className={`min-w-0 break-words whitespace-pre-wrap ${line.color}`}>{line.text}</code>
                   {index === 5 && <span className="ml-1 inline-block w-px bg-cyan-300 motion-safe:animate-pulse" aria-hidden="true" />}
                 </motion.div>
               ))}

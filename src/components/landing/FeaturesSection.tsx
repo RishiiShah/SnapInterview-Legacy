@@ -312,21 +312,16 @@ export default function ProductStrengthsSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
         {/* Section Header */}
-        <div className="mb-5 border-t border-white/[0.08] pt-5 space-y-3">
-          <div className="flex justify-center">
-            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-400">
-              Product Strengths
-            </span>
-          </div>
-
-          <div className="text-left space-y-2">
-            <h2 className="font-serif text-3xl leading-tight tracking-[-0.03em] text-white sm:text-4xl lg:text-5xl max-w-3xl">
-              Built for the moments that matter.
-            </h2>
-            <p className="text-sm leading-relaxed text-[#64748B]">
-              SnapInterview gives you a place to practice speaking, coding, and reviewing across every role and seniority level.
-            </p>
-          </div>
+        <div className="mb-5 border-t border-white/[0.08] pt-5 space-y-2.5 flex flex-col items-center text-center">
+          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-400">
+            Product Strengths
+          </span>
+          <h2 className="font-serif text-3xl leading-tight tracking-[-0.03em] text-white sm:text-4xl lg:text-5xl">
+            Built for every interview moment that matters.
+          </h2>
+          <p className="text-sm leading-relaxed text-[#64748B] max-w-4xl">
+            SnapInterview gives you a place to practice speaking, coding, and reviewing across every role and seniority level.
+          </p>
         </div>
 
         {/* Feature Grid */}

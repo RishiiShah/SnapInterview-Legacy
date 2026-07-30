@@ -129,7 +129,7 @@ describe("landing experience", () => {
       </>,
     );
 
-    expect(screen.getByText(/Capabilities/i)).toBeTruthy();
+    expect(screen.getByText(/Product Strengths/i)).toBeTruthy();
     expect(screen.getByText(/Three steps to interview mastery/i)).toBeTruthy();
     expect(screen.getByText(/Your next interview won't be your first/i)).toBeTruthy();
   });

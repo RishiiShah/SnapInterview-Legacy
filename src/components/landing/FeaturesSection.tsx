@@ -1,162 +1,101 @@
-import { BarChart3, Code, Mic, Sparkles, Video, Zap } from "lucide-react";
+import { Code2, Mic, FileText, BarChart3, Sparkles, Video, CheckCircle2 } from "lucide-react";
 
-export default function FeaturesSection() {
+const STRENGTHS = [
+  {
+    badge: "Voice-First AI",
+    title: "Real-time voice dialogue that listens & probes",
+    desc: "Speak your answers out loud naturally. SnapInterview analyzes your spoken logic and asks adaptive follow-ups on your complexity, trade-offs, and edge cases.",
+    icon: Mic,
+    color: "text-blue-400",
+    bgColor: "bg-blue-500/10 border-blue-500/20",
+    highlightText: "Simulates real interviewer pushback",
+  },
+  {
+    badge: "In-Browser IDE",
+    title: "Code execution with live unit test validation",
+    desc: "Write solution code in JavaScript, Python, or Java with syntax highlighting, run test cases directly in your browser, and verify time complexity on the fly.",
+    icon: Code2,
+    color: "text-cyan-400",
+    bgColor: "bg-cyan-500/10 border-cyan-500/20",
+    highlightText: "Instant execution & memory profiling",
+  },
+  {
+    badge: "Video & Audio Sync",
+    title: "Full recording with searchable speech transcript",
+    desc: "Every mock run records your camera video and audio. Play back your session alongside an automated, word-for-word transcript to spot hesitation or filler words.",
+    icon: Video,
+    color: "text-violet-400",
+    bgColor: "bg-violet-500/10 border-violet-500/20",
+    highlightText: "Time-synced playback & transcript",
+  },
+  {
+    badge: "Personalized Scenarios",
+    title: "Customized to your resume & target job description",
+    desc: "Paste the exact job description of your upcoming interview or upload your resume to generate tailored questions matching the exact company and level.",
+    icon: FileText,
+    color: "text-emerald-400",
+    bgColor: "bg-emerald-500/10 border-emerald-500/20",
+    highlightText: "Targeted question generation",
+  },
+];
+
+export default function ProductStrengthsSection() {
   return (
-    <section id="features" className="landing-section py-28 relative z-10">
+    <section id="features" className="landing-section py-24 relative z-10 bg-[#090A0F]">
       <div className="landing-container">
-
-        {/* Section Header with Starlight Eyebrow */}
+        
+        {/* Header */}
         <div className="flex flex-col items-center text-center mb-16">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-[#60A5FA]">
-            <Sparkles className="h-3.5 w-3.5 text-blue-400" />
-            02 / Capabilities
-          </div>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
-            Engineered for realistic, high-stakes practice
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#60A5FA]">
+            Product Strengths
+          </span>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+            Built for realistic interview execution
           </h2>
-          <p className="mt-3.5 max-w-2xl text-base leading-relaxed text-[#94A3B8]">
-            Every feature is built to simulate the depth, unexpected pushback, and rubric evaluation of a senior interview panel.
+          <p className="mt-3.5 max-w-xl text-base leading-relaxed text-[#94A3B8]">
+            No static flashcards or multiple-choice quizzes. SnapInterview mirrors the actual environment of technical and behavioral interview loops.
           </p>
         </div>
 
-        {/* Bento Grid — Midnight Starlight Glass Cards */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-12">
+        {/* 2x2 Grid of Product Strengths */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {STRENGTHS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={item.title}
+                className="group relative flex flex-col justify-between rounded-2xl border border-white/10 bg-[#0C0E18]/80 p-8 backdrop-blur-2xl transition-all duration-300 hover:border-white/20 hover:bg-[#0E101D]"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <div className={`inline-flex items-center gap-2 rounded-lg border ${item.bgColor} px-3 py-1.5 text-xs font-semibold ${item.color}`}>
+                      <Icon className="h-4 w-4" />
+                      {item.badge}
+                    </div>
+                    <span className="flex items-center gap-1.5 text-[0.7rem] font-medium text-emerald-400">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      {item.highlightText}
+                    </span>
+                  </div>
 
-          {/* BENTO 1 — Adaptive Voice AI (7 cols) */}
-          <article className="group relative lg:col-span-7 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#0B0D18]/60 p-8 backdrop-blur-2xl transition-all duration-300 hover:border-violet-500/40 hover:shadow-[0_0_50px_rgba(139,92,246,0.15)]">
-            {/* Corner Starlight Glow */}
-            <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-violet-500/10 blur-3xl transition-opacity group-hover:opacity-100" />
-            
-            <div>
-              <div className="mb-5 inline-flex items-center gap-2 rounded-lg border border-violet-500/25 bg-violet-500/10 px-3.5 py-1.5 text-xs font-semibold text-violet-300">
-                <Mic className="h-3.5 w-3.5" />
-                Adaptive Voice Interviewer
-              </div>
-              <h3 className="text-2xl font-bold tracking-tight text-white">
-                It listens. Then it probes deeper.
-              </h3>
-              <p className="mt-3 max-w-lg text-sm leading-relaxed text-[#94A3B8]">
-                Answer out loud with your mic open. SnapInterview listens to your reasoning and asks adaptive follow-ups based on what you said — just like a senior interviewer.
-              </p>
-            </div>
+                  <h3 className="text-2xl font-bold tracking-tight text-white leading-snug">
+                    {item.title}
+                  </h3>
 
-            {/* Micro Graphic: Voice Prompt Preview */}
-            <div className="mt-8 rounded-xl border border-white/10 bg-[#06070B]/90 p-4 shadow-inner">
-              <div className="flex items-center justify-between text-xs text-[#94A3B8] mb-2.5">
-                <span className="flex items-center gap-2 font-mono text-violet-300">
-                  <span className="h-2 w-2 rounded-full bg-violet-400 animate-ping" />
-                  AI Interviewer Active
-                </span>
-                <span className="rounded bg-violet-500/20 px-2 py-0.5 text-[0.65rem] font-medium text-violet-300">
-                  Adaptive Probing
-                </span>
-              </div>
-              <div className="rounded-lg bg-white/[0.03] p-3 text-xs leading-relaxed text-[#E2E8F0] border border-white/5">
-                <span className="font-semibold text-violet-400">Interviewer: </span>
-                "You mentioned an $O(N)$ lookup. How would your space complexity scale if memory was severely constrained?"
-              </div>
-            </div>
-          </article>
-
-          {/* BENTO 2 — Video Replay & Transcript (5 cols) */}
-          <article className="group relative lg:col-span-5 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#0B0D18]/60 p-8 backdrop-blur-2xl transition-all duration-300 hover:border-cyan-500/40 hover:shadow-[0_0_50px_rgba(34,211,238,0.15)]">
-            <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-cyan-500/10 blur-3xl transition-opacity group-hover:opacity-100" />
-            
-            <div>
-              <div className="mb-5 inline-flex items-center gap-2 rounded-lg border border-cyan-500/25 bg-cyan-500/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-300">
-                <Video className="h-3.5 w-3.5" />
-                Video Replay & Transcript
-              </div>
-              <h3 className="text-xl font-bold tracking-tight text-white">
-                Every word, hesitation, & decision recorded.
-              </h3>
-              <p className="mt-3 text-sm leading-relaxed text-[#94A3B8]">
-                Review your session video alongside a synchronized word-for-word transcript. See exactly where you hesitated, rambled, or excelled.
-              </p>
-            </div>
-
-            {/* Micro Graphic: Player timeline */}
-            <div className="mt-8 rounded-xl border border-white/10 bg-[#06070B]/90 p-3.5">
-              <div className="flex items-center justify-between text-xs text-[#94A3B8] mb-2">
-                <span className="font-mono text-cyan-300 text-[0.7rem]">HD Video Recording</span>
-                <span className="text-[0.65rem] text-emerald-400">Synced Audio</span>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-                <div className="h-full w-3/5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500" />
-              </div>
-            </div>
-          </article>
-
-          {/* BENTO 3 — Objective Scoring Rubrics (5 cols) */}
-          <article className="group relative lg:col-span-5 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#0B0D18]/60 p-8 backdrop-blur-2xl transition-all duration-300 hover:border-emerald-500/40 hover:shadow-[0_0_50px_rgba(52,211,153,0.15)]">
-            <div>
-              <div className="mb-5 inline-flex items-center gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-emerald-300">
-                <BarChart3 className="h-3.5 w-3.5" />
-                Objective Rubric Scoring
-              </div>
-              <h3 className="text-xl font-bold tracking-tight text-white">
-                Evaluated against real hiring bars.
-              </h3>
-              <p className="mt-3 text-sm leading-relaxed text-[#94A3B8]">
-                Get actionable scores across technical depth, problem-solving, and communication clarity after every practice run.
-              </p>
-            </div>
-
-            {/* Micro Graphic: Score pills */}
-            <div className="mt-8 space-y-2.5">
-              {[
-                { label: "Technical Depth", score: "88%", color: "bg-emerald-400" },
-                { label: "Communication Clarity", score: "92%", color: "bg-cyan-400" },
-              ].map((item) => (
-                <div key={item.label} className="rounded-lg bg-white/[0.03] p-2.5 border border-white/5 flex items-center justify-between text-xs">
-                  <span className="text-[#CBD5E1]">{item.label}</span>
-                  <span className="font-mono font-bold text-white">{item.score}</span>
+                  <p className="mt-3.5 text-sm leading-relaxed text-[#94A3B8]">
+                    {item.desc}
+                  </p>
                 </div>
-              ))}
-            </div>
-          </article>
 
-          {/* BENTO 4 — Focused Question Drills (4 cols) */}
-          <article className="group relative lg:col-span-4 flex flex-col justify-between overflow-hidden rounded-2xl border border-indigo-500/30 bg-[#0B0D18]/60 p-8 backdrop-blur-2xl transition-all duration-300 hover:border-indigo-500/50 hover:shadow-[0_0_50px_rgba(99,102,241,0.2)]">
-            <div>
-              <div className="mb-5 inline-flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/20 px-3.5 py-1.5 text-xs font-semibold text-indigo-300">
-                <Zap className="h-3.5 w-3.5" />
-                Question Drills
+                <div className="mt-8 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-[#64748B]">
+                  <span>SnapInterview Core Engine</span>
+                  <span className="font-mono text-blue-400">v2.4 Active</span>
+                </div>
               </div>
-              <h3 className="text-xl font-bold tracking-tight text-white">
-                Master target topics on demand.
-              </h3>
-              <p className="mt-3 text-sm leading-relaxed text-[#94A3B8]">
-                Skip full mocks when short on time. Drill specific question types by role and difficulty until you feel confident.
-              </p>
-            </div>
-
-            <div className="mt-8 flex flex-wrap gap-2">
-              {["System Design", "Behavioral", "Coding", "SQL"].map((tag) => (
-                <span key={tag} className="rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-[#CBD5E1]">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </article>
-
-          {/* BENTO 5 — 28+ Roles Supported (3 cols) */}
-          <article className="group relative lg:col-span-3 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#0B0D18]/60 p-8 backdrop-blur-2xl transition-all duration-300 hover:border-amber-500/40">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">
-                Supported Domains
-              </div>
-              <div className="mt-2 flex items-baseline gap-1">
-                <span className="text-5xl font-black text-white">28</span>
-                <span className="text-2xl font-bold text-amber-400">+</span>
-              </div>
-            </div>
-            <p className="mt-4 text-xs leading-relaxed text-[#94A3B8]">
-              Software Engineers, PMs, Data Scientists, DevOps, and Engineering Managers.
-            </p>
-          </article>
-
+            );
+          })}
         </div>
+
       </div>
     </section>
   );

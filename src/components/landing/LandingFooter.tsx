@@ -6,7 +6,7 @@ export default function LandingFooter() {
     <footer className="landing-footer-shell text-[#657086]">
       <div className="landing-container flex flex-col items-center justify-between gap-3 sm:flex-row">
         <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-90">
-          <AppLogo size={24} className="rounded-md" />
+          <AppLogo size={28} className="rounded-md" />
           <span className="text-sm font-semibold text-[#F5F7FF]">
             Snap<span className="text-[#A5B4FC]">Interview</span>
           </span>

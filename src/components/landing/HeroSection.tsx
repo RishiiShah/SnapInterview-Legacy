@@ -4,85 +4,78 @@ import HeroWorkspace from "./HeroWorkspace";
 
 export default function HeroSection() {
   return (
-    <section
-      id="home"
-      className="landing-hero relative flex min-w-0 flex-col overflow-x-clip"
-      style={{ minHeight: "100svh" }}
-    >
-      {/* ── Full-bleed illustrated background ── */}
+    <section id="home" className="relative flex min-h-[90vh] flex-col overflow-x-clip bg-[#090A0F]">
+      {/* ── Full-Bleed Illustrated Background Image ── */}
       <div className="absolute inset-0 z-0">
         <Image
           src="/hero-bg.jpg"
-          alt=""
+          alt="Atmospheric starry night landscape"
           fill
           priority
-          quality={90}
+          quality={95}
           className="object-cover object-center"
           aria-hidden="true"
         />
 
-        {/* Layered overlays — darken image so text stays crisp */}
-        {/* Base darkening */}
-        <div className="absolute inset-0 bg-[#020B21]/40" />
-        {/* Bottom-up gradient: text reading zone */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#020B21] via-[#020B21]/70 to-transparent" style={{ background: "linear-gradient(to top, #020B21 0%, rgba(2,11,33,0.82) 28%, rgba(2,11,33,0.45) 55%, transparent 80%)" }} />
-        {/* Left-side vignette so left-aligned text always readable */}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(to right, rgba(2,11,33,0.65) 0%, rgba(2,11,33,0.20) 40%, transparent 70%)" }} />
-        {/* Smooth page-bg continuation at very bottom */}
-        <div className="absolute bottom-0 inset-x-0 h-24 bg-[#020B21]" />
+        {/* Top gradient overlay for navbar contrast */}
+        <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-[#090A0F]/80 via-[#090A0F]/40 to-transparent pointer-events-none" />
+
+        {/* Left vignette overlay for text legibility */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to right, rgba(9,10,15,0.85) 0%, rgba(9,10,15,0.5) 40%, transparent 75%)",
+          }}
+        />
+
+        {/* Bottom gradient fade into page background */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-72 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to top, #090A0F 0%, rgba(9,10,15,0.95) 30%, rgba(9,10,15,0.6) 65%, transparent 100%)",
+          }}
+        />
       </div>
 
-      {/* ── Hero copy — bottom-left anchored ── */}
-      <div
-        className="relative z-10 flex flex-1 flex-col justify-end landing-container"
-        style={{ paddingBottom: "clamp(2.5rem, 5vw, 4rem)" }}
-      >
-        <div className="max-w-[44rem]">
-          {/* Headline */}
-          <h1
-            className="landing-hero-copy break-words font-bold leading-[1.0] tracking-[-0.04em] text-white"
-            style={{ fontSize: "clamp(2.6rem, 6vw, 5.2rem)" }}
-          >
-            The interview
+      {/* ── Bottom-Left Anchored Hero Content (Saasternity / Clonely Style) ── */}
+      <div className="relative z-10 flex min-h-[85vh] flex-col justify-end pb-16 pt-32 landing-container">
+        <div className="max-w-3xl">
+          {/* Main Headline — Pure, crisp white, bold, 2-line layout */}
+          <h1 className="text-[clamp(2.75rem,5.8vw,5rem)] font-bold leading-[1.06] tracking-[-0.035em] text-white">
+            Practice real interviews
             <br />
-            you{" "}
-            <span className="landing-hero-accent">never had</span>
-            <span className="block mt-2 font-normal tracking-[-0.02em] text-white/30" style={{ fontSize: "clamp(1.3rem, 2.5vw, 2.2rem)" }}>
-              — until now.
-            </span>
+            with AI that talks back.
           </h1>
 
-          {/* Subtext */}
-          <p
-            className="mt-5 max-w-[34rem] leading-[1.75] text-white/55"
-            style={{ fontSize: "clamp(0.95rem, 1.3vw, 1.05rem)" }}
-          >
-            A mock interview that actually pushes back. Speak your answer out
-            loud, get real follow-ups, then replay the whole thing with a
-            transcript and score before you walk into the real room.
+          {/* Muted Subheadline */}
+          <p className="mt-5 max-w-xl text-[clamp(1.05rem,1.35vw,1.2rem)] leading-relaxed text-[#94A3B8]">
+            Customize a mock interview for your role, explain your thinking out loud,
+            and review your video recording, transcript, and automated score before the real thing.
           </p>
 
-          {/* CTAs */}
-          <div className="mt-7 flex flex-wrap items-center gap-3">
-            <Link href="/signup" className="landing-hero-cta-primary">
-              <span className="landing-hero-cta-meters" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </span>
-              Start practicing free
-              <span className="landing-hero-cta-arrow" aria-hidden="true">→</span>
+          {/* Action Buttons */}
+          <div className="mt-8 flex flex-wrap items-center gap-4">
+            <Link
+              href="/signup"
+              className="inline-flex h-12 items-center justify-center rounded-xl bg-[#2563EB] px-6 text-base font-semibold text-white shadow-lg shadow-blue-600/30 transition-all duration-200 hover:bg-[#1D4ED8] hover:shadow-blue-600/40 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+            >
+              Try for free today
             </Link>
-            <a href="#how-it-works" className="landing-hero-cta-secondary">
-              See how it works
-              <span className="landing-hero-cta-secondary-mark" aria-hidden="true">↳</span>
+
+            <a
+              href="#how-it-works"
+              className="inline-flex h-12 items-center justify-center px-4 text-sm font-medium text-[#CBD5E1] transition-colors duration-200 hover:text-white"
+            >
+              See how it works <span className="ml-1.5 text-xs text-[#60A5FA]">→</span>
             </a>
           </div>
         </div>
       </div>
 
-      {/* ── HeroWorkspace below the illustrated zone ── */}
-      <div className="relative z-10 w-full bg-[#020B21]">
+      {/* ── Interactive Workspace Section (Below Hero Fade) ── */}
+      <div className="relative z-10 w-full bg-[#090A0F] pb-12 pt-4">
         <HeroWorkspace />
       </div>
     </section>

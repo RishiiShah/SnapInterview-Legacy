@@ -66,7 +66,7 @@ export default function SocialProofSection() {
             ["Score", "3-axis automated rubric"],
             ["Next steps", "Coaching notes on what to fix"],
           ].map(([label, detail]) => (
-            <div key={label} className="flex flex-col gap-1 bg-[#020B21] px-5 py-4">
+            <div key={label} className="flex flex-col gap-1 bg-[#090A0F] px-5 py-4">
               <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-[#3D4F73]">
                 {label}
               </span>

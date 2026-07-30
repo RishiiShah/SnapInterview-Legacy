@@ -107,8 +107,8 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
         damping: 28,
       }}
       className={cn(
-        "relative z-[60] mx-auto hidden h-[var(--landing-nav-height)] w-full max-w-[80rem] flex-row items-center justify-between border border-white/10 bg-[#020B21]/78 px-[clamp(1rem,2vw,1.25rem)] lg:flex",
-        visible && "border-white/15 bg-[#071329]/90",
+        "relative z-[60] mx-auto hidden h-[var(--landing-nav-height)] w-full max-w-[80rem] flex-row items-center justify-between border border-white/10 bg-[#090A0F]/60 px-[clamp(1rem,2vw,1.25rem)] lg:flex",
+        visible && "border-white/15 bg-[#090A0F]/90",
         className,
       )}
     >
@@ -171,8 +171,8 @@ export const MobileNav = ({ children, className, visible }: MobileNavProps) => {
         damping: 28,
       }}
       className={cn(
-        "relative z-50 mx-auto flex h-[var(--landing-nav-height)] w-full max-w-[80rem] flex-col items-center justify-between border border-white/10 bg-[#020B21]/78 px-4 lg:hidden",
-        visible && "border-white/15 bg-[#071329]/90",
+        "relative z-50 mx-auto flex h-[var(--landing-nav-height)] w-full max-w-[80rem] flex-col items-center justify-between border border-white/10 bg-[#090A0F]/60 px-4 lg:hidden",
+        visible && "border-white/15 bg-[#090A0F]/90",
         className,
       )}
     >

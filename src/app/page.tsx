@@ -31,7 +31,7 @@ export default async function LandingPage() {
   };
 
   return (
-    <div className="landing-page relative min-h-screen overflow-x-hidden bg-[#020B21] font-sans text-[#F5F7FF] selection:bg-indigo-500 selection:text-white">
+    <div className="landing-page relative min-h-screen overflow-x-hidden bg-[#090A0F] font-sans text-[#F5F7FF] selection:bg-blue-600 selection:text-white">
       <LandingAtmosphere />
 
       <script

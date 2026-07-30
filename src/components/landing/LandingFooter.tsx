@@ -7,18 +7,12 @@ export default function LandingFooter() {
       <div className="landing-container flex flex-col items-center justify-between gap-6 sm:flex-row">
         
         {/* Brand */}
-        <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-90">
-            <AppLogo size={28} className="rounded-md" />
-            <span className="text-base font-semibold tracking-tight text-white">
-              Snap<span className="text-[#60A5FA]">Interview</span>
-            </span>
-          </Link>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[0.65rem] font-medium text-emerald-400 border border-emerald-500/20">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Systems Operational
+        <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-90">
+          <AppLogo size={28} className="rounded-md" />
+          <span className="text-base font-semibold tracking-tight text-white">
+            Snap<span className="text-[#60A5FA]">Interview</span>
           </span>
-        </div>
+        </Link>
 
         {/* Links */}
         <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm" aria-label="Footer Navigation">

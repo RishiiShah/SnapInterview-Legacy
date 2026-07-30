@@ -13,47 +13,20 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-vi.mock("framer-motion", () => {
-  const motionPropNames = new Set([
-    "animate",
-    "exit",
-    "initial",
-    "style",
-    "transition",
-    "variants",
-  ]);
-  const omitMotionProps = (props: Record<string, unknown>) =>
-    Object.fromEntries(Object.entries(props).filter(([key]) => !motionPropNames.has(key)));
+vi.mock("next/image", () => ({
+  default: ({ src, alt, ...props }: { src: string; alt: string; [key: string]: unknown }) => (
+    <img src={src} alt={alt} {...props} />
+  ),
+}));
 
-  return {
-    motion: new Proxy({}, {
-      get: (_target, tag: string) => ({
-        children,
-        ...props
-      }: Record<string, unknown> & { children?: React.ReactNode }) =>
-        React.createElement(tag, omitMotionProps(props), children),
-    }),
-    useReducedMotion: () => false,
-  };
-});
-
-describe("hero aurora background", () => {
+describe("hero background image", () => {
   afterEach(cleanup);
 
-  it("animates the existing gradient blobs and wave", () => {
+  it("renders high resolution full bleed starry night background image", () => {
     render(<HeroSection />);
 
-    const aurora = document.querySelector("[data-landing-aurora]");
-    const blobs = document.querySelectorAll("[data-landing-aurora-blob]");
-    const wave = document.querySelector("[data-landing-aurora-wave]");
-    const paths = document.querySelectorAll("[data-landing-aurora-path]");
-
-    expect(aurora).toBeTruthy();
-    expect(aurora?.className).toContain("inset-0");
-    expect(blobs).toHaveLength(3);
-    expect(Array.from(blobs).every((blob) => blob.className.includes("landing-hero-aurora-blob"))).toBe(true);
-    expect(wave?.getAttribute("class")).toContain("landing-hero-aurora-wave");
-    expect(paths).toHaveLength(2);
-    expect(Array.from(paths).every((path) => path.getAttribute("class")?.includes("landing-hero-aurora-path"))).toBe(true);
+    const bgImage = document.querySelector("img");
+    expect(bgImage).toBeTruthy();
+    expect(bgImage?.getAttribute("src")).toContain("hero-starry-bg.jpg");
   });
 });

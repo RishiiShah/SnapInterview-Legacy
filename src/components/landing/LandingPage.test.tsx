@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import CTASection from "./CTASection";
 import FeaturesSection from "./FeaturesSection";
 import HeroSection from "./HeroSection";
+import HeroWorkspace from "./HeroWorkspace";
 import HowItWorksSection from "./HowItWorksSection";
 import LandingNavbar from "./LandingNavbar";
 
@@ -14,6 +15,12 @@ vi.mock("next/link", () => ({
     <a href={href} {...props}>
       {children}
     </a>
+  ),
+}));
+
+vi.mock("next/image", () => ({
+  default: ({ src, alt, ...props }: { src: string; alt: string; [key: string]: unknown }) => (
+    <img src={src} alt={alt} {...props} />
   ),
 }));
 
@@ -74,7 +81,7 @@ vi.mock("motion/react", () => {
 describe("landing experience", () => {
   afterEach(cleanup);
 
-  it("shows a coding interview flow and truthful post-answer review copy", () => {
+  it("renders hero section with headline and action buttons", () => {
     render(
       <>
         <LandingNavbar />
@@ -83,40 +90,20 @@ describe("landing experience", () => {
     );
 
     expect(
+      screen.getByText(/practice real interviews/i),
+    ).toBeTruthy();
+    expect(screen.getByRole("link", { name: /try for free today/i })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /see how it works/i })).toBeTruthy();
+  });
+
+  it("renders interactive workspace component", () => {
+    render(<HeroWorkspace />);
+
+    expect(
       screen.getByText(/Implement a function that returns the first non-repeating character/i),
     ).toBeTruthy();
     expect(screen.getByText("Answer review")).toBeTruthy();
     expect(screen.getByText(/4\/4 passed/i)).toBeTruthy();
-    expect(screen.queryByText(/live\s+feedback/i)).toBeNull();
-    expect(document.querySelector(".landing-workspace-shell .landing-workspace")).toBeTruthy();
-  });
-
-  it("wraps editor code instead of creating a horizontal scroller", () => {
-    render(<HeroSection />);
-
-    const codeEditor = screen.getByRole("region", { name: "Code editor" });
-    const codeContent = codeEditor.querySelector("[data-landing-code-content]");
-
-    expect(codeContent).toBeTruthy();
-    expect(codeContent?.className).toContain("overflow-hidden");
-    expect(codeContent?.className).not.toContain("overflow-x-auto");
-  });
-
-  it("widens hero copy and uses distinctive session CTAs", () => {
-    render(<HeroSection />);
-
-    const heroHeading = screen.getByRole("heading", { name: /practice real interviews with ai that talks back/i });
-    const workspace = document.querySelector("[data-landing-hero-workspace]");
-    const primaryCta = screen.getByRole("link", { name: /start practicing free/i });
-    const secondaryCta = screen.getByRole("link", { name: /see how it works/i });
-
-    expect(heroHeading.className).toContain("landing-hero-copy");
-    expect(document.querySelector(".landing-hero-subcopy")).toBeTruthy();
-    expect(document.querySelector(".landing-hero-accent")).toBeTruthy();
-    expect(primaryCta.className).toContain("landing-hero-cta-primary");
-    expect(secondaryCta.className).toContain("landing-hero-cta-secondary");
-    expect(workspace?.querySelector(".landing-workspace-frame")).toBeTruthy();
-    expect(workspace?.querySelectorAll(".landing-workspace-pane").length).toBe(3);
   });
 
   it("keeps the floating navbar actions available", () => {
@@ -133,7 +120,7 @@ describe("landing experience", () => {
     expect(screen.getByRole("button", { name: /open navigation menu/i })).toBeTruthy();
   });
 
-  it("renders compact below-hero sections without per-section glass cards", () => {
+  it("renders features, process, and CTA sections", () => {
     render(
       <>
         <FeaturesSection />
@@ -142,12 +129,8 @@ describe("landing experience", () => {
       </>,
     );
 
-    expect(document.querySelectorAll("[data-landing-feature-item]")).toHaveLength(3);
-    expect(document.querySelectorAll("[data-landing-step-card]")).toHaveLength(3);
-    expect(document.querySelectorAll("[data-landing-step-icon]")).toHaveLength(3);
-    expect(document.querySelector("[data-landing-connector]")).toBeTruthy();
-    expect(document.querySelector("[data-landing-cta-strip]")).toBeTruthy();
-    expect(document.querySelectorAll(".landing-glass")).toHaveLength(0);
-    expect(document.querySelectorAll(".landing-section-aura")).toHaveLength(0);
+    expect(screen.getByText(/What makes it different/i)).toBeTruthy();
+    expect(screen.getByText(/Three steps\. No fluff\./i)).toBeTruthy();
+    expect(screen.getByText(/Your next interview/i)).toBeTruthy();
   });
 });

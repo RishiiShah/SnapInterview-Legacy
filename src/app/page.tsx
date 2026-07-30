@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import LandingNavbar from "@/components/landing/LandingNavbar";
 import LandingAtmosphere from "@/components/landing/LandingAtmosphere";
 import HeroSection from "@/components/landing/HeroSection";
+import HeroWorkspace from "@/components/landing/HeroWorkspace";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import SocialProofSection from "@/components/landing/HowItWorksSection";
 import CTASection from "@/components/landing/CTASection";
@@ -44,6 +45,9 @@ export default async function LandingPage() {
       <LandingNavbar />
       <main className="relative z-10 w-full">
         <HeroSection />
+        <section className="landing-section pb-16 pt-8 bg-[#090A0F]">
+          <HeroWorkspace />
+        </section>
         <FeaturesSection />
         <SocialProofSection />
         <CTASection />

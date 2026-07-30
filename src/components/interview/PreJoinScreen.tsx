@@ -2,11 +2,13 @@ import { motion } from "framer-motion";
 import PermissionRequest, { type PermissionRequestProps } from "@/components/interview/PermissionRequest";
 import { IconChevronLeft } from "@/components/ui/icons";
 import type { BrowserTtsStatus } from "@/lib/tts/browser-tts";
+import type { SttWorkerStatus } from "@/lib/stt/stt-messages";
 
 export type PreJoinScreenProps = {
   onBack: () => void;
   onPermissionsGranted: () => void;
   ttsStatus: BrowserTtsStatus;
+  sttStatus?: SttWorkerStatus;
 } & Omit<
   PermissionRequestProps,
   "isOpen" | "onPermissionsGranted"
@@ -16,6 +18,7 @@ export default function PreJoinScreen({
   onBack,
   onPermissionsGranted,
   ttsStatus,
+  sttStatus,
   hasPermission,
   isLoading,
   error,
@@ -69,6 +72,17 @@ export default function PreJoinScreen({
         {(ttsStatus === "fallback" || ttsStatus === "error") && (
           <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="status">
             Using backup interview voice
+          </div>
+        )}
+
+        {sttStatus === "loading" && (
+          <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800" role="status">
+            Preparing speech recognition…
+          </div>
+        )}
+        {sttStatus === "error" && (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="status">
+            Speech recognition unavailable — you can type your answers instead.
           </div>
         )}
 

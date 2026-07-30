@@ -49,6 +49,25 @@ function makeFakeEngine(): FakeEngine {
   };
 }
 
+function makeFakeClient() {
+  let statusListener: ((s: "idle" | "loading" | "ready" | "error") => void) | null = null;
+  return {
+    preload: vi.fn(() => Promise.resolve()),
+    transcribe: vi.fn(() => Promise.resolve("")),
+    cancel: vi.fn(),
+    dispose: vi.fn(),
+    subscribe: vi.fn((l: (s: "idle" | "loading" | "ready" | "error") => void) => {
+      statusListener = l;
+      return () => {
+        statusListener = null;
+      };
+    }),
+    emitStatus(s: "idle" | "loading" | "ready" | "error") {
+      statusListener?.(s);
+    },
+  };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -83,18 +102,34 @@ describe("useSpeechRecognition dispatcher", () => {
     expect(engine.stop).toHaveBeenCalledTimes(1);
   });
 
-  it("builds the local engine with a mic recorder and shared worker client", () => {
+  it("reports the Web Speech engine as ready immediately (no model download)", () => {
+    selectSttEngine.mockReturnValue("web-speech");
+    createWebSpeechEngine.mockReturnValue(makeFakeEngine());
+
+    const { result } = renderHook(() => useSpeechRecognition());
+    expect(result.current.sttStatus).toBe("ready");
+  });
+
+  it("builds the local engine, preloads the model, and surfaces its status", () => {
     const engine = makeFakeEngine();
+    const client = makeFakeClient();
     selectSttEngine.mockReturnValue("local");
     createLocalSttEngine.mockReturnValue(engine);
+    getSharedMoonshineWorkerClient.mockReturnValue(client);
 
-    renderHook(() => useSpeechRecognition());
+    const { result } = renderHook(() => useSpeechRecognition());
 
     expect(createLocalSttEngine).toHaveBeenCalledTimes(1);
     expect(createWebSpeechEngine).not.toHaveBeenCalled();
     const arg = createLocalSttEngine.mock.calls[0][0];
     expect(typeof arg.createRecorder).toBe("function");
-    expect(arg.client).toBeDefined();
+    expect(arg.client).toBe(client);
+    expect(client.preload).toHaveBeenCalledTimes(1);
+
+    act(() => client.emitStatus("loading"));
+    expect(result.current.sttStatus).toBe("loading");
+    act(() => client.emitStatus("ready"));
+    expect(result.current.sttStatus).toBe("ready");
   });
 
   it("toggleRecording starts when idle and stops when recording", () => {
@@ -119,6 +154,7 @@ describe("useSpeechRecognition dispatcher", () => {
 
     expect(result.current.hasSupport).toBe(false);
     expect(result.current.speechError).toBeTruthy();
+    expect(result.current.sttStatus).toBe("error");
   });
 
   it("disposes the engine on unmount", () => {

@@ -7,6 +7,7 @@ import { createLocalSttEngine } from "@/lib/stt/local-stt-engine";
 import { createMicRecorder } from "@/lib/stt/capture";
 import { getSharedMoonshineWorkerClient } from "@/lib/stt/moonshine-worker-client";
 import { initialSttState, type SttEngine, type SttState } from "@/lib/stt/stt-engine";
+import type { SttWorkerStatus } from "@/lib/stt/stt-messages";
 
 const UNSUPPORTED_MESSAGE =
   "Speech recognition is unavailable in this browser. Use Chrome or Edge for voice answers.";
@@ -14,6 +15,7 @@ const UNSUPPORTED_MESSAGE =
 export function useSpeechRecognition() {
   const [state, setState] = useState<SttState>(initialSttState);
   const [hasSupport, setHasSupport] = useState<boolean>(() => selectSttEngine() !== "none");
+  const [sttStatus, setSttStatus] = useState<SttWorkerStatus>("idle");
 
   const engineRef = useRef<SttEngine | null>(null);
   const recordingRef = useRef(false);
@@ -21,20 +23,28 @@ export function useSpeechRecognition() {
 
   useEffect(() => {
     const choice = selectSttEngine();
-    const engine =
-      choice === "web-speech"
-        ? createWebSpeechEngine()
-        : choice === "local"
-          ? createLocalSttEngine({
-              createRecorder: () => createMicRecorder(),
-              client: getSharedMoonshineWorkerClient(),
-            })
-          : null;
 
-    if (!engine) {
+    if (choice === "none") {
       setHasSupport(false);
+      setSttStatus("error");
       setState((prev) => ({ ...prev, error: UNSUPPORTED_MESSAGE }));
       return;
+    }
+
+    let engine: SttEngine;
+    let unsubscribeStatus: (() => void) | undefined;
+
+    if (choice === "web-speech") {
+      engine = createWebSpeechEngine();
+      // No model to download — Web Speech is ready as soon as it exists.
+      setSttStatus(engine.hasSupport ? "ready" : "error");
+    } else {
+      const client = getSharedMoonshineWorkerClient();
+      engine = createLocalSttEngine({ createRecorder: () => createMicRecorder(), client });
+      unsubscribeStatus = client.subscribe(setSttStatus);
+      // Preload the model during PreJoin so it's cached before the interview.
+      // Failures surface through the status subscription above.
+      void client.preload().catch(() => {});
     }
 
     engineRef.current = engine;
@@ -43,6 +53,7 @@ export function useSpeechRecognition() {
 
     return () => {
       unsubscribe();
+      unsubscribeStatus?.();
       engine.dispose();
       engineRef.current = null;
     };
@@ -70,6 +81,7 @@ export function useSpeechRecognition() {
     finalTranscriptBlock: state.finalTranscriptBlock,
     speechError: state.error,
     hasSupport,
+    sttStatus,
     startRecording,
     stopRecording,
     toggleRecording,

@@ -126,7 +126,14 @@ describe("landing experience", () => {
     );
 
     expect(document.querySelectorAll("[data-landing-reveal]").length).toBeGreaterThan(0);
-    expect(document.querySelector("[data-landing-connector]")).toBeTruthy();
+    const connector = document.querySelector("[data-landing-connector]");
+    const firstStep = document.querySelector("[data-landing-step-card]");
+
+    expect(connector).toBeTruthy();
+    expect(connector?.className).toContain("z-0");
+    expect(firstStep?.className).toContain("backdrop-blur");
+    expect(document.querySelectorAll("[data-landing-step-card]")).toHaveLength(3);
+    expect(document.querySelectorAll("[data-landing-step-icon]")).toHaveLength(3);
     expect(document.querySelector("[data-landing-cta-aura]")).toBeTruthy();
   });
 });

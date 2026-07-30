@@ -1,13 +1,17 @@
 import { pipeline } from "@huggingface/transformers";
 import { downsampleTo16kHz } from "../audio/downsample";
+import { buildAsrLoadPlan, transcribeOptionsFor, type AsrModelKind } from "./asr-models";
 import type { SttWorkerRequest } from "./stt-messages";
 
-const MODEL_ID = "onnx-community/moonshine-base-ONNX";
 const TARGET_SAMPLE_RATE = 16_000;
 
-type Transcriber = (audio: Float32Array) => Promise<{ text: string } | Array<{ text: string }>>;
+type Transcriber = (
+  audio: Float32Array,
+  options?: Record<string, unknown>,
+) => Promise<{ text: string } | Array<{ text: string }>>;
 
 let transcriber: Transcriber | null = null;
+let loadedKind: AsrModelKind = "moonshine";
 let loadPromise: Promise<void> | null = null;
 let activeGeneration = 0;
 
@@ -21,20 +25,17 @@ async function loadModel() {
   if (loadPromise) return loadPromise;
 
   loadPromise = (async () => {
-    const attempts: Array<{ device: "webgpu" | "wasm"; dtype: "fp32" | "q8" }> = [];
-    if (typeof navigator !== "undefined" && "gpu" in navigator) {
-      attempts.push({ device: "webgpu", dtype: "fp32" });
-    }
-    attempts.push({ device: "wasm", dtype: "q8" });
+    const hasGpu = typeof navigator !== "undefined" && "gpu" in navigator;
+    const plan = buildAsrLoadPlan(hasGpu);
 
     let lastError: unknown;
-    for (const options of attempts) {
+    for (const attempt of plan) {
       try {
-        transcriber = (await pipeline(
-          "automatic-speech-recognition",
-          MODEL_ID,
-          options,
-        )) as unknown as Transcriber;
+        transcriber = (await pipeline("automatic-speech-recognition", attempt.modelId, {
+          device: attempt.device,
+          dtype: attempt.dtype,
+        })) as unknown as Transcriber;
+        loadedKind = attempt.kind;
         return;
       } catch (error) {
         lastError = error;
@@ -73,7 +74,7 @@ async function handleMessage(message: SttWorkerRequest) {
     // Moonshine-base handles short utterances well; if answers get long enough to
     // hit its context limit or lag, switch to VAD-segmented chunks here.
     const pcm = downsampleTo16kHz(new Float32Array(message.pcm), message.sampleRate, TARGET_SAMPLE_RATE);
-    const output = await transcriber!(pcm);
+    const output = await transcriber!(pcm, transcribeOptionsFor(loadedKind));
     if (message.generation !== activeGeneration) return;
 
     const text = Array.isArray(output) ? (output[0]?.text ?? "") : output.text;

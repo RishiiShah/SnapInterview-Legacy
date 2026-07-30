@@ -13,34 +13,43 @@ const UNSUPPORTED_MESSAGE =
   "Speech recognition is unavailable in this browser. Use Chrome or Edge for voice answers.";
 
 export function useSpeechRecognition(options?: { audioDeviceId?: string }) {
-  const [state, setState] = useState<SttState>(initialSttState);
-  const [hasSupport, setHasSupport] = useState<boolean>(() => selectSttEngine() !== "none");
-  const [sttStatus, setSttStatus] = useState<SttWorkerStatus>("idle");
+  const [state, setState] = useState<SttState>(() =>
+    selectSttEngine() === "none"
+      ? { ...initialSttState, error: UNSUPPORTED_MESSAGE }
+      : initialSttState,
+  );
+  const [hasSupport] = useState<boolean>(() => selectSttEngine() !== "none");
+  // Web Speech has no download, so it's "ready" at once; local starts "idle" and
+  // the worker client's status subscription drives it from there.
+  const [sttStatus, setSttStatus] = useState<SttWorkerStatus>(() => {
+    const choice = selectSttEngine();
+    return choice === "web-speech" ? "ready" : choice === "none" ? "error" : "idle";
+  });
 
   const engineRef = useRef<SttEngine | null>(null);
   const recordingRef = useRef(false);
-  recordingRef.current = state.isRecording;
   // Read at recording start (not at mount), so the latest selected mic wins.
   const audioDeviceIdRef = useRef<string | undefined>(options?.audioDeviceId);
-  audioDeviceIdRef.current = options?.audioDeviceId;
+
+  useEffect(() => {
+    recordingRef.current = state.isRecording;
+  }, [state.isRecording]);
+
+  useEffect(() => {
+    audioDeviceIdRef.current = options?.audioDeviceId;
+  }, [options?.audioDeviceId]);
 
   useEffect(() => {
     const choice = selectSttEngine();
 
-    if (choice === "none") {
-      setHasSupport(false);
-      setSttStatus("error");
-      setState((prev) => ({ ...prev, error: UNSUPPORTED_MESSAGE }));
-      return;
-    }
+    // "none" state is set up via the useState initializers above.
+    if (choice === "none") return;
 
     let engine: SttEngine;
     let unsubscribeStatus: (() => void) | undefined;
 
     if (choice === "web-speech") {
       engine = createWebSpeechEngine();
-      // No model to download — Web Speech is ready as soon as it exists.
-      setSttStatus(engine.hasSupport ? "ready" : "error");
     } else {
       const client = getSharedMoonshineWorkerClient();
       engine = createLocalSttEngine({
@@ -54,7 +63,6 @@ export function useSpeechRecognition(options?: { audioDeviceId?: string }) {
     }
 
     engineRef.current = engine;
-    setHasSupport(engine.hasSupport);
     const unsubscribe = engine.subscribe(setState);
 
     return () => {

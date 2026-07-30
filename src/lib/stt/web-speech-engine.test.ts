@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createWebSpeechEngine, type RecognitionLike } from "./web-speech-engine";
 import type { SttState } from "./stt-engine";
 

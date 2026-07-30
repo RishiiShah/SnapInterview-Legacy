@@ -163,7 +163,7 @@ export default function HeroWorkspace() {
                 </div>
 
                 {/* Code */}
-                <div className="min-h-[260px] flex-1 px-6 py-5 font-mono text-xs leading-[1.9]">
+                <div className="min-h-[190px] flex-1 px-6 py-3.5 font-mono text-xs leading-[1.8]">
                   {CODE_LINES.map((line, index) => (
                     <div key={line.text} className="flex min-w-0 max-w-full">
                       <span className="mr-5 w-4 shrink-0 select-none text-right text-[#2E3A4A]">{index + 1}</span>

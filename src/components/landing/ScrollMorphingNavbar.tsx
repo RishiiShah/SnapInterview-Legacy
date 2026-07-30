@@ -61,9 +61,17 @@ export const Navbar = ({ children, className }: NavbarProps) => {
   return (
     <motion.div
       className={cn(
-        "fixed inset-x-0 top-0 z-50 px-[var(--landing-gutter)] pt-[var(--landing-nav-top)]",
+        "fixed inset-x-0 top-0 z-50 px-[var(--landing-gutter)]",
         className,
       )}
+      animate={{
+        paddingTop: visible ? "0.45rem" : "var(--landing-nav-top)",
+      }}
+      transition={{
+        type: "spring",
+        stiffness: 240,
+        damping: 30,
+      }}
       data-nav-visible={visible ? "true" : "false"}
     >
       {React.Children.map(children, (child) =>
@@ -88,7 +96,10 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
           ? "0 16px 56px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(148, 163, 184, 0.08) inset"
           : "0 12px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(148, 163, 184, 0.06) inset",
         width: visible ? "min(54rem, calc(100% - 2rem))" : "100%",
-        y: visible ? 12 : 0,
+        height: visible
+          ? "var(--landing-nav-height-scrolled)"
+          : "var(--landing-nav-height)",
+        y: visible ? 4 : 0,
       }}
       transition={{
         type: "spring",
@@ -149,7 +160,10 @@ export const MobileNav = ({ children, className, visible }: MobileNavProps) => {
           ? "0 16px 56px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(148, 163, 184, 0.08) inset"
           : "0 12px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(148, 163, 184, 0.06) inset",
         width: visible ? "calc(100% - 2rem)" : "100%",
-        y: visible ? 12 : 0,
+        height: visible
+          ? "var(--landing-nav-height-scrolled)"
+          : "var(--landing-nav-height)",
+        y: visible ? 4 : 0,
       }}
       transition={{
         type: "spring",
@@ -197,7 +211,7 @@ export const MobileNavMenu = ({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -8, scale: 0.98 }}
           className={cn(
-            "absolute inset-x-0 top-[calc(var(--landing-nav-height)+0.75rem)] z-50 flex w-full flex-col items-start justify-start gap-2 rounded-2xl border border-white/10 bg-[#071329]/95 p-3 shadow-[0_20px_70px_rgba(0,0,0,0.42)] backdrop-blur-xl",
+            "absolute inset-x-0 top-[calc(100%+0.55rem)] z-50 flex w-full flex-col items-start justify-start gap-2 rounded-2xl border border-white/10 bg-[#071329]/95 p-3 shadow-[0_20px_70px_rgba(0,0,0,0.42)] backdrop-blur-xl",
             className,
           )}
           onClick={(event) => {

@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import LandingNavbar from "@/components/landing/LandingNavbar";
+import LandingAtmosphere from "@/components/landing/LandingAtmosphere";
 import HeroSection from "@/components/landing/HeroSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import SocialProofSection from "@/components/landing/HowItWorksSection";
@@ -31,14 +32,7 @@ export default async function LandingPage() {
 
   return (
     <div className="landing-page relative min-h-screen overflow-x-hidden bg-[#020B21] font-sans text-[#F5F7FF] selection:bg-indigo-500 selection:text-white">
-      <div
-        className="pointer-events-none absolute inset-0"
-        aria-hidden="true"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 40% at 50% 12%, rgba(67,56,202,0.18), transparent 60%), radial-gradient(ellipse 60% 30% at 50% 55%, rgba(30,64,175,0.12), transparent 70%)",
-        }}
-      />
+      <LandingAtmosphere />
 
       <script
         nonce={nonce}
@@ -48,7 +42,7 @@ export default async function LandingPage() {
       />
 
       <LandingNavbar />
-      <main className="relative w-full">
+      <main className="relative z-10 w-full">
         <HeroSection />
         <FeaturesSection />
         <SocialProofSection />

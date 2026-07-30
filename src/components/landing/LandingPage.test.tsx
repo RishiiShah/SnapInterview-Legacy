@@ -102,6 +102,23 @@ describe("landing experience", () => {
     expect(codeContent?.className).not.toContain("overflow-x-auto");
   });
 
+  it("widens hero copy and uses distinctive session CTAs", () => {
+    render(<HeroSection />);
+
+    const heroHeading = screen.getByRole("heading", { name: /practice real interviews with ai that talks back/i });
+    const workspace = document.querySelector("[data-landing-hero-workspace]");
+    const primaryCta = screen.getByRole("link", { name: /start practicing free/i });
+    const secondaryCta = screen.getByRole("link", { name: /see how it works/i });
+
+    expect(heroHeading.className).toContain("landing-hero-copy");
+    expect(document.querySelector(".landing-hero-subcopy")).toBeTruthy();
+    expect(document.querySelector(".landing-hero-accent")).toBeTruthy();
+    expect(primaryCta.className).toContain("landing-hero-cta-primary");
+    expect(secondaryCta.className).toContain("landing-hero-cta-secondary");
+    expect(workspace?.querySelector(".landing-workspace-frame")).toBeTruthy();
+    expect(workspace?.querySelectorAll(".landing-workspace-pane").length).toBe(3);
+  });
+
   it("keeps the floating navbar actions available", () => {
     render(<LandingNavbar />);
 
@@ -116,7 +133,7 @@ describe("landing experience", () => {
     expect(screen.getByRole("button", { name: /open navigation menu/i })).toBeTruthy();
   });
 
-  it("marks the landing sections for restrained reveal motion", () => {
+  it("renders compact below-hero sections without per-section glass cards", () => {
     render(
       <>
         <FeaturesSection />
@@ -125,15 +142,12 @@ describe("landing experience", () => {
       </>,
     );
 
-    expect(document.querySelectorAll("[data-landing-reveal]").length).toBeGreaterThan(0);
-    const connector = document.querySelector("[data-landing-connector]");
-    const firstStep = document.querySelector("[data-landing-step-card]");
-
-    expect(connector).toBeTruthy();
-    expect(connector?.className).toContain("z-0");
-    expect(firstStep?.className).toContain("backdrop-blur");
+    expect(document.querySelectorAll("[data-landing-feature-item]")).toHaveLength(3);
     expect(document.querySelectorAll("[data-landing-step-card]")).toHaveLength(3);
     expect(document.querySelectorAll("[data-landing-step-icon]")).toHaveLength(3);
-    expect(document.querySelector("[data-landing-cta-aura]")).toBeTruthy();
+    expect(document.querySelector("[data-landing-connector]")).toBeTruthy();
+    expect(document.querySelector("[data-landing-cta-strip]")).toBeTruthy();
+    expect(document.querySelectorAll(".landing-glass")).toHaveLength(0);
+    expect(document.querySelectorAll(".landing-section-aura")).toHaveLength(0);
   });
 });

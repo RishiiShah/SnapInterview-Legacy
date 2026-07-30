@@ -3,15 +3,15 @@ import { AppLogo } from "@/components/ui/AppLogo";
 
 export default function LandingFooter() {
   return (
-    <footer className="border-t border-white/10 px-[var(--landing-gutter)] py-[clamp(2rem,4vw,3rem)] text-[#657086]">
-      <div className="landing-container flex flex-col items-center justify-between gap-4 sm:flex-row">
-        <Link href="/" className="flex items-center gap-2">
-          <AppLogo size={28} className="rounded-md" />
+    <footer className="landing-footer-shell text-[#657086]">
+      <div className="landing-container flex flex-col items-center justify-between gap-3 sm:flex-row">
+        <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-90">
+          <AppLogo size={24} className="rounded-md" />
           <span className="text-sm font-semibold text-[#F5F7FF]">
             Snap<span className="text-[#A5B4FC]">Interview</span>
           </span>
         </Link>
-        <div className="flex flex-wrap items-center justify-center gap-5 text-sm">
+        <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm" aria-label="Footer">
           <a href="#features" className="transition-colors hover:text-[#F5F7FF]">
             Features
           </a>
@@ -24,8 +24,8 @@ export default function LandingFooter() {
           <Link href="/login" className="transition-colors hover:text-[#F5F7FF]">
             Sign In
           </Link>
-        </div>
-        <p className="text-sm">© {new Date().getFullYear()} SnapInterview</p>
+        </nav>
+        <p className="text-xs sm:text-sm">© {new Date().getFullYear()} SnapInterview</p>
       </div>
     </footer>
   );

@@ -1,80 +1,81 @@
-import { ListChecks, Settings2, Video } from "lucide-react";
-import { LandingFadeIn, LandingFadeInStagger, LandingFadeInStaggerItem } from "./LandingMotion";
-
 const steps = [
   {
-    step: "01",
-    icon: Settings2,
-    iconColor: "text-[#A78BFA]",
-    title: "Set up your interview",
-    desc: "Pick a role, interview type, and difficulty. Optionally add your resume and a job description so questions feel specific to the opportunity.",
+    n: "01",
+    title: "Tell it who you are.",
+    desc: "Pick a role and level. Paste in a job description if you have one. Add your resume if you want questions that feel personal. Takes two minutes.",
   },
   {
-    step: "02",
-    icon: Video,
-    iconColor: "text-[#67E8F9]",
-    title: "Practice out loud on video",
-    desc: "Answer with your mic and camera in a live session. The AI interviewer can follow up based on what you said.",
+    n: "02",
+    title: "Talk. Don't type.",
+    desc: "Answer on camera with your mic open. The AI listens to what you actually say and asks follow-ups accordingly. Think of it as a panel that never gets tired.",
   },
   {
-    step: "03",
-    icon: ListChecks,
-    iconColor: "text-[#818CF8]",
-    title: "Review and improve",
-    desc: "Watch the recording, read the transcript, and use automated scoring to see what to tighten before the real interview.",
+    n: "03",
+    title: "Find out where you lost them.",
+    desc: "Watch the replay, read the transcript, check the scores. Then go again — tighter this time.",
   },
 ];
 
 export default function SocialProofSection() {
   return (
-    <section id="how-it-works" className="landing-section relative">
-      <LandingFadeIn triggerOnView data-landing-reveal className="mx-auto max-w-3xl text-center">
-        <p className="text-sm font-medium text-[#A78BFA]">How it works</p>
-        <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#F5F7FF] sm:text-4xl">
-          From setup to review in one loop
-        </h2>
-        <p className="mt-4 text-sm leading-relaxed text-[#8E97AB] sm:text-base">
-          A simple path designed for candidates who want repeatable practice — not another static question list.
-        </p>
-      </LandingFadeIn>
+    <section id="how-it-works" className="landing-section">
+      <div className="landing-container">
 
-      <LandingFadeInStagger
-        triggerOnView
-        data-landing-reveal
-        className="landing-container relative mt-[clamp(2.5rem,5vw,3.5rem)] grid gap-6 md:grid-cols-3"
-      >
-        <div
-          data-landing-connector
-          aria-hidden="true"
-          className="pointer-events-none absolute left-[16%] right-[16%] top-6 z-0 hidden h-px bg-gradient-to-r from-violet-400/0 via-violet-400/40 to-cyan-400/0 md:block"
-        />
-        {steps.map((item) => (
-          <LandingFadeInStaggerItem
-            key={item.step}
-            data-landing-reveal
-            data-landing-step-card
-            className="group relative z-10 overflow-hidden rounded-2xl border border-white/15 bg-[#0F1B31]/90 px-5 py-6 backdrop-blur-xl transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:border-violet-300/35 hover:shadow-[0_18px_45px_rgba(56,189,248,0.12)]"
-            style={{
-              background: "linear-gradient(145deg, rgba(35, 53, 90, 0.88), rgba(10, 18, 36, 0.94))",
-              backdropFilter: "blur(18px)",
-              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12), 0 18px 40px rgba(0, 20, 70, 0.18)",
-            }}
-          >
-            <div className="mb-5 flex items-center justify-between">
-              <div
-                data-landing-step-icon
-                aria-hidden="true"
-                className="flex size-11 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.12] to-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_18px_rgba(79,70,229,0.16)] transition-transform duration-300 group-hover:-translate-y-0.5"
-              >
-                <item.icon className={`size-5 ${item.iconColor}`} strokeWidth={1.8} />
+        {/* Section header */}
+        <div className="flex items-baseline gap-5 border-b border-white/[0.07] pb-6">
+          <span className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[#3D4F73]">
+            02 / Process
+          </span>
+          <h2 className="text-[clamp(1.4rem,2.5vw,1.9rem)] font-bold tracking-tight text-[#F5F7FF]">
+            Three steps. No fluff.
+          </h2>
+        </div>
+
+        <div className="mt-0 grid grid-cols-1 lg:grid-cols-3">
+          {steps.map((step, index) => (
+            <div
+              key={step.n}
+              className={`group flex flex-col gap-5 p-8 ${
+                index < steps.length - 1
+                  ? "border-b border-white/[0.07] lg:border-b-0 lg:border-r"
+                  : ""
+              }`}
+            >
+              {/* Step number — large, decorative */}
+              <span className="font-black text-[4.5rem] leading-none tracking-tighter bg-gradient-to-br from-[#4A5568] to-[#1E2A3A] bg-clip-text text-transparent select-none">
+                {step.n}
+              </span>
+
+              <div>
+                <h3 className="text-[1.1rem] font-bold tracking-tight text-[#F5F7FF]">
+                  {step.title}
+                </h3>
+                <p className="mt-2.5 text-[0.9rem] leading-[1.75] text-[#6B7A96]">
+                  {step.desc}
+                </p>
               </div>
-              <span className="text-sm font-bold tracking-wide text-[#818CF8]">{item.step}</span>
             </div>
-            <h3 className="text-lg font-bold text-[#F5F7FF]">{item.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-[#8E97AB]">{item.desc}</p>
-          </LandingFadeInStaggerItem>
-        ))}
-      </LandingFadeInStagger>
+          ))}
+        </div>
+
+        {/* What you get — a quiet inset strip */}
+        <div className="mt-2 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.07] sm:grid-cols-4">
+          {[
+            ["Video", "Full recording with playback"],
+            ["Transcript", "Word-for-word, searchable"],
+            ["Score", "3-axis automated rubric"],
+            ["Next steps", "Coaching notes on what to fix"],
+          ].map(([label, detail]) => (
+            <div key={label} className="flex flex-col gap-1 bg-[#020B21] px-5 py-4">
+              <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-[#3D4F73]">
+                {label}
+              </span>
+              <span className="text-[0.82rem] text-[#8E97AB]">{detail}</span>
+            </div>
+          ))}
+        </div>
+
+      </div>
     </section>
   );
 }

@@ -1,78 +1,119 @@
+import { CheckCircle2, Sliders, Video, Award, ArrowRight } from "lucide-react";
+import Link from "next/link";
+
 const steps = [
   {
-    n: "01",
-    title: "Tell it who you are.",
-    desc: "Pick a role and level. Paste in a job description if you have one. Add your resume if you want questions that feel personal. Takes two minutes.",
+    step: "01",
+    title: "Customize your session",
+    subtitle: "Role, level & job description",
+    desc: "Pick your target role and difficulty. Optionally paste the exact job description or resume to tailor questions.",
+    icon: Sliders,
+    color: "from-blue-500 to-cyan-500",
+    badge: "2-Min Setup",
   },
   {
-    n: "02",
-    title: "Talk. Don't type.",
-    desc: "Answer on camera with your mic open. The AI listens to what you actually say and asks follow-ups accordingly. Think of it as a panel that never gets tired.",
+    step: "02",
+    title: "Practice out loud live",
+    subtitle: "Voice, video & in-browser code",
+    desc: "Answer with your mic and camera open. The AI interviewer follows up in real time based on what you actually said.",
+    icon: Video,
+    color: "from-violet-500 to-indigo-500",
+    badge: "Adaptive AI",
   },
   {
-    n: "03",
-    title: "Find out where you lost them.",
-    desc: "Watch the replay, read the transcript, check the scores. Then go again — tighter this time.",
+    step: "03",
+    title: "Review score & feedback",
+    subtitle: "Video replay, transcript & rubric",
+    desc: "Watch your video recording, search your transcript, and check objective scores to tighten your answer before the real thing.",
+    icon: Award,
+    color: "from-emerald-500 to-teal-500",
+    badge: "Instant Rubric",
   },
 ];
 
 export default function SocialProofSection() {
   return (
-    <section id="how-it-works" className="landing-section">
+    <section id="how-it-works" className="landing-section py-24 bg-[#090A0F]">
       <div className="landing-container">
 
-        {/* Section header */}
-        <div className="flex items-baseline gap-5 border-b border-white/[0.07] pb-6">
-          <span className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[#3D4F73]">
-            02 / Process
+        {/* Section Header */}
+        <div className="flex flex-col items-center text-center mb-16">
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#60A5FA]">
+            Simple Workflow
           </span>
-          <h2 className="text-[clamp(1.4rem,2.5vw,1.9rem)] font-bold tracking-tight text-[#F5F7FF]">
-            Three steps. No fluff.
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+            From setup to review in 3 steps
           </h2>
+          <p className="mt-3.5 max-w-xl text-base leading-relaxed text-[#94A3B8]">
+            Designed for candidates who want repeatable, realistic practice — not another static question list.
+          </p>
         </div>
 
-        <div className="mt-0 grid grid-cols-1 lg:grid-cols-3">
-          {steps.map((step, index) => (
-            <div
-              key={step.n}
-              className={`group flex flex-col gap-5 p-8 ${
-                index < steps.length - 1
-                  ? "border-b border-white/[0.07] lg:border-b-0 lg:border-r"
-                  : ""
-              }`}
-            >
-              {/* Step number — large, decorative */}
-              <span className="font-black text-[4.5rem] leading-none tracking-tighter bg-gradient-to-br from-[#4A5568] to-[#1E2A3A] bg-clip-text text-transparent select-none">
-                {step.n}
-              </span>
+        {/* 3 Step Cards Layout */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {steps.map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={item.step}
+                className="group relative flex flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.02] p-8 backdrop-blur-md transition-all duration-300 hover:border-white/20 hover:bg-white/[0.04]"
+              >
+                {/* Step number badge */}
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <span className="font-mono text-3xl font-black text-[#475569]">
+                      {item.step}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[0.7rem] font-semibold text-[#CBD5E1]">
+                      {item.badge}
+                    </span>
+                  </div>
 
-              <div>
-                <h3 className="text-[1.1rem] font-bold tracking-tight text-[#F5F7FF]">
-                  {step.title}
-                </h3>
-                <p className="mt-2.5 text-[0.9rem] leading-[1.75] text-[#6B7A96]">
-                  {step.desc}
-                </p>
+                  <div className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${item.color} p-2.5 text-white shadow-lg`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+
+                  <h3 className="text-xl font-bold tracking-tight text-white">
+                    {item.title}
+                  </h3>
+                  <p className="mt-1 text-xs font-medium text-[#60A5FA]">
+                    {item.subtitle}
+                  </p>
+                  <p className="mt-3 text-sm leading-relaxed text-[#94A3B8]">
+                    {item.desc}
+                  </p>
+                </div>
+
+                {index < steps.length - 1 && (
+                  <div className="hidden lg:block absolute -right-3 top-1/2 -translate-y-1/2 z-20">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#090A0F] border border-white/10 text-[#64748B]">
+                      <ArrowRight className="h-3 w-3" />
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* What you get — a quiet inset strip */}
-        <div className="mt-2 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.07] sm:grid-cols-4">
-          {[
-            ["Video", "Full recording with playback"],
-            ["Transcript", "Word-for-word, searchable"],
-            ["Score", "3-axis automated rubric"],
-            ["Next steps", "Coaching notes on what to fix"],
-          ].map(([label, detail]) => (
-            <div key={label} className="flex flex-col gap-1 bg-[#090A0F] px-5 py-4">
-              <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-[#3D4F73]">
-                {label}
-              </span>
-              <span className="text-[0.82rem] text-[#8E97AB]">{detail}</span>
-            </div>
-          ))}
+        {/* Inset Deliverables Banner */}
+        <div className="mt-12 rounded-2xl border border-white/10 bg-gradient-to-r from-blue-900/20 via-indigo-900/20 to-purple-900/20 p-6 backdrop-blur-md">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {[
+              ["HD Video Replay", "Full session video recording"],
+              ["Word Transcript", "Searchable speech-to-text"],
+              ["Rubric Scoring", "3-axis automated evaluation"],
+              ["Actionable Fixes", "Coaching notes for next run"],
+            ].map(([title, desc]) => (
+              <div key={title} className="flex items-start gap-2.5">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400 mt-0.5" />
+                <div>
+                  <span className="block text-xs font-semibold text-white">{title}</span>
+                  <span className="block text-[0.75rem] text-[#94A3B8]">{desc}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
       </div>

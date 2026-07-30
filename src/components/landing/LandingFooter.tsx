@@ -3,29 +3,47 @@ import { AppLogo } from "@/components/ui/AppLogo";
 
 export default function LandingFooter() {
   return (
-    <footer className="landing-footer-shell text-[#657086]">
-      <div className="landing-container flex flex-col items-center justify-between gap-3 sm:flex-row">
-        <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-90">
-          <AppLogo size={28} className="rounded-md" />
-          <span className="text-sm font-semibold text-[#F5F7FF]">
-            Snap<span className="text-[#A5B4FC]">Interview</span>
+    <footer className="border-t border-white/10 bg-[#06070B] py-12 text-[#94A3B8]">
+      <div className="landing-container flex flex-col items-center justify-between gap-6 sm:flex-row">
+        
+        {/* Brand */}
+        <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-90">
+            <AppLogo size={28} className="rounded-md" />
+            <span className="text-base font-semibold tracking-tight text-white">
+              Snap<span className="text-[#60A5FA]">Interview</span>
+            </span>
+          </Link>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[0.65rem] font-medium text-emerald-400 border border-emerald-500/20">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Systems Normal
           </span>
-        </Link>
-        <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm" aria-label="Footer">
-          <a href="#features" className="transition-colors hover:text-[#F5F7FF]">
+        </div>
+
+        {/* Links */}
+        <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm" aria-label="Footer Navigation">
+          <a href="#features" className="transition-colors hover:text-white">
             Features
           </a>
-          <a href="#how-it-works" className="transition-colors hover:text-[#F5F7FF]">
+          <a href="#how-it-works" className="transition-colors hover:text-white">
             How it works
           </a>
-          <a href="#get-started" className="transition-colors hover:text-[#F5F7FF]">
+          <a href="#get-started" className="transition-colors hover:text-white">
             Get started
           </a>
-          <Link href="/login" className="transition-colors hover:text-[#F5F7FF]">
+          <Link href="/login" className="transition-colors hover:text-white">
             Sign In
           </Link>
+          <Link href="/signup" className="transition-colors hover:text-white">
+            Register
+          </Link>
         </nav>
-        <p className="text-xs sm:text-sm">© {new Date().getFullYear()} SnapInterview</p>
+
+        {/* Copyright */}
+        <p className="text-xs text-[#64748B]">
+          © {new Date().getFullYear()} SnapInterview. All rights reserved.
+        </p>
+
       </div>
     </footer>
   );

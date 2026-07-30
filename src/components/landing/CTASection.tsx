@@ -1,56 +1,70 @@
 import Link from "next/link";
+import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 
 export default function CTASection() {
   return (
-    <section id="get-started" className="landing-section pb-20">
+    <section id="get-started" className="landing-section py-20 bg-[#090A0F]">
       <div className="landing-container">
 
-        <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.025] px-8 py-16 sm:px-14 sm:py-20">
-
-          {/* Background accent — single clean glow, bottom-right */}
+        <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-br from-[#0F111A] via-[#090A0F] to-[#06070B] p-8 sm:p-14 shadow-2xl">
+          
+          {/* Ambient radial glows behind card */}
           <div
-            className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.22)_0%,transparent_70%)] blur-3xl"
+            className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full bg-blue-600/15 blur-3xl"
             aria-hidden="true"
           />
           <div
-            className="pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(34,211,238,0.1)_0%,transparent_70%)] blur-3xl"
+            className="pointer-events-none absolute -left-20 -bottom-20 h-80 w-80 rounded-full bg-purple-600/15 blur-3xl"
             aria-hidden="true"
           />
 
-          {/* Editorial content */}
-          <div className="relative max-w-2xl">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[#3D4F73]">
-              03 / Get started
-            </p>
-            <h2 className="mt-4 text-[clamp(2rem,4vw,3.2rem)] font-bold leading-[1.05] tracking-[-0.035em] text-[#F5F7FF]">
-              Your next interview
-              <br />
-              <span className="text-[#6B7A96] font-normal">is the one that matters.</span>
+          <div className="relative z-10 flex flex-col items-center text-center">
+            
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1 text-xs font-semibold text-blue-400">
+              <Sparkles className="h-3.5 w-3.5" />
+              Start practicing in 2 minutes
+            </div>
+
+            <h2 className="mt-5 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl max-w-2xl">
+              Ready to ace your next technical or behavioral interview?
             </h2>
-            <p className="mt-5 max-w-md text-[clamp(0.92rem,1.3vw,1rem)] leading-relaxed text-[#6B7A96]">
-              Free account. No tiers to choose. Start a session in your browser right now — then review your recording
-              when you're done.
+
+            <p className="mt-4 max-w-xl text-base leading-relaxed text-[#94A3B8]">
+              Create a free account, start a mock session in your browser, and review your recording and transcript when done. No credit card required.
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-4">
-              <Link href="/signup" className="landing-hero-cta-primary">
-                <span className="landing-hero-cta-meters" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
-                </span>
+            {/* CTA Buttons */}
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              <Link
+                href="/signup"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-7 text-base font-semibold text-white shadow-lg shadow-blue-600/30 transition-all duration-200 hover:bg-[#1D4ED8] hover:shadow-blue-600/40 hover:scale-[1.02]"
+              >
                 Create free account
-                <span className="landing-hero-cta-arrow" aria-hidden="true">→</span>
+                <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link href="/login" className="landing-hero-cta-secondary">
-                Sign in
-                <span className="landing-hero-cta-secondary-mark" aria-hidden="true">↳</span>
+              
+              <Link
+                href="/login"
+                className="inline-flex h-12 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-6 text-sm font-semibold text-white transition-colors duration-200 hover:bg-white/10"
+              >
+                Sign in to existing account
               </Link>
             </div>
 
-            <p className="mt-6 text-xs text-[#3D4F73]">
-              No credit card required · Works in any modern browser
-            </p>
+            {/* Trust badges */}
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-[#64748B]">
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4 text-emerald-400" /> Free to start
+              </span>
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4 text-emerald-400" /> Works in any browser
+              </span>
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4 text-emerald-400" /> No credit card needed
+              </span>
+            </div>
+
           </div>
         </div>
 

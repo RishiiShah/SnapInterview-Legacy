@@ -1,132 +1,158 @@
-import { Mic, Video, BarChart3, Zap } from "lucide-react";
+import { BarChart3, Code, Cpu, Mic, ShieldCheck, Sparkles, Video, Zap } from "lucide-react";
 
 export default function FeaturesSection() {
   return (
-    <section id="features" className="landing-section">
+    <section id="features" className="landing-section py-20 bg-[#090A0F]">
       <div className="landing-container">
 
-        {/* Section header — left-aligned, editorial */}
-        <div className="flex items-baseline gap-5 border-b border-white/[0.07] pb-6">
-          <span className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[#3D4F73]">
-            01 / Features
-          </span>
-          <h2 className="text-[clamp(1.4rem,2.5vw,1.9rem)] font-bold tracking-tight text-[#F5F7FF]">
-            What makes it different
+        {/* Section Header */}
+        <div className="flex flex-col items-center text-center mb-14">
+          <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-blue-400">
+            <Sparkles className="h-3.5 w-3.5" />
+            Core Capabilities
+          </div>
+          <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+            Everything you need for serious interview prep
           </h2>
+          <p className="mt-3.5 max-w-2xl text-base leading-relaxed text-[#94A3B8]">
+            Built around realistic, high-stakes practice: speaking out loud, handling unexpected probe questions, and reviewing objective score rubrics.
+          </p>
         </div>
 
-        {/* Asymmetric bento grid */}
-        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
+        {/* Asymmetric Bento Grid */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
 
-          {/* LARGE CARD — spans 7 cols */}
-          <article className="group lg:col-span-7 relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] p-7 transition-colors duration-300 hover:border-white/[0.13]">
-            {/* Decorative large number */}
-            <span className="pointer-events-none absolute -right-3 -top-5 select-none text-[8rem] font-black leading-none text-white/[0.025]" aria-hidden="true">
-              01
-            </span>
-            <div className="relative">
-              <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 border border-violet-500/20">
-                  <Mic className="h-4.5 w-4.5 text-violet-400" />
-                </div>
-                <span className="text-xs font-medium text-[#4A5568]">Voice-first</span>
+          {/* BENTO CARD 1 — Adaptive Voice AI (7 cols) */}
+          <article className="group relative lg:col-span-7 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.01] p-7 backdrop-blur-md transition-all duration-300 hover:border-violet-500/40 hover:shadow-[0_0_40px_rgba(139,92,246,0.15)]">
+            <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-violet-500/10 blur-3xl transition-opacity group-hover:opacity-100" />
+            
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-300">
+                <Mic className="h-3.5 w-3.5" />
+                Adaptive Voice Interviewer
               </div>
-              <h3 className="text-[1.25rem] font-bold leading-snug tracking-tight text-[#F5F7FF]">
+              <h3 className="text-2xl font-bold tracking-tight text-white">
                 It listens. Then it pushes back.
               </h3>
-              <p className="mt-3 max-w-md text-[0.92rem] leading-relaxed text-[#6B7A96]">
-                Answer out loud with your mic open. SnapInterview follows your reasoning and asks the
-                follow-ups a real interviewer would ask — not a pre-written script. No two sessions
-                are identical.
+              <p className="mt-2.5 max-w-lg text-sm leading-relaxed text-[#94A3B8]">
+                Answer out loud with your mic open. SnapInterview listens to your reasoning and asks adaptive follow-ups based on what you said — just like a senior interviewer.
               </p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                {["28+ roles", "Adaptive Q&A", "Real-time audio"].map((t) => (
-                  <span key={t} className="rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[0.7rem] font-medium text-[#4A5568]">
-                    {t}
-                  </span>
-                ))}
+            </div>
+
+            {/* Micro Graphic: Simulated Voice & Waveform UI */}
+            <div className="mt-6 rounded-xl border border-white/10 bg-[#06070B] p-4 shadow-inner">
+              <div className="flex items-center justify-between text-xs text-[#94A3B8] mb-2.5">
+                <span className="flex items-center gap-2 font-mono text-violet-300">
+                  <span className="h-2 w-2 rounded-full bg-violet-400 animate-ping" />
+                  AI Interviewer Active
+                </span>
+                <span className="rounded bg-violet-500/20 px-2 py-0.5 text-[0.65rem] font-medium text-violet-300">
+                  Adaptive Probing
+                </span>
+              </div>
+              <div className="rounded-lg bg-white/[0.03] p-3 text-xs leading-relaxed text-[#E2E8F0] border border-white/5">
+                <span className="font-semibold text-violet-400">Interviewer: </span>
+                "You mentioned an $O(N)$ lookup. How would your space complexity scale if memory was severely constrained?"
               </div>
             </div>
           </article>
 
-          {/* TALL CARD — spans 5 cols */}
-          <article className="group lg:col-span-5 relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] p-7 transition-colors duration-300 hover:border-white/[0.13]">
-            <span className="pointer-events-none absolute -right-3 -top-5 select-none text-[8rem] font-black leading-none text-white/[0.025]" aria-hidden="true">
-              02
-            </span>
-            <div className="relative">
-              <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/15 border border-cyan-500/20">
-                  <Video className="h-4.5 w-4.5 text-cyan-400" />
-                </div>
-                <span className="text-xs font-medium text-[#4A5568]">Video replay</span>
-              </div>
-              <h3 className="text-[1.25rem] font-bold leading-snug tracking-tight text-[#F5F7FF]">
-                Watch yourself. Cringe. Improve.
-              </h3>
-              <p className="mt-3 text-[0.92rem] leading-relaxed text-[#6B7A96]">
-                Your recording plays back alongside the full transcript. See exactly where you
-                stumbled, rambled, or nailed it — before it counts.
-              </p>
-            </div>
-          </article>
-
-          {/* WIDE SHORT CARD — spans 5 cols */}
-          <article className="group lg:col-span-5 relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] p-7 transition-colors duration-300 hover:border-white/[0.13]">
-            <span className="pointer-events-none absolute -right-3 -top-5 select-none text-[8rem] font-black leading-none text-white/[0.025]" aria-hidden="true">
-              03
-            </span>
-            <div className="relative">
-              <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 border border-emerald-500/20">
-                  <BarChart3 className="h-4.5 w-4.5 text-emerald-400" />
-                </div>
-                <span className="text-xs font-medium text-[#4A5568]">Scoring</span>
-              </div>
-              <h3 className="text-[1.25rem] font-bold leading-snug tracking-tight text-[#F5F7FF]">
-                Numbers you can act on.
-              </h3>
-              <p className="mt-3 text-[0.92rem] leading-relaxed text-[#6B7A96]">
-                Objective scores across technical depth, clarity, and communication. Tied to
-                rubrics real interviewers actually use.
-              </p>
-            </div>
-          </article>
-
-          {/* NARROW TALL CARD — spans 4 cols — accent color */}
-          <article className="group lg:col-span-4 relative overflow-hidden rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.04] p-7 transition-colors duration-300 hover:border-indigo-500/30">
-            <span className="pointer-events-none absolute -right-3 -top-5 select-none text-[8rem] font-black leading-none text-indigo-400/[0.06]" aria-hidden="true">
-              04
-            </span>
-            <div className="relative">
-              <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/20 border border-indigo-500/25">
-                  <Zap className="h-4.5 w-4.5 text-indigo-400" />
-                </div>
-                <span className="text-xs font-medium text-indigo-500/70">Practice mode</span>
-              </div>
-              <h3 className="text-[1.25rem] font-bold leading-snug tracking-tight text-[#F5F7FF]">
-                Drill the weak spots.
-              </h3>
-              <p className="mt-3 text-[0.92rem] leading-relaxed text-[#6B7A96]">
-                Skip the full mock. Target individual questions by type and difficulty until
-                they stop feeling hard.
-              </p>
-            </div>
-          </article>
-
-          {/* STAT CARD — spans 3 cols */}
-          <article className="group lg:col-span-3 relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] p-7 transition-colors duration-300 hover:border-white/[0.13]">
+          {/* BENTO CARD 2 — Video Replay & Transcript (5 cols) */}
+          <article className="group relative lg:col-span-5 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.01] p-7 backdrop-blur-md transition-all duration-300 hover:border-cyan-500/40 hover:shadow-[0_0_40px_rgba(34,211,238,0.15)]">
+            <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-cyan-500/10 blur-3xl transition-opacity group-hover:opacity-100" />
+            
             <div>
-              <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-[#3D4F73]">
-                Roles covered
-              </p>
-              <p className="mt-2 text-[3.5rem] font-black leading-none tracking-tight text-[#F5F7FF]">
-                28<span className="text-violet-400">+</span>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-lg border border-cyan-500/25 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-300">
+                <Video className="h-3.5 w-3.5" />
+                Video Replay & Transcript
+              </div>
+              <h3 className="text-xl font-bold tracking-tight text-white">
+                Watch yourself. Spot weak spots. Improve.
+              </h3>
+              <p className="mt-2.5 text-sm leading-relaxed text-[#94A3B8]">
+                Review your session video alongside a synchronized word-for-word transcript. See exactly where you hesitated or rambled.
               </p>
             </div>
-            <p className="mt-4 text-[0.82rem] leading-relaxed text-[#4A5568]">
-              From SWE to PM to data science — questions tuned to your role and level.
+
+            {/* Micro Graphic: Simulated Video Player */}
+            <div className="mt-6 rounded-xl border border-white/10 bg-[#06070B] p-3">
+              <div className="flex items-center justify-between text-xs text-[#94A3B8] mb-2">
+                <span className="font-mono text-cyan-300 text-[0.7rem]">HD Video Recording</span>
+                <span className="text-[0.65rem] text-emerald-400">Audio Sync Ready</span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                <div className="h-full w-3/5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500" />
+              </div>
+            </div>
+          </article>
+
+          {/* BENTO CARD 3 — Objective Scoring Rubrics (5 cols) */}
+          <article className="group relative lg:col-span-5 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.01] p-7 backdrop-blur-md transition-all duration-300 hover:border-emerald-500/40 hover:shadow-[0_0_40px_rgba(52,211,153,0.15)]">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+                <BarChart3 className="h-3.5 w-3.5" />
+                Objective Rubric Scoring
+              </div>
+              <h3 className="text-xl font-bold tracking-tight text-white">
+                Scores tied to real hiring bars.
+              </h3>
+              <p className="mt-2.5 text-sm leading-relaxed text-[#94A3B8]">
+                Get actionable scores across technical depth, problem-solving, and communication clarity after every practice run.
+              </p>
+            </div>
+
+            {/* Micro Graphic: Score pills */}
+            <div className="mt-6 space-y-2">
+              {[
+                { label: "Technical Depth", score: "88%", color: "bg-emerald-400" },
+                { label: "Communication Clarity", score: "92%", color: "bg-cyan-400" },
+              ].map((item) => (
+                <div key={item.label} className="rounded-lg bg-white/[0.03] p-2.5 border border-white/5 flex items-center justify-between text-xs">
+                  <span className="text-[#CBD5E1]">{item.label}</span>
+                  <span className="font-mono font-bold text-white">{item.score}</span>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          {/* BENTO CARD 4 — Focused Question Drills (4 cols) */}
+          <article className="group relative lg:col-span-4 flex flex-col justify-between overflow-hidden rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-transparent p-7 backdrop-blur-md transition-all duration-300 hover:border-indigo-500/50 hover:shadow-[0_0_40px_rgba(99,102,241,0.2)]">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/20 px-3 py-1 text-xs font-semibold text-indigo-300">
+                <Zap className="h-3.5 w-3.5" />
+                Question Drills
+              </div>
+              <h3 className="text-xl font-bold tracking-tight text-white">
+                Target your weak spots.
+              </h3>
+              <p className="mt-2.5 text-sm leading-relaxed text-[#94A3B8]">
+                Skip full mocks when short on time. Drill specific question types by role and difficulty until you feel confident.
+              </p>
+            </div>
+
+            {/* Tag pills */}
+            <div className="mt-6 flex flex-wrap gap-2">
+              {["System Design", "Behavioral", "Coding", "SQL"].map((tag) => (
+                <span key={tag} className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-[#CBD5E1]">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </article>
+
+          {/* BENTO CARD 5 — 28+ Roles Supported (3 cols) */}
+          <article className="group relative lg:col-span-3 flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.01] p-7 backdrop-blur-md transition-all duration-300 hover:border-amber-500/40">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">
+                Supported Roles
+              </div>
+              <div className="mt-2 flex items-baseline gap-1">
+                <span className="text-5xl font-black text-white">28</span>
+                <span className="text-2xl font-bold text-amber-400">+</span>
+              </div>
+            </div>
+            <p className="mt-4 text-xs leading-relaxed text-[#94A3B8]">
+              Software Engineers, PMs, Data Scientists, DevOps, and Engineering Managers.
             </p>
           </article>
 

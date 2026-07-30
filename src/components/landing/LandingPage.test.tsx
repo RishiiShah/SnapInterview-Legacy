@@ -102,8 +102,8 @@ describe("landing experience", () => {
     expect(
       screen.getByText(/Implement a function that returns the first non-repeating character/i),
     ).toBeTruthy();
-    expect(screen.getByText("Answer review")).toBeTruthy();
-    expect(screen.getByText(/4\/4 passed/i)).toBeTruthy();
+    expect(screen.getByText(/Automated Evaluation/i)).toBeTruthy();
+    expect(screen.getByText(/4\/4 test cases passed/i)).toBeTruthy();
   });
 
   it("keeps the floating navbar actions available", () => {
@@ -129,8 +129,8 @@ describe("landing experience", () => {
       </>,
     );
 
-    expect(screen.getByText(/What makes it different/i)).toBeTruthy();
-    expect(screen.getByText(/Three steps\. No fluff\./i)).toBeTruthy();
-    expect(screen.getByText(/Your next interview/i)).toBeTruthy();
+    expect(screen.getByText(/Core Capabilities/i)).toBeTruthy();
+    expect(screen.getByText(/From setup to review in 3 steps/i)).toBeTruthy();
+    expect(screen.getByText(/Ready to ace your next technical/i)).toBeTruthy();
   });
 });

@@ -3,31 +3,31 @@ import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 
 export default function CTASection() {
   return (
-    <section id="get-started" className="landing-section py-20 bg-[#090A0F]">
+    <section id="get-started" className="landing-section py-24 relative z-10">
       <div className="landing-container">
 
-        <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-br from-[#0F111A] via-[#090A0F] to-[#06070B] p-8 sm:p-14 shadow-2xl">
+        <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-br from-[#0D0F1B] via-[#090A12] to-[#05060A] p-8 sm:p-16 shadow-2xl backdrop-blur-2xl">
           
-          {/* Ambient radial glows behind card */}
+          {/* Ambient Starlight Radial Glows behind card */}
           <div
-            className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full bg-blue-600/15 blur-3xl"
+            className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-blue-600/15 blur-3xl"
             aria-hidden="true"
           />
           <div
-            className="pointer-events-none absolute -left-20 -bottom-20 h-80 w-80 rounded-full bg-purple-600/15 blur-3xl"
+            className="pointer-events-none absolute -left-24 -bottom-24 h-96 w-96 rounded-full bg-purple-600/15 blur-3xl"
             aria-hidden="true"
           />
 
           <div className="relative z-10 flex flex-col items-center text-center">
             
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1 text-xs font-semibold text-blue-400">
-              <Sparkles className="h-3.5 w-3.5" />
-              Start practicing in 2 minutes
+            {/* Starlight Eyebrow */}
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[#60A5FA]">
+              <Sparkles className="h-3.5 w-3.5 text-blue-400" />
+              04 / Start Now
             </div>
 
-            <h2 className="mt-5 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl max-w-2xl">
-              Ready to ace your next technical or behavioral interview?
+            <h2 className="mt-5 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl max-w-2xl leading-tight">
+              Your next interview won't be your first.
             </h2>
 
             <p className="mt-4 max-w-xl text-base leading-relaxed text-[#94A3B8]">
@@ -53,7 +53,7 @@ export default function CTASection() {
             </div>
 
             {/* Trust badges */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-[#64748B]">
+            <div className="mt-9 flex flex-wrap items-center justify-center gap-6 text-xs text-[#64748B]">
               <span className="flex items-center gap-1.5">
                 <ShieldCheck className="h-4 w-4 text-emerald-400" /> Free to start
               </span>

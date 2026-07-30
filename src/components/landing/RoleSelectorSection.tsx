@@ -59,12 +59,10 @@ export default function RoleSelectorSection() {
     <section className="landing-section py-28 relative z-10">
       <div className="landing-container">
         
-        {/* Header */}
         <div className="flex flex-col items-center text-center mb-16">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[#60A5FA]">
-            <Sparkles className="h-3.5 w-3.5 text-blue-400" />
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#60A5FA]">
             28+ Specialized Tracks
-          </div>
+          </span>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
             Train for your exact role and seniority
           </h2>

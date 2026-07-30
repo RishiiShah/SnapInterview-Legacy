@@ -37,8 +37,8 @@ export default function SocialProofSection() {
 
         {/* Section Header */}
         <div className="flex flex-col items-center text-center mb-16">
-          <span className="text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-[#60A5FA]">
-            03 / The Journey
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#60A5FA]">
+            The Practice Loop
           </span>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
             Three steps to interview mastery

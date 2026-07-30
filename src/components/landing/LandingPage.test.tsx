@@ -100,9 +100,9 @@ describe("landing experience", () => {
     render(<HeroWorkspace />);
 
     expect(
-      screen.getByText(/Implement a function that returns the first non-repeating character/i),
+      screen.getByText(/Given an array of integers/i),
     ).toBeTruthy();
-    expect(screen.getByText(/Automated Evaluation/i)).toBeTruthy();
+    expect(screen.getByText(/Two Sum/i)).toBeTruthy();
     expect(screen.getByText(/4\/4 test cases passed/i)).toBeTruthy();
   });
 

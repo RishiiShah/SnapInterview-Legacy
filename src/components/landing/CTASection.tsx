@@ -20,11 +20,9 @@ export default function CTASection() {
 
           <div className="relative z-10 flex flex-col items-center text-center">
             
-            {/* Starlight Eyebrow */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[#60A5FA]">
-              <Sparkles className="h-3.5 w-3.5 text-blue-400" />
-              04 / Start Now
-            </div>
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#60A5FA]">
+              Start Practicing Today
+            </span>
 
             <h2 className="mt-5 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl max-w-2xl leading-tight">
               Your next interview won't be your first.

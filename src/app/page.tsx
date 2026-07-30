@@ -49,7 +49,7 @@ export default async function LandingPage() {
         <HeroSection />
 
         {/* Product Strengths & Live Demo Sections */}
-        <section className="landing-section pb-20 pt-8 bg-[#090A0F]">
+        <section className="landing-section pb-24 pt-20 md:pt-28 bg-[#090A0F]">
           <HeroWorkspace />
         </section>
 

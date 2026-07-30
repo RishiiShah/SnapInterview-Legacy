@@ -1,7 +1,21 @@
 "use client";
 
-import { motion, type Variants, useReducedMotion } from "framer-motion";
-import { Check, CheckCircle2, Code2, MessageCircle, Mic, Play, Sparkles, Terminal, Volume2 } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Check,
+  CheckCircle2,
+  Code2,
+  Cpu,
+  MessageCircle,
+  Mic,
+  Play,
+  RotateCcw,
+  Sparkles,
+  Terminal,
+  Video,
+  Volume2,
+} from "lucide-react";
 
 const CODE_LINES = [
   { text: "function firstUniqueChar(value) {", color: "text-[#C4B5FD]" },
@@ -14,254 +28,260 @@ const CODE_LINES = [
 ];
 
 const REVIEW_METRICS = [
-  { label: "Technical depth", value: 82, color: "bg-[#38BDF8]" },
-  { label: "Clarity & structure", value: 90, color: "bg-[#A78BFA]" },
-  { label: "Communication", value: 86, color: "bg-[#818CF8]" },
+  { label: "Technical depth & correctness", value: 88, color: "from-cyan-500 to-blue-500" },
+  { label: "Communication & structure", value: 92, color: "from-violet-500 to-purple-500" },
+  { label: "Problem-solving & logic", value: 85, color: "from-indigo-500 to-blue-600" },
 ];
 
-const sequence: Variants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.3, ease: "easeOut" },
-  },
-};
-
 export default function HeroWorkspace() {
-  const reducedMotion = useReducedMotion() ?? false;
+  const [activeTab, setActiveTab] = useState<"transcript" | "code" | "evaluation">("code");
 
   return (
     <div
       data-landing-hero-workspace
-      aria-label="Illustrative coding interview workspace"
+      aria-label="Interactive mock interview workspace studio"
       className="relative mx-auto w-full landing-container"
     >
-      {/* Header section above workspace */}
-      <div className="mb-8 flex flex-col items-center text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[#60A5FA]">
+      {/* Header section above workspace studio */}
+      <div className="mb-10 flex flex-col items-center text-center">
+        <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-[#60A5FA]">
           <Sparkles className="h-3.5 w-3.5 text-blue-400" />
-          Interactive Workspace Demo
+          Live Interactive Studio
         </div>
-        <h2 className="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
-          Step inside the room before the interview begins
+        <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+          See how your interview unfolds
         </h2>
-        <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#94A3B8]">
-          A live coding environment, speech-to-text transcript, and automated feedback system operating in real time.
+        <p className="mt-3 max-w-xl text-base leading-relaxed text-[#94A3B8]">
+          Experience the simulated interface: video call, speech transcript, code editor, and instant AI rubric evaluation.
         </p>
       </div>
 
-      {/* Workspace Enclosure — Midnight Glass frame */}
-      <div className="landing-workspace-frame relative overflow-hidden rounded-2xl border border-white/15 bg-[#0B0D18]/80 shadow-[0_30px_90px_rgba(0,0,0,0.7)] backdrop-blur-2xl">
+      {/* Main Studio Frame */}
+      <div className="landing-workspace-frame relative overflow-hidden rounded-3xl border border-white/15 bg-[#0A0C16]/90 shadow-[0_35px_100px_rgba(0,0,0,0.8)] backdrop-blur-2xl">
         {/* Glow accent along top border */}
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-500/60 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-500/70 to-transparent" />
 
+        {/* Studio Window Header Bar */}
+        <div className="flex flex-wrap items-center justify-between border-b border-white/10 bg-[#06070E] px-5 py-3.5 text-xs text-[#94A3B8]">
+          <div className="flex items-center gap-3">
+            <div className="flex gap-2" aria-hidden="true">
+              <span className="h-3 w-3 rounded-full bg-[#FF5F56]" />
+              <span className="h-3 w-3 rounded-full bg-[#FFBD2E]" />
+              <span className="h-3 w-3 rounded-full bg-[#27C93F]" />
+            </div>
+            <span className="h-4 w-px bg-white/10" />
+            <span className="font-mono text-xs font-semibold text-white">
+              SnapInterview Studio v2.4
+            </span>
+            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[0.65rem] font-medium text-emerald-400 border border-emerald-500/20">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Session Live (04:12)
+            </span>
+          </div>
+
+          {/* Tab Switcher for mobile & desktop focus */}
+          <div className="flex items-center gap-1 rounded-lg bg-white/5 p-1 border border-white/10">
+            <button
+              onClick={() => setActiveTab("code")}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-all ${
+                activeTab === "code" ? "bg-blue-600 text-white shadow" : "text-[#94A3B8] hover:text-white"
+              }`}
+            >
+              <Code2 className="h-3.5 w-3.5" />
+              Code Editor
+            </button>
+            <button
+              onClick={() => setActiveTab("transcript")}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-all ${
+                activeTab === "transcript" ? "bg-blue-600 text-white shadow" : "text-[#94A3B8] hover:text-white"
+              }`}
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              Voice Transcript
+            </button>
+            <button
+              onClick={() => setActiveTab("evaluation")}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-all ${
+                activeTab === "evaluation" ? "bg-blue-600 text-white shadow" : "text-[#94A3B8] hover:text-white"
+              }`}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              AI Scorecard
+            </button>
+          </div>
+        </div>
+
+        {/* 3-Column Grid View */}
         <div className="landing-workspace-shell">
-          <div className="landing-workspace">
+          <div className="landing-workspace grid grid-cols-1 divide-y divide-white/10 lg:grid-cols-3 lg:divide-y-0 lg:divide-x">
             
-            {/* Pane 1: Live Voice & Speech-to-Text */}
-            <section aria-label="Interview conversation" className="landing-workspace-pane flex flex-col p-4.5">
-              <div className="flex items-center justify-between pb-3 text-xs text-[#8E97AB] border-b border-white/10">
-                <span className="flex items-center gap-2 font-semibold text-[#F5F7FF]">
-                  <MessageCircle className="h-4 w-4 text-[#A78BFA]" />
-                  Live Interview Session
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[0.65rem] font-medium text-emerald-400 border border-emerald-500/20">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Live AI Voice
-                </span>
+            {/* COLUMN 1: AI Interviewer Video & Transcript */}
+            <section aria-label="Interview conversation" className="landing-workspace-pane flex flex-col p-5 bg-[#090B14]">
+              {/* AI Interviewer Video Box */}
+              <div className="relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-b from-[#121524] to-[#0A0C16] p-4 shadow-md">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-600 text-white shadow-md">
+                      <Cpu className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <span className="block text-xs font-semibold text-white">AI Interviewer</span>
+                      <span className="block text-[0.65rem] text-[#94A3B8]">Senior Staff Engineer</span>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-violet-500/20 px-2 py-0.5 text-[0.65rem] font-semibold text-violet-300 border border-violet-500/30">
+                    Speaking...
+                  </span>
+                </div>
+
+                <div className="rounded-lg bg-black/40 p-3 text-xs leading-relaxed text-[#E2E8F0] border border-white/5">
+                  <span className="font-semibold text-violet-400">Question: </span>
+                  "Implement a function that returns the first non-repeating character in a string. Walk me through your logic."
+                </div>
+
+                {/* Animated Voice Waveform */}
+                <div className="mt-3 flex items-center gap-2 rounded-lg bg-white/[0.04] p-2 border border-white/5">
+                  <Volume2 className="h-3.5 w-3.5 text-violet-400 shrink-0" />
+                  <div className="flex flex-1 items-center gap-0.5 h-4">
+                    {[40, 80, 45, 95, 60, 100, 35, 75, 50, 90, 40, 85, 65, 45, 95, 50].map((h, idx) => (
+                      <span
+                        key={idx}
+                        className="flex-1 rounded-full bg-violet-400/80 animate-pulse"
+                        style={{ height: `${h}%`, animationDelay: `${idx * 0.08}s` }}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-[0.65rem] font-mono text-[#94A3B8]">0:14 / 1:30</span>
+                </div>
               </div>
 
-              <motion.div
-                initial={reducedMotion ? false : "hidden"}
-                animate="visible"
-                variants={sequence}
-                className="mt-4 rounded-xl border border-violet-500/20 bg-violet-500/[0.08] p-3.5"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-[#A78BFA]">
-                    Interviewer (AI)
-                  </p>
-                  <Volume2 className="h-3.5 w-3.5 text-[#A78BFA]/70" />
+              {/* Candidate Response Transcript Box */}
+              <div className="mt-4 flex-1 rounded-xl border border-white/10 bg-[#06070E] p-4">
+                <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-[#67E8F9]">
+                    <Mic className="h-3.5 w-3.5" /> Candidate Response
+                  </span>
+                  <span className="text-[0.65rem] text-emerald-400">Mic Open</span>
                 </div>
-                <p className="mt-2 text-xs leading-relaxed text-[#E2E8F0]">
-                  Implement a function that returns the first non-repeating character in a string.
-                </p>
-              </motion.div>
 
-              <motion.div
-                initial={reducedMotion ? false : "hidden"}
-                animate="visible"
-                variants={sequence}
-                transition={reducedMotion ? undefined : { delay: 0.35 }}
-                className="mt-3 rounded-xl border border-cyan-400/20 bg-cyan-400/[0.06] p-3.5"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-[#67E8F9]">
-                    You (Candidate)
-                  </p>
-                  <Mic className="h-3.5 w-3.5 text-[#67E8F9]/70" />
-                </div>
-                <p className="mt-2 text-xs leading-relaxed text-[#CBD5E1]">
-                  I’ll count occurrences first, then scan the string again so the result stays linear and easy to explain.
+                <p className="mt-3 text-xs leading-relaxed text-[#CBD5E1]">
+                  "I’ll count character occurrences in a hash map first, then scan the string a second time so the result stays linear $O(N)$ and easy to explain."
                 </p>
-              </motion.div>
-
-              {/* Simulated Audio Waveform Bar */}
-              <div className="mt-4.5 rounded-xl bg-white/[0.03] p-2.5 border border-white/5 flex items-center gap-2.5">
-                <button className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white shadow-md">
-                  <Play className="h-3 w-3 fill-current ml-0.5" />
-                </button>
-                <div className="flex flex-1 items-center gap-0.5 h-4">
-                  {[40, 75, 30, 90, 60, 100, 45, 80, 50, 70, 35, 85, 60, 40, 95, 50, 30, 70, 40].map((h, idx) => (
-                    <span
-                      key={idx}
-                      className="flex-1 rounded-full bg-blue-400/70"
-                      style={{ height: `${h}%` }}
-                    />
-                  ))}
-                </div>
-                <span className="text-[0.65rem] font-mono text-[#64748B]">0:14 / 1:30</span>
               </div>
 
-              <div className="mt-auto flex items-center gap-2 pt-4 text-[0.7rem] text-[#64748B]">
-                <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
-                Speech-to-text synced transcript
+              <div className="mt-4 flex items-center justify-between text-[0.7rem] text-[#64748B]">
+                <span className="flex items-center gap-1.5">
+                  <Check className="h-3.5 w-3.5 text-emerald-400" /> Speech synced in real-time
+                </span>
               </div>
             </section>
 
-            {/* Pane 2: Code Editor */}
-            <section aria-label="Code editor" className="landing-workspace-pane flex flex-col !p-0">
-              <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 text-xs bg-white/[0.02]">
-                <div className="flex items-center gap-2.5 text-[#CBD5E1]">
-                  <div className="flex gap-1.5" aria-hidden="true">
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#F87171]/80" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#FBBF24]/80" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#34D399]/80" />
-                  </div>
-                  <span className="font-mono text-xs font-medium">solution.js</span>
+            {/* COLUMN 2: In-Browser Code Editor */}
+            <section aria-label="Code editor" className="landing-workspace-pane flex flex-col !p-0 bg-[#080912]">
+              <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 bg-white/[0.02]">
+                <div className="flex items-center gap-2 text-[#CBD5E1]">
+                  <Code2 className="h-4 w-4 text-blue-400" />
+                  <span className="font-mono text-xs font-semibold text-white">solution.js</span>
                 </div>
-                <span className="flex items-center gap-1 rounded-md bg-white/5 px-2.5 py-0.5 text-[0.65rem] font-mono text-[#67E8F9] border border-white/10">
-                  <Code2 className="h-3 w-3" />
-                  JavaScript
+                <span className="rounded-md bg-blue-500/20 px-2.5 py-0.5 text-[0.65rem] font-mono text-blue-300 border border-blue-500/30">
+                  JavaScript ES6
                 </span>
               </div>
 
               <div
                 data-landing-code-content
-                className="min-h-0 flex-1 overflow-hidden px-4 py-3.5 font-mono text-[clamp(0.68rem,0.98vw,0.78rem)] leading-[1.8]"
+                className="min-h-[220px] flex-1 overflow-hidden px-4 py-4 font-mono text-[clamp(0.7rem,0.98vw,0.8rem)] leading-[1.85]"
               >
                 {CODE_LINES.map((line, index) => (
-                  <motion.div
+                  <div
                     key={line.text}
-                    initial={reducedMotion ? false : { opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={reducedMotion ? undefined : { delay: 0.7 + index * 0.1, duration: 0.24 }}
-                    className={`flex min-w-0 max-w-full rounded px-1.5 py-0.5 ${index === 5 ? "bg-cyan-400/[0.1] border-l-2 border-cyan-400" : ""}`}
+                    className={`flex min-w-0 max-w-full rounded px-2 py-0.5 ${
+                      index === 5 ? "bg-cyan-400/[0.12] border-l-2 border-cyan-400" : ""
+                    }`}
                   >
-                    <span className="mr-3 w-4 shrink-0 select-none text-right text-[#475569]">{index + 1}</span>
+                    <span className="mr-3.5 w-4 shrink-0 select-none text-right text-[#475569]">{index + 1}</span>
                     <code className={`min-w-0 break-words whitespace-pre-wrap ${line.color}`}>{line.text}</code>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
 
-              <motion.div
-                initial={reducedMotion ? false : { opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={reducedMotion ? undefined : { delay: 1.7, duration: 0.25 }}
-                className="flex items-center justify-between border-t border-white/10 px-4 py-3 bg-emerald-500/[0.04]"
-              >
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
-                  <CheckCircle2 className="h-4 w-4" />
-                  4/4 test cases passed
-                </span>
-                <span className="rounded-md bg-emerald-500/20 px-2.5 py-0.5 text-[0.65rem] font-semibold text-emerald-300 border border-emerald-500/30">
-                  Accepted (12ms)
-                </span>
-              </motion.div>
+              {/* Test Case Execution Output Bar */}
+              <div className="border-t border-white/10 bg-[#05060C] p-3.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-2 font-semibold text-emerald-400">
+                    <CheckCircle2 className="h-4 w-4" /> 4/4 Test Cases Passed
+                  </span>
+                  <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[0.65rem] font-semibold text-emerald-300 border border-emerald-500/30">
+                    Passed (12ms)
+                  </span>
+                </div>
+              </div>
             </section>
 
-            {/* Pane 3: Scorecard & Review */}
-            <section aria-label="Answer review" className="landing-hero-review landing-workspace-pane flex flex-col p-4.5">
-              <motion.div
-                initial={reducedMotion ? false : "hidden"}
-                animate="visible"
-                variants={sequence}
-                transition={reducedMotion ? undefined : { delay: 1.9 }}
-              >
-                <div className="flex items-center gap-2 text-sm font-semibold text-[#F5F7FF]">
+            {/* COLUMN 3: AI Rubric Evaluation Scorecard */}
+            <section aria-label="Answer review" className="landing-hero-review landing-workspace-pane flex flex-col p-5 bg-[#090B14]">
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <div className="flex items-center gap-2 text-sm font-semibold text-white">
                   <Sparkles className="h-4 w-4 text-[#A78BFA]" />
                   Automated Evaluation
                 </div>
-                <p className="mt-1 text-xs leading-relaxed text-[#8E97AB]">
-                  Instant rubric-based analysis of answer depth, logic, and delivery.
-                </p>
-              </motion.div>
-
-              <motion.div
-                initial={reducedMotion ? false : { opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={reducedMotion ? undefined : { delay: 2.15, duration: 0.28 }}
-                className="mt-4 flex items-end gap-2 rounded-xl bg-white/[0.04] p-3.5 border border-white/5"
-              >
-                <div>
-                  <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-[#94A3B8]">Overall Score</span>
-                  <div className="flex items-baseline gap-1 mt-0.5">
-                    <span className="text-3xl font-black leading-none text-white">86</span>
-                    <span className="text-xs text-[#64748B]">/100</span>
-                  </div>
-                </div>
-                <span className="ml-auto rounded-full bg-blue-500/20 px-3 py-1 text-[0.65rem] font-bold text-blue-300 border border-blue-500/30">
+                <span className="rounded-full bg-blue-500/20 px-2.5 py-0.5 text-[0.65rem] font-bold text-blue-300 border border-blue-500/30">
                   Strong Pass
                 </span>
-              </motion.div>
+              </div>
 
-              <div className="mt-4 space-y-3">
-                {REVIEW_METRICS.map((metric, index) => (
-                  <motion.div
-                    key={metric.label}
-                    initial={reducedMotion ? false : { opacity: 0, x: 6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={reducedMotion ? undefined : { delay: 2.3 + index * 0.1, duration: 0.24 }}
-                  >
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#94A3B8]">{metric.label}</span>
-                      <span className="font-semibold text-white">{metric.value}%</span>
+              {/* Score Display Box */}
+              <div className="mt-4 flex items-center justify-between rounded-xl bg-white/[0.04] p-4 border border-white/10">
+                <div>
+                  <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-[#94A3B8]">Overall Rating</span>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <span className="text-4xl font-black leading-none text-white">86</span>
+                    <span className="text-sm text-[#64748B]">/100</span>
+                  </div>
+                </div>
+                <div className="h-12 w-12 rounded-full border-4 border-blue-500 flex items-center justify-center font-bold text-xs text-white">
+                  Top 8%
+                </div>
+              </div>
+
+              {/* Dimension Metrics */}
+              <div className="mt-5 space-y-3.5">
+                {REVIEW_METRICS.map((metric) => (
+                  <div key={metric.label}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-[#CBD5E1]">{metric.label}</span>
+                      <span className="font-mono font-bold text-white">{metric.value}%</span>
                     </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
-                      <div className={`h-full rounded-full ${metric.color}`} style={{ width: `${metric.value}%` }} />
+                    <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                      <div className={`h-full rounded-full bg-gradient-to-r ${metric.color}`} style={{ width: `${metric.value}%` }} />
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
 
-              <motion.div
-                initial={reducedMotion ? false : { opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={reducedMotion ? undefined : { delay: 2.7, duration: 0.25 }}
-                className="mt-auto border-t border-white/10 pt-3.5"
-              >
-                <p className="flex items-center gap-1.5 text-xs font-semibold text-[#CBD5E1]">
-                  <Terminal className="h-3.5 w-3.5 text-[#67E8F9]" />
-                  Key Coaching Note
+              {/* Coaching Recommendation */}
+              <div className="mt-auto pt-4 border-t border-white/10">
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-[#67E8F9]">
+                  <Terminal className="h-3.5 w-3.5" /> Next Focus Point
                 </p>
-                <p className="mt-1 text-xs leading-relaxed text-[#94A3B8]">
-                  State your space complexity tradeoff upfront before diving into the hash map loop.
+                <p className="mt-1.5 text-xs leading-relaxed text-[#94A3B8]">
+                  State your space complexity tradeoff upfront before writing your second map traversal.
                 </p>
-              </motion.div>
+              </div>
             </section>
           </div>
         </div>
 
-        <div className="landing-workspace-status flex flex-wrap items-center justify-center gap-5 border-t border-white/10 bg-white/[0.02] py-3.5 text-xs text-[#94A3B8]">
-          <span className="flex items-center gap-1.5">
-            <Check className="h-3.5 w-3.5 text-emerald-400" /> Code compiled & tested in-browser
+        {/* Bottom Workspace Status Bar */}
+        <div className="landing-workspace-status flex flex-wrap items-center justify-center gap-6 border-t border-white/10 bg-[#06070E] py-4 text-xs text-[#94A3B8]">
+          <span className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-emerald-400" /> In-browser Code Execution
           </span>
-          <span className="flex items-center gap-1.5">
-            <Check className="h-3.5 w-3.5 text-emerald-400" /> Video & voice recording saved
+          <span className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-emerald-400" /> Synced Video & Speech Transcript
           </span>
-          <span className="flex items-center gap-1.5">
-            <Check className="h-3.5 w-3.5 text-emerald-400" /> Adaptive follow-up generator
+          <span className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-emerald-400" /> Instant Rubric Feedback
           </span>
         </div>
       </div>

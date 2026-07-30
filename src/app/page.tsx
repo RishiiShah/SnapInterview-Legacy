@@ -4,7 +4,9 @@ import LandingAtmosphere from "@/components/landing/LandingAtmosphere";
 import HeroSection from "@/components/landing/HeroSection";
 import HeroWorkspace from "@/components/landing/HeroWorkspace";
 import FeaturesSection from "@/components/landing/FeaturesSection";
+import RoleSelectorSection from "@/components/landing/RoleSelectorSection";
 import SocialProofSection from "@/components/landing/HowItWorksSection";
+import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import CTASection from "@/components/landing/CTASection";
 import LandingFooter from "@/components/landing/LandingFooter";
 
@@ -44,12 +46,18 @@ export default async function LandingPage() {
 
       <LandingNavbar />
       <main className="relative z-10 w-full">
+        {/* Untouched Hero Section */}
         <HeroSection />
-        <section className="landing-section pb-16 pt-8 bg-[#090A0F]">
+
+        {/* Redesigned Sections Below Hero */}
+        <section className="landing-section pb-20 pt-8 bg-[#090A0F]">
           <HeroWorkspace />
         </section>
+
         <FeaturesSection />
+        <RoleSelectorSection />
         <SocialProofSection />
+        <TestimonialsSection />
         <CTASection />
       </main>
       <LandingFooter />

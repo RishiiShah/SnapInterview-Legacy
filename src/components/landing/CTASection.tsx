@@ -1,36 +1,48 @@
 import Link from "next/link";
-import { FadeIn } from "@/components/ui/motion";
+import { LandingFadeIn } from "./LandingMotion";
 
 export default function CTASection() {
   return (
-    <section className="px-6 py-24 md:px-12">
-      <FadeIn direction="up">
-        <div className="relative mx-auto max-w-5xl overflow-hidden rounded-[2.5rem] bg-[linear-gradient(135deg,#041321,#0d2144_38%,#0f6dfc_100%)] px-8 py-16 text-center text-white shadow-[0_44px_90px_-54px_rgba(15,109,252,0.65)] sm:px-16">
-          <div className="absolute top-0 right-0 -mr-20 -mt-20 h-64 w-64 rounded-full bg-sky-400/18 blur-3xl" />
-          <div className="absolute bottom-0 left-0 -ml-20 -mb-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-
-          <h2 className="relative z-10 text-[clamp(2rem,4vw,3.5rem)] font-bold tracking-tight">
-            Start practicing with interview reps that actually teach you something.
+    <section id="get-started" className="landing-section relative">
+      <LandingFadeIn
+        triggerOnView
+        data-landing-reveal
+        className="relative mx-auto max-w-3xl rounded-3xl border border-white/15 px-6 py-12 text-center sm:px-10 sm:py-14"
+        style={{
+          background:
+            "linear-gradient(160deg, rgba(76,29,149,0.28) 0%, rgba(20,33,61,0.7) 45%, rgba(12,20,40,0.85) 100%)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12), 0 24px 60px rgba(79,70,229,0.2)",
+        }}
+      >
+        <div
+          data-landing-cta-aura
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-0 rounded-3xl bg-[linear-gradient(120deg,rgba(76,29,149,0.18),rgba(34,211,238,0.08),rgba(37,99,235,0.18))] bg-[length:200%_200%] motion-safe:animate-[landingGradientShift_18s_ease-in-out_infinite]"
+        />
+        <div className="relative z-10">
+          <h2 className="text-3xl font-bold tracking-tight text-[#F5F7FF] sm:text-4xl">
+            Ready to practice?
           </h2>
-          <p className="relative z-10 mx-auto mt-6 max-w-2xl text-[clamp(1rem,1.5vw,1.125rem)] leading-relaxed text-sky-100/78">
-            Build better answers, hear better follow-ups, and walk into the real interview already calibrated.
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#8E97AB] sm:text-base">
+            Create a free account, start a mock interview in your browser, and review your recording when
+            you&apos;re done. No pricing tiers to pick — just get started.
           </p>
-          <div className="relative z-10 mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/signup"
-              className="rounded-xl bg-white px-8 py-4 text-[15px] font-semibold text-zinc-950 shadow-[0_18px_40px_-24px_rgba(255,255,255,0.55)] transition-all hover:-translate-y-0.5 hover:bg-sky-50"
+              className="inline-flex h-11 items-center rounded-xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] px-6 text-sm font-semibold text-white shadow-[0_0_24px_rgba(99,102,241,0.4)] transition-opacity hover:opacity-95 sm:h-12 sm:text-base"
             >
-              Create Account
+              Create free account
             </Link>
             <Link
               href="/login"
-              className="rounded-xl border border-white/18 bg-white/7 px-8 py-4 text-[15px] font-semibold text-sky-100 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-white/28 hover:bg-white/12 hover:text-white"
+              className="inline-flex h-11 items-center rounded-xl border border-white/15 bg-white/5 px-5 text-sm font-medium text-[#F5F7FF] transition-colors hover:bg-white/10 sm:h-12"
             >
-              Sign In
+              Log in
             </Link>
           </div>
         </div>
-      </FadeIn>
+      </LandingFadeIn>
     </section>
   );
 }

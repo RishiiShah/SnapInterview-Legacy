@@ -31,6 +31,111 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+.landing-page {
+  --landing-gutter: clamp(1rem, 3vw, 4rem);
+  --landing-content-width: min(80rem, calc(100vw - var(--landing-gutter) - var(--landing-gutter)));
+  --landing-nav-top: clamp(0.75rem, 2vw, 1.25rem);
+  --landing-nav-height: clamp(3.5rem, 5vw, 4rem);
+  --landing-section-space: clamp(4rem, 9vw, 8rem);
+}
+
+.landing-container {
+  width: var(--landing-content-width);
+  margin-inline: auto;
+}
+
+.landing-section {
+  padding-inline: var(--landing-gutter);
+  padding-block: var(--landing-section-space);
+}
+
+.landing-nav-compact-label {
+  display: none;
+}
+
+.landing-page {
+  scroll-padding-top: calc(var(--landing-nav-top) + var(--landing-nav-height) + 1rem);
+}
+
+.landing-page [id] {
+  scroll-margin-top: calc(var(--landing-nav-top) + var(--landing-nav-height) + 1rem);
+}
+
+@media (max-width: 26rem) {
+  .landing-nav-full-label {
+    display: none;
+  }
+
+  .landing-nav-compact-label {
+    display: inline;
+  }
+}
+
+@media (max-width: 22rem) {
+  .landing-nav-login {
+    display: none;
+  }
+}
+
+.landing-hero {
+  min-height: 100svh;
+  padding-inline: var(--landing-gutter);
+  padding-top: calc(var(--landing-nav-top) + var(--landing-nav-height) + clamp(2.5rem, 6vw, 5rem));
+  padding-bottom: clamp(2.5rem, 6vw, 5rem);
+}
+
+.landing-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.35fr) minmax(0, 0.9fr);
+  gap: clamp(0.75rem, 1.6vw, 1.25rem);
+}
+
+.landing-workspace-shell {
+  container: landing-workspace / inline-size;
+}
+
+@container landing-workspace (max-width: 70rem) {
+  .landing-workspace {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .landing-hero-review {
+    grid-column: 1 / -1;
+  }
+}
+
+@container landing-workspace (max-width: 48rem) {
+  .landing-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .landing-hero-review {
+    grid-column: auto;
+  }
+}
+
+@keyframes landingGradientShift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-page *,
+  .landing-page *::before,
+  .landing-page *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @keyframes fadeSlideIn {
   from {
     opacity: 0;

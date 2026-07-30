@@ -109,9 +109,7 @@ export function LandingFadeInStaggerItem({
   className?: string;
 } & LandingMotionDivProps) {
   const reducedMotion = useReducedMotion() ?? false;
-  const animationProps = reducedMotion
-    ? { initial: false, animate: "visible" as const }
-    : { initial: "hidden" as const };
+  const animationProps = { initial: false, animate: "visible" as const };
 
   return (
     <motion.div

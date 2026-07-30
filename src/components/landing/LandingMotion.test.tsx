@@ -27,13 +27,16 @@ describe("landing motion", () => {
     lastMotionProps.current = null;
   });
 
-  it("lets stagger items inherit the parent viewport animation", () => {
+  it("keeps stagger items visible if viewport animation does not trigger", () => {
     render(
       <LandingFadeInStagger triggerOnView>
         <LandingFadeInStaggerItem>Visible step</LandingFadeInStaggerItem>
       </LandingFadeInStagger>,
     );
 
-    expect(lastMotionProps.current).not.toHaveProperty("animate");
+    expect(lastMotionProps.current).toMatchObject({
+      initial: false,
+      animate: "visible",
+    });
   });
 });

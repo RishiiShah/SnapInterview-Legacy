@@ -129,7 +129,12 @@ describe("landing experience", () => {
       </>,
     );
 
-    expect(screen.getByText(/Product Strengths/i)).toBeTruthy();
+    expect(screen.getByText("Product Strengths")).toBeTruthy();
+    expect(screen.getByText(/Speaks like a real interviewer/i)).toBeTruthy();
+    expect(screen.getByText(/The AI listens to your full response/i)).toBeTruthy();
+    expect(screen.getByText(/Write and run code in the browser/i)).toBeTruthy();
+    expect(screen.getByText(/Review exactly what you said/i)).toBeTruthy();
+    expect(screen.getByText(/Questions shaped by your context/i)).toBeTruthy();
     expect(screen.getByText(/Three steps to interview mastery/i)).toBeTruthy();
     expect(screen.getByText(/Your next interview won't be your first/i)).toBeTruthy();
   });

@@ -4,7 +4,6 @@ import LandingAtmosphere from "@/components/landing/LandingAtmosphere";
 import HeroSection from "@/components/landing/HeroSection";
 import HeroWorkspace from "@/components/landing/HeroWorkspace";
 import FeaturesSection from "@/components/landing/FeaturesSection";
-import RoleSelectorSection from "@/components/landing/RoleSelectorSection";
 import SocialProofSection from "@/components/landing/HowItWorksSection";
 import CTASection from "@/components/landing/CTASection";
 import LandingFooter from "@/components/landing/LandingFooter";
@@ -54,7 +53,6 @@ export default async function LandingPage() {
         </section>
 
         <FeaturesSection />
-        <RoleSelectorSection />
         <SocialProofSection />
         <CTASection />
       </main>

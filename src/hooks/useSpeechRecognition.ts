@@ -12,7 +12,7 @@ import type { SttWorkerStatus } from "@/lib/stt/stt-messages";
 const UNSUPPORTED_MESSAGE =
   "Speech recognition is unavailable in this browser. Use Chrome or Edge for voice answers.";
 
-export function useSpeechRecognition() {
+export function useSpeechRecognition(options?: { audioDeviceId?: string }) {
   const [state, setState] = useState<SttState>(initialSttState);
   const [hasSupport, setHasSupport] = useState<boolean>(() => selectSttEngine() !== "none");
   const [sttStatus, setSttStatus] = useState<SttWorkerStatus>("idle");
@@ -20,6 +20,9 @@ export function useSpeechRecognition() {
   const engineRef = useRef<SttEngine | null>(null);
   const recordingRef = useRef(false);
   recordingRef.current = state.isRecording;
+  // Read at recording start (not at mount), so the latest selected mic wins.
+  const audioDeviceIdRef = useRef<string | undefined>(options?.audioDeviceId);
+  audioDeviceIdRef.current = options?.audioDeviceId;
 
   useEffect(() => {
     const choice = selectSttEngine();
@@ -40,7 +43,10 @@ export function useSpeechRecognition() {
       setSttStatus(engine.hasSupport ? "ready" : "error");
     } else {
       const client = getSharedMoonshineWorkerClient();
-      engine = createLocalSttEngine({ createRecorder: () => createMicRecorder(), client });
+      engine = createLocalSttEngine({
+        createRecorder: () => createMicRecorder(audioDeviceIdRef.current),
+        client,
+      });
       unsubscribeStatus = client.subscribe(setSttStatus);
       // Preload the model during PreJoin so it's cached before the interview.
       // Failures surface through the status subscription above.

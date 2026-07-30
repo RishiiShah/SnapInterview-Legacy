@@ -132,6 +132,18 @@ describe("useSpeechRecognition dispatcher", () => {
     expect(result.current.sttStatus).toBe("ready");
   });
 
+  it("forwards the selected audio device to the mic recorder", () => {
+    selectSttEngine.mockReturnValue("local");
+    createLocalSttEngine.mockReturnValue(makeFakeEngine());
+    getSharedMoonshineWorkerClient.mockReturnValue(makeFakeClient());
+
+    renderHook(() => useSpeechRecognition({ audioDeviceId: "mic-1" }));
+
+    const arg = createLocalSttEngine.mock.calls[0][0];
+    arg.createRecorder();
+    expect(createMicRecorder).toHaveBeenCalledWith("mic-1");
+  });
+
   it("toggleRecording starts when idle and stops when recording", () => {
     const engine = makeFakeEngine();
     selectSttEngine.mockReturnValue("web-speech");

@@ -1,17 +1,8 @@
 import type { AudioRecorder } from "./stt-engine";
 
-// Inline AudioWorklet processor — forwards each mono frame to the main thread.
-// Kept inline (Blob URL) to avoid shipping a separate /public worklet file.
-const PROCESSOR_SOURCE = `
-class CaptureProcessor extends AudioWorkletProcessor {
-  process(inputs) {
-    const channel = inputs[0] && inputs[0][0];
-    if (channel && channel.length) this.port.postMessage(channel.slice());
-    return true;
-  }
-}
-registerProcessor('capture-processor', CaptureProcessor);
-`;
+// AudioWorklet processor is served as a static file (script-src 'self'); a
+// blob: URL would be blocked because the app CSP's script-src omits blob:.
+const PROCESSOR_URL = "/worklets/capture-processor.js";
 
 /**
  * Microphone recorder that accumulates raw mono PCM. The engine reads the whole
@@ -22,7 +13,6 @@ export function createMicRecorder(deviceId?: string): AudioRecorder {
   let context: AudioContext | null = null;
   let source: MediaStreamAudioSourceNode | null = null;
   let node: AudioWorkletNode | null = null;
-  let moduleUrl: string | null = null;
 
   // ponytail: worklet posts one message per 128-sample frame (~375/s at 48kHz).
   // Fine for interview-length answers; batch frames in the worklet if it ever
@@ -44,8 +34,7 @@ export function createMicRecorder(deviceId?: string): AudioRecorder {
       context = new AudioContext();
       sampleRate = context.sampleRate;
 
-      moduleUrl = URL.createObjectURL(new Blob([PROCESSOR_SOURCE], { type: "application/javascript" }));
-      await context.audioWorklet.addModule(moduleUrl);
+      await context.audioWorklet.addModule(PROCESSOR_URL);
 
       source = context.createMediaStreamSource(stream);
       node = new AudioWorkletNode(context, "capture-processor");
@@ -76,8 +65,6 @@ export function createMicRecorder(deviceId?: string): AudioRecorder {
     },
     dispose() {
       this.stop();
-      if (moduleUrl) URL.revokeObjectURL(moduleUrl);
-      moduleUrl = null;
       void context?.close();
       context = null;
       chunks = [];

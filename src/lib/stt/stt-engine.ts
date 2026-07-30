@@ -19,6 +19,15 @@ export type SttEngine = {
   subscribe: (listener: (state: SttState) => void) => () => void;
 };
 
+/** Captures mono microphone PCM into a growing buffer read on demand. */
+export type AudioRecorder = {
+  start: () => Promise<void>;
+  stop: () => void;
+  /** All PCM captured since start(), plus the capture sample rate. */
+  read: () => { pcm: Float32Array; sampleRate: number };
+  dispose: () => void;
+};
+
 export const initialSttState: SttState = {
   isRecording: false,
   interimTranscript: "",

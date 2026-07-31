@@ -153,24 +153,36 @@ export function Safari({
             d="M286 17C286 13.6863 288.686 11 292 11H946C949.314 11 952 13.6863 952 17V35C952 38.3137 949.314 41 946 41H292C288.686 41 286 38.3137 286 35V17Z"
             className="fill-[#1E2235]"
           />
-          <g className="mix-blend-luminosity">
-            <path
-              d="M566.269 32.0852H572.426C573.277 32.0852 573.696 31.6663 573.696 30.7395V25.9851C573.696 25.1472 573.353 24.7219 572.642 24.6521V23.0842C572.642 20.6721 571.036 19.5105 569.348 19.5105C567.659 19.5105 566.053 20.6721 566.053 23.0842V24.6711C565.393 24.7727 565 25.1917 565 25.9851V30.7395C565 31.6663 565.418 32.0852 566.269 32.0852ZM567.272 22.97C567.272 21.491 568.211 20.6785 569.348 20.6785C570.478 20.6785 571.423 21.491 571.423 22.97V24.6394L567.272 24.6458V22.97Z"
-              fill="#94A3B8"
-            />
-          </g>
 
-          <g className="mix-blend-luminosity">
-            <text
-              x="580"
-              y="30"
-              fill="#94A3B8"
-              fontSize="12"
-              fontFamily="monospace"
+          {/* Center lock + URL in the address bar (refresh sits on the right) */}
+          <foreignObject x="292" y="12" width="640" height="28">
+            <div
+              // xmlns required for reliable foreignObject HTML in some browsers
+              {...{ xmlns: "http://www.w3.org/1999/xhtml" }}
+              className="flex h-full w-full items-center justify-center gap-1.5 px-10"
+              style={{
+                color: "#94A3B8",
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                fontSize: "12px",
+                lineHeight: 1,
+                mixBlendMode: "luminosity",
+              }}
             >
-              {url}
-            </text>
-          </g>
+              <svg
+                width="9"
+                height="12"
+                viewBox="0 0 9 13"
+                aria-hidden="true"
+                className="shrink-0"
+              >
+                <path
+                  d="M2.2 5.1V3.55A2.3 2.3 0 0 1 4.5 1.25c1.27 0 2.3 1.03 2.3 2.3V5.1h.55c.66 0 1.2.54 1.2 1.2v4.35c0 .66-.54 1.2-1.2 1.2H1.65c-.66 0-1.2-.54-1.2-1.2V6.3c0-.66.54-1.2 1.2-1.2h.55Zm1.15-1.55V5.1h2.3V3.55a1.15 1.15 0 0 0-2.3 0Z"
+                  fill="currentColor"
+                />
+              </svg>
+              <span className="truncate">{url}</span>
+            </div>
+          </foreignObject>
 
           {mode === "default" ? (
             <>

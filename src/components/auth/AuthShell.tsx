@@ -67,7 +67,7 @@ export function AuthShell({
         </Link>
       </div>
 
-      <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-center px-4 py-24 sm:px-6">
+      <div className="relative z-10 flex min-h-screen w-full items-center justify-center px-4 py-24 sm:px-6">
         <motion.div
           initial={reducedMotion ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -92,12 +92,14 @@ export function AuthShell({
 export function AuthHeader({
   title,
   description,
+  align = "left",
 }: {
   title: string;
   description?: string;
+  align?: "left" | "center";
 }) {
   return (
-    <div className="mb-8">
+    <div className={`mb-8 ${align === "center" ? "text-center" : ""}`}>
       <h1 className="text-[clamp(1.75rem,4vw,2.15rem)] font-bold leading-[1.1] tracking-[-0.035em] text-white">
         {title}
       </h1>

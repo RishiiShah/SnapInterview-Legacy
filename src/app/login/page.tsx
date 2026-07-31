@@ -69,6 +69,7 @@ export default function LoginPage() {
       <AuthHeader
         title="Log in"
         description="Pick up where you left off with practice sessions, recordings, and scores."
+        align="center"
       />
 
       <form onSubmit={handleSubmit} className="space-y-4">

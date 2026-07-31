@@ -118,9 +118,6 @@ export default function SignupPage() {
             description="Practice realistic interviews with mic, video, transcript, and scoring."
           />
 
-          <GoogleSignInButton text="Continue with Google" />
-          <AuthDivider />
-
           <form onSubmit={handleSubmit} className="space-y-3.5">
             <AuthTextField
               id="name"
@@ -160,7 +157,7 @@ export default function SignupPage() {
 
             {error ? <AuthError message={error} /> : null}
 
-            <p className="pt-0.5 text-xs leading-relaxed text-[#475569]">
+            <p className="pt-0.5 text-center text-xs leading-relaxed text-[#94A3B8]">
               By continuing you agree to our Terms and Privacy Policy.
             </p>
 
@@ -168,6 +165,9 @@ export default function SignupPage() {
               <SubmitButton loading={loading} text="Create account" />
             </div>
           </form>
+
+          <AuthDivider />
+          <GoogleSignInButton text="Continue with Google" />
         </>
       ) : (
         <OtpDialog

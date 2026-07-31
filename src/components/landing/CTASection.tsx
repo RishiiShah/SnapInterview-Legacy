@@ -7,8 +7,8 @@ function SessionPreview() {
       aria-hidden="true"
       className="relative mx-auto w-full max-w-[38rem] lg:ml-auto lg:mr-0"
     >
-      <div className="origin-bottom-left rotate-[-4deg] rounded-2xl border border-zinc-400/40 bg-[#C9CDD4] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.4)] lg:translate-x-4 lg:translate-y-1 xl:translate-x-8">
-        <div className="flex items-start justify-between gap-3 border-b border-zinc-500/25 pb-3">
+      <div className="origin-bottom-left rotate-[-4deg] rounded-2xl border border-zinc-400/40 bg-[#C9CDD4] p-3.5 shadow-[0_24px_60px_rgba(0,0,0,0.4)] lg:translate-x-4 xl:translate-x-8">
+        <div className="flex items-start justify-between gap-3 border-b border-zinc-500/25 pb-2.5">
           <div className="min-w-0">
             <p className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-zinc-600">
               Session review
@@ -16,105 +16,115 @@ function SessionPreview() {
             <p className="mt-0.5 text-sm font-semibold text-zinc-800">
               Mid-level software engineer
             </p>
-            <p className="mt-1 text-[0.65rem] text-zinc-600">
-              Behavioral complete · Coding in progress
+            <p className="mt-0.5 text-[0.65rem] text-zinc-600">
+              Behavioral complete · Coding in progress · Round 2 of 3
             </p>
           </div>
-          <span className="shrink-0 rounded-full bg-emerald-200/70 px-2.5 py-1 text-[0.6rem] font-semibold text-emerald-900">
-            Strong pass
-          </span>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <span className="rounded-full bg-sky-200/80 px-2.5 py-1 text-[0.6rem] font-semibold text-sky-900">
+              Pass
+            </span>
+            <p className="text-[0.6rem] tabular-nums text-zinc-600">
+              Overall <span className="font-semibold text-zinc-800">8.1</span>
+            </p>
+          </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <div className="flex items-center gap-2.5 rounded-xl border border-zinc-500/20 bg-[#D4D8DE] px-3 py-2.5">
-            <FileText className="h-4 w-4 shrink-0 text-sky-700" />
-            <div className="min-w-0">
-              <p className="text-[0.55rem] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+        <div className="mt-2.5 grid grid-cols-4 gap-1.5">
+          <div className="min-w-0 rounded-lg border border-zinc-500/20 bg-[#D4D8DE] px-2 py-1.5">
+            <div className="flex items-center gap-1">
+              <FileText className="h-3 w-3 shrink-0 text-sky-700" />
+              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.08em] text-zinc-500">
                 Resume
               </p>
-              <p className="truncate text-[0.72rem] font-medium text-zinc-800">
-                resume.pdf
+            </div>
+            <p className="mt-0.5 truncate text-[0.65rem] font-medium text-zinc-800">
+              resume.pdf
+            </p>
+          </div>
+          <div className="min-w-0 rounded-lg border border-zinc-500/20 bg-[#D4D8DE] px-2 py-1.5">
+            <div className="flex items-center gap-1">
+              <ScrollText className="h-3 w-3 shrink-0 text-violet-700" />
+              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                JD
               </p>
             </div>
+            <p className="mt-0.5 truncate text-[0.65rem] font-medium text-zinc-800">
+              google_swe.txt
+            </p>
           </div>
-          <div className="flex items-center gap-2.5 rounded-xl border border-zinc-500/20 bg-[#D4D8DE] px-3 py-2.5">
-            <ScrollText className="h-4 w-4 shrink-0 text-violet-700" />
-            <div className="min-w-0">
-              <p className="text-[0.55rem] font-semibold uppercase tracking-[0.1em] text-zinc-500">
-                Job description
-              </p>
-              <p className="truncate text-[0.72rem] font-medium text-zinc-800">
-                google_swe.txt
+          <div className="min-w-0 rounded-lg border border-zinc-500/20 bg-[#D4D8DE] px-2 py-1.5">
+            <div className="flex items-center gap-1">
+              <Gauge className="h-3 w-3 shrink-0 text-amber-700" />
+              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                Diff
               </p>
             </div>
+            <p className="mt-0.5 truncate text-[0.65rem] font-medium text-zinc-800">Medium</p>
           </div>
-          <div className="flex items-center gap-2.5 rounded-xl border border-zinc-500/20 bg-[#D4D8DE] px-3 py-2.5">
-            <Gauge className="h-4 w-4 shrink-0 text-amber-700" />
-            <div className="min-w-0">
-              <p className="text-[0.55rem] font-semibold uppercase tracking-[0.1em] text-zinc-500">
-                Difficulty
-              </p>
-              <p className="text-[0.72rem] font-medium text-zinc-800">Medium</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2.5 rounded-xl border border-zinc-500/20 bg-[#D4D8DE] px-3 py-2.5">
-            <Clock className="h-4 w-4 shrink-0 text-emerald-700" />
-            <div className="min-w-0">
-              <p className="text-[0.55rem] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+          <div className="min-w-0 rounded-lg border border-zinc-500/20 bg-[#D4D8DE] px-2 py-1.5">
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3 shrink-0 text-emerald-700" />
+              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.08em] text-zinc-500">
                 Length
               </p>
-              <p className="text-[0.72rem] font-medium text-zinc-800">18 minutes</p>
             </div>
+            <p className="mt-0.5 truncate text-[0.65rem] font-medium text-zinc-800">18 min</p>
           </div>
         </div>
 
-        <div className="mt-3.5 grid grid-cols-3 gap-2">
+        <div className="mt-2.5 grid grid-cols-3 gap-1.5">
           {[
-            ["Communication", "8.4"],
-            ["Problem solving", "7.9"],
-            ["Presence", "8.1"],
-          ].map(([label, score]) => (
+            ["Communication", "8.4", "Clear structure"],
+            ["Problem solving", "7.9", "Solid tradeoffs"],
+            ["Presence", "8.1", "Steady pace"],
+          ].map(([label, score, note]) => (
             <div
               key={label}
-              className="rounded-xl border border-zinc-500/20 bg-[#D4D8DE] px-2 py-3 text-center"
+              className="rounded-lg border border-zinc-500/20 bg-[#D4D8DE] px-2 py-2 text-center"
             >
-              <p className="text-xl font-semibold tabular-nums leading-none text-zinc-800">{score}</p>
-              <p className="mt-1.5 text-[0.62rem] leading-tight text-zinc-600">{label}</p>
+              <p className="text-lg font-semibold tabular-nums leading-none text-zinc-800">{score}</p>
+              <p className="mt-1 text-[0.6rem] font-medium leading-tight text-zinc-700">{label}</p>
+              <p className="mt-0.5 text-[0.55rem] leading-tight text-zinc-500">{note}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-3.5 space-y-2 rounded-xl border border-zinc-500/20 bg-[#D4D8DE] p-3">
+        <div className="mt-2.5 space-y-1.5 rounded-lg border border-zinc-500/20 bg-[#D4D8DE] p-2.5">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-zinc-600">
+            <p className="text-[0.55rem] font-semibold uppercase tracking-[0.12em] text-zinc-600">
               Transcript
             </p>
-            <p className="text-[0.58rem] text-zinc-500">Coding extension</p>
+            <p className="text-[0.55rem] text-zinc-500">Coding · 10:24</p>
           </div>
-          <p className="text-[0.7rem] leading-snug text-violet-800">
-            AI: Walk me through your approach before writing code.
+          <p className="text-[0.65rem] leading-snug text-violet-800">
+            AI: Walk me through your approach before you write any code, including data structures and edge cases.
           </p>
-          <p className="text-[0.7rem] leading-snug text-zinc-700">
-            You: I&apos;d use a hash map for O(1) lookups, then verify edge cases.
+          <p className="text-[0.65rem] leading-snug text-zinc-700">
+            You: I&apos;d start with a hash map keyed by value to index for O(1) lookups, scan once for the complement, then verify empty arrays, single elements, and negatives before coding..
           </p>
-          <p className="text-[0.7rem] leading-snug text-violet-800">
-            AI: What happens if the input contains duplicates?
+          <p className="text-[0.65rem] leading-snug text-violet-800">
+            AI: What happens if the input contains duplicates, and how does that change your map strategy?
           </p>
-          <p className="text-[0.7rem] leading-snug text-zinc-700">
-            You: Store first seen index only, so duplicates still resolve in one pass.
+          <p className="text-[0.65rem] leading-snug text-zinc-700">
+            You: I&apos;d store only the first-seen index for each value so later duplicates still resolve to a valid pair without rewriting the loop or adding a second pass..
+          </p>
+          <p className="text-[0.65rem] leading-snug text-violet-800">
+            AI: Could you sketch the time and space complexity before we move into the implementation?
+          </p>
+          <p className="text-[0.65rem] leading-snug text-zinc-700">
+            You: Time stays O(n) for one linear scan with constant-time map ops, and space is O(n) in the worst case when every value is unique and lands in the map..
           </p>
         </div>
 
-        <div className="mt-3.5">
-          <div className="mb-1.5 flex items-center justify-between gap-2">
-            <p className="text-[0.58rem] font-medium text-zinc-500">
-              Timeline · coding after behavioral
-            </p>
-            <p className="text-[0.6rem] tabular-nums text-zinc-600">10:24 / 18:00</p>
-          </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-zinc-500/25">
+        <div className="mt-2.5 flex items-center gap-3">
+          <p className="shrink-0 text-[0.55rem] text-zinc-500">
+            Behavioral done · coding live
+          </p>
+          <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-500/25">
             <div className="h-full w-[57%] rounded-full bg-blue-600" />
           </div>
+          <p className="shrink-0 text-[0.6rem] tabular-nums text-zinc-600">10:24 / 18:00</p>
         </div>
       </div>
     </div>
@@ -182,7 +192,7 @@ export default function CTASection() {
             />
           </svg>
 
-          <div className="relative grid items-center gap-8 px-6 py-12 sm:px-10 sm:py-14 lg:grid-cols-[1fr_1.15fr] lg:gap-4 lg:px-12 lg:py-14 xl:px-14">
+          <div className="relative grid items-start gap-8 px-6 py-12 sm:px-10 sm:py-14 lg:grid-cols-[1fr_1.15fr] lg:gap-4 lg:px-12 lg:py-14 xl:px-14">
             <div className="max-w-xl">
               <div className="mb-6 h-1 w-10 rounded-full bg-blue-500" aria-hidden="true" />
               <h3 className="font-serif text-[2rem] leading-[1.12] tracking-[-0.03em] text-[#E2E8F0] sm:text-4xl lg:text-[2.5rem]">
@@ -209,7 +219,7 @@ export default function CTASection() {
               </div>
             </div>
 
-            <div className="relative flex min-h-[18rem] items-center justify-end sm:min-h-[20rem] lg:min-h-[22rem]">
+            <div className="relative flex items-start justify-end pt-2">
               <div className="pointer-events-none absolute right-0 top-4 h-32 w-32 rounded-full bg-blue-500/15 blur-3xl" />
               <SessionPreview />
             </div>

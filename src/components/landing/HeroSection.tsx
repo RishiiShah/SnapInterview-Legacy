@@ -42,14 +42,14 @@ export default function HeroSection() {
       <div className="relative z-10 flex h-full flex-col justify-end pb-16 lg:pb-24 landing-container">
         <div className="max-w-3xl">
           {/* Main Headline — Crisp White, Bold, 2 Lines */}
-          <h1 className="text-[clamp(2.75rem,5.5vw,4.75rem)] font-bold leading-[1.06] tracking-[-0.035em] text-white">
+          <h1 className="text-[clamp(2.5rem,5vw,4.25rem)] font-bold leading-[1.06] tracking-[-0.035em] text-white">
             Practice real interviews
             <br />
             with AI that talks back.
           </h1>
 
           {/* Subtext */}
-          <p className="mt-4 max-w-xl text-[clamp(1.05rem,1.35vw,1.2rem)] leading-relaxed text-[#94A3B8]">
+          <p className="mt-4 max-w-xl text-[clamp(0.98rem,1.25vw,1.1rem)] leading-relaxed text-[#94A3B8]">
             Customize a mock interview for your role, explain your thinking out loud,
             and review your video recording, transcript, and automated score before the real thing.
           </p>

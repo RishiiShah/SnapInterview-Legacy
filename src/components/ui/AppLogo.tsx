@@ -17,9 +17,8 @@ type AppLogoProps = {
 };
 
 /**
- * App mark with matching width/height props and inline styles. logo.png is not
- * square (479×520); forcing both CSS axes to `size` keeps the mark square and
- * stops Next/Image from warning when only one rendered dimension drifts.
+ * App mark. logo.png is not square (479×520); keep intrinsic aspect via
+ * height: auto so Next/Image does not warn when CSS sizes one axis.
  */
 export function AppLogo({
   size = 32,
@@ -33,10 +32,10 @@ export function AppLogo({
       src="/logo.png"
       alt={decorative ? "" : (alt ?? "SnapInterview")}
       aria-hidden={decorative ? true : undefined}
-      width={size}
-      height={size}
+      width={479}
+      height={520}
       priority={priority}
-      style={{ width: size, height: size }}
+      style={{ width: size, height: "auto" }}
       className={cn("shrink-0 rounded-lg", className)}
     />
   );

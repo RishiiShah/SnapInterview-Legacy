@@ -28,6 +28,7 @@ interface NavItemsProps {
     name: string;
     link: string;
   }[];
+  activeLink?: string | null;
   className?: string;
   onItemClick?: () => void;
 }
@@ -65,7 +66,7 @@ export const Navbar = ({ children, className }: NavbarProps) => {
         className,
       )}
       animate={{
-        paddingTop: visible ? "0.45rem" : "var(--landing-nav-top)",
+        paddingTop: visible ? "0.35rem" : "var(--landing-nav-top)",
       }}
       transition={{
         type: "spring",
@@ -93,13 +94,13 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
         backdropFilter: visible ? "blur(18px)" : "blur(12px)",
         borderRadius: visible ? 999 : 20,
         boxShadow: visible
-          ? "0 16px 56px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(148, 163, 184, 0.08) inset"
+          ? "0 12px 40px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(148, 163, 184, 0.08) inset"
           : "0 12px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(148, 163, 184, 0.06) inset",
-        width: visible ? "min(54rem, calc(100% - 2rem))" : "100%",
+        width: visible ? "min(48rem, calc(100% - 2.5rem))" : "100%",
         height: visible
           ? "var(--landing-nav-height-scrolled)"
           : "var(--landing-nav-height)",
-        y: visible ? 4 : 0,
+        y: visible ? 2 : 0,
       }}
       transition={{
         type: "spring",
@@ -107,8 +108,8 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
         damping: 28,
       }}
       className={cn(
-        "relative z-[60] mx-auto hidden h-[var(--landing-nav-height)] w-full max-w-[80rem] flex-row items-center justify-between border border-white/10 bg-[#090A0F]/60 px-[clamp(1rem,2vw,1.25rem)] lg:flex",
-        visible && "border-white/15 bg-[#090A0F]/90",
+        "relative z-[60] mx-auto hidden h-[var(--landing-nav-height)] w-full max-w-[80rem] flex-row items-center justify-between border border-white/10 bg-[#090A0F]/60 px-3 lg:flex",
+        visible && "border-white/15 bg-[#090A0F]/92 px-2",
         className,
       )}
     >
@@ -117,35 +118,52 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
   );
 };
 
-export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
+export const NavItems = ({
+  items,
+  activeLink,
+  className,
+  onItemClick,
+}: NavItemsProps) => {
   const [hovered, setHovered] = useState<number | null>(null);
 
   return (
     <motion.div
       onMouseLeave={() => setHovered(null)}
       className={cn(
-        "absolute inset-0 hidden flex-1 flex-row items-center justify-center gap-1 text-sm font-medium lg:flex",
+        "absolute inset-0 hidden flex-1 flex-row items-center justify-center gap-0.5 text-sm font-medium lg:flex",
         className,
       )}
     >
-      {items.map((item, idx) => (
-        <a
-          key={`link-${idx}`}
-          href={item.link}
-          onClick={onItemClick}
-          onMouseEnter={() => setHovered(idx)}
-          className="relative rounded-full px-4 py-2 text-[#8E97AB] transition-colors hover:text-[#F5F7FF]"
-        >
-          {hovered === idx && (
-            <motion.div
-              layoutId="landing-navbar-hovered"
-              transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              className="absolute inset-0 rounded-full bg-white/[0.08]"
-            />
-          )}
-          <span className="relative z-20 whitespace-nowrap">{item.name}</span>
-        </a>
-      ))}
+      {items.map((item, idx) => {
+        const isActive = activeLink === item.link;
+        return (
+          <a
+            key={`link-${idx}`}
+            href={item.link}
+            onClick={onItemClick}
+            onMouseEnter={() => setHovered(idx)}
+            aria-current={isActive ? "true" : undefined}
+            className={cn(
+              "relative rounded-full px-2.5 py-1.5 text-sm text-[#8E97AB] transition-colors hover:text-[#F5F7FF]",
+              isActive && "text-[#F5F7FF]",
+            )}
+          >
+            {(hovered === idx || isActive) && (
+              <motion.div
+                layoutId="landing-navbar-hovered"
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                className={cn(
+                  "absolute inset-0 rounded-full",
+                  isActive && hovered !== idx
+                    ? "bg-white/[0.06]"
+                    : "bg-white/[0.08]",
+                )}
+              />
+            )}
+            <span className="relative z-20 whitespace-nowrap">{item.name}</span>
+          </a>
+        );
+      })}
     </motion.div>
   );
 };
@@ -157,13 +175,13 @@ export const MobileNav = ({ children, className, visible }: MobileNavProps) => {
         backdropFilter: visible ? "blur(18px)" : "blur(12px)",
         borderRadius: visible ? 999 : 20,
         boxShadow: visible
-          ? "0 16px 56px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(148, 163, 184, 0.08) inset"
+          ? "0 12px 40px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(148, 163, 184, 0.08) inset"
           : "0 12px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(148, 163, 184, 0.06) inset",
-        width: visible ? "calc(100% - 2rem)" : "100%",
+        width: visible ? "calc(100% - 2.5rem)" : "100%",
         height: visible
           ? "var(--landing-nav-height-scrolled)"
           : "var(--landing-nav-height)",
-        y: visible ? 4 : 0,
+        y: visible ? 2 : 0,
       }}
       transition={{
         type: "spring",
@@ -171,8 +189,8 @@ export const MobileNav = ({ children, className, visible }: MobileNavProps) => {
         damping: 28,
       }}
       className={cn(
-        "relative z-50 mx-auto flex h-[var(--landing-nav-height)] w-full max-w-[80rem] flex-col items-center justify-between border border-white/10 bg-[#090A0F]/60 px-4 lg:hidden",
-        visible && "border-white/15 bg-[#090A0F]/90",
+        "relative z-50 mx-auto flex h-[var(--landing-nav-height)] w-full max-w-[80rem] flex-col items-center justify-between border border-white/10 bg-[#090A0F]/60 px-3 lg:hidden",
+        visible && "border-white/15 bg-[#090A0F]/92 px-2.5",
         className,
       )}
     >
@@ -211,7 +229,7 @@ export const MobileNavMenu = ({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -8, scale: 0.98 }}
           className={cn(
-            "absolute inset-x-0 top-[calc(100%+0.55rem)] z-50 flex w-full flex-col items-start justify-start gap-2 rounded-2xl border border-white/10 bg-[#071329]/95 p-3 shadow-[0_20px_70px_rgba(0,0,0,0.42)] backdrop-blur-xl",
+            "absolute inset-x-0 top-[calc(100%+0.55rem)] z-50 flex w-full flex-col items-start justify-start gap-1 rounded-2xl border border-white/10 bg-[#071329]/95 p-3 shadow-[0_20px_70px_rgba(0,0,0,0.42)] backdrop-blur-xl",
             className,
           )}
           onClick={(event) => {
@@ -238,7 +256,7 @@ export const MobileNavToggle = ({
       aria-expanded={isOpen}
       aria-label={isOpen ? "Close navigation menu" : "Open navigation menu"}
       onClick={onClick}
-      className="inline-flex size-10 items-center justify-center rounded-full text-[#F5F7FF] transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#67E8F9]"
+      className="inline-flex size-9 items-center justify-center rounded-full text-[#F5F7FF] transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#67E8F9] cursor-pointer"
     >
       {isOpen ? <IconX aria-hidden="true" size={20} /> : <IconMenu2 aria-hidden="true" size={20} />}
     </button>
@@ -252,8 +270,8 @@ export const NavbarLogo = () => {
       className="relative z-20 flex shrink-0 items-center gap-2"
     >
       <AppLogo size={28} className="rounded-md" priority />
-      <span className="text-base font-semibold tracking-tight text-[#F5F7FF] sm:text-lg">
-        Snap<span className="text-[#A5B4FC]">Interview</span>
+      <span className="text-sm font-semibold tracking-tight text-[#F5F7FF] sm:text-base">
+        Snap<span className="text-blue-400">Interview</span>
       </span>
     </Link>
   );
@@ -274,7 +292,7 @@ export const NavbarButton = ({
 }) => {
   const variantStyles = {
     primary:
-      "bg-gradient-to-r from-[#2563EB] to-[#7C3AED] text-white shadow-[0_0_24px_rgba(99,102,241,0.35)] hover:shadow-[0_0_30px_rgba(103,232,249,0.22)]",
+      "bg-blue-600 text-white hover:bg-blue-500",
     secondary:
       "border border-white/15 bg-white/[0.05] text-[#F5F7FF] hover:bg-white/[0.1]",
   };
@@ -283,7 +301,7 @@ export const NavbarButton = ({
     <Tag
       {...(href ? { href } : {})}
       className={cn(
-        "relative inline-flex h-9 items-center justify-center rounded-full px-4 text-sm font-semibold transition-[box-shadow,opacity,transform,background-color] duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#67E8F9]",
+        "relative inline-flex h-8 items-center justify-center rounded-full px-3.5 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#67E8F9] cursor-pointer",
         variantStyles[variant],
         className,
       )}

@@ -35,8 +35,8 @@ body {
   --landing-gutter: clamp(1rem, 3vw, 4rem);
   --landing-content-width: min(80rem, calc(100vw - var(--landing-gutter) - var(--landing-gutter)));
   --landing-nav-top: clamp(0.5rem, 1.2vw, 0.8rem);
-  --landing-nav-height: clamp(3.5rem, 5vw, 4rem);
-  --landing-nav-height-scrolled: clamp(2.75rem, 3.8vw, 3.1rem);
+  --landing-nav-height: clamp(3.25rem, 4.5vw, 3.75rem);
+  --landing-nav-height-scrolled: clamp(2.85rem, 3.6vw, 3.15rem);
   --landing-section-space: clamp(2rem, 3.5vw, 3rem);
   --landing-glass-fill: linear-gradient(
     155deg,

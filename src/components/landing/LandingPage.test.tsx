@@ -109,8 +109,12 @@ describe("landing experience", () => {
   it("keeps the floating navbar actions available", () => {
     render(<LandingNavbar />);
 
-    expect(screen.getByRole("link", { name: /get started free/i }).getAttribute("href")).toBe("/signup");
+    expect(screen.getByRole("link", { name: /start free/i }).getAttribute("href")).toBe("/signup");
     expect(screen.getByRole("link", { name: /login/i }).getAttribute("href")).toBe("/login");
+    expect(screen.getAllByRole("link", { name: /^studio$/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /^features$/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /how it works/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /get started/i }).length).toBeGreaterThan(0);
 
     const openMenuButton = screen.getByRole("button", { name: /open navigation menu/i });
     fireEvent.click(openMenuButton);
@@ -137,5 +141,8 @@ describe("landing experience", () => {
     expect(screen.getByText(/Questions shaped by your context/i)).toBeTruthy();
     expect(screen.getByText(/Three steps to interview mastery/i)).toBeTruthy();
     expect(screen.getByText(/Your next interview won't be your first/i)).toBeTruthy();
+    expect(screen.getByText(/Ready to simplify interview prep/i)).toBeTruthy();
+    expect(screen.getByRole("link", { name: /get started free/i })).toBeTruthy();
+    expect(screen.getByText(/Session review/i)).toBeTruthy();
   });
 });

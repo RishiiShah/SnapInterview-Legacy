@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppLogo } from "@/components/ui/AppLogo";
 
 const LINKS = [
+  { label: "Studio", href: "#studio" },
   { label: "Features", href: "#features" },
   { label: "How It Works", href: "#how-it-works" },
   { label: "Get Started", href: "#get-started" },

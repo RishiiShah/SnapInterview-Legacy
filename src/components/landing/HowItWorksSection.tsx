@@ -5,30 +5,55 @@ const STEPS = [
     step: "01",
     title: "Prepare",
     badge: "2-Min Setup",
-    subtitle: "Role, difficulty & custom prompt scenario",
-    desc: "Pick your target role and seniority. Optionally paste a job description or upload your resume to tailor questions to your exact target interview.",
+    subtitle: "Role, resume & job description",
+    desc: "Select your target role and level. Optionally paste a job description or upload your resume so questions match the exact job.",
+    details: [
+      "Choose your role, seniority, and interview type",
+      "Add a job description or resume for tailored questions",
+      "Set difficulty and focus areas before starting",
+    ],
     accent: "text-sky-400",
+    dot: "bg-sky-400",
     icon: Sliders,
   },
   {
     step: "02",
     title: "Perform",
     badge: "Adaptive AI",
-    subtitle: "Voice, video & in-browser code under pressure",
-    desc: "Answer out loud with your mic and camera open. The AI interviewer probes your reasoning in real time based on what you actually say.",
+    subtitle: "Voice, video & coding",
+    desc: "Answer prompts out loud on camera. The AI interviewer listens to your answers and asks realistic follow-up questions.",
+    details: [
+      "Speak naturally with your mic and camera on",
+      "Get probed on vague logic or trade-offs in real time",
+      "Solve coding challenges directly in the browser",
+    ],
     accent: "text-violet-400",
+    dot: "bg-violet-400",
     icon: Video,
   },
   {
     step: "03",
     title: "Perfect",
-    badge: "Instant Score",
-    subtitle: "Video replay, searchable transcript & rubric",
-    desc: "Review your automated rubric scores, watch your video recording playback, search your transcript, and iterate until you reach a strong pass.",
+    badge: "Review & Improve",
+    subtitle: "Replay, transcript & feedback",
+    desc: "Rewatch your recording, search your transcript, and check your rubric scores so you know exactly what to improve.",
+    details: [
+      "Rewatch video to review pacing and delivery",
+      "Search your transcript to refine weak answers",
+      "Check rubric scores and targeted coaching tips",
+    ],
     accent: "text-emerald-400",
+    dot: "bg-emerald-400",
     icon: Award,
   },
-];
+] as const;
+
+const DELIVERABLES = [
+  ["HD Video Replay", "Full video recording you can scrub through"],
+  ["Word Transcript", "Searchable speech-to-text transcript"],
+  ["Rubric Scoring", "Clear evaluation across key skills"],
+  ["Actionable Feedback", "Specific suggestions to improve next time"],
+] as const;
 
 export default function SocialProofSection() {
   return (
@@ -36,15 +61,15 @@ export default function SocialProofSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
         {/* Section Header */}
-        <div className="mb-8 border-t border-white/[0.08] pt-5 space-y-2 text-center">
+        <div className="mb-8 border-t border-white/[0.08] pt-5 space-y-2.5 text-center">
           <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-400">
             The Practice Loop
           </span>
           <h2 className="font-serif text-3xl leading-tight tracking-[-0.03em] text-white sm:text-4xl lg:text-5xl">
             Three steps to interview mastery.
           </h2>
-          <p className="text-sm leading-relaxed text-[#64748B]">
-            A clear, repeatable loop designed to transform interview preparation into quiet confidence.
+          <p className="mx-auto max-w-2xl text-sm leading-relaxed text-[#64748B]">
+            Set up your context, practice live on mic and video, then review your recording and transcript to improve.
           </p>
         </div>
 
@@ -68,7 +93,7 @@ export default function SocialProofSection() {
                   </div>
 
                   <div className="flex items-center gap-2 mb-2">
-                    <Icon className={`h-4 w-4 ${item.accent}`} />
+                    <Icon className={`h-4 w-4 ${item.accent}`} aria-hidden="true" />
                     <h3 className="font-serif text-2xl font-normal leading-snug tracking-tight text-white">
                       {item.title}
                     </h3>
@@ -78,9 +103,23 @@ export default function SocialProofSection() {
                     {item.subtitle}
                   </p>
 
-                  <p className="text-sm leading-relaxed text-[#64748B]">
+                  <p className="text-sm leading-relaxed text-[#94A3B8]">
                     {item.desc}
                   </p>
+
+                  <ul className="mt-4 space-y-2.5 border-t border-white/[0.06] pt-3.5">
+                    {item.details.map((detail) => (
+                      <li key={detail} className="flex items-start gap-2.5">
+                        <span
+                          className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${item.dot}`}
+                          aria-hidden="true"
+                        />
+                        <span className="text-[0.8125rem] leading-relaxed text-[#64748B]">
+                          {detail}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             );
@@ -88,19 +127,17 @@ export default function SocialProofSection() {
         </div>
 
         {/* Deliverables Banner */}
-        <div className="mt-4 rounded-2xl border border-white/[0.08] bg-[#0C0F1A] p-5">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {[
-              ["HD Video Replay", "Full session video recording"],
-              ["Word Transcript", "Searchable speech-to-text"],
-              ["Rubric Scoring", "Automated evaluation"],
-              ["Actionable Fixes", "Coaching notes for next run"],
-            ].map(([title, desc]) => (
+        <div className="mt-4 rounded-2xl border border-white/[0.08] bg-[#0C0F1A] p-5 sm:p-6">
+          <p className="mb-4 text-center text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-[#475569]">
+            What you get after every session
+          </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {DELIVERABLES.map(([title, desc]) => (
               <div key={title} className="flex items-start gap-2.5">
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400 mt-0.5" />
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400 mt-0.5" aria-hidden="true" />
                 <div>
                   <span className="block text-xs font-semibold text-white">{title}</span>
-                  <span className="block text-[0.72rem] text-[#64748B]">{desc}</span>
+                  <span className="mt-0.5 block text-[0.72rem] leading-relaxed text-[#64748B]">{desc}</span>
                 </div>
               </div>
             ))}

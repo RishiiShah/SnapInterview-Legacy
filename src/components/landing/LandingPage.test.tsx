@@ -140,7 +140,7 @@ describe("landing experience", () => {
     expect(screen.getByText(/Review exactly what you said/i)).toBeTruthy();
     expect(screen.getByText(/Questions shaped by your context/i)).toBeTruthy();
     expect(screen.getByText(/Three steps to interview mastery/i)).toBeTruthy();
-    expect(screen.getByText(/Your next interview won't be your first/i)).toBeTruthy();
+    expect(screen.getByText(/Practice before the interview that counts/i)).toBeTruthy();
     expect(screen.getByText(/Ready to simplify interview prep/i)).toBeTruthy();
     expect(screen.getByRole("link", { name: /get started free/i })).toBeTruthy();
     expect(screen.getByText(/Session review/i)).toBeTruthy();

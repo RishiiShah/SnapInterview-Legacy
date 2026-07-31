@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Clock, FileText, Gauge, ScrollText } from "lucide-react";
+import { ArrowRight, Clock, FileText, Gauge, Layers, ScrollText } from "lucide-react";
 
 function SessionPreview() {
   return (
@@ -17,7 +17,7 @@ function SessionPreview() {
               Mid-level software engineer
             </p>
             <p className="mt-0.5 text-[0.65rem] text-zinc-600">
-              Behavioral complete · Coding in progress · Round 2 of 3
+              Coding in progress
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
@@ -30,7 +30,18 @@ function SessionPreview() {
           </div>
         </div>
 
-        <div className="mt-2.5 grid grid-cols-4 gap-1.5">
+        <div className="mt-2.5 grid grid-cols-5 gap-1.5">
+          <div className="min-w-0 rounded-lg border border-zinc-500/20 bg-[#D4D8DE] px-2 py-1.5">
+            <div className="flex items-center gap-1">
+              <Layers className="h-3 w-3 shrink-0 text-blue-700" />
+              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                Type
+              </p>
+            </div>
+            <p className="mt-0.5 truncate text-[0.65rem] font-medium text-zinc-800">
+              Coding
+            </p>
+          </div>
           <div className="min-w-0 rounded-lg border border-zinc-500/20 bg-[#D4D8DE] px-2 py-1.5">
             <div className="flex items-center gap-1">
               <FileText className="h-3 w-3 shrink-0 text-sky-700" />
@@ -119,7 +130,7 @@ function SessionPreview() {
 
         <div className="mt-2.5 flex items-center gap-3">
           <p className="shrink-0 text-[0.55rem] text-zinc-500">
-            Behavioral done · coding live
+            Mid-session · coding live
           </p>
           <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-500/25">
             <div className="h-full w-[57%] rounded-full bg-blue-600" />
@@ -140,10 +151,10 @@ export default function CTASection() {
             Get Started
           </span>
           <h2 className="font-serif text-3xl leading-tight tracking-[-0.03em] text-[#E2E8F0] sm:text-4xl lg:text-5xl">
-            Your next interview won&apos;t be your first.
+            Practice before the interview that counts.
           </h2>
-          <p className="mx-auto max-w-2xl text-sm leading-relaxed text-[#64748B]">
-            Create a free account, practice live on mic and video, then review your recording before the real conversation.
+          <p className="mx-auto max-w-5xl text-sm leading-relaxed text-[#64748B] lg:whitespace-nowrap">
+            Create a free account, practice out loud on mic and video, then scrub the recording and transcript before the real interview.
           </p>
         </div>
 

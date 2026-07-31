@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import React from "react";
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const lastMotionProps = vi.hoisted(() => ({
@@ -19,7 +19,11 @@ vi.mock("framer-motion", () => ({
   useReducedMotion: () => false,
 }));
 
-import { LandingFadeInStagger, LandingFadeInStaggerItem } from "./LandingMotion";
+import {
+  LandingFadeIn,
+  LandingFadeInStagger,
+  LandingFadeInStaggerItem,
+} from "./LandingMotion";
 
 describe("landing motion", () => {
   afterEach(() => {
@@ -27,16 +31,30 @@ describe("landing motion", () => {
     lastMotionProps.current = null;
   });
 
-  it("keeps stagger items visible if viewport animation does not trigger", () => {
+  it("exposes hidden/visible variants on stagger items for parent-driven reveals", () => {
     render(
       <LandingFadeInStagger triggerOnView>
         <LandingFadeInStaggerItem>Visible step</LandingFadeInStaggerItem>
       </LandingFadeInStagger>,
     );
 
+    expect(lastMotionProps.current?.variants).toMatchObject({
+      hidden: { opacity: 0, y: 56, x: 0 },
+      visible: expect.objectContaining({ opacity: 1, y: 0, x: 0 }),
+    });
+    expect(screen.getByText("Visible step")).toBeTruthy();
+  });
+
+  it("supports scale-from fade for CTA-style reveals", () => {
+    render(
+      <LandingFadeIn triggerOnView scaleFrom={0.96}>
+        Soft scale
+      </LandingFadeIn>,
+    );
+
     expect(lastMotionProps.current).toMatchObject({
-      initial: false,
-      animate: "visible",
+      initial: { opacity: 0, y: 56, x: 0, scale: 0.96 },
+      whileInView: { opacity: 1, x: 0, y: 0, scale: 1 },
     });
   });
 });

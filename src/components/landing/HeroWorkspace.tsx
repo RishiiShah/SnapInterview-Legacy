@@ -11,6 +11,7 @@ import {
   Volume2,
 } from "lucide-react";
 import { Safari } from "@/components/ui/Safari";
+import { LandingFadeIn } from "./LandingMotion";
 
 const CODE_LINES = [
   { text: "def two_sum(nums: list[int], target: int) -> list[int]:", color: "text-[#8BA7C7]" },
@@ -31,7 +32,7 @@ export default function HeroWorkspace() {
       className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8"
     >
       {/* Section Header */}
-      <div className="mb-10 flex flex-col items-center text-center pt-4">
+      <LandingFadeIn triggerOnView direction="none" className="mb-10 flex flex-col items-center text-center pt-4">
         <span className="text-xs font-medium uppercase tracking-[0.22em] text-[#7B9FBF]">
           Interactive Studio
         </span>
@@ -41,7 +42,7 @@ export default function HeroWorkspace() {
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-[#7A8A9E]">
           A live coding environment, speech-to-text transcript, and automated feedback system operating in real time.
         </p>
-      </div>
+      </LandingFadeIn>
 
       {/* Outer Soft Glow */}
       <div className="relative">
@@ -50,7 +51,8 @@ export default function HeroWorkspace() {
           aria-hidden="true"
         />
 
-        {/* Safari Preview Frame */}
+        {/* Safari Preview Frame — soft scale rise */}
+        <LandingFadeIn triggerOnView direction="up" delay={0.21} duration={1.38} scaleFrom={0.94}>
         <Safari url="snapinterview.app/practice/session" className="shadow-[0_20px_60px_rgba(0,0,0,0.7)]">
           {/* Workspace — unified muted dark surface, no sharp card borders */}
           <div className="flex flex-col h-full w-full bg-[#0D1017] text-[#C8D3E0] select-none font-sans">
@@ -216,6 +218,7 @@ export default function HeroWorkspace() {
 
           </div>
         </Safari>
+        </LandingFadeIn>
       </div>
     </div>
   );

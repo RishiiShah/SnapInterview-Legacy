@@ -1,5 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
+import {
+  HeroCtaPrimary,
+  HeroCtaSecondary,
+  HeroHeadline,
+  HeroSubcopy,
+} from "./HeroHeadline";
 
 export default function HeroSection() {
   return (
@@ -38,37 +44,34 @@ export default function HeroSection() {
         />
       </div>
 
-      {/* ── Bottom-Left Anchored Hero Copy (Exact Saasternity / Clonely Layout) ── */}
+      {/* ── Bottom-Left Anchored Hero Copy ── */}
       <div className="relative z-10 flex h-full flex-col justify-end pb-16 lg:pb-24 landing-container">
         <div className="max-w-3xl">
-          {/* Main Headline — Crisp White, Bold, 2 Lines */}
-          <h1 className="text-[clamp(2.5rem,5vw,4.25rem)] font-bold leading-[1.06] tracking-[-0.035em] text-white">
-            Practice real interviews
-            <br />
-            with AI that talks back.
-          </h1>
+          <HeroHeadline />
 
-          {/* Subtext */}
-          <p className="mt-4 max-w-xl text-[clamp(0.98rem,1.25vw,1.1rem)] leading-relaxed text-[#94A3B8]">
+          <HeroSubcopy className="mt-4 max-w-xl text-[clamp(0.98rem,1.25vw,1.1rem)] leading-relaxed text-[#94A3B8]">
             Customize a mock interview for your role, explain your thinking out loud,
             and review your video recording, transcript, and automated score before the real thing.
-          </p>
+          </HeroSubcopy>
 
-          {/* Action Buttons */}
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <Link
-              href="/signup"
-              className="inline-flex h-12 items-center justify-center rounded-xl bg-[#2563EB] px-6 text-base font-semibold text-white shadow-lg shadow-blue-600/30 transition-all duration-200 hover:bg-[#1D4ED8] hover:shadow-blue-600/40 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-            >
-              Try for free today
-            </Link>
+            <HeroCtaPrimary>
+              <Link
+                href="/signup"
+                className="inline-flex h-12 items-center justify-center rounded-xl bg-[#2563EB] px-6 text-base font-semibold text-white shadow-lg shadow-blue-600/30 transition-all duration-200 hover:bg-[#1D4ED8] hover:shadow-blue-600/40 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+              >
+                Try for free today
+              </Link>
+            </HeroCtaPrimary>
 
-            <a
-              href="#how-it-works"
-              className="inline-flex h-12 items-center justify-center px-4 text-sm font-medium text-[#CBD5E1] transition-colors duration-200 hover:text-white"
-            >
-              See how it works <span className="ml-1.5 text-xs text-[#60A5FA]">→</span>
-            </a>
+            <HeroCtaSecondary>
+              <a
+                href="#how-it-works"
+                className="inline-flex h-12 items-center justify-center px-4 text-sm font-medium text-[#CBD5E1] transition-colors duration-200 hover:text-white"
+              >
+                See how it works <span className="ml-1.5 text-xs text-[#60A5FA]">→</span>
+              </a>
+            </HeroCtaSecondary>
           </div>
         </div>
       </div>

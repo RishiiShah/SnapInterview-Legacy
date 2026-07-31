@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Code2, FileText, Mic, Video, CheckCircle, Clock, ChevronRight } from "lucide-react";
+import { LandingFadeIn } from "./LandingMotion";
 
 const FEATURES = [
   {
@@ -240,7 +241,7 @@ function TracksCard() {
   const [activeTrack, setActiveTrack] = useState(TRACKS[0]);
 
   return (
-    <article className="relative col-span-1 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0C0F1A] sm:col-span-2 lg:col-span-12">
+    <article className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0C0F1A]">
       <div className="flex flex-col lg:flex-row">
 
         {/* Left sidebar */}
@@ -312,7 +313,11 @@ export default function ProductStrengthsSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
         {/* Section Header */}
-        <div className="mb-5 border-t border-white/[0.08] pt-5 space-y-2.5 flex flex-col items-center text-center">
+        <LandingFadeIn
+          triggerOnView
+          direction="none"
+          className="mb-5 border-t border-white/[0.08] pt-5 space-y-2.5 flex flex-col items-center text-center"
+        >
           <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-400">
             Product Strengths
           </span>
@@ -322,15 +327,20 @@ export default function ProductStrengthsSection() {
           <p className="text-sm leading-relaxed text-[#64748B] max-w-4xl">
             SnapInterview gives you a place to practice speaking, coding, and reviewing across every role and seniority level.
           </p>
-        </div>
+        </LandingFadeIn>
 
-        {/* Feature Grid */}
+        {/* Feature Grid — alternate horizontal slides */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
 
-          {FEATURES.map((feature) => {
+          {FEATURES.map((feature, index) => {
+            // Enter from outside edges: odd rows from left, even from right
+            const slideDirection = index % 2 === 0 ? "right" : "left";
             return (
-              <article
+              <LandingFadeIn
                 key={feature.number}
+                triggerOnView
+                direction={slideDirection}
+                delay={0.15 * (index % 2)}
                 className={`relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0C0F1A] p-5 sm:p-5.5 ${
                   feature.number === "001" || feature.number === "004" ? "lg:col-span-7" : "lg:col-span-5"
                 }`}
@@ -351,12 +361,20 @@ export default function ProductStrengthsSection() {
                 {feature.diagram === "coding" && <CodingDiagram />}
                 {feature.diagram === "replay" && <ReplayDiagram />}
                 {feature.diagram === "context" && <ContextDiagram />}
-              </article>
+              </LandingFadeIn>
             );
           })}
 
-          {/* Card 5: Specialized Tracks */}
-          <TracksCard />
+          {/* Card 5: Specialized Tracks — soft scale settle */}
+          <LandingFadeIn
+            triggerOnView
+            direction="none"
+            delay={0.21}
+            scaleFrom={0.96}
+            className="col-span-1 sm:col-span-2 lg:col-span-12"
+          >
+            <TracksCard />
+          </LandingFadeIn>
 
         </div>
       </div>

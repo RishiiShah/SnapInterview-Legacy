@@ -7,6 +7,7 @@ import FeaturesSection from "@/components/landing/FeaturesSection";
 import SocialProofSection from "@/components/landing/HowItWorksSection";
 import CTASection from "@/components/landing/CTASection";
 import LandingFooter from "@/components/landing/LandingFooter";
+import LandingScrollToTop from "@/components/landing/LandingScrollToTop";
 
 export default async function LandingPage() {
   const nonce = (await headers()).get("x-nonce") ?? undefined;
@@ -33,6 +34,7 @@ export default async function LandingPage() {
 
   return (
     <div className="landing-page relative min-h-screen overflow-x-hidden bg-[#090A0F] font-sans text-[#F5F7FF] selection:bg-blue-600 selection:text-white">
+      <LandingScrollToTop />
       <LandingAtmosphere />
 
       <script

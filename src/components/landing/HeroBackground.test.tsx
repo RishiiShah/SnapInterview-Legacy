@@ -19,6 +19,27 @@ vi.mock("next/image", () => ({
   ),
 }));
 
+vi.mock("framer-motion", () => {
+  const omit = (props: Record<string, unknown>) =>
+    Object.fromEntries(
+      Object.entries(props).filter(
+        ([key]) =>
+          !["animate", "initial", "transition", "variants", "style"].includes(key),
+      ),
+    );
+  return {
+    motion: new Proxy(
+      {},
+      {
+        get: (_t, tag: string) =>
+          ({ children, ...props }: Record<string, unknown> & { children?: React.ReactNode }) =>
+            React.createElement(tag, omit(props), children),
+      },
+    ),
+    useReducedMotion: () => false,
+  };
+});
+
 describe("hero background image", () => {
   afterEach(cleanup);
 

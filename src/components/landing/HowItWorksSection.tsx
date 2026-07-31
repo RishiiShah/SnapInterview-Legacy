@@ -1,4 +1,9 @@
 import { CheckCircle2, Sliders, Video, Award } from "lucide-react";
+import {
+  LandingFadeIn,
+  LandingFadeInStagger,
+  LandingFadeInStaggerItem,
+} from "./LandingMotion";
 
 const STEPS = [
   {
@@ -61,7 +66,11 @@ export default function SocialProofSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
         {/* Section Header */}
-        <div className="mb-8 border-t border-white/[0.08] pt-5 space-y-2.5 text-center">
+        <LandingFadeIn
+          triggerOnView
+          direction="none"
+          className="mb-8 border-t border-white/[0.08] pt-5 space-y-2.5 text-center"
+        >
           <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-400">
             The Practice Loop
           </span>
@@ -71,15 +80,22 @@ export default function SocialProofSection() {
           <p className="mx-auto max-w-2xl text-sm leading-relaxed text-[#64748B]">
             Set up your context, practice live on mic and video, then review your recording and transcript to improve.
           </p>
-        </div>
+        </LandingFadeIn>
 
-        {/* 3 Step Cards */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {STEPS.map((item) => {
+        {/* 3 Step Cards — converge from left / up / right */}
+        <LandingFadeInStagger
+          triggerOnView
+          stagger={0.24}
+          className="grid grid-cols-1 gap-4 lg:grid-cols-3"
+        >
+          {STEPS.map((item, index) => {
             const Icon = item.icon;
+            const stepDirection =
+              index === 0 ? "right" : index === 1 ? "up" : "left";
             return (
-              <div
+              <LandingFadeInStaggerItem
                 key={item.step}
+                direction={stepDirection}
                 className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0C0F1A] p-5 sm:p-6"
               >
                 <div>
@@ -121,13 +137,19 @@ export default function SocialProofSection() {
                     ))}
                   </ul>
                 </div>
-              </div>
+              </LandingFadeInStaggerItem>
             );
           })}
-        </div>
+        </LandingFadeInStagger>
 
-        {/* Deliverables Banner */}
-        <div className="mt-4 rounded-2xl border border-white/[0.08] bg-[#0C0F1A] p-5 sm:p-6">
+        {/* Deliverables Banner — rise from below */}
+        <LandingFadeIn
+          triggerOnView
+          direction="up"
+          delay={0.24}
+          scaleFrom={0.98}
+          className="mt-4 rounded-2xl border border-white/[0.08] bg-[#0C0F1A] p-5 sm:p-6"
+        >
           <p className="mb-4 text-center text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-[#475569]">
             What you get after every session
           </p>
@@ -142,7 +164,7 @@ export default function SocialProofSection() {
               </div>
             ))}
           </div>
-        </div>
+        </LandingFadeIn>
 
       </div>
     </section>

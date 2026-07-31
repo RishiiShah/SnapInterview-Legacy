@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { AppLogo } from "@/components/ui/AppLogo";
+import { LandingFadeIn } from "./LandingMotion";
 
 const LINKS = [
   { label: "Studio", href: "#studio" },
@@ -10,14 +13,28 @@ const LINKS = [
   { label: "Register", href: "/signup" },
 ];
 
+function scrollHome(event: React.MouseEvent<HTMLAnchorElement>) {
+  if (window.location.pathname !== "/") return;
+
+  event.preventDefault();
+  if (window.location.hash) {
+    history.replaceState(null, "", "/");
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 export default function LandingFooter() {
   return (
     <footer className="relative z-10 border-t border-white/[0.07] bg-[#090A0F] py-8 text-[#64748B]">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <LandingFadeIn triggerOnView direction="none" duration={1.08} className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center justify-between gap-5 sm:flex-row">
 
           {/* Brand */}
-          <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
+          <Link
+            href="/"
+            onClick={scrollHome}
+            className="flex items-center gap-2 transition-opacity hover:opacity-80"
+          >
             <AppLogo size={28} className="rounded-md" />
             <span className="text-sm font-semibold tracking-tight text-white">
               Snap<span className="text-blue-400">Interview</span>
@@ -39,7 +56,7 @@ export default function LandingFooter() {
           </p>
 
         </div>
-      </div>
+      </LandingFadeIn>
     </footer>
   );
 }

@@ -264,9 +264,20 @@ export const MobileNavToggle = ({
 };
 
 export const NavbarLogo = () => {
+  const scrollHome = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (window.location.pathname !== "/") return;
+
+    event.preventDefault();
+    if (window.location.hash) {
+      history.replaceState(null, "", "/");
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <Link
       href="/"
+      onClick={scrollHome}
       className="relative z-20 flex shrink-0 items-center gap-2"
     >
       <AppLogo size={28} className="rounded-md" priority />

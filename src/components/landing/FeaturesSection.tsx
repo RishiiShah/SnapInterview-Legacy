@@ -1,77 +1,379 @@
-import { FadeIn, FadeInStagger, FadeInStaggerItem } from "@/components/ui/motion";
-import {
-  AnimatedChartBarsIcon,
-  AnimatedClockIcon,
-  AnimatedQuestionBankIcon,
-  AnimatedSparklesIcon,
-  AnimatedTrendingUpIcon,
-  AnimatedVideoCameraIcon,
-} from "@/components/ui/animated-icons";
+"use client";
 
-const features = [
+import { useState } from "react";
+import { Code2, FileText, Mic, Video, CheckCircle, Clock, ChevronRight } from "lucide-react";
+import { LandingFadeIn, LandingFadeOnly, LandingScaleIn } from "./LandingMotion";
+
+const FEATURES = [
   {
-    icon: <AnimatedSparklesIcon className="h-5 w-5" strokeWidth={1.5} />,
-    title: "Live Follow-Ups",
-    desc: "The interviewer pushes on weak spots instead of stopping at canned one-shot prompts.",
+    number: "001",
+    label: "Voice dialogue",
+    accent: "text-violet-400",
+    badge: "Adaptive interviewer",
+    title: "Speaks like a real interviewer",
+    description:
+      "The AI listens to your full response, picks up on vague reasoning or missed edge cases, and follows up with targeted probes. It does not move on until you have addressed the question.",
+    diagram: "voice",
   },
   {
-    icon: <AnimatedChartBarsIcon className="h-5 w-5" strokeWidth={1.5} />,
-    title: "Useful Scorecards",
-    desc: "See where you rambled, where you lacked depth, and where your answer actually landed.",
+    number: "002",
+    label: "In-browser IDE",
+    accent: "text-sky-400",
+    badge: "Practice in context",
+    title: "Write and run code in the browser",
+    description:
+      "Python, JavaScript, and Java with syntax highlighting, live test case execution, and output diff. Covers LeetCode-style problems, system design stubs, and SQL queries.",
+    diagram: "coding",
   },
   {
-    icon: <AnimatedQuestionBankIcon className="h-5 w-5" strokeWidth={1.5} />,
-    title: "Targeted Question Sets",
-    desc: "Practice by role, company style, and interview type instead of digging through random prompts.",
+    number: "003",
+    label: "Session replay",
+    accent: "text-indigo-400",
+    badge: "Full session recording",
+    title: "Review exactly what you said",
+    description:
+      "Every session records video, audio, and a word-level transcript. Scrub to any moment and see what you said, what the AI asked next, and where the conversation turned.",
+    diagram: "replay",
   },
   {
-    icon: <AnimatedVideoCameraIcon className="h-5 w-5" strokeWidth={1.5} />,
-    title: "Replay The Session",
-    desc: "Review the exact answer you gave, not the polished version you remember afterward.",
+    number: "004",
+    label: "Role context",
+    accent: "text-emerald-400",
+    badge: "Tailored to your target",
+    title: "Questions shaped by your context",
+    description:
+      "Paste a job description, upload your resume, or pick a target level. The system generates questions that reflect what that company actually asks at that seniority.",
+    diagram: "context",
+  },
+] as const;
+
+const TRACKS = [
+  {
+    id: "swe",
+    title: "Software Engineering",
+    badge: "Most Popular",
+    color: "text-sky-400",
+    dot: "bg-sky-400",
+    topics: ["Data Structures and Algorithms", "System Design", "Live Coding on Mic", "Complexity Analysis"],
+    question: "How would you design a distributed rate limiter that handles 100,000 requests per second across multiple data centers?",
   },
   {
-    icon: <AnimatedTrendingUpIcon className="h-5 w-5" strokeWidth={1.5} />,
-    title: "Track Real Improvement",
-    desc: "Watch your pacing, clarity, and confidence change across repeated reps over time.",
+    id: "system-design",
+    title: "System Design",
+    badge: "Senior / Staff",
+    color: "text-violet-400",
+    dot: "bg-violet-400",
+    topics: ["Scalability and Caching", "Database Sharding", "API Gateway Design", "Event-Driven Architecture"],
+    question: "Design a fault-tolerant notification system with guaranteed delivery, retry mechanisms, and backpressure handling.",
   },
   {
-    icon: <AnimatedClockIcon className="h-5 w-5" strokeWidth={1.5} />,
-    title: "Always Ready",
-    desc: "Run a quick rep before work, a full mock at night, or a last-minute warmup before the interview.",
+    id: "pm",
+    title: "Product Management",
+    badge: "Product Track",
+    color: "text-emerald-400",
+    dot: "bg-emerald-400",
+    topics: ["Product Sense and Metrics", "Execution and Tradeoffs", "Stakeholder Alignment", "User Research and Case Studies"],
+    question: "How would you define and measure success for a new AI-powered feature shipping to 10 million users?",
+  },
+  {
+    id: "data",
+    title: "Data Science and ML",
+    badge: "AI / Data",
+    color: "text-amber-400",
+    dot: "bg-amber-400",
+    topics: ["ML Model Design", "SQL and ETL Pipelines", "A/B Testing and Statistics", "Feature Engineering"],
+    question: "Walk me through how you would handle severe class imbalance in a production fraud detection model.",
+  },
+  {
+    id: "behavioral",
+    title: "Behavioral and Leadership",
+    badge: "All Levels",
+    color: "text-rose-400",
+    dot: "bg-rose-400",
+    topics: ["STAR Method Delivery", "Conflict Resolution", "Project Failure Retrospectives", "Cross-Functional Influence"],
+    question: "Tell me about a time you had a significant disagreement with your tech lead. What was the outcome?",
   },
 ];
 
-export default function FeaturesSection() {
+function VoiceConversationDiagram() {
   return (
-    <section id="features" className="px-6 py-22 md:px-12">
-      <div className="mx-auto max-w-7xl">
-        <FadeIn direction="up">
-          <p className="mb-3 text-center text-xs font-semibold uppercase tracking-[0.28em] text-sky-600">
-            Why It Feels Sharper
+    <div aria-hidden="true" className="mt-4 border-t border-white/[0.08] pt-3 space-y-2">
+      <div className="rounded-lg bg-[#0A0C14] border border-white/[0.06] p-3 space-y-2.5">
+        <div className="flex items-start gap-2.5">
+          <span className="flex h-4 w-6 shrink-0 items-center justify-center rounded text-[0.55rem] font-bold tracking-wide text-violet-300 bg-violet-500/15">AI</span>
+          <p className="text-xs leading-relaxed text-[#94A3B8]">
+            You mentioned O(n) space. What happens if the input contains duplicates?
           </p>
-          <h2 className="mx-auto max-w-3xl text-center text-[clamp(2rem,4vw,3rem)] font-bold tracking-tight">
-            Less fake practice, more signal you can actually use
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-center text-[clamp(1rem,1.5vw,1.125rem)] leading-relaxed text-zinc-500">
-            Every session is built to help you hear better questions, give stronger answers, and see exactly where your interview performance breaks down.
+        </div>
+        <div className="flex items-start gap-2.5">
+          <span className="flex h-4 w-6 shrink-0 items-center justify-center rounded text-[0.55rem] font-bold tracking-wide text-slate-400 bg-slate-500/15">Me</span>
+          <p className="text-xs leading-relaxed text-[#64748B]">
+            Good point. I'll use a hash set to track seen elements so duplicate lookups stay O(1).
           </p>
-        </FadeIn>
+        </div>
+        <div className="flex items-start gap-2.5">
+          <span className="flex h-4 w-6 shrink-0 items-center justify-center rounded text-[0.55rem] font-bold tracking-wide text-violet-300 bg-violet-500/15">AI</span>
+          <p className="text-xs leading-relaxed text-[#94A3B8]">
+            Right. What is your overall time complexity after that adjustment?
+          </p>
+        </div>
+        <div className="flex items-start gap-2.5">
+          <span className="flex h-4 w-6 shrink-0 items-center justify-center rounded text-[0.55rem] font-bold tracking-wide text-slate-400 bg-slate-500/15">Me</span>
+          <p className="text-xs leading-relaxed text-[#64748B]">
+            It remains O(n) overall, since set insertion and lookup both run in amortized constant time.
+          </p>
+        </div>
+        <div className="flex items-start gap-2.5">
+          <span className="flex h-4 w-6 shrink-0 items-center justify-center rounded text-[0.55rem] font-bold tracking-wide text-violet-300 bg-violet-500/15">AI</span>
+          <p className="text-xs leading-relaxed text-[#94A3B8]">
+            Spot on. Can you now optimize this to O(1) auxiliary space using two pointers?
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 text-[0.7rem] text-[#475569]">
+        <span className="h-1.5 w-1.5 rounded-full bg-violet-400 animate-pulse" />
+        Live microphone active
+      </div>
+    </div>
+  );
+}
 
-        <FadeInStagger className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature) => (
-            <FadeInStaggerItem key={feature.title}>
-              <div className="group h-full rounded-[1.6rem] border border-sky-100/80 bg-white/88 p-7 shadow-[0_28px_60px_-52px_rgba(15,109,252,0.55)] transition-all hover:-translate-y-1 hover:border-sky-200 hover:shadow-[0_30px_70px_-48px_rgba(15,109,252,0.7)]">
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 text-sky-700 transition-colors group-hover:bg-[linear-gradient(135deg,#19a7ff,#0f6dfc)] group-hover:text-white">
-                  {feature.icon}
+function CodingDiagram() {
+  return (
+    <div aria-hidden="true" className="mt-4 border-t border-white/[0.08] pt-3 space-y-2">
+      <div className="flex items-center justify-between text-[0.7rem] text-[#475569]">
+        <span className="font-mono">solution.py</span>
+        <span className="text-sky-400 font-medium">4 / 4 passed</span>
+      </div>
+      <div className="rounded-lg bg-[#0A0C14] border border-white/[0.06] px-3.5 py-2.5 font-mono text-xs space-y-1">
+        <div className="flex gap-4">
+          <span className="text-[#334155] w-4 shrink-0">1</span>
+          <span><span className="text-sky-300">def</span> <span className="text-slate-200">two_sum</span><span className="text-slate-400">(nums, target):</span></span>
+        </div>
+        <div className="flex gap-4">
+          <span className="text-[#334155] w-4 shrink-0">2</span>
+          <span className="text-slate-400 pl-4">seen = &#123;&#125;</span>
+        </div>
+        <div className="flex gap-4">
+          <span className="text-[#334155] w-4 shrink-0">3</span>
+          <span className="pl-4"><span className="text-sky-300">for</span> <span className="text-slate-300">i, n</span> <span className="text-sky-300">in</span> <span className="text-slate-200">enumerate</span><span className="text-slate-400">(nums):</span></span>
+        </div>
+        <div className="flex gap-4">
+          <span className="text-[#334155] w-4 shrink-0">4</span>
+          <span className="pl-8 text-slate-400">complement = target - n</span>
+        </div>
+        <div className="flex gap-4">
+          <span className="text-[#334155] w-4 shrink-0">5</span>
+          <span className="pl-8"><span className="text-sky-300">if</span> <span className="text-slate-300">complement</span> <span className="text-sky-300">in</span> <span className="text-slate-300">seen</span>:</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 text-[0.7rem] text-emerald-500">
+        <CheckCircle className="h-3.5 w-3.5" />
+        All test cases passed in 12ms
+      </div>
+    </div>
+  );
+}
+
+function ReplayDiagram() {
+  return (
+    <div aria-hidden="true" className="mt-4 border-t border-white/[0.08] pt-3 space-y-2">
+      <div className="rounded-lg bg-[#0A0C14] border border-white/[0.06] p-3 space-y-2.5">
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-[0.7rem] text-[#475569]">
+            <span className="font-mono">session_2024-07-30.mp4</span>
+            <span className="font-mono">04:27 / 18:12</span>
+          </div>
+          <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
+            <div className="h-full rounded-full bg-indigo-500/70" style={{ width: "24%" }} />
+          </div>
+        </div>
+        <div className="border-t border-white/[0.06] pt-2 space-y-1">
+          <div className="flex gap-2 text-xs">
+            <span className="font-mono text-[#475569] shrink-0">04:12</span>
+            <span className="text-[#64748B]">Candidate hesitates on space complexity for sliding window.</span>
+          </div>
+          <div className="flex gap-2 text-xs">
+            <span className="font-mono text-[#475569] shrink-0">04:27</span>
+            <span className="text-[#94A3B8]">AI asks a follow-up about auxiliary space vs input space.</span>
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 text-[0.7rem] text-[#475569]">
+        <Clock className="h-3 w-3" />
+        Transcript synced to playback position
+      </div>
+    </div>
+  );
+}
+
+function ContextDiagram() {
+  return (
+    <div aria-hidden="true" className="mt-4 border-t border-white/[0.08] pt-3 space-y-2">
+      <div className="rounded-lg bg-[#0A0C14] border border-white/[0.06] p-3 space-y-2.5">
+        <div className="flex items-start gap-2.5">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-emerald-500/10 text-emerald-400">
+            <FileText className="h-3 w-3" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-[#CBD5E1]">Staff Software Engineer, Stripe</p>
+            <p className="text-[0.68rem] text-[#475569]">Resume and job description uploaded</p>
+          </div>
+        </div>
+        <div className="border-t border-white/[0.06] pt-2 space-y-1">
+          <p className="text-[0.65rem] font-medium text-[#475569] uppercase tracking-wider">Generated focus areas</p>
+          <div className="flex flex-wrap gap-1.5">
+            {["Distributed systems", "API reliability", "Payment infra", "Cross-team leadership"].map((t) => (
+              <span key={t} className="rounded border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[0.68rem] text-[#8090A8]">{t}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 text-[0.7rem] text-[#475569]">
+        <CheckCircle className="h-3 w-3 text-emerald-500" />
+        Questions tailored to your specific interview target
+      </div>
+    </div>
+  );
+}
+
+function TracksCard() {
+  const [activeTrack, setActiveTrack] = useState(TRACKS[0]);
+
+  return (
+    <article className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0C0F1A]">
+      <div className="flex flex-col lg:flex-row">
+
+        {/* Left sidebar */}
+        <div className="lg:w-64 xl:w-72 shrink-0 border-b border-white/[0.07] lg:border-b-0 lg:border-r p-4 space-y-1">
+          <p className="px-3 pt-1 pb-2 text-[0.7rem] font-semibold uppercase tracking-wider text-rose-400">
+            Specialized Tracks
+          </p>
+          {TRACKS.map((track) => {
+            const isActive = activeTrack.id === track.id;
+            return (
+              <button
+                key={track.id}
+                onClick={() => setActiveTrack(track)}
+                className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-left transition-colors cursor-pointer ${
+                  isActive
+                    ? "bg-white/[0.06] text-white"
+                    : "text-[#475569] hover:text-[#94A3B8] hover:bg-white/[0.03]"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${isActive ? track.dot : "bg-white/20"}`} />
+                  <span className="text-sm font-medium">{track.title}</span>
                 </div>
-                <h3 className="mb-2 text-base font-semibold text-zinc-950">{feature.title}</h3>
-                <p className="text-sm leading-relaxed text-zinc-500">
-                  {feature.desc}
+                {isActive && <ChevronRight className={`h-3.5 w-3.5 shrink-0 ${track.color}`} />}
+              </button>
+            );
+          })}
+          <p className="pt-2 text-[0.7rem] text-[#334155] leading-relaxed">28+ tracks covering every role, level, and domain.</p>
+        </div>
+
+        {/* Right detail panel */}
+        <div className="flex-1 p-5 lg:p-6 space-y-4">
+          <div>
+            <span className={`text-xs font-semibold ${activeTrack.color}`}>{activeTrack.badge}</span>
+            <h3 className="mt-0.5 font-serif text-2xl font-normal leading-snug tracking-tight text-white sm:text-3xl">{activeTrack.title}</h3>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[0.68rem] font-medium uppercase tracking-wider text-[#475569]">Core evaluated skills</p>
+            <div className="flex flex-wrap gap-2">
+              {activeTrack.topics.map((topic) => (
+                <span key={topic} className="inline-flex items-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-[#CBD5E1]">
+                  <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${activeTrack.dot}`} />
+                  {topic}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-white/[0.07] bg-[#070910] p-3.5 space-y-1.5">
+            <div className="flex items-center justify-between text-[0.68rem]">
+              <span className="font-mono text-[#334155]">Sample AI prompt</span>
+              <span className={`font-medium ${activeTrack.color}`}>Adaptive probe active</span>
+            </div>
+            <p className="text-sm leading-relaxed text-[#CBD5E1]">
+              {activeTrack.question}
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </article>
+  );
+}
+
+export default function ProductStrengthsSection() {
+  return (
+    <section id="features" className="landing-section relative z-10 bg-[#090A0F] py-12 md:py-16">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+
+        {/* Section Header — R→L title (opposite of Studio) */}
+        <div className="mb-5 border-t border-white/[0.08] pt-5 space-y-2.5 flex flex-col items-center text-center">
+          <LandingFadeOnly triggerOnView>
+            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-400">
+              Product Strengths
+            </span>
+          </LandingFadeOnly>
+          <LandingFadeOnly triggerOnView delay={0.07}>
+            <h2 className="font-serif text-3xl leading-tight tracking-[-0.03em] text-white sm:text-4xl lg:text-5xl">
+              Built for every interview moment that matters.
+            </h2>
+          </LandingFadeOnly>
+          <LandingFadeOnly triggerOnView delay={0.38} className="max-w-4xl">
+            <p className="text-sm leading-relaxed text-[#64748B]">
+              SnapInterview gives you a place to practice speaking, coding, and reviewing across every role and seniority level.
+            </p>
+          </LandingFadeOnly>
+        </div>
+
+          {/* Feature cards — alternate L→R / R→L fade */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
+
+          {FEATURES.map((feature, index) => {
+            return (
+              <LandingFadeIn
+                key={feature.number}
+                triggerOnView
+                direction={index % 2 === 0 ? "right" : "left"}
+                delay={0.08 * (index % 2)}
+                className={`relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0C0F1A] p-5 sm:p-5.5 ${
+                  feature.number === "001" || feature.number === "004" ? "lg:col-span-7" : "lg:col-span-5"
+                }`}
+              >
+                <p className={`text-[0.7rem] font-semibold uppercase tracking-wider ${feature.accent}`}>
+                  {feature.badge}
                 </p>
-              </div>
-            </FadeInStaggerItem>
-          ))}
-        </FadeInStagger>
+                <h3 className="mt-1.5 font-serif text-2xl leading-[1.05] tracking-tight text-white sm:text-3xl">
+                  {feature.title}
+                </h3>
+                <p className="mt-2.5 text-sm leading-relaxed text-[#64748B]">
+                  {feature.description}
+                </p>
+
+                {feature.diagram === "voice" && <VoiceConversationDiagram />}
+                {feature.diagram === "coding" && <CodingDiagram />}
+                {feature.diagram === "replay" && <ReplayDiagram />}
+                {feature.diagram === "context" && <ContextDiagram />}
+              </LandingFadeIn>
+            );
+          })}
+
+          {/* Tracks — soft scale */}
+          <LandingScaleIn
+            triggerOnView
+            delay={0.14}
+            scaleFrom={0.98}
+            className="col-span-1 sm:col-span-2 lg:col-span-12"
+          >
+            <TracksCard />
+          </LandingScaleIn>
+
+        </div>
       </div>
     </section>
   );

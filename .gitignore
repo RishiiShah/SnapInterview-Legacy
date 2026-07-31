@@ -22,6 +22,8 @@
 # agents
 /.agents/
 /.claude/
+/.codex/
+/.cursor/
 CLAUDE.md
 AGENTS.md
 

@@ -49,6 +49,7 @@ vi.mock("framer-motion", () => {
         React.createElement(tag, omitMotionProps(props), children),
     }),
     useReducedMotion: () => false,
+    useInView: () => true,
   };
 });
 

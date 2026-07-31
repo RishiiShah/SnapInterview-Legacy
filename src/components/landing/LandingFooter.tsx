@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { AppLogo } from "@/components/ui/AppLogo";
-import { LandingFadeIn } from "./LandingMotion";
 
 const LINKS = [
   { label: "Studio", href: "#studio" },
@@ -26,10 +25,9 @@ function scrollHome(event: React.MouseEvent<HTMLAnchorElement>) {
 export default function LandingFooter() {
   return (
     <footer className="relative z-10 border-t border-white/[0.07] bg-[#090A0F] py-8 text-[#64748B]">
-      <LandingFadeIn triggerOnView direction="none" duration={1.08} className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center justify-between gap-5 sm:flex-row">
 
-          {/* Brand */}
           <Link
             href="/"
             onClick={scrollHome}
@@ -41,8 +39,10 @@ export default function LandingFooter() {
             </span>
           </Link>
 
-          {/* Nav Links */}
-          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs" aria-label="Footer Navigation">
+          <nav
+            className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs"
+            aria-label="Footer Navigation"
+          >
             {LINKS.map(({ label, href }) => (
               <Link key={href} href={href} className="transition-colors hover:text-white">
                 {label}
@@ -50,13 +50,12 @@ export default function LandingFooter() {
             ))}
           </nav>
 
-          {/* Copyright */}
           <p className="text-xs text-[#334155]">
             &copy; {new Date().getFullYear()} SnapInterview
           </p>
 
         </div>
-      </LandingFadeIn>
+      </div>
     </footer>
   );
 }

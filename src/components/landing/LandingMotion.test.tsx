@@ -4,57 +4,73 @@ import React from "react";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const lastMotionProps = vi.hoisted(() => ({
-  current: null as Record<string, unknown> | null,
-}));
+const motionPropsLog = vi.hoisted(() => [] as Record<string, unknown>[]);
 
 vi.mock("framer-motion", () => ({
   motion: {
-    div: (props: Record<string, unknown>) => {
-      lastMotionProps.current = props;
+    div: React.forwardRef(function MotionDiv(
+      props: Record<string, unknown> & { children?: React.ReactNode },
+      ref: React.Ref<HTMLDivElement>,
+    ) {
+      motionPropsLog.push(props);
       const { children, ...domProps } = props;
-      return React.createElement("div", domProps, children as React.ReactNode);
-    },
+      return React.createElement("div", { ...domProps, ref }, children);
+    }),
   },
   useReducedMotion: () => false,
+  useInView: () => true,
 }));
 
 import {
-  LandingFadeIn,
+  LandingClipReveal,
+  LandingClipStaggerItem,
   LandingFadeInStagger,
-  LandingFadeInStaggerItem,
+  LandingScaleIn,
 } from "./LandingMotion";
 
 describe("landing motion", () => {
   afterEach(() => {
     cleanup();
-    lastMotionProps.current = null;
+    motionPropsLog.length = 0;
   });
 
-  it("exposes hidden/visible variants on stagger items for parent-driven reveals", () => {
+  it("animates clip-path on an inner node once revealed", () => {
+    render(
+      <LandingClipReveal triggerOnView mode="leftRight">
+        Wipe
+      </LandingClipReveal>,
+    );
+
+    expect(motionPropsLog[0]).toMatchObject({
+      animate: { clipPath: "inset(0 0% 0 0)" },
+    });
+    expect(screen.getByText("Wipe")).toBeTruthy();
+  });
+
+  it("uses clip variants on stagger items", () => {
     render(
       <LandingFadeInStagger triggerOnView>
-        <LandingFadeInStaggerItem>Visible step</LandingFadeInStaggerItem>
+        <LandingClipStaggerItem mode="leftRight">Visible step</LandingClipStaggerItem>
       </LandingFadeInStagger>,
     );
 
-    expect(lastMotionProps.current?.variants).toMatchObject({
-      hidden: { opacity: 0, y: 56, x: 0 },
-      visible: expect.objectContaining({ opacity: 1, y: 0, x: 0 }),
+    const clipNode = motionPropsLog.find((props) => {
+      const variants = props.variants as { hidden?: { clipPath?: string } } | undefined;
+      return variants?.hidden?.clipPath === "inset(0 100% 0 0)";
     });
+    expect(clipNode).toBeTruthy();
     expect(screen.getByText("Visible step")).toBeTruthy();
   });
 
-  it("supports scale-from fade for CTA-style reveals", () => {
+  it("supports soft scale settle", () => {
     render(
-      <LandingFadeIn triggerOnView scaleFrom={0.96}>
+      <LandingScaleIn triggerOnView scaleFrom={0.9}>
         Soft scale
-      </LandingFadeIn>,
+      </LandingScaleIn>,
     );
 
-    expect(lastMotionProps.current).toMatchObject({
-      initial: { opacity: 0, y: 56, x: 0, scale: 0.96 },
-      whileInView: { opacity: 1, x: 0, y: 0, scale: 1 },
+    expect(motionPropsLog.at(-1)).toMatchObject({
+      animate: { opacity: 1, scale: 1 },
     });
   });
 });

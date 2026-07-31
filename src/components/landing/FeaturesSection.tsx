@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Code2, FileText, Mic, Video, CheckCircle, Clock, ChevronRight } from "lucide-react";
-import { LandingFadeIn } from "./LandingMotion";
+import { LandingFadeIn, LandingFadeOnly, LandingScaleIn } from "./LandingMotion";
 
 const FEATURES = [
   {
@@ -312,40 +312,39 @@ export default function ProductStrengthsSection() {
     <section id="features" className="landing-section relative z-10 bg-[#090A0F] py-12 md:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-        {/* Section Header */}
-        <LandingFadeIn
-          triggerOnView
-          direction="none"
-          className="mb-5 border-t border-white/[0.08] pt-5 space-y-2.5 flex flex-col items-center text-center"
-        >
-          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-400">
-            Product Strengths
-          </span>
-          <h2 className="font-serif text-3xl leading-tight tracking-[-0.03em] text-white sm:text-4xl lg:text-5xl">
-            Built for every interview moment that matters.
-          </h2>
-          <p className="text-sm leading-relaxed text-[#64748B] max-w-4xl">
-            SnapInterview gives you a place to practice speaking, coding, and reviewing across every role and seniority level.
-          </p>
-        </LandingFadeIn>
+        {/* Section Header — R→L title (opposite of Studio) */}
+        <div className="mb-5 border-t border-white/[0.08] pt-5 space-y-2.5 flex flex-col items-center text-center">
+          <LandingFadeOnly triggerOnView>
+            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-400">
+              Product Strengths
+            </span>
+          </LandingFadeOnly>
+          <LandingFadeOnly triggerOnView delay={0.07}>
+            <h2 className="font-serif text-3xl leading-tight tracking-[-0.03em] text-white sm:text-4xl lg:text-5xl">
+              Built for every interview moment that matters.
+            </h2>
+          </LandingFadeOnly>
+          <LandingFadeOnly triggerOnView delay={0.38} className="max-w-4xl">
+            <p className="text-sm leading-relaxed text-[#64748B]">
+              SnapInterview gives you a place to practice speaking, coding, and reviewing across every role and seniority level.
+            </p>
+          </LandingFadeOnly>
+        </div>
 
-        {/* Feature Grid — alternate horizontal slides */}
+          {/* Feature cards — alternate L→R / R→L fade */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
 
           {FEATURES.map((feature, index) => {
-            // Enter from outside edges: odd rows from left, even from right
-            const slideDirection = index % 2 === 0 ? "right" : "left";
             return (
               <LandingFadeIn
                 key={feature.number}
                 triggerOnView
-                direction={slideDirection}
-                delay={0.15 * (index % 2)}
+                direction={index % 2 === 0 ? "right" : "left"}
+                delay={0.08 * (index % 2)}
                 className={`relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0C0F1A] p-5 sm:p-5.5 ${
                   feature.number === "001" || feature.number === "004" ? "lg:col-span-7" : "lg:col-span-5"
                 }`}
               >
-                {/* Badge + Title + Description */}
                 <p className={`text-[0.7rem] font-semibold uppercase tracking-wider ${feature.accent}`}>
                   {feature.badge}
                 </p>
@@ -356,7 +355,6 @@ export default function ProductStrengthsSection() {
                   {feature.description}
                 </p>
 
-                {/* Diagram */}
                 {feature.diagram === "voice" && <VoiceConversationDiagram />}
                 {feature.diagram === "coding" && <CodingDiagram />}
                 {feature.diagram === "replay" && <ReplayDiagram />}
@@ -365,16 +363,15 @@ export default function ProductStrengthsSection() {
             );
           })}
 
-          {/* Card 5: Specialized Tracks — soft scale settle */}
-          <LandingFadeIn
+          {/* Tracks — soft scale */}
+          <LandingScaleIn
             triggerOnView
-            direction="none"
-            delay={0.21}
-            scaleFrom={0.96}
+            delay={0.14}
+            scaleFrom={0.98}
             className="col-span-1 sm:col-span-2 lg:col-span-12"
           >
             <TracksCard />
-          </LandingFadeIn>
+          </LandingScaleIn>
 
         </div>
       </div>

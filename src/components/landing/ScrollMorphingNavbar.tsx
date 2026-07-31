@@ -51,6 +51,11 @@ interface MobileNavMenuProps {
   onClose: () => void;
 }
 
+const NAV_MORPH = {
+  duration: 0.78,
+  ease: [0.22, 0.08, 0.2, 1] as const,
+};
+
 export const Navbar = ({ children, className }: NavbarProps) => {
   const { scrollY } = useScroll();
   const [visible, setVisible] = useState(false);
@@ -68,11 +73,7 @@ export const Navbar = ({ children, className }: NavbarProps) => {
       animate={{
         paddingTop: visible ? "0.35rem" : "var(--landing-nav-top)",
       }}
-      transition={{
-        type: "spring",
-        stiffness: 240,
-        damping: 30,
-      }}
+      transition={NAV_MORPH}
       data-nav-visible={visible ? "true" : "false"}
     >
       {React.Children.map(children, (child) =>
@@ -90,6 +91,7 @@ export const Navbar = ({ children, className }: NavbarProps) => {
 export const NavBody = ({ children, className, visible }: NavBodyProps) => {
   return (
     <motion.div
+      initial={false}
       animate={{
         backdropFilter: visible ? "blur(18px)" : "blur(12px)",
         borderRadius: visible ? 999 : 20,
@@ -100,16 +102,19 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
         height: visible
           ? "var(--landing-nav-height-scrolled)"
           : "var(--landing-nav-height)",
+        paddingLeft: visible ? 8 : 12,
+        paddingRight: visible ? 8 : 12,
+        backgroundColor: visible
+          ? "rgba(9, 10, 15, 0.92)"
+          : "rgba(9, 10, 15, 0.6)",
+        borderColor: visible
+          ? "rgba(255, 255, 255, 0.15)"
+          : "rgba(255, 255, 255, 0.1)",
         y: visible ? 2 : 0,
       }}
-      transition={{
-        type: "spring",
-        stiffness: 220,
-        damping: 28,
-      }}
+      transition={NAV_MORPH}
       className={cn(
-        "relative z-[60] mx-auto hidden h-[var(--landing-nav-height)] w-full max-w-[80rem] flex-row items-center justify-between border border-white/10 bg-[#090A0F]/60 px-3 lg:flex",
-        visible && "border-white/15 bg-[#090A0F]/92 px-2",
+        "relative z-[60] mx-auto hidden h-[var(--landing-nav-height)] w-full max-w-[80rem] flex-row items-center justify-between border border-white/10 bg-[#090A0F]/60 px-3 shadow-[0_12px_40px_rgba(0,0,0,0.2)] outline-none lg:flex",
         className,
       )}
     >
@@ -171,6 +176,7 @@ export const NavItems = ({
 export const MobileNav = ({ children, className, visible }: MobileNavProps) => {
   return (
     <motion.div
+      initial={false}
       animate={{
         backdropFilter: visible ? "blur(18px)" : "blur(12px)",
         borderRadius: visible ? 999 : 20,
@@ -181,16 +187,19 @@ export const MobileNav = ({ children, className, visible }: MobileNavProps) => {
         height: visible
           ? "var(--landing-nav-height-scrolled)"
           : "var(--landing-nav-height)",
+        paddingLeft: visible ? 10 : 12,
+        paddingRight: visible ? 10 : 12,
+        backgroundColor: visible
+          ? "rgba(9, 10, 15, 0.92)"
+          : "rgba(9, 10, 15, 0.6)",
+        borderColor: visible
+          ? "rgba(255, 255, 255, 0.15)"
+          : "rgba(255, 255, 255, 0.1)",
         y: visible ? 2 : 0,
       }}
-      transition={{
-        type: "spring",
-        stiffness: 220,
-        damping: 28,
-      }}
+      transition={NAV_MORPH}
       className={cn(
-        "relative z-50 mx-auto flex h-[var(--landing-nav-height)] w-full max-w-[80rem] flex-col items-center justify-between border border-white/10 bg-[#090A0F]/60 px-3 lg:hidden",
-        visible && "border-white/15 bg-[#090A0F]/92 px-2.5",
+        "relative z-50 mx-auto flex h-[var(--landing-nav-height)] w-full max-w-[80rem] flex-col items-center justify-between border border-white/10 bg-[#090A0F]/60 px-3 shadow-[0_12px_40px_rgba(0,0,0,0.2)] outline-none lg:hidden",
         className,
       )}
     >

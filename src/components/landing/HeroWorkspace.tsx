@@ -11,7 +11,7 @@ import {
   Volume2,
 } from "lucide-react";
 import { Safari } from "@/components/ui/Safari";
-import { LandingFadeIn } from "./LandingMotion";
+import { LandingFadeOnly } from "./LandingMotion";
 
 const CODE_LINES = [
   { text: "def two_sum(nums: list[int], target: int) -> list[int]:", color: "text-[#8BA7C7]" },
@@ -31,18 +31,24 @@ export default function HeroWorkspace() {
       aria-label="Interactive mock interview workspace studio"
       className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8"
     >
-      {/* Section Header */}
-      <LandingFadeIn triggerOnView direction="none" className="mb-10 flex flex-col items-center text-center pt-4">
-        <span className="text-xs font-medium uppercase tracking-[0.22em] text-[#7B9FBF]">
-          Interactive Studio
-        </span>
-        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#D8E0EC] sm:text-4xl lg:text-5xl">
-          Step inside the room before the interview begins
-        </h2>
-        <p className="mt-3 max-w-2xl text-base leading-relaxed text-[#7A8A9E]">
-          A live coding environment, speech-to-text transcript, and automated feedback system operating in real time.
-        </p>
-      </LandingFadeIn>
+      {/* Section Header — L→R title, quiet lede */}
+      <div className="mb-10 flex flex-col items-center text-center pt-4">
+        <LandingFadeOnly triggerOnView>
+          <span className="text-xs font-medium uppercase tracking-[0.22em] text-[#7B9FBF]">
+            Interactive Studio
+          </span>
+        </LandingFadeOnly>
+        <LandingFadeOnly triggerOnView delay={0.11} className="mt-3">
+          <h2 className="text-3xl font-semibold tracking-tight text-[#D8E0EC] sm:text-4xl lg:text-5xl">
+            Step inside the room before the interview begins
+          </h2>
+        </LandingFadeOnly>
+        <LandingFadeOnly triggerOnView delay={0.19} className="mt-3 max-w-2xl">
+          <p className="text-base leading-relaxed text-[#7A8A9E]">
+            A live coding environment, speech-to-text transcript, and automated feedback system operating in real time.
+          </p>
+        </LandingFadeOnly>
+      </div>
 
       {/* Outer Soft Glow */}
       <div className="relative">
@@ -51,8 +57,8 @@ export default function HeroWorkspace() {
           aria-hidden="true"
         />
 
-        {/* Safari Preview Frame — soft scale rise */}
-        <LandingFadeIn triggerOnView direction="up" delay={0.21} duration={1.38} scaleFrom={0.94}>
+        {/* Safari frame — soft fade in */}
+        <LandingFadeOnly triggerOnView delay={0.14}>
         <Safari url="snapinterview.app/practice/session" className="shadow-[0_20px_60px_rgba(0,0,0,0.7)]">
           {/* Workspace — unified muted dark surface, no sharp card borders */}
           <div className="flex flex-col h-full w-full bg-[#0D1017] text-[#C8D3E0] select-none font-sans">
@@ -218,7 +224,7 @@ export default function HeroWorkspace() {
 
           </div>
         </Safari>
-        </LandingFadeIn>
+        </LandingFadeOnly>
       </div>
     </div>
   );

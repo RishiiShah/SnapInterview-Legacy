@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { ArrowRight, Clock, FileText, Gauge, Layers, ScrollText } from "lucide-react";
-import { LandingFadeIn } from "./LandingMotion";
+import {
+  LandingFadeIn,
+  LandingFadeOnly,
+  LandingScaleIn,
+} from "./LandingMotion";
 
 function SessionPreview() {
   return (
@@ -8,7 +12,7 @@ function SessionPreview() {
       aria-hidden="true"
       className="relative mx-auto w-full max-w-[38rem] lg:ml-auto lg:mr-0"
     >
-      <div className="origin-bottom-left rotate-[-4deg] rounded-2xl border border-zinc-400/40 bg-[#C9CDD4] p-3.5 shadow-[0_24px_60px_rgba(0,0,0,0.4)] lg:translate-x-4 xl:translate-x-8">
+      <div className="origin-bottom-left rotate-[-3deg] rounded-2xl border border-zinc-400/40 bg-[#C9CDD4] p-3.5 shadow-[0_24px_60px_rgba(0,0,0,0.4)]">
         <div className="flex items-start justify-between gap-3 border-b border-zinc-500/25 pb-2.5">
           <div className="min-w-0">
             <p className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-zinc-600">
@@ -147,23 +151,25 @@ export default function CTASection() {
   return (
     <section id="get-started" className="landing-section relative z-10 bg-[#090A0F] py-8 md:py-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <LandingFadeIn
-          triggerOnView
-          direction="none"
-          className="mb-8 border-t border-white/[0.08] pt-5 space-y-2.5 text-center"
-        >
-          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-400">
-            Get Started
-          </span>
-          <h2 className="font-serif text-3xl leading-tight tracking-[-0.03em] text-[#E2E8F0] sm:text-4xl lg:text-5xl">
-            Practice before the interview that counts.
-          </h2>
-          <p className="mx-auto max-w-5xl text-sm leading-relaxed text-[#64748B] lg:whitespace-nowrap">
-            Create a free account, practice out loud on mic and video, then scrub the recording and transcript before the real interview.
-          </p>
-        </LandingFadeIn>
+        <div className="mb-8 border-t border-white/[0.08] pt-5 space-y-2.5 text-center">
+          <LandingFadeOnly triggerOnView>
+            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-400">
+              Get Started
+            </span>
+          </LandingFadeOnly>
+          <LandingFadeOnly triggerOnView delay={0.07}>
+            <h2 className="font-serif text-3xl leading-tight tracking-[-0.03em] text-[#E2E8F0] sm:text-4xl lg:text-5xl">
+              Practice before the interview that counts.
+            </h2>
+          </LandingFadeOnly>
+          <LandingFadeOnly triggerOnView delay={0.16} className="mx-auto max-w-5xl">
+            <p className="text-sm leading-relaxed text-[#64748B] lg:whitespace-nowrap">
+              Create a free account, practice out loud on mic and video, then scrub the recording and transcript before the real interview.
+            </p>
+          </LandingFadeOnly>
+        </div>
 
-        <LandingFadeIn triggerOnView direction="none" scaleFrom={0.94} duration={1.38} delay={0.15}>
+        <LandingScaleIn triggerOnView scaleFrom={0.98} duration={1.01} delay={0.11}>
         <div className="relative overflow-hidden rounded-[2rem] border border-white/[0.1] bg-[#111318] sm:rounded-[2.5rem]">
           <div
             className="pointer-events-none absolute inset-0 opacity-40"
@@ -209,8 +215,8 @@ export default function CTASection() {
             />
           </svg>
 
-          <div className="relative grid items-start gap-8 px-6 py-12 sm:px-10 sm:py-14 lg:grid-cols-[1fr_1.15fr] lg:gap-4 lg:px-12 lg:py-14 xl:px-14">
-            <LandingFadeIn triggerOnView direction="right" delay={0.33} duration={1.26} className="max-w-xl">
+          <div className="relative grid items-start gap-8 px-6 py-12 sm:px-10 sm:py-14 lg:grid-cols-[1fr_1.15fr] lg:gap-6 lg:px-12 lg:py-14 lg:pr-14 xl:px-14 xl:pr-16">
+            <LandingFadeOnly triggerOnView delay={0.16} className="max-w-xl">
               <div className="mb-6 h-1 w-10 rounded-full bg-blue-500" aria-hidden="true" />
               <h3 className="font-serif text-[2rem] leading-[1.12] tracking-[-0.03em] text-[#E2E8F0] sm:text-4xl lg:text-[2.5rem]">
                 Ready to simplify interview prep?
@@ -234,21 +240,21 @@ export default function CTASection() {
                   Sign in
                 </Link>
               </div>
-            </LandingFadeIn>
+            </LandingFadeOnly>
 
             <LandingFadeIn
               triggerOnView
               direction="left"
-              delay={0.48}
-              duration={1.26}
-              className="relative flex items-start justify-end pt-2"
+              delay={0.27}
+              duration={1.15}
+              className="relative flex items-start justify-end overflow-visible pt-2 pb-6 pr-1 sm:pr-2"
             >
               <div className="pointer-events-none absolute right-0 top-4 h-32 w-32 rounded-full bg-blue-500/15 blur-3xl" />
               <SessionPreview />
             </LandingFadeIn>
           </div>
         </div>
-        </LandingFadeIn>
+        </LandingScaleIn>
       </div>
     </section>
   );

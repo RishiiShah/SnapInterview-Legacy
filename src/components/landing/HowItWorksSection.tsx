@@ -1,9 +1,7 @@
+"use client";
+
 import { CheckCircle2, Sliders, Video, Award } from "lucide-react";
-import {
-  LandingFadeIn,
-  LandingFadeInStagger,
-  LandingFadeInStaggerItem,
-} from "./LandingMotion";
+import { LandingClipReveal, LandingFadeOnly, LandingScaleIn } from "./LandingMotion";
 
 const STEPS = [
   {
@@ -65,88 +63,84 @@ export default function SocialProofSection() {
     <section id="how-it-works" className="landing-section relative z-10 bg-[#090A0F] py-8 md:py-10">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-        {/* Section Header */}
-        <LandingFadeIn
-          triggerOnView
-          direction="none"
-          className="mb-8 border-t border-white/[0.08] pt-5 space-y-2.5 text-center"
-        >
-          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-400">
-            The Practice Loop
-          </span>
-          <h2 className="font-serif text-3xl leading-tight tracking-[-0.03em] text-white sm:text-4xl lg:text-5xl">
-            Three steps to interview mastery.
-          </h2>
-          <p className="mx-auto max-w-2xl text-sm leading-relaxed text-[#64748B]">
-            Set up your context, practice live on mic and video, then review your recording and transcript to improve.
-          </p>
-        </LandingFadeIn>
+        <div className="mb-8 border-t border-white/[0.08] pt-5 space-y-2.5 text-center">
+          <LandingFadeOnly triggerOnView>
+            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-400">
+              The Practice Loop
+            </span>
+          </LandingFadeOnly>
+          <LandingFadeOnly triggerOnView delay={0.07}>
+            <h2 className="font-serif text-3xl leading-tight tracking-[-0.03em] text-white sm:text-4xl lg:text-5xl">
+              Three steps to interview mastery.
+            </h2>
+          </LandingFadeOnly>
+          <LandingFadeOnly triggerOnView delay={0.16} className="mx-auto max-w-2xl">
+            <p className="text-sm leading-relaxed text-[#64748B]">
+              Set up your context, practice live on mic and video, then review your recording and transcript to improve.
+            </p>
+          </LandingFadeOnly>
+        </div>
 
-        {/* 3 Step Cards — converge from left / up / right */}
-        <LandingFadeInStagger
-          triggerOnView
-          stagger={0.24}
-          className="grid grid-cols-1 gap-4 lg:grid-cols-3"
-        >
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {STEPS.map((item, index) => {
             const Icon = item.icon;
-            const stepDirection =
-              index === 0 ? "right" : index === 1 ? "up" : "left";
             return (
-              <LandingFadeInStaggerItem
+              <LandingClipReveal
                 key={item.step}
-                direction={stepDirection}
-                className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0C0F1A] p-5 sm:p-6"
+                triggerOnView
+                mode="bottomUp"
+                delay={0.14 * index}
+                duration={1.1}
               >
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="font-mono text-xs font-bold text-[#64748B] bg-white/[0.04] border border-white/[0.06] px-2.5 py-1 rounded-md">
-                      STEP {item.step}
-                    </span>
-                    <span className={`text-[0.7rem] font-semibold uppercase tracking-wider ${item.accent}`}>
-                      {item.badge}
-                    </span>
+                <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0C0F1A] p-5 sm:p-6">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="font-mono text-xs font-bold text-[#64748B] bg-white/[0.04] border border-white/[0.06] px-2.5 py-1 rounded-md">
+                        STEP {item.step}
+                      </span>
+                      <span className={`text-[0.7rem] font-semibold uppercase tracking-wider ${item.accent}`}>
+                        {item.badge}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-2">
+                      <Icon className={`h-4 w-4 ${item.accent}`} aria-hidden="true" />
+                      <h3 className="font-serif text-2xl font-normal leading-snug tracking-tight text-white">
+                        {item.title}
+                      </h3>
+                    </div>
+
+                    <p className="text-xs font-medium text-[#8090A8] mb-2.5">
+                      {item.subtitle}
+                    </p>
+
+                    <p className="text-sm leading-relaxed text-[#94A3B8]">
+                      {item.desc}
+                    </p>
+
+                    <ul className="mt-4 space-y-2.5 border-t border-white/[0.06] pt-3.5">
+                      {item.details.map((detail) => (
+                        <li key={detail} className="flex items-start gap-2.5">
+                          <span
+                            className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${item.dot}`}
+                            aria-hidden="true"
+                          />
+                          <span className="text-[0.8125rem] leading-relaxed text-[#64748B]">
+                            {detail}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-
-                  <div className="flex items-center gap-2 mb-2">
-                    <Icon className={`h-4 w-4 ${item.accent}`} aria-hidden="true" />
-                    <h3 className="font-serif text-2xl font-normal leading-snug tracking-tight text-white">
-                      {item.title}
-                    </h3>
-                  </div>
-
-                  <p className="text-xs font-medium text-[#8090A8] mb-2.5">
-                    {item.subtitle}
-                  </p>
-
-                  <p className="text-sm leading-relaxed text-[#94A3B8]">
-                    {item.desc}
-                  </p>
-
-                  <ul className="mt-4 space-y-2.5 border-t border-white/[0.06] pt-3.5">
-                    {item.details.map((detail) => (
-                      <li key={detail} className="flex items-start gap-2.5">
-                        <span
-                          className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${item.dot}`}
-                          aria-hidden="true"
-                        />
-                        <span className="text-[0.8125rem] leading-relaxed text-[#64748B]">
-                          {detail}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
-              </LandingFadeInStaggerItem>
+              </LandingClipReveal>
             );
           })}
-        </LandingFadeInStagger>
+        </div>
 
-        {/* Deliverables Banner — rise from below */}
-        <LandingFadeIn
+        <LandingScaleIn
           triggerOnView
-          direction="up"
-          delay={0.24}
+          delay={0.16}
           scaleFrom={0.98}
           className="mt-4 rounded-2xl border border-white/[0.08] bg-[#0C0F1A] p-5 sm:p-6"
         >
@@ -164,7 +158,7 @@ export default function SocialProofSection() {
               </div>
             ))}
           </div>
-        </LandingFadeIn>
+        </LandingScaleIn>
 
       </div>
     </section>

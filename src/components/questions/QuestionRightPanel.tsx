@@ -32,10 +32,10 @@ export function QuestionRightPanel({
     rightTab, setRightTab, handleStart, handleSubmit
 }: QuestionRightPanelProps) {
     return (
-        <div className="flex w-1/2 flex-col bg-white/[0.02]">
-            <div className="flex shrink-0 items-center justify-between border-b border-white/[0.06] bg-white/[0.02] px-4 py-0">
+        <div className="flex h-full min-h-0 w-full flex-col">
+            <div className="flex h-10 shrink-0 items-center justify-between border-b border-white/[0.06] px-3">
                 <div className="flex items-center gap-1">
-                    <span className="flex items-center gap-2 px-3 py-3 text-xs font-bold text-[#F2F4F8]">
+                    <span className="flex items-center gap-2 px-1 text-xs font-medium text-[#F2F4F8]">
                         <IconPencilSquare className="h-4 w-4 text-[#3B82F6]" />
                         Editor
                     </span>
@@ -123,7 +123,7 @@ export function QuestionRightPanel({
                                 </button>
                             </div>
 
-                            <div className="h-35 overflow-y-auto px-5 py-3">
+                            <div className="max-h-36 overflow-y-auto px-5 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                                 {rightTab === "answer" ? (
                                     <div className="flex items-center gap-3">
                                         <button

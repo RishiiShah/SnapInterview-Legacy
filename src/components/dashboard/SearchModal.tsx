@@ -140,7 +140,11 @@ export function SearchModal({ onClose }: { onClose: () => void }) {
                   {results.questions.map((q) => (
                     <Link
                       key={q.id}
-                      href={`/questions/${q.slug}`}
+                      href={
+                        q.type === "coding" || q.category === "coding"
+                          ? `/coding/${q.slug}`
+                          : `/questions/${q.slug}`
+                      }
                       onClick={onClose}
                       className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#CBD5E1] transition-colors hover:bg-white/[0.06]"
                     >

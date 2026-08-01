@@ -1,10 +1,8 @@
 "use client";
 
 import type { RefObject } from "react";
-import { useRef } from "react";
 import { useAudioAnalyser } from "@/hooks/useAudioAnalyser";
 import type { MediaDeviceInfo } from "@/lib/useMediaPermissions";
-import SelectDropdown from "@/components/SelectDropdown";
 import {
   IconMicrophoneOffSolid,
   IconMicrophoneSolid,
@@ -36,7 +34,6 @@ export interface PermissionRequestProps {
   toggleCamera?: () => void;
   joinBlockedReason?: import("@/lib/interview/browser-block").BrowserBlockResult;
   stream?: MediaStream | null;
-  onDeviceMenuOpenChange?: (open: boolean) => void;
 }
 
 export default function PermissionRequest({
@@ -61,19 +58,8 @@ export default function PermissionRequest({
   toggleCamera,
   joinBlockedReason = null,
   stream,
-  onDeviceMenuOpenChange,
 }: PermissionRequestProps) {
   const audioLevels = useAudioAnalyser(stream || null, isMicEnabled);
-  const openMenusRef = useRef({ mic: false, speaker: false, camera: false });
-
-  function reportMenu(key: "mic" | "speaker" | "camera", open: boolean) {
-    openMenusRef.current[key] = open;
-    const anyOpen =
-      openMenusRef.current.mic ||
-      openMenusRef.current.speaker ||
-      openMenusRef.current.camera;
-    onDeviceMenuOpenChange?.(anyOpen);
-  }
 
   if (!isOpen) return null;
 
@@ -88,7 +74,6 @@ export default function PermissionRequest({
         </div>
       ) : null}
 
-      {/* Preview stage — dominant visual, not a side card */}
       <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0B0C10]/70 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-[2px]">
         <video
           ref={videoRef}
@@ -201,47 +186,77 @@ export default function PermissionRequest({
         ) : null}
       </div>
 
+      {/* Native device selects — OS menus don't extend page layout */}
       {hasPermission ? (
-        <div className="relative z-30 grid gap-6 sm:grid-cols-3">
-          <SelectDropdown
+        <div className="grid gap-6 sm:grid-cols-3">
+          <DeviceField
             label="Microphone"
-            tone="dark"
             value={selectedAudioInputId || audioInputs[0]?.deviceId || ""}
             onChange={(value) => selectAudioInput?.(value)}
-            onOpenChange={(open) => reportMenu("mic", open)}
-            options={
-              audioInputs.length > 0
-                ? audioInputs.map((d) => ({ value: d.deviceId, label: d.label }))
-                : [{ value: "", label: "Microphone" }]
-            }
+            options={audioInputs}
+            emptyLabel="Microphone"
           />
-          <SelectDropdown
+          <DeviceField
             label="Speaker"
-            tone="dark"
             value={selectedAudioOutputId || audioOutputs[0]?.deviceId || ""}
             onChange={(value) => selectAudioOutput?.(value)}
-            onOpenChange={(open) => reportMenu("speaker", open)}
-            options={
-              audioOutputs.length > 0
-                ? audioOutputs.map((d) => ({ value: d.deviceId, label: d.label }))
-                : [{ value: "", label: "Speaker" }]
-            }
+            options={audioOutputs}
+            emptyLabel="Speaker"
           />
-          <SelectDropdown
-            label="Camera · optional"
-            tone="dark"
-            disabled={!isCameraEnabled}
+          <DeviceField
+            label="Camera"
+            optional
             value={selectedVideoInputId || videoInputs[0]?.deviceId || ""}
             onChange={(value) => selectVideoInput?.(value)}
-            onOpenChange={(open) => reportMenu("camera", open)}
-            options={
-              videoInputs.length > 0
-                ? videoInputs.map((d) => ({ value: d.deviceId, label: d.label }))
-                : [{ value: "", label: "Camera" }]
-            }
+            options={videoInputs}
+            emptyLabel="Camera"
+            disabled={!isCameraEnabled}
           />
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function DeviceField({
+  label,
+  optional,
+  value,
+  onChange,
+  options,
+  emptyLabel,
+  disabled,
+}: {
+  label: string;
+  optional?: boolean;
+  value: string;
+  onChange: (value: string) => void;
+  options: MediaDeviceInfo[];
+  emptyLabel: string;
+  disabled?: boolean;
+}) {
+  return (
+    <div>
+      <p className="mb-1.5 text-[12px] font-medium text-[#A8B0C2]">
+        {label}
+        {optional ? <span className="font-normal text-[#6B7385]"> · optional</span> : null}
+      </p>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        className="w-full cursor-pointer truncate border-b border-white/[0.12] bg-transparent py-2.5 text-[15px] text-[#F2F4F8] outline-none transition-colors hover:border-white/[0.2] focus:border-[#3B82F6] disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {options.length > 0 ? (
+          options.map((d) => (
+            <option key={d.deviceId} value={d.deviceId} className="bg-[#12141A] text-[#E8ECF4]">
+              {d.label}
+            </option>
+          ))
+        ) : (
+          <option value="">{emptyLabel}</option>
+        )}
+      </select>
     </div>
   );
 }

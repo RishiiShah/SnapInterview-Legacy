@@ -3,6 +3,19 @@ import { QUESTIONS } from "@/data/questions";
 import type { Question } from "@/data/types";
 import { logger } from "@/utils/logger";
 
+export function isCodingQuestion(question: Question): boolean {
+  return question.type === "coding" || question.category === "coding";
+}
+
+export function filterQuestionsByScope(
+  questions: Question[],
+  scope: "all" | "coding" | "interview",
+): Question[] {
+  if (scope === "coding") return questions.filter(isCodingQuestion);
+  if (scope === "interview") return questions.filter((q) => !isCodingQuestion(q));
+  return questions;
+}
+
 function mapPracticeQuestion(question: {
   id: number;
   slug: string;
@@ -120,12 +133,15 @@ export async function getPracticeQuestionById(id: number): Promise<Question | un
   return QUESTIONS.find((q) => q.id === id);
 }
 
-export async function getPracticeQuestionRuntimeDataBySlug(slug: string): Promise<{
+export async function getPracticeQuestionRuntimeDataBySlug(
+  slug: string,
+  scope: "all" | "coding" | "interview" = "all",
+): Promise<{
   question: Question;
   allQuestions: Question[];
   currentIndex: number;
 } | null> {
-  const questions = await getAllPracticeQuestions();
+  const questions = filterQuestionsByScope(await getAllPracticeQuestions(), scope);
   const currentIndex = questions.findIndex((question) => question.slug === slug);
 
   if (currentIndex === -1) {

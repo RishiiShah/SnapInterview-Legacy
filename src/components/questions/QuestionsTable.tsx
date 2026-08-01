@@ -43,6 +43,8 @@ type QuestionsTableProps = {
   sortKey: SortKey | null;
   sortDir: SortDir;
   toggleSort: (key: SortKey) => void;
+  basePath?: "/questions" | "/coding";
+  hideCategoryColumn?: boolean;
 };
 
 export default function QuestionsTable({
@@ -54,6 +56,8 @@ export default function QuestionsTable({
   sortKey,
   sortDir,
   toggleSort,
+  basePath = "/questions",
+  hideCategoryColumn = false,
 }: QuestionsTableProps) {
   const difficultyLabel = (d: Difficulty) => {
     const map: Record<Difficulty, { text: string; color: string }> = {
@@ -65,20 +69,29 @@ export default function QuestionsTable({
   };
 
   const categoryLabel = (cat: QuestionCategory) => CATEGORIES.find((c) => c.value === cat);
+  const gridCols = hideCategoryColumn
+    ? "grid-cols-[48px_1fr_100px_80px]"
+    : "grid-cols-[48px_1fr_140px_100px_80px]";
 
   return (
     <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]">
-      <div className="grid grid-cols-[48px_1fr_140px_100px_80px] items-center border-b border-white/[0.06] bg-white/[0.03] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[#A8B0C2]">
+      <div
+        className={`grid ${gridCols} items-center border-b border-white/[0.06] bg-white/[0.03] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[#A8B0C2]`}
+      >
         <span>#</span>
         <span>Title</span>
+        {!hideCategoryColumn ? (
+          <button
+            type="button"
+            onClick={() => toggleSort("category")}
+            className="flex cursor-pointer items-center text-left transition-colors hover:text-[#E8ECF4]"
+          >
+            Category
+            {renderSortIcon("category", sortKey, sortDir)}
+          </button>
+        ) : null}
         <button
-          onClick={() => toggleSort("category")}
-          className="flex cursor-pointer items-center text-left transition-colors hover:text-[#E8ECF4]"
-        >
-          Category
-          {renderSortIcon("category", sortKey, sortDir)}
-        </button>
-        <button
+          type="button"
           onClick={() => toggleSort("difficulty")}
           className="flex cursor-pointer items-center text-left transition-colors hover:text-[#E8ECF4]"
         >
@@ -86,6 +99,7 @@ export default function QuestionsTable({
           {renderSortIcon("difficulty", sortKey, sortDir)}
         </button>
         <button
+          type="button"
           onClick={() => toggleSort("time")}
           className="flex cursor-pointer items-center justify-end transition-colors hover:text-[#E8ECF4]"
         >
@@ -103,21 +117,25 @@ export default function QuestionsTable({
             return (
               <Link
                 key={q.id}
-                href={`/questions/${q.slug}`}
-                className="group grid grid-cols-[48px_1fr_140px_100px_80px] items-center px-4 py-3.5 transition-colors hover:bg-white/[0.03]"
+                href={`${basePath}/${q.slug}`}
+                className={`group grid ${gridCols} items-center px-4 py-3.5 transition-colors hover:bg-white/[0.03]`}
               >
                 <span className="text-sm font-medium text-[#A8B0C2]">{q.id}</span>
                 <span className="line-clamp-1 pr-4 text-sm font-medium text-[#E8ECF4] group-hover:text-[#F2F4F8]">
+                  {q.type === "coding" ? (
+                    <span className="mr-1.5 font-mono text-[11px] text-[#60A5FA]">{"</>"}</span>
+                  ) : null}
                   {q.text}
                 </span>
-                <span
-                  className={`inline-flex w-fit items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${
-                    CATEGORY_DARK[q.category] ?? "bg-white/[0.04] text-[#B0B8C8] border-white/[0.08]"
-                  }`}
-                >
-                  {q.type === "coding" && <span className="font-bold">{"</>"}</span>}
-                  {cat?.label}
-                </span>
+                {!hideCategoryColumn ? (
+                  <span
+                    className={`inline-flex w-fit items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${
+                      CATEGORY_DARK[q.category] ?? "bg-white/[0.04] text-[#B0B8C8] border-white/[0.08]"
+                    }`}
+                  >
+                    {cat?.label}
+                  </span>
+                ) : null}
                 <span className={`text-sm font-medium ${diff.color}`}>{diff.text}</span>
                 <span className="text-right text-sm text-[#A8B0C2]">{q.estimatedTime}</span>
               </Link>
@@ -128,9 +146,10 @@ export default function QuestionsTable({
         <div className="py-16 text-center">
           <p className="text-sm text-[#A8B0C2]">No questions match your filters.</p>
           <button
+            type="button"
             onClick={() => {
               setSearch("");
-              setSelectedCategory("all");
+              setSelectedCategory(hideCategoryColumn ? "coding" : "all");
               setSelectedDifficulty("all");
             }}
             className="mt-2 text-sm font-medium text-[#93C5FD] hover:text-[#BFDBFE]"

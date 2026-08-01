@@ -2,18 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  IconLayoutDashboard,
-  IconMessageCircle,
-  IconBooks,
-  IconChartBar,
-  IconVideo,
-  IconSettings,
-  IconLogout,
-  IconTargetArrow,
-} from "@tabler/icons-react";
+import type { ReactElement } from "react";
 import { AppLogo } from "@/components/ui/AppLogo";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import {
+  IconChartBars,
+  IconCode,
+  IconDashboard,
+  IconLogout,
+  IconMessage,
+  IconPractice,
+  IconQuestionBank,
+  IconRecordings,
+  IconSettings,
+} from "@/components/ui/icons";
 import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/utils/helpers";
 import {
@@ -35,35 +37,74 @@ export const navItems = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Practice", href: "/practice" },
   { label: "Question Bank", href: "/questions" },
+  { label: "Coding", href: "/coding" },
   { label: "Analytics", href: "/analytics" },
   { label: "Recordings", href: "/recordings" },
 ];
+
+/** Fixed optical box so every Lucide glyph shares the same centerline. */
+function NavIcon({ children }: { children: ReactElement<{ className?: string }> }) {
+  return (
+    <span className="grid h-5 w-5 shrink-0 place-items-center [&>svg]:h-[18px] [&>svg]:w-[18px]">
+      {children}
+    </span>
+  );
+}
 
 const primaryLinks = [
   {
     label: "Dashboard",
     href: "/dashboard",
-    icon: <IconLayoutDashboard className="icon-crisp h-5 w-5 shrink-0" stroke={2} />,
+    icon: (
+      <NavIcon>
+        <IconDashboard />
+      </NavIcon>
+    ),
   },
   {
     label: "Practice",
     href: "/practice",
-    icon: <IconMessageCircle className="icon-crisp h-5 w-5 shrink-0" stroke={2} />,
+    icon: (
+      <NavIcon>
+        <IconMessage />
+      </NavIcon>
+    ),
   },
   {
     label: "Question Bank",
     href: "/questions",
-    icon: <IconBooks className="icon-crisp h-5 w-5 shrink-0" stroke={2} />,
+    icon: (
+      <NavIcon>
+        <IconQuestionBank />
+      </NavIcon>
+    ),
+  },
+  {
+    label: "Coding",
+    href: "/coding",
+    icon: (
+      <NavIcon>
+        <IconCode />
+      </NavIcon>
+    ),
   },
   {
     label: "Analytics",
     href: "/analytics",
-    icon: <IconChartBar className="icon-crisp h-5 w-5 shrink-0" stroke={2} />,
+    icon: (
+      <NavIcon>
+        <IconChartBars />
+      </NavIcon>
+    ),
   },
   {
     label: "Recordings",
     href: "/recordings",
-    icon: <IconVideo className="icon-crisp h-5 w-5 shrink-0" stroke={2} />,
+    icon: (
+      <NavIcon>
+        <IconRecordings />
+      </NavIcon>
+    ),
   },
 ];
 
@@ -71,7 +112,7 @@ function BrandRow() {
   return (
     <Link
       href="/dashboard"
-      className="flex items-center gap-2.5 px-2 py-1 transition-opacity hover:opacity-90"
+      className="flex h-10 items-center gap-2.5 px-2 transition-opacity hover:opacity-90"
     >
       <AppLogo size={28} className="shrink-0 rounded-md" priority />
       <SidebarLabel className="text-sm font-semibold tracking-tight text-[#F5F7FF]">
@@ -98,12 +139,14 @@ function NewInterviewLink({ onNavigate }: { onNavigate?: () => void }) {
     <Link
       href="/practice"
       onClick={onNavigate}
-      className={`flex h-11 cursor-pointer items-center gap-2.5 rounded-xl bg-blue-600 text-sm font-semibold text-white transition-colors hover:bg-blue-500 ${
-        expanded ? "justify-start px-3" : "justify-center px-0"
+      className={`flex h-11 cursor-pointer items-center gap-3 rounded-xl bg-blue-600 text-sm font-semibold text-white transition-colors hover:bg-blue-500 ${
+        expanded ? "justify-start px-2.5" : "justify-center px-0"
       }`}
       title="New interview"
     >
-      <IconTargetArrow className="icon-crisp h-5 w-5 shrink-0" stroke={2} />
+      <NavIcon>
+        <IconPractice className="text-white" />
+      </NavIcon>
       <SidebarLabel>New interview</SidebarLabel>
     </Link>
   );
@@ -119,7 +162,11 @@ function UtilityLinks({ onNavigate }: { onNavigate?: () => void }) {
         link={{
           label: "Settings",
           href: "/settings",
-          icon: <IconSettings className="icon-crisp h-5 w-5 shrink-0" stroke={2} />,
+          icon: (
+            <NavIcon>
+              <IconSettings />
+            </NavIcon>
+          ),
         }}
         active={pathname === "/settings" || pathname.startsWith("/settings/")}
         onClick={onNavigate}
@@ -147,9 +194,11 @@ function AccountFooter({ session }: { session: DashboardSession }) {
             },
           })
         }
-        className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 text-sm text-[#CBD5E1] transition-colors hover:bg-white/[0.04] hover:text-[#F2F4F8]"
+        className="group/sidebar flex w-full cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 text-sm text-[#CBD5E1] transition-colors hover:bg-white/[0.04] hover:text-[#F2F4F8]"
       >
-        <IconLogout className="icon-crisp h-5 w-5 shrink-0" stroke={2} />
+        <NavIcon>
+          <IconLogout />
+        </NavIcon>
         <SidebarLabel>Log out</SidebarLabel>
       </button>
 

@@ -12,8 +12,8 @@ const BETTER_AUTH_COOKIE_NAMES = [
 ] as const;
 const SESSION_VALIDATION_CACHE_MS = 5 * 60 * 1000;
 const MAX_SESSION_VALIDATION_CACHE_ENTRIES = 1000;
-const PROTECTED_PATH_PREFIXES = ["/dashboard", "/practice", "/questions", "/analytics", "/recordings", "/settings", "/onboarding", "/interview", "/admin"] as const;
-const SERVER_GUARDED_PROTECTED_PATH_PREFIXES = ["/dashboard", "/practice", "/questions", "/analytics", "/recordings", "/settings", "/onboarding", "/interview", "/admin"] as const;
+const PROTECTED_PATH_PREFIXES = ["/dashboard", "/practice", "/questions", "/coding", "/analytics", "/recordings", "/settings", "/onboarding", "/interview", "/admin"] as const;
+const SERVER_GUARDED_PROTECTED_PATH_PREFIXES = ["/dashboard", "/practice", "/questions", "/coding", "/analytics", "/recordings", "/settings", "/onboarding", "/interview", "/admin"] as const;
 
 type ProxySessionData = {
     user?: {

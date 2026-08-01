@@ -26,7 +26,7 @@ export function AuthShell({
   const reducedMotion = useReducedMotion() ?? false;
 
   return (
-    <div className="auth-shell relative flex min-h-screen overflow-hidden bg-[#090A0F] font-sans text-[#F5F7FF] selection:bg-blue-600 selection:text-white">
+    <div className="auth-shell relative flex h-dvh max-h-dvh overflow-hidden bg-[#090A0F] font-sans text-[#F5F7FF] selection:bg-blue-600 selection:text-white">
       <div className="pointer-events-none absolute inset-0 z-0">
         <Image
           src={AUTH_BG}
@@ -70,19 +70,19 @@ export function AuthShell({
         </Link>
       </div>
 
-      <div className="relative z-10 flex min-h-screen w-full items-center justify-center px-4 py-24 sm:px-6">
+      <div className="relative z-10 flex h-full min-h-0 w-full items-center justify-center overflow-y-auto overscroll-contain px-4 pt-16 pb-6 sm:px-6 sm:pb-8">
         <motion.div
           initial={reducedMotion ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={
             reducedMotion ? { duration: 0 } : { duration: 0.4, ease: AUTH_EASE }
           }
-          className={contentClassName ?? "w-full max-w-[22rem]"}
+          className={contentClassName ?? "my-auto w-full max-w-[22rem]"}
         >
           {children}
 
           {footer ? (
-            <div className="mt-8 w-full border-t border-white/[0.08] pt-6 text-center text-sm text-[#CBD5E1] sm:text-[0.95rem]">
+            <div className="mt-6 w-full border-t border-white/[0.08] pt-5 text-center text-sm text-[#CBD5E1] sm:text-[0.95rem]">
               {footer}
             </div>
           ) : null}
@@ -102,12 +102,12 @@ export function AuthHeader({
   align?: "left" | "center";
 }) {
   return (
-    <div className={`mb-8 ${align === "center" ? "text-center" : ""}`}>
-      <h1 className="text-[clamp(1.75rem,4vw,2.15rem)] font-bold leading-[1.1] tracking-[-0.035em] text-white">
+    <div className={`mb-5 ${align === "center" ? "text-center" : ""}`}>
+      <h1 className="text-[clamp(1.55rem,3.5vw,1.95rem)] font-bold leading-[1.1] tracking-[-0.035em] text-white">
         {title}
       </h1>
       {description ? (
-        <p className="mt-3 text-base leading-relaxed text-[#CBD5E1]">
+        <p className="mt-2 text-sm leading-relaxed text-[#CBD5E1] sm:text-[0.95rem]">
           {description}
         </p>
       ) : null}

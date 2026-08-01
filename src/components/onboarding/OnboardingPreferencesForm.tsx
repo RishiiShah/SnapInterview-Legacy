@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import SearchableDropdown from "@/components/SearchableDropdown";
 import SelectDropdown from "@/components/SelectDropdown";
-import { ClipButton } from "@/components/ui/ClipButton";
+import { SendActionButton } from "@/components/ui/SendActionButton";
 import { COMPANIES, EXPERIENCE_LEVELS, INTERVIEW_GOALS, CATEGORIES, ROLES } from "@/data/constants";
 import type { InterviewType } from "@/data/types";
 import {
@@ -45,7 +45,6 @@ export default function OnboardingPreferencesForm({
   });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -56,7 +55,6 @@ export default function OnboardingPreferencesForm({
     }
 
     setError(null);
-    setSaved(false);
     setIsSaving(true);
 
     try {
@@ -78,7 +76,6 @@ export default function OnboardingPreferencesForm({
         return;
       }
 
-      setSaved(true);
       onSaved?.();
 
       if (redirectTo) {
@@ -95,7 +92,6 @@ export default function OnboardingPreferencesForm({
       }
 
       router.refresh();
-      setTimeout(() => setSaved(false), 2000);
     } catch {
       setError("Failed to save preferences.");
     } finally {
@@ -169,12 +165,14 @@ export default function OnboardingPreferencesForm({
             : `flex items-center gap-3 border-t pt-5 ${dark ? "border-white/[0.06]" : "border-zinc-100"}`
         }
       >
-        <ClipButton type="submit" loading={isSaving} disabled={isSaving} fullWidth={plain}>
-          {isSaving ? "Saving…" : submitLabel}
-        </ClipButton>
-        {saved ? (
-          <span className={`text-sm ${dark ? "text-emerald-400" : "text-emerald-600"}`}>Saved</span>
-        ) : null}
+        <SendActionButton
+          type="submit"
+          label={isSaving ? "Saving" : submitLabel}
+          sentLabel="Saved"
+          loading={isSaving}
+          disabled={isSaving}
+          fullWidth={plain}
+        />
       </div>
     </form>
   );

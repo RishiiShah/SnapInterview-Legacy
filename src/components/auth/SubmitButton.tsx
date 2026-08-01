@@ -1,32 +1,31 @@
 "use client";
 
-import { ClipButton } from "@/components/ui/ClipButton";
-import { IconSpinner } from "@/components/ui/icons";
+import { SendActionButton } from "@/components/ui/SendActionButton";
 
 interface SubmitButtonProps {
   loading: boolean;
   text: string;
+  sentText?: string;
   disabled?: boolean;
   onClick?: () => void;
 }
 
-/** Auth primary CTA — framed clip button (Tailwind). */
 export function SubmitButton({
   loading,
   text,
+  sentText = "Sent",
   disabled = false,
   onClick,
 }: SubmitButtonProps) {
   return (
-    <ClipButton
+    <SendActionButton
       type={onClick ? "button" : "submit"}
       onClick={onClick}
+      label={text}
+      sentLabel={sentText}
       loading={loading}
       disabled={loading || disabled}
       fullWidth
-      className="mt-1"
-    >
-      {loading ? <IconSpinner className="mx-auto h-4 w-4 animate-spin" /> : text}
-    </ClipButton>
+    />
   );
 }

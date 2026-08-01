@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { IconXMark } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import React, {
   useState,
@@ -10,7 +10,7 @@ import React, {
   useCallback,
 } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { IconX } from "@tabler/icons-react";
+import Link from "next/link";
 
 interface SidebarContextProps {
   open: boolean;
@@ -217,7 +217,7 @@ export function MobileHoverSidebar({
             onClick={() => setMobileOpen(false)}
             aria-label="Close menu"
           >
-            <IconX className="icon-crisp h-5 w-5" stroke={2} />
+            <IconXMark className="h-5 w-5" />
           </button>
           <div className="relative flex min-h-0 flex-1 flex-col">{children}</div>
         </motion.div>
@@ -284,7 +284,7 @@ export function HoverSidebarLink({
       href={link.href}
       onClick={onClick}
       className={cn(
-        "group/sidebar relative flex cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 text-sm transition-colors duration-200",
+        "group/sidebar relative flex h-10 cursor-pointer items-center gap-3 rounded-xl px-2.5 text-sm transition-colors duration-200",
         active
           ? "bg-blue-500/[0.12] text-[#E8ECF4]"
           : "text-[#CBD5E1] hover:bg-white/[0.04] hover:text-[#F2F4F8]",
@@ -297,7 +297,7 @@ export function HoverSidebarLink({
           aria-hidden="true"
         />
       ) : null}
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center text-current [&_svg]:text-current">
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center text-current [&_svg]:block [&_svg]:text-current">
         {link.icon}
       </span>
       <SidebarLabel>{link.label}</SidebarLabel>

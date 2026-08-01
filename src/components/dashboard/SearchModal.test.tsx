@@ -69,6 +69,7 @@ describe("SearchModal", () => {
         text: "Explain React state updates",
         category: "technical",
         difficulty: "Medium",
+        type: "text",
       }],
     }));
 
@@ -85,7 +86,33 @@ describe("SearchModal", () => {
     expect(screen.getByRole("link", { name: /Frontend Developer/i }).getAttribute("href")).toBe(`/recordings?interviewId=${interviewId}`);
     expect(screen.getByText("Technical")).not.toBeNull();
     expect(screen.getByText("Explain React state updates")).not.toBeNull();
+    expect(screen.getByRole("link", { name: /Explain React state updates/i }).getAttribute("href")).toBe("/questions/react-state");
     expect(screen.getByText("Medium")).not.toBeNull();
+  });
+
+  it("routes coding questions to /coding", async () => {
+    vi.mocked(fetch).mockResolvedValue(mockSearchResponse({
+      sessions: [],
+      questions: [{
+        id: 2,
+        slug: "two-sum",
+        text: "Two Sum",
+        category: "coding",
+        difficulty: "Easy",
+        type: "coding",
+      }],
+    }));
+
+    render(<SearchModal onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByPlaceholderText(/search interviews/i), {
+      target: { value: "two" },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Two Sum")).not.toBeNull();
+    });
+    expect(screen.getByRole("link", { name: /Two Sum/i }).getAttribute("href")).toBe("/coding/two-sum");
   });
 
   it("renders an empty state when no static or dynamic results match", async () => {

@@ -189,7 +189,11 @@ export default function ForgotPasswordPage() {
             {emailError ? <AuthError message={emailError} /> : null}
 
             <div className="pt-1">
-              <SubmitButton loading={emailLoading} text="Send reset code" />
+              <SubmitButton
+                loading={emailLoading}
+                text="Send reset code"
+                sentText="Sent"
+              />
             </div>
           </form>
         </>

@@ -594,7 +594,18 @@ export default function DashboardOverviewClient({
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-[#E8ECF4]">Explore question bank</p>
-                  <p className="text-xs text-[#A8B0C2]">Behavioral, system design, coding</p>
+                  <p className="text-xs text-[#A8B0C2]">Behavioral, system design, and more</p>
+                </div>
+                <span className="text-[#A8B0C2]">→</span>
+              </Link>
+              <Link
+                href="/coding"
+                onClick={dismissWelcome}
+                className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-3 py-3 transition-colors hover:bg-white/[0.04]"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-[#E8ECF4]">Practice coding problems</p>
+                  <p className="text-xs text-[#A8B0C2]">Editor, test cases, and solutions</p>
                 </div>
                 <span className="text-[#A8B0C2]">→</span>
               </Link>

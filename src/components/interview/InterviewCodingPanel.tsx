@@ -176,7 +176,7 @@ export function InterviewCodingPanel({ challenge, onSubmitCode }: InterviewCodin
         {/* Panel content */}
         <div className="h-44 overflow-y-auto px-5 py-3 [&_pre]:!bg-zinc-800 [&_pre]:!text-zinc-300 [&_p]:!text-zinc-600 [&_button]:!bg-zinc-800 [&_button]:!text-zinc-600">
           {bottomTab === "testcase" ? (
-            <TestCasePanel testCases={challenge.testCases} />
+            <TestCasePanel testCases={challenge.testCases} editable={false} />
           ) : (
             <TestResultPanel runResult={runResult} isRunning={isRunning} />
           )}

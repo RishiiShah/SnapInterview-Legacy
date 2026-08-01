@@ -10,8 +10,14 @@ import {
   HoverSidebarProvider,
   useHoverSidebar,
 } from "@/components/ui/hover-sidebar";
+import { cn } from "@/lib/utils";
 
 const PROFILE_IMAGE_STORAGE_KEY = "profile-image-override";
+
+/** Question detail / coding workspace is a full-bleed split (not the padded content column). */
+function isFullscreenWorkspacePath(pathname: string) {
+  return /^\/(questions|coding)\/[^/]+$/.test(pathname);
+}
 
 function getProfileImageOverride() {
   if (typeof window === "undefined") return null;
@@ -46,6 +52,7 @@ function ShellLayout({
   const mainRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
   const { setMobileOpen } = useHoverSidebar();
+  const fullscreenWorkspace = isFullscreenWorkspacePath(pathname);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -80,9 +87,20 @@ function ShellLayout({
         />
         <main
           ref={mainRef}
-          className="dashboard-main min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-6 text-[15px] leading-relaxed text-[#E8ECF4] sm:px-6 lg:px-10 lg:pb-12 lg:pt-8 lg:text-[16px] xl:px-14 2xl:px-20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className={cn(
+            "dashboard-main min-h-0 flex-1 text-[15px] leading-relaxed text-[#E8ECF4] lg:text-[16px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+            fullscreenWorkspace
+              ? "overflow-hidden p-0"
+              : "overflow-y-auto px-4 pb-8 pt-6 sm:px-6 lg:px-10 lg:pb-12 lg:pt-8 xl:px-14 2xl:px-20",
+          )}
         >
-          <div className="mx-auto w-full max-w-[88rem]">{children}</div>
+          <div
+            className={cn(
+              fullscreenWorkspace ? "h-full w-full" : "mx-auto w-full max-w-[88rem]",
+            )}
+          >
+            {children}
+          </div>
         </main>
       </div>
 

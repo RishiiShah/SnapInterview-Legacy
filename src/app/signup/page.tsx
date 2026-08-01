@@ -115,11 +115,11 @@ export default function SignupPage() {
         <>
           <AuthHeader
             title="Create your account"
-            description="Practice realistic interviews with mic, video, transcript, and scoring."
+            description="Mic, video, transcript, and scoring in one practice."
             align="center"
           />
 
-          <form onSubmit={handleSubmit} className="space-y-3.5">
+          <form onSubmit={handleSubmit} className="space-y-2.5">
             <AuthTextField
               id="name"
               label="Full name"
@@ -158,11 +158,11 @@ export default function SignupPage() {
 
             {error ? <AuthError message={error} /> : null}
 
-            <p className="pt-0.5 text-center text-xs leading-relaxed text-[#CBD5E1]">
+            <p className="pt-0.5 text-center text-[11px] leading-relaxed text-[#CBD5E1]">
               By continuing you agree to our Terms and Privacy Policy.
             </p>
 
-            <div className="pt-1">
+            <div className="pt-0.5">
               <SubmitButton loading={loading} text="Create account" />
             </div>
           </form>

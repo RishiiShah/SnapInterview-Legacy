@@ -39,7 +39,6 @@ export default function PreJoinScreen({
   stream,
 }: PreJoinScreenProps) {
   const [showCompatibilityPopup, setShowCompatibilityPopup] = useState(false);
-  const [deviceMenuOpen, setDeviceMenuOpen] = useState(false);
   const canJoin = hasPermission === true;
 
   function handleJoin() {
@@ -147,37 +146,34 @@ export default function PreJoinScreen({
           toggleCamera={toggleCamera}
           joinBlockedReason={joinBlockedReason}
           stream={stream}
-          onDeviceMenuOpenChange={setDeviceMenuOpen}
         />
       </div>
 
-      {/* Sticky join — hide while device menus are open so they aren't covered */}
-      {!deviceMenuOpen ? (
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-10 px-5 pb-5 pt-16 sm:px-8">
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#090A0F] via-[#090A0F]/90 to-transparent"
-            aria-hidden
-          />
-          <div className="pointer-events-auto relative mx-auto flex w-full max-w-3xl items-center justify-between gap-3">
-            <p className="min-w-0 text-[13px] text-[#8B93A7]">
-              {canJoin
-                ? isCameraEnabled
-                  ? "Mic and camera ready"
-                  : "Mic ready · camera optional"
-                : "Allow the microphone to continue"}
-            </p>
-            <button
-              type="button"
-              onClick={handleJoin}
-              disabled={!canJoin}
-              className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-[#3B82F6] px-5 text-sm font-medium text-white transition-colors hover:bg-[#4B8FF7] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <IconPlay className="h-4 w-4 fill-current" />
-              Join now
-            </button>
-          </div>
+      {/* Sticky join */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-5 pb-5 pt-16 sm:px-8">
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#090A0F] via-[#090A0F]/90 to-transparent"
+          aria-hidden
+        />
+        <div className="pointer-events-auto relative mx-auto flex w-full max-w-3xl items-center justify-between gap-3">
+          <p className="min-w-0 text-[13px] text-[#8B93A7]">
+            {canJoin
+              ? isCameraEnabled
+                ? "Mic and camera ready"
+                : "Mic ready · camera optional"
+              : "Allow the microphone to continue"}
+          </p>
+          <button
+            type="button"
+            onClick={handleJoin}
+            disabled={!canJoin}
+            className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-[#3B82F6] px-5 text-sm font-medium text-white transition-colors hover:bg-[#4B8FF7] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <IconPlay className="h-4 w-4 fill-current" />
+            Join now
+          </button>
         </div>
-      ) : null}
+      </div>
 
       <AnimatePresence>
         {showCompatibilityPopup && joinBlockedReason ? (

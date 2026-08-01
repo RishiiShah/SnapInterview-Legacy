@@ -53,6 +53,9 @@ import {
   Microscope,
   Volume2,
   VolumeOff,
+  Maximize2,
+  Minimize2,
+  HelpCircle,
   type LucideIcon,
   type LucideProps,
 } from "lucide-react";
@@ -130,3 +133,6 @@ export const IconTerminal = makeIcon(Terminal);
 export const IconMicroscope = makeIcon(Microscope);
 export const IconVolume = makeIcon(Volume2);
 export const IconVolumeOff = makeIcon(VolumeOff);
+export const IconMaximize = makeIcon(Maximize2);
+export const IconMinimize = makeIcon(Minimize2);
+export const IconHelp = makeIcon(HelpCircle);

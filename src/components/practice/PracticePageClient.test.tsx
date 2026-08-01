@@ -85,7 +85,7 @@ describe("PracticePageClient", () => {
         recentPractice={[]}
         retakeDefaults={{
           role: "Frontend Developer",
-          type: "behavioral",
+          type: "behavioral-leadership",
           difficulty: "medium",
         }}
       />,
@@ -102,7 +102,7 @@ describe("PracticePageClient", () => {
 
     expect(payload).toMatchObject({
       role: "Frontend Developer",
-      type: "behavioral",
+      type: "behavioral-leadership",
       difficulty: "medium",
       persona: "balanced",
       questionCount: 10,

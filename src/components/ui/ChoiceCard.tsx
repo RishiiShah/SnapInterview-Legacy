@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 interface ChoiceCardProps {
   title: string;
   description?: string;
-  icon: ReactNode;
+  icon?: ReactNode;
   selected: boolean;
   onClick: () => void;
   iconColor?: string;
@@ -35,17 +35,19 @@ export function ChoiceCard({
           : "border-zinc-100 bg-white/50 hover:border-zinc-200 hover:bg-white"
       }`}
     >
-      <div
-        className={`flex items-center justify-center rounded-xl transition-all duration-300 ${
-          compact ? "h-10 w-10 shrink-0" : "h-12 w-12"
-        } ${
-          selected ? "bg-sky-500 text-white shadow-md shadow-sky-500/20" : `bg-zinc-50 ${iconColor}`
-        }`}
-      >
-        {icon}
-      </div>
+      {icon ? (
+        <div
+          className={`flex items-center justify-center rounded-xl transition-all duration-300 ${
+            compact ? "h-10 w-10 shrink-0" : "h-12 w-12"
+          } ${
+            selected ? "bg-sky-500 text-white shadow-md shadow-sky-500/20" : `bg-zinc-50 ${iconColor}`
+          }`}
+        >
+          {icon}
+        </div>
+      ) : null}
 
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <h3
           className={`font-bold transition-colors ${
              compact ? "text-xs" : "text-sm"
@@ -55,15 +57,15 @@ export function ChoiceCard({
         >
           {title}
         </h3>
-        {!compact && description && (
+        {description ? (
           <p
-            className={`mt-1 text-[11px] leading-relaxed transition-colors ${
-              selected ? "text-sky-700/70" : "text-zinc-500"
+            className={`mt-0.5 text-[11px] leading-relaxed transition-colors ${
+              selected ? "text-sky-700/70" : "text-zinc-600"
             }`}
           >
             {description}
           </p>
-        )}
+        ) : null}
       </div>
 
       {selected && (

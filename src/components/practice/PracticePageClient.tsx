@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
 import SearchableDropdown from "@/components/SearchableDropdown";
-import { CATEGORIES, ROLES, COMPANIES } from "@/data/constants";
+import { INTERVIEW_KINDS, ROLES, COMPANIES } from "@/data/constants";
 import type { Difficulty, InterviewPersona, InterviewType } from "@/lib/interview/domain";
 import { getDefaultDifficultyForOnboardingLevel, normalizeOnboardingFormValues } from "@/lib/onboarding/preferences";
 import type { PracticeRetakeDefaults } from "@/lib/practice/retake-defaults";
 import { extractResumeHighlights } from "@/lib/interview/resume-highlights";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
-import { IconArrowLeft, IconArrowRight, IconCheckCircle, IconPlay, IconSpinner, IconXMark, IconMessage, IconCode, IconLayout, IconActivity, IconZap, IconGem, IconUserCheck, IconStarBurst, IconFlame, IconClock, IconBriefcase, IconBuilding } from "@/components/ui/icons";
+import { IconArrowLeft, IconArrowRight, IconCheckCircle, IconPlay, IconSpinner, IconXMark, IconActivity, IconZap, IconGem, IconStarBurst, IconFlame, IconClock, IconBriefcase, IconBuilding } from "@/components/ui/icons";
 import { ChoiceCard } from "@/components/ui/ChoiceCard";
 
 type RecentPracticeSession = {
@@ -35,7 +35,7 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
   const retakeDifficulty = retakeDefaults?.difficulty;
   const [role, setRole] = useState(retakeRole);
   const [company, setCompany] = useState("");
-  const [type, setType] = useState<InterviewType>(retakeType ?? "behavioral");
+  const [type, setType] = useState<InterviewType>(retakeType ?? "behavioral-leadership");
   const [difficulty, setDifficulty] = useState<Difficulty>(retakeDifficulty ?? "medium");
   const [persona, setPersona] = useState<InterviewPersona>("balanced");
   const [interviewLength, setInterviewLength] = useState<5 | 10 | 15>(10);
@@ -76,7 +76,9 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
           if (!cancelled) {
             if (!retakeRole) setRole((previous) => (previous === "" || !previous) ? data.onboardingRole : previous);
             if (!retakeRole) setCompany((previous) => (previous === "" || !previous) ? data.onboardingCompany : previous);
-            if (!retakeType) setType((previous) => previous === "behavioral" ? data.preferredInterviewType : previous);
+            if (!retakeType) setType((previous) =>
+              previous === "behavioral-leadership" ? data.preferredInterviewType : previous,
+            );
             if (!retakeDifficulty) setDifficulty((previous) => {
               if (previous !== "medium") return previous;
               return getDefaultDifficultyForOnboardingLevel(data.onboardingLevel);
@@ -165,7 +167,7 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
         <SlideIn>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Practice Interview</h1>
-            <p className="mt-1 text-sm text-zinc-500">Set up your mock interview and start practicing.</p>
+            <p className="mt-1 text-sm text-zinc-600">Set up your mock interview and start practicing.</p>
           </div>
         </SlideIn>
 
@@ -180,7 +182,7 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
                     {step === 3 && "Interviewer Style"}
                     {step === 4 && "Final Context"}
                   </h2>
-                  <p className="mt-1.5 text-sm text-zinc-500">
+                  <p className="mt-1.5 text-sm text-zinc-600">
                     {step === 1 && "Start by identifying the role and organization."}
                     {step === 2 && "Choose your category and challenge level."}
                     {step === 3 && "Tailor the interviewer personality and length."}
@@ -196,7 +198,7 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
                             ? "border-sky-500 bg-sky-500 text-white shadow-lg shadow-sky-500/20"
                             : s === step
                               ? "border-sky-500 bg-white text-sky-600 ring-4 ring-sky-50"
-                              : "border-zinc-200 bg-white text-zinc-400"
+                              : "border-zinc-200 bg-white text-zinc-600"
                           }`}
                       >
                         {s < step ? (
@@ -205,7 +207,7 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
                           <span className="text-xs font-bold">{s}</span>
                         )}
                       </div>
-                      <span className={`text-[10px] font-bold uppercase tracking-widest ${s === step ? "text-sky-600" : "text-zinc-400"}`}>
+                      <span className={`text-[10px] font-bold uppercase tracking-widest ${s === step ? "text-sky-600" : "text-zinc-600"}`}>
                         {s === 1 && "Role"}
                         {s === 2 && "Type"}
                         {s === 3 && "Vibe"}
@@ -235,7 +237,7 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
                             </div>
                             <div className="flex flex-col gap-0.5">
                               <label className="text-sm font-bold text-zinc-900">Target Role</label>
-                              <span className="text-[11px] font-medium text-zinc-500">What position are you preparing for?</span>
+                              <span className="text-[11px] font-medium text-zinc-600">What position are you preparing for?</span>
                             </div>
                           </div>
                           <SearchableDropdown
@@ -254,9 +256,9 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
                             </div>
                             <div className="flex flex-col gap-0.5">
                               <label className="text-sm font-bold text-zinc-900">
-                                Target Company <span className="ml-1 text-[11px] font-normal text-zinc-400">(Optional)</span>
+                                Target Company <span className="ml-1 text-[11px] font-normal text-zinc-600">(Optional)</span>
                               </label>
-                              <span className="text-[11px] font-medium text-zinc-500">Tailor scenarios for a specific company</span>
+                              <span className="text-[11px] font-medium text-zinc-600">Tailor scenarios for a specific company</span>
                             </div>
                           </div>
                           <SearchableDropdown
@@ -285,44 +287,25 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
                     {step === 2 && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 pt-2">
                         <div className="space-y-5">
-                          <label className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">
-                            Category
+                          <label className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-600">
+                            Interview kind
                           </label>
-                          <div className="grid grid-cols-1 gap-3">
-                            <ChoiceCard
-                              compact
-                              title="Behavioral"
-                              icon={<IconMessage className="h-5 w-5" />}
-                              selected={type === "behavioral"}
-                              onClick={() => setType("behavioral")}
-                            />
-                            <ChoiceCard
-                              compact
-                              title="Technical"
-                              icon={<IconCode className="h-5 w-5" />}
-                              selected={type === "technical"}
-                              onClick={() => setType("technical")}
-                            />
-                            <ChoiceCard
-                              compact
-                              title="System Design"
-                              icon={<IconLayout className="h-5 w-5" />}
-                              selected={type === "system-design"}
-                              onClick={() => setType("system-design")}
-                            />
-                            <ChoiceCard
-                              compact
-                              title="Leadership"
-                              icon={<IconUserCheck className="h-5 w-5" />}
-                              selected={type === "leadership"}
-                              onClick={() => setType("leadership")}
-                              iconColor="text-indigo-500"
-                            />
+                          <div className="grid grid-cols-1 gap-2.5 max-h-[22rem] overflow-y-auto pr-1">
+                            {INTERVIEW_KINDS.map((kind) => (
+                              <ChoiceCard
+                                key={kind.value}
+                                compact
+                                title={kind.label}
+                                description={kind.description}
+                                selected={type === kind.value}
+                                onClick={() => setType(kind.value)}
+                              />
+                            ))}
                           </div>
                         </div>
 
                         <div className="space-y-5">
-                          <label className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">
+                          <label className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-600">
                             Difficulty
                           </label>
                           <div className="grid grid-cols-1 gap-3">
@@ -358,7 +341,7 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
                     {step === 3 && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 pt-2">
                         <div className="space-y-5">
-                          <label className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">
+                          <label className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-600">
                             Persona
                           </label>
                           <div className="grid grid-cols-1 gap-3">
@@ -390,7 +373,7 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
                         </div>
 
                         <div className="space-y-5">
-                          <label className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">
+                          <label className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-600">
                             Session Length
                           </label>
                           <div className="grid grid-cols-1 gap-3">
@@ -428,11 +411,11 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
                           {resumeUploading && (
                             <div className="flex w-full items-center gap-4 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/50 p-2 pr-4">
                               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-100">
-                                <IconSpinner className="h-5 w-5 animate-spin text-zinc-400" />
+                                <IconSpinner className="h-5 w-5 animate-spin text-zinc-600" />
                               </div>
                               <div className="flex flex-col overflow-hidden">
                                 <span className="text-[13px] font-bold text-zinc-700">Reading resume…</span>
-                                <span className="truncate text-[11px] font-medium text-zinc-400">{resumeName}</span>
+                                <span className="truncate text-[11px] font-medium text-zinc-600">{resumeName}</span>
                               </div>
                             </div>
                           )}
@@ -473,7 +456,7 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
                                 </div>
                                 <button
                                   onClick={() => { setResumeName(""); setResumeText(""); setResumeError(null); }}
-                                  className="group flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-white text-zinc-400 shadow-sm ring-1 ring-zinc-200 transition-all hover:bg-red-50 hover:text-red-500 hover:ring-red-200"
+                                  className="group flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-white text-zinc-600 shadow-sm ring-1 ring-zinc-200 transition-all hover:bg-red-50 hover:text-red-500 hover:ring-red-200"
                                 >
                                   <IconXMark className="h-4 w-4 transition-transform group-hover:scale-110" />
                                 </button>
@@ -481,7 +464,7 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
                               {resumeHighlights.skills.length > 0 && (
                                 <div className="rounded-xl border border-zinc-100 bg-white px-3 py-2.5">
                                   <div className="flex flex-wrap items-center gap-1.5">
-                                    <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mr-1">From your resume</span>
+                                    <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 mr-1">From your resume</span>
                                     {resumeHighlights.skills.map((skill) => (
                                       <span key={skill} className="rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
                                         {skill}
@@ -496,7 +479,7 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
                                     >
                                       <span>💡</span>
                                       <span>
-                                        Try a {resumeHighlights.suggestedType === "system-design" ? "system-design" : resumeHighlights.suggestedType} interview
+                                        Try a {resumeHighlights.suggestedType?.replace(/-/g, " ")} interview
                                       </span>
                                     </button>
                                   )}
@@ -523,7 +506,7 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
                                 </div>
                                 <div className="flex flex-col">
                                   <span className="text-[13px] font-bold text-zinc-900 transition-colors group-hover:text-sky-700">Upload your Resume</span>
-                                  <span className="text-[11px] font-medium text-zinc-500">PDF only · max 5 MB</span>
+                                  <span className="text-[11px] font-medium text-zinc-600">PDF only · max 5 MB</span>
                                 </div>
                               </div>
                               <div className="rounded-xl bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-sky-600 shadow-sm ring-1 ring-zinc-200 transition-all group-hover:bg-sky-50 group-hover:ring-sky-200">
@@ -545,9 +528,9 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
                         <div className="space-y-3 pt-2">
                           <div className="flex items-center justify-between px-1">
                             <label className="text-[13px] font-bold text-zinc-900">
-                              Job Description <span className="ml-1 font-normal text-zinc-400">(Optional)</span>
+                              Job Description <span className="ml-1 font-normal text-zinc-600">(Optional)</span>
                             </label>
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">
                               {jdChars} / 2000
                             </span>
                           </div>
@@ -585,7 +568,7 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
                 {step > 1 ? (
                   <button
                     onClick={() => setStep(step - 1)}
-                    className="flex cursor-pointer items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold text-zinc-500 transition-all hover:bg-zinc-100 hover:text-zinc-900"
+                    className="flex cursor-pointer items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold text-zinc-600 transition-all hover:bg-zinc-100 hover:text-zinc-900"
                   >
                     <IconArrowLeft className="h-4 w-4" />
                     Back
@@ -642,7 +625,7 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
               {recentPractice.length > 0 ? (
                 <FadeInStagger className="divide-y divide-zinc-50">
                   {recentPractice.slice(0, 4).map((session) => {
-                    const category = CATEGORIES.find((item) => item.value === session.type);
+                    const category = INTERVIEW_KINDS.find((item) => item.value === session.type);
 
                     return (
                       <FadeInStaggerItem
@@ -662,19 +645,19 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
                           <p className="text-sm font-medium text-zinc-900">{session.role}</p>
                           <span className="text-sm font-semibold text-zinc-900">
                             {session.score}
-                            <span className="text-xs font-normal text-zinc-400">/100</span>
+                            <span className="text-xs font-normal text-zinc-600">/100</span>
                           </span>
                         </div>
-                        <p className="mt-0.5 text-xs text-zinc-400">{session.company} · {session.date}</p>
-                        <span className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${category?.color ?? "bg-zinc-100 text-zinc-600"}`}>
-                          {category?.label ?? session.type}
+                        <p className="mt-0.5 text-xs text-zinc-600">{session.company} · {session.date}</p>
+                        <span className="mt-1.5 inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600">
+                          {category?.shortLabel ?? category?.label ?? session.type}
                         </span>
                       </FadeInStaggerItem>
                     );
                   })}
                 </FadeInStagger>
               ) : (
-                <div className="px-5 py-8 text-center text-sm text-zinc-500">
+                <div className="px-5 py-8 text-center text-sm text-zinc-600">
                   No practice sessions yet. Start your first interview to build history here.
                 </div>
               )}
@@ -682,7 +665,7 @@ export default function PracticePageClient({ recentPractice, retakeDefaults }: P
 
             <div className="rounded-2xl border border-zinc-200 bg-white p-5">
               <h3 className="mb-3 text-sm font-semibold text-zinc-900">💡 Pro Tips</h3>
-              <ul className="space-y-2 text-xs text-zinc-500">
+              <ul className="space-y-2 text-xs text-zinc-600">
                 <li className="group flex gap-2"><span className="text-zinc-300 transition-colors group-hover:text-amber-400">•</span><span className="transition-colors group-hover:text-zinc-800">Use the STAR method for behavioral questions</span></li>
                 <li className="group flex gap-2"><span className="text-zinc-300 transition-colors group-hover:text-amber-400">•</span><span className="transition-colors group-hover:text-zinc-800">Think out loud during technical interviews</span></li>
                 <li className="group flex gap-2"><span className="text-zinc-300 transition-colors group-hover:text-amber-400">•</span><span className="transition-colors group-hover:text-zinc-800">Start with high-level design before diving into details</span></li>

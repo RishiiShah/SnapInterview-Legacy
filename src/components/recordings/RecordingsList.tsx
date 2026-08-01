@@ -8,6 +8,12 @@ import Modal from "@/components/ui/Modal";
 import RecordingModal from "./RecordingModal";
 import { IconSpinner } from "@/components/ui/icons";
 import { getScoreColor, getScoreLabel } from "@/utils/helpers";
+import {
+  coerceInterviewType,
+  INTERVIEW_TYPE_META,
+  INTERVIEW_TYPE_VALUES,
+  type InterviewType,
+} from "@/lib/interview/domain";
 
 const sessionDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -22,21 +28,38 @@ function formatSessionDate(value: string | Date) {
   return sessionDateFormatter.format(new Date(value));
 }
 
-type FilterType = "all" | "behavioral" | "technical" | "system-design";
+type FilterType = "all" | InterviewType;
 type SortBy = "date" | "score";
 
-const TYPE_LABELS: Record<FilterType, string> = {
-  all: "All",
-  behavioral: "Behavioral",
-  technical: "Technical",
-  "system-design": "System Design",
-};
+const FILTER_OPTIONS: FilterType[] = ["all", ...INTERVIEW_TYPE_VALUES];
 
-const TYPE_BADGE: Record<string, string> = {
-  behavioral: "bg-blue-50 text-blue-700",
-  technical: "bg-purple-50 text-purple-700",
-  "system-design": "bg-emerald-50 text-emerald-700",
-};
+function typeLabel(type: string): string {
+  if (type === "all") return "All";
+  const coerced = coerceInterviewType(type);
+  return coerced ? INTERVIEW_TYPE_META[coerced].shortLabel : type;
+}
+
+function typeBadgeClass(type: string): string {
+  const coerced = coerceInterviewType(type);
+  switch (coerced) {
+    case "recruiter-screen":
+    case "behavioral-leadership":
+      return "bg-blue-50 text-blue-700";
+    case "coding-algorithms":
+    case "domain-role":
+      return "bg-teal-50 text-teal-700";
+    case "system-design":
+      return "bg-cyan-50 text-cyan-700";
+    case "take-home":
+      return "bg-amber-50 text-amber-700";
+    case "hiring-manager":
+      return "bg-indigo-50 text-indigo-700";
+    case "bar-raiser":
+      return "bg-rose-50 text-rose-700";
+    default:
+      return "bg-zinc-100 text-zinc-600";
+  }
+}
 
 type SessionCard = {
   id: string;
@@ -215,7 +238,7 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
     <div className="flex flex-wrap items-center justify-between gap-3">
       {/* Type filter chips */}
       <div className="flex flex-wrap gap-2">
-        {(["all", "behavioral", "technical", "system-design"] as FilterType[]).map((t) => (
+        {FILTER_OPTIONS.map((t) => (
           <button
             key={t}
             onClick={() => setFilterType(t)}
@@ -225,7 +248,7 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
                 : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
             }`}
           >
-            {TYPE_LABELS[t]}
+            {typeLabel(t)}
           </button>
         ))}
       </div>
@@ -236,7 +259,7 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
             key={s}
             onClick={() => setSortBy(s)}
             className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors capitalize ${
-              sortBy === s ? "bg-zinc-900 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-700"
+              sortBy === s ? "bg-zinc-900 text-white shadow-sm" : "text-zinc-600 hover:text-zinc-700"
             }`}
           >
             {s === "date" ? "Newest" : "Top Score"}
@@ -253,8 +276,8 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
         <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/40 px-6 py-20 text-center">
           {filterType !== "all" ? (
             <>
-              <p className="text-base font-semibold text-zinc-800">No {TYPE_LABELS[filterType]} sessions</p>
-              <p className="mt-1.5 max-w-sm text-sm text-zinc-500">
+              <p className="text-base font-semibold text-zinc-800">No {typeLabel(filterType)} sessions</p>
+              <p className="mt-1.5 max-w-sm text-sm text-zinc-600">
                 Try a different filter or start a new interview.
               </p>
               <button
@@ -267,7 +290,7 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
           ) : (
             <>
               <p className="text-base font-semibold text-zinc-800">No sessions yet</p>
-              <p className="mt-1.5 max-w-sm text-sm text-zinc-500">
+              <p className="mt-1.5 max-w-sm text-sm text-zinc-600">
                 Your completed interview sessions will appear here.
               </p>
               <Link
@@ -291,7 +314,7 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
       {filterSortBar}
       {isReloading ? (
         <div className="flex justify-center py-20">
-          <IconSpinner className="h-6 w-6 animate-spin text-zinc-400" />
+          <IconSpinner className="h-6 w-6 animate-spin text-zinc-600" />
         </div>
       ) : (
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -321,17 +344,17 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
               {/* Thumbnail area */}
               <div className="relative aspect-video shrink-0 bg-zinc-900 flex items-center justify-center">
                 {hasVideo ? (
-                  <div className="flex flex-col items-center gap-2 text-zinc-500">
+                  <div className="flex flex-col items-center gap-2 text-zinc-600">
                     <svg className="h-8 w-8 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v7.764a1 1 0 01-1.447.894L15 15M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v7.764a1 1 0 01-1.447.894L15 15M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
                     <span className="text-[10px] uppercase tracking-widest font-semibold opacity-40">Recording</span>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center gap-2 text-zinc-500">
-                    <svg className="h-8 w-8 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <div className="flex flex-col items-center gap-2 text-zinc-600">
+                    <svg className="h-8 w-8 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
-                      <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" />
+                      <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
                     </svg>
                     <span className="text-[10px] uppercase tracking-widest font-semibold opacity-40">No recording</span>
                   </div>
@@ -356,7 +379,7 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
                   <div className="min-w-0">
                     <h3 className="truncate text-sm font-semibold text-zinc-900">{session.role}</h3>
                     {session.company && (
-                      <p className="truncate text-xs text-zinc-400">{session.company}</p>
+                      <p className="truncate text-xs text-zinc-600">{session.company}</p>
                     )}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
@@ -371,13 +394,13 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
                         setSessionToDelete(session);
                       }}
                       disabled={deletingId === session.id}
-                      className="flex cursor-pointer items-center justify-center rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-default disabled:opacity-50"
+                      className="flex cursor-pointer items-center justify-center rounded-lg p-1.5 text-zinc-600 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-default disabled:opacity-50"
                       aria-label={hasVideo ? "Delete recording" : "Delete session"}
                     >
                       {deletingId === session.id ? (
                         <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
                       ) : (
-                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                         </svg>
                       )}
@@ -385,10 +408,10 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
                   </div>
                 </div>
                 <div className="mt-auto flex items-center justify-between pt-2">
-                  <p className="text-xs text-zinc-400" suppressHydrationWarning>{date}</p>
+                  <p className="text-xs text-zinc-600" suppressHydrationWarning>{date}</p>
                   {session.type && (
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${TYPE_BADGE[session.type] ?? "bg-zinc-100 text-zinc-600"}`}>
-                      {session.type === "system-design" ? "System Design" : session.type}
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${typeBadgeClass(session.type)}`}>
+                      {typeLabel(session.type)}
                     </span>
                   )}
                 </div>

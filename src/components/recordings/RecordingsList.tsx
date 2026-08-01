@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import Toast from "@/components/ui/Toast";
 import { FadeIn } from "@/components/ui/motion";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 import Modal from "@/components/ui/Modal";
@@ -44,7 +46,7 @@ type SessionCard = {
   company: string | null;
   type: string;
   videoKey: string | null;
-  score: number;
+  score: number | null;
   createdAt: string;
 };
 
@@ -73,6 +75,13 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
     title: "",
     description: "",
   });
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [processingId] = useState<string | null>(() => searchParams.get("processing"));
+  const [processStatus, setProcessStatus] = useState<
+    "processing" | "evaluating" | "done" | "eval_failed" | "timeout" | null
+  >(processingId ? "processing" : null);
 
   function buildSessionsUrl(offset: number, type: FilterType) {
     const params = new URLSearchParams({ offset: String(offset), limit: "12" });
@@ -104,8 +113,72 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
     return () => { cancelled = true; };
   }, [filterType]);
 
+  // After an interview, poll the completed-sessions list until the newly
+  // processed interview appears (video upload done), then evaluate it in the
+  // background and refresh its score — driving the toast through each phase.
+  useEffect(() => {
+    if (!processingId) return;
+    let cancelled = false;
+    let tries = 0;
+
+    const refreshSessions = async () => {
+      const res = await fetch(buildSessionsUrl(0, "all"));
+      if (!res.ok) throw new Error("Failed to load sessions");
+      const data = (await res.json()) as { sessions: SessionCard[]; hasMore: boolean };
+      if (!cancelled) {
+        setSessions(data.sessions);
+        setHasMore(data.hasMore);
+      }
+      return data.sessions;
+    };
+
+    const evaluate = async () => {
+      if (cancelled) return;
+      setProcessStatus("evaluating");
+      try {
+        const res = await fetch("/api/interview/evaluate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ interviewId: processingId }),
+        });
+        if (!res.ok) throw new Error("Evaluation failed");
+        await refreshSessions();
+        if (!cancelled) setProcessStatus("done");
+      } catch {
+        if (!cancelled) setProcessStatus("eval_failed");
+      }
+    };
+
+    const tick = async () => {
+      if (cancelled) return;
+      tries += 1;
+      try {
+        const sessions = await refreshSessions();
+        if (sessions.some((s) => s.id === processingId)) {
+          void evaluate();
+          return;
+        }
+      } catch {
+        // Ignore and retry.
+      }
+      if (tries >= 15) {
+        if (!cancelled) setProcessStatus("timeout");
+        return;
+      }
+      if (!cancelled) setTimeout(tick, 2000);
+    };
+
+    const initial = setTimeout(tick, 1500);
+    return () => {
+      cancelled = true;
+      clearTimeout(initial);
+    };
+  }, [processingId]);
+
   const displayedSessions = [...sessions].sort((a, b) =>
-    sortBy === "score" ? b.score - a.score : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    sortBy === "score"
+      ? (b.score ?? -1) - (a.score ?? -1)
+      : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
   const loadMore = async () => {
@@ -288,6 +361,45 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
 
   return (
     <>
+      {processStatus === "processing" && (
+        <Toast variant="spinner" message="Processing your interview…" />
+      )}
+      {processStatus === "evaluating" && (
+        <Toast variant="spinner" message="Evaluating your interview — the score will update shortly" />
+      )}
+      {processStatus === "done" && (
+        <Toast
+          variant="success"
+          message="Interview evaluated"
+          autoDismissMs={4000}
+          onDismiss={() => {
+            setProcessStatus(null);
+            router.replace("/recordings");
+          }}
+        />
+      )}
+      {processStatus === "eval_failed" && (
+        <Toast
+          variant="error"
+          message="Score will appear when you open the recording"
+          autoDismissMs={5000}
+          onDismiss={() => {
+            setProcessStatus(null);
+            router.replace("/recordings");
+          }}
+        />
+      )}
+      {processStatus === "timeout" && (
+        <Toast
+          variant="error"
+          message="Still processing — refresh in a moment"
+          autoDismissMs={5000}
+          onDismiss={() => {
+            setProcessStatus(null);
+            router.replace("/recordings");
+          }}
+        />
+      )}
       {filterSortBar}
       {isReloading ? (
         <div className="flex justify-center py-20">
@@ -360,9 +472,15 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
                     )}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${getScoreColor(session.score)}`}>
-                      {getScoreLabel(session.score)}
-                    </span>
+                    {session.score === null ? (
+                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-500">
+                        Pending
+                      </span>
+                    ) : (
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${getScoreColor(session.score)}`}>
+                        {getScoreLabel(session.score)}
+                      </span>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

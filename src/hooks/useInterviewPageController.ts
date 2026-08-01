@@ -215,8 +215,10 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
       const interviewStatus: InterviewCompletionStatus =
         interviewDoneRef.current || userAnswerCount > 0 ? "COMPLETED" : "ABORTED";
 
-      // Fire and forget the upload so the user is not blocked
-      finalizeInterviewUpload({
+      // Finalize the upload in the background so the user isn't blocked.
+      // stopVideoRecording sets isCompleting synchronously, so unmounting the
+      // interview page on navigation won't abort the in-flight upload.
+      void finalizeInterviewUpload({
         interviewId,
         status: interviewStatus,
         stopVideoRecording: videoRecording.stopVideoRecording,
@@ -224,10 +226,11 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
         console.error("Error finalizing interview upload:", error);
       });
 
-      // Immediately redirect to analytics to make the experience smooth
-      setIsUploading(false);
-      isExitingRef.current = false;
-      router.push("/analytics");
+      if (interviewStatus === "ABORTED") {
+        router.push("/practice");
+      } else {
+        router.push(`/recordings?processing=${interviewId}`);
+      }
     },
     [interviewId, media, router, speech, videoRecording.stopVideoRecording, closeModal]
   );
@@ -236,17 +239,30 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     handleExitInterviewRef.current = handleExitInterview;
   }, [handleExitInterview]);
 
+  // Stop mic listening as soon as the interview ends. Guarded so it runs once
+  // even though `speech` changes identity every render.
+  const hasStoppedSpeechRef = useRef(false);
+  useEffect(() => {
+    if (interviewDone && !hasStoppedSpeechRef.current) {
+      hasStoppedSpeechRef.current = true;
+      speech.stopRecording();
+    }
+  }, [interviewDone, speech]);
+
   useEffect(() => {
     if (!interviewDone) return;
 
+    // Call through the ref so the timer isn't reset on every render (handleExit
+    // is recreated each render, which otherwise blocks the exit while the mic's
+    // audio meter keeps re-rendering the page).
     const exitTimer = setTimeout(() => {
       if (!isExitingRef.current && !isUploading) {
-        void handleExitInterview({ skipConfirmation: true });
+        void handleExitInterviewRef.current({ skipConfirmation: true });
       }
     }, 4000);
 
     return () => clearTimeout(exitTimer);
-  }, [handleExitInterview, interviewDone, isUploading]);
+  }, [interviewDone, isUploading]);
 
   useEffect(() => {
     if (!chatScrollContainerRef.current) return;

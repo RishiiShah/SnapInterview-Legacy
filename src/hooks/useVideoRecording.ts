@@ -216,6 +216,10 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
                 return;
             }
 
+            // Set synchronously (before stop()) so that if the page unmounts on
+            // navigation the cleanup effect won't abort the in-flight upload.
+            state.isCompleting = true;
+
             mediaRecorder.onstop = () => {
                 setIsRecordingVideo(false);
                 state.isCompleting = true; // Prevent unmount abort

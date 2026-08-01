@@ -283,20 +283,6 @@ export default function ActiveInterviewScreen({
         <div className="flex flex-col items-center gap-2.5 px-2 shrink-0">
           {hasSpeechSupport ? (
             <div className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900 px-5 py-3.5 shadow-lg shadow-black/20">
-              <button
-                onClick={toggleMic}
-                className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all ${hasPermission && isMicEnabled
-                  ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 ring-1 ring-emerald-500/30'
-                  : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                  }`}
-              >
-                {hasPermission && isMicEnabled ? (
-                  <IconMicrophoneSolid className="h-5 w-5" />
-                ) : (
-                  <IconMicrophoneOffSolid className="h-5 w-5" />
-                )}
-              </button>
-
               {/* Mic activity visualizer — 3 frequency bars */}
               {hasPermission && isMicEnabled && (
                 <div className="flex items-end gap-0.5 h-5">

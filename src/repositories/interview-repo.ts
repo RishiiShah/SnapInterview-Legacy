@@ -242,7 +242,7 @@ export type CompletedSessionCard = {
   company: string | null;
   type: InterviewType;
   videoKey: string | null;
-  score: number;
+  score: number | null;
   createdAt: Date;
 };
 
@@ -258,9 +258,9 @@ function mapCompletedSessionCard(s: {
   createdAt: Date;
 }): CompletedSessionCard {
   const evalData = s.evaluation as { score?: number } | null;
-  const score = typeof evalData?.score === "number"
-    ? evalData.score
-    : Math.round(Math.min(100, Math.max(0, (Math.min(s.currentQuestion, s.questionCount) / Math.max(1, s.questionCount)) * 80 + 20)));
+  // null (not a fabricated number) when the interview hasn't been evaluated yet,
+  // so the UI can show a neutral "pending" state instead of a misleading score.
+  const score = typeof evalData?.score === "number" ? evalData.score : null;
 
   return {
     id: s.id,

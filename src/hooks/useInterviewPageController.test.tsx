@@ -237,6 +237,23 @@ describe("useInterviewPageController", () => {
       status: "COMPLETED",
       stopVideoRecording,
     });
-    expect(mocks.routerPush).toHaveBeenCalledWith("/analytics");
+    expect(mocks.routerPush).toHaveBeenCalledWith("/recordings?processing=interview-3");
+  });
+
+  it("routes an unanswered (aborted) interview to practice with no toast", async () => {
+    const { stopVideoRecording } = setupHookMocks({ chatMessages: [] });
+
+    const { result } = renderHook(() => useInterviewPageController({ interviewId: "interview-5" }));
+
+    await act(async () => {
+      await result.current.handleExitInterview({ skipConfirmation: true });
+    });
+
+    expect(mocks.finalizeInterviewUpload).toHaveBeenCalledWith({
+      interviewId: "interview-5",
+      status: "ABORTED",
+      stopVideoRecording,
+    });
+    expect(mocks.routerPush).toHaveBeenCalledWith("/practice");
   });
 });

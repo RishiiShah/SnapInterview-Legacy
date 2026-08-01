@@ -10,6 +10,11 @@ vi.mock("./RecordingModal", () => ({
     isOpen ? <div data-testid="recording-modal">{interviewId}</div> : null,
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 function mockSignedUrlResponse() {
   return new Response(JSON.stringify({ url: "https://signed.example/video.webm" }), {
     status: 200,

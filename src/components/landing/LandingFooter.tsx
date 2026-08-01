@@ -24,7 +24,7 @@ function scrollHome(event: React.MouseEvent<HTMLAnchorElement>) {
 
 export default function LandingFooter() {
   return (
-    <footer className="relative z-10 border-t border-white/[0.07] bg-[#090A0F] py-8 text-[#64748B]">
+    <footer className="relative z-10 border-t border-white/[0.07] bg-[#090A0F] py-8 text-[#CBD5E1]">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center justify-between gap-5 sm:flex-row">
 
@@ -50,7 +50,7 @@ export default function LandingFooter() {
             ))}
           </nav>
 
-          <p className="text-xs text-[#334155]">
+          <p className="text-xs text-[#B0B8C8]">
             &copy; {new Date().getFullYear()} SnapInterview
           </p>
 

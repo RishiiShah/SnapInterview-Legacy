@@ -149,7 +149,7 @@ export const NavItems = ({
             onMouseEnter={() => setHovered(idx)}
             aria-current={isActive ? "true" : undefined}
             className={cn(
-              "relative rounded-full px-2.5 py-1.5 text-sm text-[#8E97AB] transition-colors hover:text-[#F5F7FF]",
+              "relative rounded-full px-2.5 py-1.5 text-sm text-[#B4BCCE] transition-colors hover:text-[#F5F7FF]",
               isActive && "text-[#F5F7FF]",
             )}
           >

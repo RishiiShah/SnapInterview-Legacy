@@ -75,7 +75,7 @@ export default function SocialProofSection() {
             </h2>
           </LandingFadeOnly>
           <LandingFadeOnly triggerOnView delay={0.16} className="mx-auto max-w-2xl">
-            <p className="text-sm leading-relaxed text-[#64748B]">
+            <p className="text-sm leading-relaxed text-[#CBD5E1]">
               Set up your context, practice live on mic and video, then review your recording and transcript to improve.
             </p>
           </LandingFadeOnly>
@@ -95,7 +95,7 @@ export default function SocialProofSection() {
                 <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0C0F1A] p-5 sm:p-6">
                   <div>
                     <div className="flex items-center justify-between mb-4">
-                      <span className="font-mono text-xs font-bold text-[#64748B] bg-white/[0.04] border border-white/[0.06] px-2.5 py-1 rounded-md">
+                      <span className="font-mono text-xs font-bold text-[#CBD5E1] bg-white/[0.04] border border-white/[0.06] px-2.5 py-1 rounded-md">
                         STEP {item.step}
                       </span>
                       <span className={`text-[0.7rem] font-semibold uppercase tracking-wider ${item.accent}`}>
@@ -110,11 +110,11 @@ export default function SocialProofSection() {
                       </h3>
                     </div>
 
-                    <p className="text-xs font-medium text-[#8090A8] mb-2.5">
+                    <p className="text-xs font-medium text-[#A8B6C8] mb-2.5">
                       {item.subtitle}
                     </p>
 
-                    <p className="text-sm leading-relaxed text-[#94A3B8]">
+                    <p className="text-sm leading-relaxed text-[#CBD5E1]">
                       {item.desc}
                     </p>
 
@@ -125,7 +125,7 @@ export default function SocialProofSection() {
                             className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${item.dot}`}
                             aria-hidden="true"
                           />
-                          <span className="text-[0.8125rem] leading-relaxed text-[#64748B]">
+                          <span className="text-[0.8125rem] leading-relaxed text-[#CBD5E1]">
                             {detail}
                           </span>
                         </li>
@@ -144,7 +144,7 @@ export default function SocialProofSection() {
           scaleFrom={0.98}
           className="mt-4 rounded-2xl border border-white/[0.08] bg-[#0C0F1A] p-5 sm:p-6"
         >
-          <p className="mb-4 text-center text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-[#475569]">
+          <p className="mb-4 text-center text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-[#B8C0CE]">
             What you get after every session
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -153,7 +153,7 @@ export default function SocialProofSection() {
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400 mt-0.5" aria-hidden="true" />
                 <div>
                   <span className="block text-xs font-semibold text-white">{title}</span>
-                  <span className="mt-0.5 block text-[0.72rem] leading-relaxed text-[#64748B]">{desc}</span>
+                  <span className="mt-0.5 block text-[0.72rem] leading-relaxed text-[#CBD5E1]">{desc}</span>
                 </div>
               </div>
             ))}

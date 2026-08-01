@@ -157,7 +157,7 @@ export default function SignupPage() {
 
             {error ? <AuthError message={error} /> : null}
 
-            <p className="pt-0.5 text-center text-xs leading-relaxed text-[#94A3B8]">
+            <p className="pt-0.5 text-center text-xs leading-relaxed text-[#CBD5E1]">
               By continuing you agree to our Terms and Privacy Policy.
             </p>
 

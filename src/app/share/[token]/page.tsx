@@ -120,9 +120,9 @@ export default async function SharedInterviewPage({
       <main className="mx-auto max-w-3xl px-6 py-10 space-y-6">
         {/* Title card */}
         <div className="rounded-2xl border border-zinc-200 bg-white p-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-1">Interview Evaluation</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-zinc-600 mb-1">Interview Evaluation</p>
           <h1 className="text-2xl font-bold text-zinc-900">{interview.role}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-zinc-600">
             {interview.company && <span>{interview.company}</span>}
             {interview.company && <span className="h-1 w-1 rounded-full bg-zinc-300" />}
             <span className="capitalize">{interview.type}</span>
@@ -154,7 +154,7 @@ export default async function SharedInterviewPage({
                 {subScores.map((s) => (
                   <div key={s.label} className="rounded-xl border border-zinc-200 bg-white p-4 text-center">
                     <p className="text-2xl font-bold text-zinc-900">{s.value}</p>
-                    <p className="mt-0.5 text-xs text-zinc-500">{s.label}</p>
+                    <p className="mt-0.5 text-xs text-zinc-600">{s.label}</p>
                   </div>
                 ))}
               </div>
@@ -199,7 +199,7 @@ export default async function SharedInterviewPage({
             </div>
           </>
         ) : (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-center text-sm text-zinc-500">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-center text-sm text-zinc-600">
             Evaluation not yet available for this interview.
           </div>
         )}
@@ -207,7 +207,7 @@ export default async function SharedInterviewPage({
         {/* CTA */}
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-center">
           <p className="text-sm font-semibold text-zinc-900 mb-1">Want to practice too?</p>
-          <p className="text-xs text-zinc-500 mb-4">SnapInterview gives you AI-powered mock interviews with instant scored feedback.</p>
+          <p className="text-xs text-zinc-600 mb-4">SnapInterview gives you AI-powered mock interviews with instant scored feedback.</p>
           <Link
             href="/practice"
             className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700"

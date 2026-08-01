@@ -23,7 +23,7 @@ export function AuthShell({
   const reducedMotion = useReducedMotion() ?? false;
 
   return (
-    <div className="relative flex min-h-screen overflow-hidden bg-[#090A0F] font-sans text-[#F5F7FF] selection:bg-blue-600 selection:text-white">
+    <div className="auth-shell relative flex min-h-screen overflow-hidden bg-[#090A0F] font-sans text-[#F5F7FF] selection:bg-blue-600 selection:text-white">
       <div className="pointer-events-none absolute inset-0 z-0">
         <Image
           src={AUTH_BG}
@@ -79,7 +79,7 @@ export function AuthShell({
           {children}
 
           {footer ? (
-            <div className="mt-8 border-t border-white/[0.08] pt-6 text-center text-sm text-[#64748B]">
+            <div className="mt-8 border-t border-white/[0.08] pt-6 text-center text-sm text-[#CBD5E1] sm:text-[0.95rem]">
               {footer}
             </div>
           ) : null}
@@ -104,7 +104,7 @@ export function AuthHeader({
         {title}
       </h1>
       {description ? (
-        <p className="mt-3 text-[0.95rem] leading-relaxed text-[#94A3B8]">
+        <p className="mt-3 text-base leading-relaxed text-[#CBD5E1]">
           {description}
         </p>
       ) : null}
@@ -127,7 +127,7 @@ export function AuthDivider({ label = "or" }: { label?: string }) {
   return (
     <div className="my-5 flex items-center gap-3">
       <span className="h-px flex-1 bg-white/[0.08]" />
-      <span className="text-[0.7rem] font-medium uppercase tracking-wider text-[#475569]">
+      <span className="text-[0.7rem] font-medium uppercase tracking-wider text-[#B8C0CE]">
         {label}
       </span>
       <span className="h-px flex-1 bg-white/[0.08]" />
@@ -136,7 +136,7 @@ export function AuthDivider({ label = "or" }: { label?: string }) {
 }
 
 const FIELD_CLASS =
-  "w-full rounded-xl border border-white/[0.08] bg-[#0C0F1A]/80 px-3.5 py-3 text-sm text-white outline-none placeholder:text-[#475569] transition-colors focus:border-blue-500/45 focus:ring-2 focus:ring-blue-500/15";
+  "w-full rounded-xl border border-white/[0.08] bg-[#0C0F1A]/80 px-3.5 py-3 text-[15px] text-white outline-none placeholder:text-[#B8C0CE] transition-colors focus:border-blue-500/45 focus:ring-2 focus:ring-blue-500/15 sm:text-base";
 
 export function AuthTextField({
   id,

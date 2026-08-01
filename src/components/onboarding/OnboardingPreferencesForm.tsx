@@ -94,7 +94,7 @@ export default function OnboardingPreferencesForm({
     <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
       <div className="border-b border-zinc-100 px-8 py-6">
         <h2 className="text-xl font-semibold text-zinc-900">{title}</h2>
-        <p className="mt-1 text-sm text-zinc-500">{description}</p>
+        <p className="mt-1 text-sm leading-relaxed text-zinc-700">{description}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6 px-8 py-6">

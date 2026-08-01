@@ -33,9 +33,9 @@ export default async function OnboardingPage() {
     <div className="min-h-screen bg-zinc-50 px-6 py-12 font-(family-name:--font-geist-sans)">
       <div className="mx-auto max-w-3xl space-y-6">
         <div className="space-y-2 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">Setup</p>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Tailor SnapInterview to your search</h1>
-          <p className="mx-auto max-w-2xl text-sm text-zinc-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-700">Setup</p>
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">Tailor SnapInterview to your search</h1>
+          <p className="mx-auto max-w-2xl text-base leading-relaxed text-zinc-700">
             Tell us what you are targeting so the dashboard, reminders, and interview sessions can adapt from the start.
           </p>
         </div>

@@ -50,7 +50,7 @@ export default function HeroSection() {
         <div className="max-w-3xl">
           <HeroHeadline />
 
-          <HeroSubcopy className="mt-4 max-w-xl text-[clamp(0.98rem,1.25vw,1.1rem)] leading-relaxed text-[#94A3B8]">
+          <HeroSubcopy className="mt-4 max-w-xl text-[clamp(0.98rem,1.25vw,1.1rem)] leading-relaxed text-[#CBD5E1]">
             Customize a mock interview for your role, explain your thinking out loud,
             and review your video recording, transcript, and automated score before the real thing.
           </HeroSubcopy>

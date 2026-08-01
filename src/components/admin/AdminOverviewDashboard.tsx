@@ -58,15 +58,15 @@ export default function AdminOverviewDashboard({
     <div className="space-y-6 pb-8">
       <section>
         <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">Overview</h2>
-        <p className="mt-1 text-sm text-zinc-500">Operational health, growth trends, and recent interview activity.</p>
+        <p className="mt-1 text-sm text-zinc-600">Operational health, growth trends, and recent interview activity.</p>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {cards.map((card) => (
           <div key={card.label} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
-            <p className="text-xs uppercase tracking-wide text-zinc-500">{card.label}</p>
+            <p className="text-xs uppercase tracking-wide text-zinc-600">{card.label}</p>
             <p className="mt-2 text-2xl font-semibold text-zinc-900">{card.value}</p>
-            <p className="mt-1 text-xs text-zinc-400">{card.hint}</p>
+            <p className="mt-1 text-xs text-zinc-600">{card.hint}</p>
           </div>
         ))}
       </section>
@@ -76,7 +76,7 @@ export default function AdminOverviewDashboard({
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold text-zinc-900">7-Day Trend</h3>
-              <p className="text-xs text-zinc-400">Switch metric to inspect usage patterns</p>
+              <p className="text-xs text-zinc-600">Switch metric to inspect usage patterns</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -107,12 +107,12 @@ export default function AdminOverviewDashboard({
                       animate={{ height: `${height}%` }}
                       transition={{ duration: 0.4, delay: idx * 0.04 }}
                     >
-                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[11px] font-medium text-zinc-500 opacity-0 transition-opacity group-hover:opacity-100">
+                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[11px] font-medium text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100">
                         {value}
                       </span>
                     </motion.div>
                   </div>
-                  <span className="text-[11px] text-zinc-400">{point.label}</span>
+                  <span className="text-[11px] text-zinc-600">{point.label}</span>
                 </div>
               );
             })}
@@ -121,7 +121,7 @@ export default function AdminOverviewDashboard({
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 lg:col-span-2">
           <h3 className="text-sm font-semibold text-zinc-900">Interview Status Mix</h3>
-          <p className="text-xs text-zinc-400">Active records only</p>
+          <p className="text-xs text-zinc-600">Active records only</p>
           <div className="mt-4 space-y-3">
             {statusBreakdown.map((item) => {
               const total = statusBreakdown.reduce((sum, entry) => sum + entry.count, 0) || 1;
@@ -130,7 +130,7 @@ export default function AdminOverviewDashboard({
                 <div key={item.status}>
                   <div className="mb-1 flex items-center justify-between text-xs">
                     <span className="font-medium text-zinc-700">{item.status}</span>
-                    <span className="text-zinc-500">{item.count}</span>
+                    <span className="text-zinc-600">{item.count}</span>
                   </div>
                   <div className="h-2 rounded-full bg-zinc-100">
                     <div className="h-full rounded-full bg-zinc-700" style={{ width: `${width}%` }} />
@@ -145,23 +145,23 @@ export default function AdminOverviewDashboard({
       <section className="rounded-2xl border border-zinc-200 bg-white">
         <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
           <h3 className="text-sm font-semibold text-zinc-900">Recent Interview Activity</h3>
-          <Link href="/admin/interviews" className="cursor-pointer text-xs font-medium text-zinc-500 hover:text-zinc-900">
+          <Link href="/admin/interviews" className="cursor-pointer text-xs font-medium text-zinc-600 hover:text-zinc-900">
             View all
           </Link>
         </div>
         {recentActivity.length === 0 ? (
-          <p className="px-5 py-8 text-sm text-zinc-500">No recent interview activity.</p>
+          <p className="px-5 py-8 text-sm text-zinc-600">No recent interview activity.</p>
         ) : (
           <div className="divide-y divide-zinc-100">
             {recentActivity.map((item) => (
               <div key={item.id} className="flex items-center justify-between gap-4 px-5 py-3">
                 <div>
                   <p className="text-sm font-medium text-zinc-900">{item.candidateName}</p>
-                  <p className="text-xs text-zinc-500">{item.candidateEmail} · {item.role}</p>
+                  <p className="text-xs text-zinc-600">{item.candidateEmail} · {item.role}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-medium text-zinc-700">{item.status}</p>
-                  <p className="text-xs text-zinc-400">{item.createdAt}</p>
+                  <p className="text-xs text-zinc-600">{item.createdAt}</p>
                 </div>
               </div>
             ))}

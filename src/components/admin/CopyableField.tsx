@@ -17,7 +17,7 @@ export function CopyableField({ label, value }: { label: string; value: string }
 
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">{label}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-zinc-600">{label}</p>
       <div className="mt-1 flex items-start gap-2">
         <p className="min-w-0 flex-1 break-all font-mono text-xs text-zinc-800">{value}</p>
         <button

@@ -41,7 +41,7 @@ const defaultValues: AdminQuestionFormValues = {
 };
 
 const fieldClass =
-  "w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition-all focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100";
+  "w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-600 transition-all focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100";
 
 type AdminQuestionFormProps = {
   mode: "create" | "edit";
@@ -67,7 +67,7 @@ export function AdminQuestionForm({
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">{title}</h2>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-zinc-600">
             {mode === "create"
               ? "Create a new practice question in the question bank."
               : "Update question content and metadata."}
@@ -104,7 +104,7 @@ export function AdminQuestionForm({
                 className={`cursor-pointer rounded-lg px-4 py-2 text-xs font-bold capitalize transition-all ${
                   questionType === t
                     ? "bg-zinc-900 text-white"
-                    : "border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50"
+                    : "border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
                 }`}
               >
                 {t}
@@ -139,7 +139,7 @@ export function AdminQuestionForm({
               defaultValue={values.slug}
               placeholder="auto-generated-from-text-if-empty"
             />
-            <p className="mt-1 text-xs text-zinc-500">Leave empty to auto-generate from question text.</p>
+            <p className="mt-1 text-xs text-zinc-600">Leave empty to auto-generate from question text.</p>
           </div>
           <div>
             <label htmlFor="estimatedTime" className="mb-1.5 block text-sm font-medium text-zinc-700">
@@ -186,7 +186,7 @@ export function AdminQuestionForm({
             defaultValue={values.tags}
             placeholder="Teamwork, Communication, Leadership"
           />
-          <p className="mt-1 text-xs text-zinc-500">Comma-separated.</p>
+          <p className="mt-1 text-xs text-zinc-600">Comma-separated.</p>
         </div>
 
         <div>

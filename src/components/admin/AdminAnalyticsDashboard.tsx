@@ -67,7 +67,7 @@ export default function AdminAnalyticsDashboard({
         <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">
           Analytics
         </h2>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-zinc-600">
           Product growth, interview funnel, retention, and AI evaluation health.
         </p>
       </section>
@@ -77,12 +77,12 @@ export default function AdminAnalyticsDashboard({
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <div>
               <h3 className="text-sm font-semibold text-zinc-900">Total User Base</h3>
-              <p className="text-xs text-zinc-400">Last 14 days</p>
+              <p className="text-xs text-zinc-600">Last 14 days</p>
             </div>
             {latestTotalUsers != null ? (
               <p className="text-lg font-semibold text-zinc-900">
                 {latestTotalUsers.toLocaleString()}
-                <span className="ml-1 text-xs font-normal text-zinc-500">users today</span>
+                <span className="ml-1 text-xs font-normal text-zinc-600">users today</span>
               </p>
             ) : null}
           </div>
@@ -91,7 +91,7 @@ export default function AdminAnalyticsDashboard({
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-5">
           <h3 className="text-sm font-semibold text-zinc-900">Completion Funnel</h3>
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-zinc-600">
             Active records only, showing drop-offs per stage.
           </p>
           <div className="mt-4 space-y-3">
@@ -101,7 +101,7 @@ export default function AdminAnalyticsDashboard({
                 <div key={item.label}>
                   <div className="mb-1 flex items-center justify-between text-xs">
                     <span className="font-medium text-zinc-700">{item.label}</span>
-                    <span className="text-zinc-500">
+                    <span className="text-zinc-600">
                       {item.value.toLocaleString()} ({pct}%)
                     </span>
                   </div>
@@ -126,13 +126,13 @@ export default function AdminAnalyticsDashboard({
               key={card.label}
               className="rounded-xl border border-zinc-200 bg-zinc-50 p-4"
             >
-              <p className="text-xs uppercase tracking-wide text-zinc-500">
+              <p className="text-xs uppercase tracking-wide text-zinc-600">
                 {card.label}
               </p>
               <p className="mt-2 text-2xl font-semibold text-zinc-900">
                 {card.value}
               </p>
-              <p className="mt-1 text-xs text-zinc-500">{card.hint}</p>
+              <p className="mt-1 text-xs text-zinc-600">{card.hint}</p>
             </div>
           ))}
         </div>
@@ -159,7 +159,7 @@ export default function AdminAnalyticsDashboard({
                 key={item.label}
                 className="rounded-xl border border-zinc-200 bg-zinc-50 p-3"
               >
-                <p className="text-[11px] text-zinc-500">{item.label}</p>
+                <p className="text-[11px] text-zinc-600">{item.label}</p>
                 <p className="mt-1 text-xl font-semibold text-zinc-900">
                   {item.value ?? "—"}
                 </p>
@@ -176,7 +176,7 @@ export default function AdminAnalyticsDashboard({
                 key={card.label}
                 className={`rounded-xl border p-3 ${toneClass(card.tone)}`}
               >
-                <p className="text-xs uppercase tracking-wide text-zinc-500">
+                <p className="text-xs uppercase tracking-wide text-zinc-600">
                   {card.label}
                 </p>
                 <p className="mt-1 text-2xl font-semibold text-zinc-900">

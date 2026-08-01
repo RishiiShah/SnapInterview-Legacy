@@ -11,7 +11,7 @@ const LANGUAGES: { value: SupportedLanguage; label: string }[] = [
 ];
 
 const fieldClass =
-  "w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition-all focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100 font-mono";
+  "w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-600 transition-all focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100 font-mono";
 
 type TestCase = { input: string; expectedOutput: string; isHidden: boolean };
 
@@ -67,7 +67,7 @@ export function AdminCodingFields({
               className={`cursor-pointer rounded-md px-3 py-1 text-xs font-semibold transition-all ${
                 codeTab === l.value
                   ? "bg-zinc-900 text-white"
-                  : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
               }`}
             >
               {l.label}
@@ -111,9 +111,9 @@ export function AdminCodingFields({
           {testCases.map((tc, i) => (
             <div key={i} className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-zinc-500">Case {i + 1}</span>
+                <span className="text-xs font-bold text-zinc-600">Case {i + 1}</span>
                 <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-1.5 text-xs text-zinc-500">
+                  <label className="flex items-center gap-1.5 text-xs text-zinc-600">
                     <input
                       type="checkbox"
                       checked={tc.isHidden}

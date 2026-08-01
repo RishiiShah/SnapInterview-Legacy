@@ -203,20 +203,20 @@ export default async function AdminUsersPage({
     <div className="space-y-6">
       <section>
         <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">Users</h2>
-        <p className="mt-1 text-sm text-zinc-500">Recent users and account health indicators.</p>
+        <p className="mt-1 text-sm text-zinc-600">Recent users and account health indicators.</p>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-zinc-500">Total Users</p>
+          <p className="text-sm text-zinc-600">Total Users</p>
           <p className="mt-2 text-2xl font-semibold text-zinc-900">{totalUsers.toLocaleString()}</p>
         </div>
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-zinc-500">Onboarding Completed</p>
+          <p className="text-sm text-zinc-600">Onboarding Completed</p>
           <p className="mt-2 text-2xl font-semibold text-zinc-900">{onboardedUsers.toLocaleString()}</p>
         </div>
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-zinc-500">Currently Locked</p>
+          <p className="text-sm text-zinc-600">Currently Locked</p>
           <p className="mt-2 text-2xl font-semibold text-zinc-900">{lockedUsers.toLocaleString()}</p>
         </div>
       </section>
@@ -260,7 +260,7 @@ export default async function AdminUsersPage({
 
       <section className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
         <table className="min-w-full text-sm">
-          <thead className="border-b border-zinc-200 bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="border-b border-zinc-200 bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-600">
             <tr>
               <th className="px-4 py-3">User</th>
               <th className="px-4 py-3">Created</th>
@@ -278,7 +278,7 @@ export default async function AdminUsersPage({
                 <tr key={user.id} className="border-b border-zinc-100 last:border-b-0">
                   <td className="px-4 py-3">
                     <p className="font-medium text-zinc-900">{user.name}</p>
-                    <p className="text-xs text-zinc-500">{user.email}</p>
+                    <p className="text-xs text-zinc-600">{user.email}</p>
                   </td>
                   <td className="px-4 py-3 text-zinc-700">{formatDate(user.createdAt)}</td>
                   <td className="px-4 py-3 text-zinc-700">{user.onboardingCompletedAt ? "Completed" : "Pending"}</td>
@@ -346,7 +346,7 @@ export default async function AdminUsersPage({
           >
             Previous
           </Link>
-          <span className="text-zinc-500">Page {page} / {totalPages}</span>
+          <span className="text-zinc-600">Page {page} / {totalPages}</span>
           <Link
             href={paramsForPage(nextPage)}
             className={page === totalPages ? adminPaginationLinkDisabledClass : adminPaginationLinkClass}

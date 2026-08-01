@@ -44,7 +44,7 @@ function ratingClass(rating: string) {
 function MetaItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">{label}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-zinc-600">{label}</p>
       <p className="mt-1 text-sm text-zinc-900">{value}</p>
     </div>
   );
@@ -61,14 +61,14 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
         <div>
           <Link
             href="/admin/interviews"
-            className="cursor-pointer text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-900"
+            className="cursor-pointer text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900"
           >
             ← Back to interviews
           </Link>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900">
             Interview detail
           </h2>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-zinc-600">
             {interview.user.name ?? "Unknown"} · {interview.user.email ?? "—"}
           </p>
         </div>
@@ -91,7 +91,7 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
 
       <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
         <h3 className="text-sm font-semibold text-zinc-900">Recording integrity</h3>
-        <p className="mt-1 text-sm text-zinc-500">{interview.recordingIntegrity.description}</p>
+        <p className="mt-1 text-sm text-zinc-600">{interview.recordingIntegrity.description}</p>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           {interview.videoKey ? (
             <CopyableField label="Video key" value={interview.videoKey} />
@@ -163,7 +163,7 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
             <RecordingEvaluation evaluation={interview.evaluationNormalized} />
           </div>
         ) : (
-          <p className="mt-3 text-sm text-zinc-500">No evaluation generated for this session yet.</p>
+          <p className="mt-3 text-sm text-zinc-600">No evaluation generated for this session yet.</p>
         )}
 
         <details className="mt-6 group">
@@ -180,15 +180,15 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
 
       <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
         <h3 className="text-sm font-semibold text-zinc-900">Question feedback</h3>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-zinc-600">
           Per-question thumbs up/down from the candidate after the interview.
         </p>
         {interview.questionFeedback.length === 0 ? (
-          <p className="mt-4 text-sm text-zinc-500">No question feedback recorded.</p>
+          <p className="mt-4 text-sm text-zinc-600">No question feedback recorded.</p>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-500">
+              <thead className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-600">
                 <tr>
                   <th className="px-3 py-2">Question #</th>
                   <th className="px-3 py-2">Rating</th>
@@ -219,7 +219,7 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
 
       <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
         <h3 className="text-sm font-semibold text-zinc-900">Transcript</h3>
-        <p className="mt-1 text-sm text-zinc-500">{interview.transcript.length} entries</p>
+        <p className="mt-1 text-sm text-zinc-600">{interview.transcript.length} entries</p>
         {interview.transcript.length > 0 && interview.questionFeedback.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
             {interview.transcript.map((entry, idx) => {
@@ -243,7 +243,7 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
 
       <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
         <h3 className="text-sm font-semibold text-zinc-900">Moderation notes</h3>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-zinc-600">
           Internal notes for support and quality review. Visible only to admins.
         </p>
 
@@ -264,7 +264,7 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
         </form>
 
         {interview.moderationNotes.length === 0 ? (
-          <p className="mt-6 text-sm text-zinc-500">No moderation notes yet.</p>
+          <p className="mt-6 text-sm text-zinc-600">No moderation notes yet.</p>
         ) : (
           <ul className="mt-6 space-y-3">
             {interview.moderationNotes.map((note) => (
@@ -273,7 +273,7 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
                 className="rounded-xl border border-zinc-200 bg-zinc-50 p-4"
               >
                 <p className="whitespace-pre-wrap text-sm text-zinc-800">{note.note}</p>
-                <p className="mt-2 text-xs text-zinc-500">
+                <p className="mt-2 text-xs text-zinc-600">
                   {note.authorEmail} · {formatDateTime(note.createdAtIso)}
                 </p>
               </li>

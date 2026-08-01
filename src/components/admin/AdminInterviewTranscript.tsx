@@ -20,7 +20,7 @@ export function AdminInterviewTranscript({ transcript }: { transcript: Transcrip
         <div key={entry.id} className="space-y-3">
           <div className="flex justify-start">
             <div className="max-w-[90%] rounded-2xl rounded-tl-sm bg-zinc-100 p-4 text-sm text-zinc-800">
-              <span className="mb-1 block text-xs font-bold text-zinc-500">
+              <span className="mb-1 block text-xs font-bold text-zinc-600">
                 Interviewer (Q{idx + 1})
               </span>
               <p className="whitespace-pre-wrap">{entry.question}</p>

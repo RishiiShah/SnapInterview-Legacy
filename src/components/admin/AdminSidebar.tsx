@@ -33,7 +33,6 @@ export function AdminSidebar({
 }) {
   const pathname = usePathname();
   const userName = user.name || "Admin";
-  const userEmail = user.email || "";
   const userImage = user.image;
   const initials = getInitials(userName);
 
@@ -79,14 +78,14 @@ export function AdminSidebar({
                 <span className="block truncate whitespace-nowrap text-lg font-semibold tracking-tight text-zinc-900">
                   SnapInterview
                 </span>
-                <span className="block text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+                <span className="block text-[10px] font-medium uppercase tracking-wider text-zinc-600">
                   Admin
                 </span>
               </div>
             </Link>
             <button
               onClick={() => setCollapsed(true)}
-              className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-md text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
+              className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-md text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-600"
               aria-label="Collapse sidebar"
             >
               <IconChevronLeft className="h-4 w-4" />
@@ -102,7 +101,7 @@ export function AdminSidebar({
             <Link
               key={item.href}
               href={item.href}
-              className={`group/nav relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${active ? "bg-zinc-100 text-zinc-900" : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"} ${collapsed ? "justify-center" : ""}`}
+              className={`group/nav relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${active ? "bg-zinc-100 text-zinc-900" : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"} ${collapsed ? "justify-center" : ""}`}
             >
               {item.icon}
               {!collapsed && (
@@ -120,7 +119,7 @@ export function AdminSidebar({
         <div className="!mt-4 border-t border-zinc-100 pt-4">
           <Link
             href="/dashboard"
-            className={`group/nav relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-900 ${collapsed ? "justify-center" : ""}`}
+            className={`group/nav relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-900 ${collapsed ? "justify-center" : ""}`}
           >
             <IconArrowLeft className="h-5 w-5 shrink-0" />
             {!collapsed && <span className="whitespace-nowrap">Back to App</span>}
@@ -152,10 +151,9 @@ export function AdminSidebar({
             <>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-zinc-900">{userName}</p>
-                <p className="truncate text-xs text-zinc-400">{userEmail}</p>
               </div>
               <IconChevronUp
-                className={`h-4 w-4 shrink-0 text-zinc-400 transition-transform duration-200 ${accountOpen ? "rotate-180" : ""}`}
+                className={`h-4 w-4 shrink-0 text-zinc-600 transition-transform duration-200 ${accountOpen ? "rotate-180" : ""}`}
               />
             </>
           )}
@@ -169,7 +167,6 @@ export function AdminSidebar({
             {collapsed && (
               <div className="border-b border-zinc-100 px-4 py-3">
                 <p className="text-sm font-medium text-zinc-900">{userName}</p>
-                <p className="truncate text-xs text-zinc-400">{userEmail}</p>
               </div>
             )}
             <div className="p-1">
@@ -178,7 +175,7 @@ export function AdminSidebar({
                 onClick={() => setAccountOpen(false)}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
               >
-                <IconSettings className="h-4 w-4 text-zinc-400" />
+                <IconSettings className="h-4 w-4 text-zinc-600" />
                 Settings
               </Link>
               <button
@@ -193,7 +190,7 @@ export function AdminSidebar({
                 }
                 className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
               >
-                <IconLogout className="h-4 w-4 text-zinc-400" />
+                <IconLogout className="h-4 w-4 text-zinc-600" />
                 Log out
               </button>
             </div>

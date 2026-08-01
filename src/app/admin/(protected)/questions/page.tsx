@@ -85,7 +85,7 @@ export default async function AdminQuestionsPage({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">Questions</h2>
-            <p className="mt-1 text-sm text-zinc-500">Practice question inventory and taxonomy distribution.</p>
+            <p className="mt-1 text-sm text-zinc-600">Practice question inventory and taxonomy distribution.</p>
           </div>
 
           <Link
@@ -155,7 +155,7 @@ export default async function AdminQuestionsPage({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-semibold text-zinc-900">Bulk Import / Export</h3>
-            <p className="text-xs text-zinc-500">Import CSV/JSON questions and export full question bank.</p>
+            <p className="text-xs text-zinc-600">Import CSV/JSON questions and export full question bank.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <a
@@ -186,7 +186,7 @@ export default async function AdminQuestionsPage({
               Import file
             </Button>
           </div>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-zinc-600">
             New slugs are added. Existing slugs only get new tags merged in—edit a question to remove tags that do not fit.
           </p>
         </form>
@@ -194,11 +194,11 @@ export default async function AdminQuestionsPage({
 
       <section className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-zinc-500">Total Questions</p>
+          <p className="text-sm text-zinc-600">Total Questions</p>
           <p className="mt-2 text-2xl font-semibold text-zinc-900">{totalQuestions.toLocaleString()}</p>
         </div>
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-zinc-500">Top Categories</p>
+          <p className="text-sm text-zinc-600">Top Categories</p>
           <div className="mt-2 space-y-1 text-sm text-zinc-700">
             {[...categories]
               .sort((a, b) => b._count._all - a._count._all)
@@ -211,7 +211,7 @@ export default async function AdminQuestionsPage({
           </div>
         </div>
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-zinc-500">Difficulty Split</p>
+          <p className="text-sm text-zinc-600">Difficulty Split</p>
           <div className="mt-2 space-y-1 text-sm text-zinc-700">
             {difficulties.map((entry) => (
               <p key={entry.difficulty}>
@@ -224,7 +224,7 @@ export default async function AdminQuestionsPage({
 
       <section className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
         <table className="min-w-full text-sm">
-          <thead className="border-b border-zinc-200 bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="border-b border-zinc-200 bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-600">
             <tr>
               <th className="px-4 py-3">Slug</th>
               <th className="px-4 py-3">Category</th>
@@ -282,7 +282,7 @@ export default async function AdminQuestionsPage({
           >
             Previous
           </Link>
-          <span className="text-zinc-500">Page {page} / {totalPages}</span>
+          <span className="text-zinc-600">Page {page} / {totalPages}</span>
           <Link
             href={paramsForPage(nextPage)}
             className={page === totalPages ? adminPaginationLinkDisabledClass : adminPaginationLinkClass}

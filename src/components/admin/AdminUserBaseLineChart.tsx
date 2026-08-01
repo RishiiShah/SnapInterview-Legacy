@@ -35,7 +35,7 @@ function getXTickIndices(count: number, maxLabels = MAX_X_LABELS): number[] {
 export function AdminUserBaseLineChart({ data }: AdminUserBaseLineChartProps) {
   if (data.length === 0) {
     return (
-      <p className="mt-4 text-sm text-zinc-500">No user data for this period.</p>
+      <p className="mt-4 text-sm text-zinc-600">No user data for this period.</p>
     );
   }
 
@@ -158,7 +158,7 @@ export function AdminUserBaseLineChart({ data }: AdminUserBaseLineChartProps) {
           );
         })}
       </svg>
-      <p className="mt-2 text-xs text-zinc-500">
+      <p className="mt-2 text-xs text-zinc-600">
         Cumulative registered users at end of each day.
       </p>
     </div>

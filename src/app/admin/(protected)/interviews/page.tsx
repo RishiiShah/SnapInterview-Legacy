@@ -157,14 +157,14 @@ export default async function AdminInterviewsPage({
     <div className="space-y-6">
       <section>
         <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">Interviews</h2>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-zinc-600">
           Session moderation, recording integrity checks, and permanent deletion.
         </p>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-zinc-500">Total Sessions</p>
+          <p className="text-sm text-zinc-600">Total Sessions</p>
           <p className="mt-2 text-2xl font-semibold text-zinc-900">{totalCount.toLocaleString()}</p>
         </div>
       </section>
@@ -192,7 +192,7 @@ export default async function AdminInterviewsPage({
           </Link>
         </form>
         {integrityFilter === "issues" && (
-          <p className="mt-3 text-xs text-zinc-500">
+          <p className="mt-3 text-xs text-zinc-600">
             Showing {visibleInterviews.length} of {recentInterviews.length} sessions on this page with
             missing storage or URL/key mismatch.
           </p>
@@ -202,7 +202,7 @@ export default async function AdminInterviewsPage({
       <section className="grid gap-4 sm:grid-cols-3">
         {statusCounts.map((row) => (
           <div key={row.status} className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <p className="text-sm text-zinc-500">{row.status}</p>
+            <p className="text-sm text-zinc-600">{row.status}</p>
             <p className="mt-2 text-2xl font-semibold text-zinc-900">{row._count._all.toLocaleString()}</p>
           </div>
         ))}
@@ -210,7 +210,7 @@ export default async function AdminInterviewsPage({
 
       <section className="space-y-3">
         {candidates.length === 0 ? (
-          <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-500 shadow-sm">
+          <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-600 shadow-sm">
             No interviews match the current filters.
           </div>
         ) : (
@@ -221,7 +221,7 @@ export default async function AdminInterviewsPage({
             >
               <summary className="list-none px-4 py-3 hover:bg-zinc-50">
                 <table className="w-full text-sm">
-                  <thead className="text-left text-xs uppercase tracking-wide text-zinc-500">
+                  <thead className="text-left text-xs uppercase tracking-wide text-zinc-600">
                     <tr>
                       <th className="pb-1 font-medium">Candidate</th>
                       <th className="pb-1 font-medium">Sessions</th>
@@ -231,7 +231,7 @@ export default async function AdminInterviewsPage({
                     <tr>
                       <td className="pt-1">
                         <p className="font-medium text-zinc-900">{candidate.name}</p>
-                        <p className="text-xs text-zinc-500">{candidate.email}</p>
+                        <p className="text-xs text-zinc-600">{candidate.email}</p>
                       </td>
                       <td className="pt-1 text-zinc-700">{candidate.sessions.length}</td>
                     </tr>
@@ -242,7 +242,7 @@ export default async function AdminInterviewsPage({
               <div className="border-t border-zinc-100 p-3">
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
-                    <thead className="border-b border-zinc-200 bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
+                    <thead className="border-b border-zinc-200 bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-600">
                       <tr>
                         <th className="px-3 py-2">Role</th>
                         <th className="px-3 py-2">Type</th>
@@ -322,7 +322,7 @@ export default async function AdminInterviewsPage({
           >
             Previous
           </Link>
-          <span className="text-zinc-500">
+          <span className="text-zinc-600">
             Page {page} / {totalPages}
           </span>
           <Link

@@ -35,7 +35,7 @@ function AvatarDropdown({
     >
       <div className="border-b border-zinc-100 px-4 py-3">
         <p className="text-sm font-medium text-zinc-900">{userName}</p>
-        <p className="text-xs text-zinc-500">{userEmail}</p>
+        <p className="text-xs text-zinc-600">{userEmail}</p>
       </div>
       <div className="p-1">
         <Link
@@ -43,7 +43,7 @@ function AvatarDropdown({
           onClick={onClose}
           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
         >
-          <IconSettings className="h-4 w-4 text-zinc-400" />
+          <IconSettings className="h-4 w-4 text-zinc-600" />
           Settings
         </Link>
         <button
@@ -58,7 +58,7 @@ function AvatarDropdown({
           }
           className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
         >
-          <IconLogout className="h-4 w-4 text-zinc-400" />
+          <IconLogout className="h-4 w-4 text-zinc-600" />
           Log out
         </button>
       </div>

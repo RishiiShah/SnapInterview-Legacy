@@ -108,7 +108,7 @@ describe("SearchModal", () => {
   it("calls onClose when the backdrop is clicked", () => {
     const onClose = vi.fn();
     const { container } = render(<SearchModal onClose={onClose} />);
-    const backdrop = container.querySelector('[class*="bg-zinc-900"]');
+    const backdrop = container.querySelector('[class*="bg-[#090A0F]"]');
 
     expect(backdrop).not.toBeNull();
     fireEvent.click(backdrop as Element);

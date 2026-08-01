@@ -24,9 +24,14 @@ export default async function DashboardPage() {
   const firstName = session?.user?.name?.split(" ")[0] || "there";
   const isFirstLogin = session?.user?.isFirstLogin ?? false;
 
-  const { stats, recentSessions, chartData } = userId
+  const overview = userId
     ? await getDashboardOverviewData(userId)
-    : { stats: [], recentSessions: [], chartData: [] };
+    : {
+        stats: [],
+        recentSessions: [],
+        topStrength: null,
+        topFocus: null,
+      };
 
   return (
     <>
@@ -34,9 +39,10 @@ export default async function DashboardPage() {
         userId={userId}
         firstName={firstName}
         isFirstLogin={isFirstLogin}
-        stats={stats}
-        recentSessions={recentSessions}
-        chartData={chartData}
+        stats={overview.stats}
+        recentSessions={overview.recentSessions}
+        topStrength={overview.topStrength}
+        topFocus={overview.topFocus}
       />
     </>
   );

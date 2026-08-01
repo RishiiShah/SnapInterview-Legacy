@@ -59,17 +59,17 @@ import {
 
 type IconProps = LucideProps & { interactive?: boolean };
 
-const PREMIUM_STROKE_WIDTH = 1.9;
+const PREMIUM_STROKE_WIDTH = 2.15;
 
 function makeIcon(Icon: LucideIcon) {
   return function PremiumIcon({ strokeWidth = PREMIUM_STROKE_WIDTH, className = "", interactive = false, ...props }: IconProps) {
     const interactiveClasses = interactive ? "transition-transform hover:scale-110 group-hover:scale-110 active:scale-95 will-change-transform" : "";
     return (
-      <Icon 
-        absoluteStrokeWidth 
-        strokeWidth={strokeWidth} 
-        className={`${interactiveClasses} ${className}`.trim()}
-        {...props} 
+      <Icon
+        absoluteStrokeWidth
+        strokeWidth={strokeWidth}
+        className={`icon-crisp ${interactiveClasses} ${className}`.trim()}
+        {...props}
       />
     );
   };

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { normalizeTranscriptEvaluation, type TranscriptEvaluationResponse } from "@/lib/interview/evaluation";
-import { interviewTypeSchema, type InterviewType } from "@/lib/interview/domain";
+import { interviewTypeSchema, INTERVIEW_TYPE_META, INTERVIEW_TYPE_VALUES, type InterviewType } from "@/lib/interview/domain";
 
 import { env } from "@/lib/env";
 
@@ -61,6 +61,7 @@ type SessionRecord = {
   company: string | null;
   videoKey: string | null;
   type: string;
+  difficulty?: string;
   status: "IN_PROGRESS" | "COMPLETED" | "ABORTED";
   questionCount: number;
   currentQuestion: number;
@@ -82,7 +83,10 @@ type DashboardRecentSession = {
   id: string;
   role: string;
   company: string;
-  score: number;
+  type: InterviewType | null;
+  difficulty: string | null;
+  /** Rubric score only — null when evaluation has not landed yet. */
+  score: number | null;
   duration: string;
   date: string;
   videoKey: string | null;
@@ -121,10 +125,23 @@ type TranscriptRecord = {
   createdAt: Date;
 };
 
+export type DashboardTypeBreakdown = {
+  type: InterviewType;
+  label: string;
+  count: number;
+  avgScore: number | null;
+  lastScore: number | null;
+  recentScores: number[];
+};
+
 export type DashboardOverviewData = {
   stats: DashboardStat[];
   recentSessions: DashboardRecentSession[];
   chartData: DashboardChartPoint[];
+  byType: DashboardTypeBreakdown[];
+  subScores: SubScores;
+  topStrength: string | null;
+  topFocus: string | null;
 };
 
 export type SubScores = {
@@ -264,6 +281,14 @@ const getSessionScore = (session: SessionRecord): number => {
   return deriveSessionScore(session);
 };
 
+/** Rubric score from evaluation only — never invent progress placeholders. */
+const getRubricScore = (session: SessionRecord): number | null => {
+  if (session._normalizedEvaluation?.score != null) {
+    return session._normalizedEvaluation.score;
+  }
+  return getEvaluationScore(session.evaluation);
+};
+
 const formatSessionDate = (date: Date): string =>
   date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
@@ -320,6 +345,7 @@ async function getUserSessionsByUserId(userId: string): Promise<SessionRecord[]>
       company: true,
       videoKey: true,
       type: true,
+      difficulty: true,
       status: true,
       questionCount: true,
       currentQuestion: true,
@@ -515,37 +541,43 @@ export async function getDashboardOverviewData(userId: string): Promise<Dashboar
   const completedSessions = sessions.filter((session) => session.status === "COMPLETED");
   const sessionsThisWeek = completedSessions.filter((session) => session.createdAt >= last7Days).length;
 
+  const scoredCompleted = completedSessions
+    .map((session) => ({ session, score: getRubricScore(session) }))
+    .filter((entry): entry is { session: SessionRecord; score: number } => entry.score != null);
+
   const averageScore =
-    completedSessions.length > 0
+    scoredCompleted.length > 0
       ? Math.round(
-          completedSessions.reduce((acc, session) => acc + getSessionScore(session), 0) /
-            completedSessions.length
+          scoredCompleted.reduce((acc, entry) => acc + entry.score, 0) / scoredCompleted.length,
         )
-      : 0;
+      : null;
 
   const thisMonthRange = getMonthRange(now);
   const previousMonthRange = getPreviousMonthRange(now);
 
-  const thisMonthCompleted = completedSessions.filter(
-    (session) => session.createdAt >= thisMonthRange.start && session.createdAt < thisMonthRange.end
+  const thisMonthScored = scoredCompleted.filter(
+    (entry) =>
+      entry.session.createdAt >= thisMonthRange.start &&
+      entry.session.createdAt < thisMonthRange.end,
   );
-  const previousMonthCompleted = completedSessions.filter(
-    (session) => session.createdAt >= previousMonthRange.start && session.createdAt < previousMonthRange.end
+  const previousMonthScored = scoredCompleted.filter(
+    (entry) =>
+      entry.session.createdAt >= previousMonthRange.start &&
+      entry.session.createdAt < previousMonthRange.end,
   );
 
   const thisMonthAverage =
-    thisMonthCompleted.length > 0
+    thisMonthScored.length > 0
       ? Math.round(
-          thisMonthCompleted.reduce((acc, session) => acc + getSessionScore(session), 0) /
-            thisMonthCompleted.length
+          thisMonthScored.reduce((acc, entry) => acc + entry.score, 0) / thisMonthScored.length,
         )
       : 0;
 
   const previousMonthAverage =
-    previousMonthCompleted.length > 0
+    previousMonthScored.length > 0
       ? Math.round(
-          previousMonthCompleted.reduce((acc, session) => acc + getSessionScore(session), 0) /
-            previousMonthCompleted.length
+          previousMonthScored.reduce((acc, entry) => acc + entry.score, 0) /
+            previousMonthScored.length,
         )
       : 0;
 
@@ -560,34 +592,69 @@ export async function getDashboardOverviewData(userId: string): Promise<Dashboar
 
   const streak = calculateStreak(sessions, now);
 
-  const recentSessions = completedSessions
-    .slice(0, 5)
-    .map((session) => ({
-    id: session.id,
-    role: session.role,
-    company: session.company || "Unknown",
-    score: getSessionScore(session),
-    duration: `${estimateSessionMinutes(session)} min`,
-    date: formatSessionDate(session.createdAt),
-    videoKey: session.videoKey ?? null,
-  }));
+  const recentSessions = completedSessions.slice(0, 5).map((session) => {
+    const parsedType = interviewTypeSchema.safeParse(session.type);
+    return {
+      id: session.id,
+      role: session.role,
+      company: session.company || "Unknown",
+      type: parsedType.success ? parsedType.data : null,
+      difficulty: session.difficulty ?? null,
+      score: getRubricScore(session),
+      duration: `${estimateSessionMinutes(session)} min`,
+      date: formatSessionDate(session.createdAt),
+      videoKey: session.videoKey ?? null,
+    };
+  });
 
+  // Daily chart: only completed sessions with a real rubric score (no progress placeholders).
   const lastSevenDays = Array.from({ length: 7 }, (_, index) => {
     const day = addDays(startOfDay(now), index - 6);
     const dayKey = day.toISOString().slice(0, 10);
-    const daySessions = sessions.filter(
-      (session) => startOfDay(session.createdAt).toISOString().slice(0, 10) === dayKey
+    const dayScored = scoredCompleted.filter(
+      (entry) => startOfDay(entry.session.createdAt).toISOString().slice(0, 10) === dayKey,
     );
-    const avg =
-      daySessions.length > 0
-        ? Math.round(daySessions.reduce((acc, session) => acc + getSessionScore(session), 0) / daySessions.length)
-        : 0;
-
+    if (dayScored.length === 0) {
+      return null;
+    }
     return {
       label: day.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      value: avg,
+      value: Math.round(dayScored.reduce((acc, entry) => acc + entry.score, 0) / dayScored.length),
     };
-  });
+  }).filter((point): point is DashboardChartPoint => point != null);
+
+  const byType: DashboardTypeBreakdown[] = [];
+  for (const type of INTERVIEW_TYPE_VALUES) {
+    const typed = completedSessions.filter((session) => {
+      const parsed = interviewTypeSchema.safeParse(session.type);
+      return parsed.success && parsed.data === type;
+    });
+    if (typed.length === 0) continue;
+
+    const scored = typed
+      .map((session) => getRubricScore(session))
+      .filter((score): score is number => score != null);
+    const recentScores = [...typed]
+      .reverse()
+      .map((session) => getRubricScore(session))
+      .filter((score): score is number => score != null)
+      .slice(-5);
+
+    byType.push({
+      type,
+      label: INTERVIEW_TYPE_META[type].label,
+      count: typed.length,
+      avgScore:
+        scored.length > 0
+          ? Math.round(scored.reduce((acc, score) => acc + score, 0) / scored.length)
+          : null,
+      lastScore: scored.length > 0 ? scored[0]! : null,
+      recentScores,
+    });
+  }
+
+  const subScores = deriveSubScores(completedSessions);
+  const insights = deriveStrengthsAndImprovementsFromEvaluations(completedSessions);
 
   const result: DashboardOverviewData = {
     stats: [
@@ -599,9 +666,9 @@ export async function getDashboardOverviewData(userId: string): Promise<Dashboar
       },
       {
         label: "Average Score",
-        value: String(averageScore),
+        value: averageScore == null ? "—" : String(averageScore),
         change: `${averageDelta >= 0 ? "+" : ""}${averageDelta} pts vs last month`,
-        suffix: "/100",
+        suffix: averageScore == null ? undefined : "/100",
         iconKey: "average",
       },
       {
@@ -615,12 +682,16 @@ export async function getDashboardOverviewData(userId: string): Promise<Dashboar
         label: "Current Streak",
         value: String(streak),
         change: streak >= 7 ? "Personal best!" : "Keep going!",
-        suffix: " days 🔥",
+        suffix: "d",
         iconKey: "streak",
       },
     ],
     recentSessions,
     chartData: lastSevenDays,
+    byType,
+    subScores,
+    topStrength: insights?.strengths[0] ?? null,
+    topFocus: insights?.improvements[0] ?? null,
   };
 
   writeCache(dashboardCache, userId, result, DASHBOARD_CACHE_TTL_MS);

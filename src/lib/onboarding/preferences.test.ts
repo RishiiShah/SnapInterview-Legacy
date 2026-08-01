@@ -20,7 +20,7 @@ describe("onboarding preferences helpers", () => {
     ).toEqual({
       ...DEFAULT_ONBOARDING_FORM_VALUES,
       onboardingRole: "Frontend Engineer",
-      preferredInterviewType: "technical",
+      preferredInterviewType: "coding-algorithms",
     });
 
     expect(

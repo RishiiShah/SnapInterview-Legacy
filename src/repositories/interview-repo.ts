@@ -1,6 +1,17 @@
 import { randomBytes } from "crypto";
 import type { InterviewStatus, Prisma } from "@/generated/prisma/client";
 import type { Difficulty, InterviewPersona, InterviewType } from "@/lib/interview/domain";
+
+const TYPE_FILTER_ALIASES: Record<InterviewType, string[]> = {
+  "recruiter-screen": ["recruiter-screen"],
+  "behavioral-leadership": ["behavioral-leadership", "behavioral", "leadership"],
+  "coding-algorithms": ["coding-algorithms", "technical", "coding"],
+  "system-design": ["system-design"],
+  "domain-role": ["domain-role"],
+  "take-home": ["take-home"],
+  "hiring-manager": ["hiring-manager"],
+  "bar-raiser": ["bar-raiser"],
+};
 import { prisma } from "@/lib/prisma";
 
 const interviewSessionStateSelect = {
@@ -286,7 +297,7 @@ export async function listCompletedSessionsForUser(params: {
       userId,
       deletedAt: null,
       status: "COMPLETED",
-      ...(interviewType ? { type: interviewType } : {}),
+      ...(interviewType ? { type: { in: TYPE_FILTER_ALIASES[interviewType] } } : {}),
     },
     orderBy: { createdAt: "desc" },
     skip: offset,

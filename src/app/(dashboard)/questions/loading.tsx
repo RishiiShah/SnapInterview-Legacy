@@ -8,7 +8,7 @@ export default function QuestionsLoading() {
           <div className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-700">
             Loading Your Question Bank
           </div>
-          <p className="max-w-xl text-sm text-zinc-500">
+          <p className="max-w-xl text-sm text-zinc-600">
             Sorting the prompts, categories, and solved status for your next practice block.
           </p>
         </div>

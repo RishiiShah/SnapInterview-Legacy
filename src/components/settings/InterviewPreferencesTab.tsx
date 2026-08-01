@@ -61,7 +61,7 @@ export default function InterviewPreferencesTab({ initialValues }: InterviewPref
       <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="border-b border-zinc-100 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
           <h2 className="text-xl font-semibold text-zinc-900">AI Voice</h2>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-zinc-600">
             Control whether the AI interviewer speaks and how fast.
           </p>
         </div>
@@ -69,7 +69,7 @@ export default function InterviewPreferencesTab({ initialValues }: InterviewPref
           <div className="flex items-center justify-between gap-3 px-4 py-5 sm:px-6 lg:px-8">
             <div>
               <p className="text-sm font-medium text-zinc-900">AI voice</p>
-              <p className="text-xs text-zinc-500 mt-0.5">Read questions aloud during interviews</p>
+              <p className="text-xs text-zinc-600 mt-0.5">Read questions aloud during interviews</p>
             </div>
             <button
               onClick={handleMuteToggle}
@@ -100,7 +100,7 @@ export default function InterviewPreferencesTab({ initialValues }: InterviewPref
                 }`}
               >
                 <span className="text-sm font-semibold">{option.label}</span>
-                <span className={`text-xs ${speed === option.value ? "text-white/60" : "text-zinc-400"}`}>
+                <span className={`text-xs ${speed === option.value ? "text-white/60" : "text-zinc-600"}`}>
                   {option.desc}
                 </span>
               </button>

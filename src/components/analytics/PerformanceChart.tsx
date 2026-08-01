@@ -17,7 +17,7 @@ export default function PerformanceChart({ weeklyScores, delay = 0.2 }: Performa
   return (
     <FadeIn triggerOnView={false} delay={delay} direction="up" className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-[18px]">
       <h3 className="mb-1 text-sm font-semibold text-zinc-900">Weekly Performance</h3>
-      <p className="mb-1.5 text-xs text-zinc-400">Score trend this week</p>
+      <p className="mb-1.5 text-xs text-zinc-600">Score trend this week</p>
       <div className="mt-1 flex min-h-[150px] flex-1 items-end gap-2.5 pt-2.5">
         {weeklyScores.map((d, i) => (
           <div key={d.label} className="group flex h-full flex-1 flex-col items-center justify-end gap-2">
@@ -37,7 +37,7 @@ export default function PerformanceChart({ weeklyScores, delay = 0.2 }: Performa
                 </span>
               </motion.div>
             </div>
-            <span className="text-[10px] text-zinc-400">{d.label}</span>
+            <span className="text-[10px] text-zinc-600">{d.label}</span>
           </div>
         ))}
       </div>

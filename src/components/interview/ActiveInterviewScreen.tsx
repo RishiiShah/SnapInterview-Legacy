@@ -109,8 +109,8 @@ export default function ActiveInterviewScreen({
         <div className="relative flex items-center justify-between px-1 h-10 shrink-0">
           <div className="flex flex-col gap-1.5 w-full max-w-100">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold tracking-wider text-zinc-500 uppercase">Progress</span>
-              <span className="text-[11px] font-semibold tracking-wider text-zinc-500">
+              <span className="text-[11px] font-semibold tracking-wider text-zinc-600 uppercase">Progress</span>
+              <span className="text-[11px] font-semibold tracking-wider text-zinc-600">
                 {answeredQuestions} / {totalQuestions}
               </span>
             </div>
@@ -125,7 +125,7 @@ export default function ActiveInterviewScreen({
           <button
             onClick={onExitInterview}
             disabled={isUploading || interviewDone}
-            className="absolute right-0 top-1/2 -translate-y-1/2 rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-xs font-semibold text-zinc-400 transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="absolute right-0 top-1/2 -translate-y-1/2 rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-xs font-semibold text-zinc-600 transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isUploading ? "Uploading…" : "Exit Interview"}
           </button>
@@ -181,7 +181,7 @@ export default function ActiveInterviewScreen({
 
                     {isThinking && !currentStreamedText && (
                       <div className="flex w-full justify-start">
-                        <div className="max-w-[90%] rounded-2xl px-3 py-2 text-sm leading-relaxed bg-zinc-800 text-zinc-400 rounded-bl-sm ring-1 ring-white/5 flex items-center gap-1.5">
+                        <div className="max-w-[90%] rounded-2xl px-3 py-2 text-sm leading-relaxed bg-zinc-800 text-zinc-600 rounded-bl-sm ring-1 ring-white/5 flex items-center gap-1.5">
                           <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '0ms' }} />
                           <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '150ms' }} />
                           <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -256,7 +256,7 @@ export default function ActiveInterviewScreen({
 
                   {isThinking && !currentStreamedText && (
                     <div className="flex w-full justify-start">
-                      <div className="max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed bg-zinc-800 text-zinc-400 rounded-bl-sm ring-1 ring-white/5 flex items-center gap-1.5">
+                      <div className="max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed bg-zinc-800 text-zinc-600 rounded-bl-sm ring-1 ring-white/5 flex items-center gap-1.5">
                         <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '0ms' }} />
                         <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '150ms' }} />
                         <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -365,7 +365,7 @@ export default function ActiveInterviewScreen({
                   )}
                 </button>
                 <div className="h-6 w-px bg-zinc-800" />
-                <span className="text-xs text-zinc-500">Voice unavailable — type your answer below</span>
+                <span className="text-xs text-zinc-600">Voice unavailable — type your answer below</span>
               </div>
               <div className="flex gap-2">
                 <textarea

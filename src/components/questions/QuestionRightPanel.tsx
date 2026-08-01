@@ -45,7 +45,7 @@ export function QuestionRightPanel({
                     <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold font-mono border ${
                         timeRemaining <= 60 
                             ? "bg-red-50 border-red-100 text-red-600" 
-                            : "bg-zinc-50 border-zinc-100 text-zinc-500"
+                            : "bg-zinc-50 border-zinc-100 text-zinc-600"
                         }`}>
                         <IconClock className="h-3.5 w-3.5" strokeWidth={2.5} />
                         {formatTime(timeRemaining)}
@@ -58,11 +58,11 @@ export function QuestionRightPanel({
                 {!isTimerStarted ? (
                     /* Start state */
                     <div className="flex flex-1 flex-col items-center justify-center text-center px-10">
-                        <div className="mb-6 grid h-16 w-16 place-items-center rounded-2xl bg-zinc-50 border border-zinc-100 text-zinc-400">
-                            <IconPractice className="h-8 w-8" strokeWidth={1.5} />
+                        <div className="mb-6 grid h-16 w-16 place-items-center rounded-2xl bg-zinc-50 border border-zinc-100 text-zinc-600">
+                            <IconPractice className="h-8 w-8" strokeWidth={2} />
                         </div>
                         <h3 className="mb-2 text-sm font-bold text-zinc-900 tracking-tight">Ready to practice?</h3>
-                        <p className="mb-8 text-xs text-zinc-500 leading-relaxed max-w-[240px]">
+                        <p className="mb-8 text-xs text-zinc-600 leading-relaxed max-w-[240px]">
                             You&apos;ll have <span className="font-semibold text-zinc-900">{question.estimatedTime}</span> to write your answer and receive AI feedback.
                         </p>
                         <button
@@ -90,7 +90,7 @@ export function QuestionRightPanel({
                         </div>
 
                         {/* Saved + line info bar */}
-                        <div className="flex shrink-0 items-center justify-between border-t border-zinc-100 bg-white px-6 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                        <div className="flex shrink-0 items-center justify-between border-t border-zinc-100 bg-white px-6 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-600">
                             <span>{answerText.length} characters</span>
                             <span>Ln 1, Col 1</span>
                         </div>
@@ -104,7 +104,7 @@ export function QuestionRightPanel({
                                     className={`relative cursor-pointer px-4 py-2 text-xs font-bold transition-all ${
                                         rightTab === "answer"
                                             ? "text-zinc-900"
-                                            : "text-zinc-400 hover:text-zinc-600"
+                                            : "text-zinc-600 hover:text-zinc-600"
                                     }`}
                                 >
                                     📝 Submit
@@ -117,7 +117,7 @@ export function QuestionRightPanel({
                                     className={`relative cursor-pointer px-4 py-2 text-xs font-bold transition-all ${
                                         rightTab === "result"
                                             ? "text-zinc-900"
-                                            : "text-zinc-400 hover:text-zinc-600"
+                                            : "text-zinc-600 hover:text-zinc-600"
                                     }`}
                                 >
                                     <span className="flex items-center gap-2">
@@ -153,7 +153,7 @@ export function QuestionRightPanel({
                                 ) : (
                                     <div>
                                         {!score ? (
-                                            <p className="py-4 text-center text-sm text-zinc-500">Submit your answer first.</p>
+                                            <p className="py-4 text-center text-sm text-zinc-600">Submit your answer first.</p>
                                         ) : score.state === "evaluating" ? (
                                             <div className="flex items-center justify-center gap-3 py-6 text-sm text-sky-600 font-bold">
                                                 <IconSpinner className="h-5 w-5 animate-spin" />

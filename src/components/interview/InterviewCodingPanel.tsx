@@ -108,7 +108,7 @@ export function InterviewCodingPanel({ challenge, onSubmitCode }: InterviewCodin
         <button
           onClick={handleReset}
           disabled={hasSubmitted}
-          className="cursor-pointer rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-400 transition-all hover:bg-zinc-800 hover:text-zinc-200 disabled:opacity-40"
+          className="cursor-pointer rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-600 transition-all hover:bg-zinc-800 hover:text-zinc-200 disabled:opacity-40"
         >
           Reset
         </button>
@@ -145,7 +145,7 @@ export function InterviewCodingPanel({ challenge, onSubmitCode }: InterviewCodin
                 key={tab}
                 onClick={() => setBottomTab(tab)}
                 className={`relative cursor-pointer px-4 py-2 text-xs font-bold capitalize transition-all ${
-                  bottomTab === tab ? "text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
+                  bottomTab === tab ? "text-zinc-100" : "text-zinc-600 hover:text-zinc-300"
                 }`}
               >
                 {tab === "testcase" ? "Test Cases" : "Result"}
@@ -174,7 +174,7 @@ export function InterviewCodingPanel({ challenge, onSubmitCode }: InterviewCodin
         </div>
 
         {/* Panel content */}
-        <div className="h-44 overflow-y-auto px-5 py-3 [&_pre]:!bg-zinc-800 [&_pre]:!text-zinc-300 [&_p]:!text-zinc-500 [&_button]:!bg-zinc-800 [&_button]:!text-zinc-400">
+        <div className="h-44 overflow-y-auto px-5 py-3 [&_pre]:!bg-zinc-800 [&_pre]:!text-zinc-300 [&_p]:!text-zinc-600 [&_button]:!bg-zinc-800 [&_button]:!text-zinc-600">
           {bottomTab === "testcase" ? (
             <TestCasePanel testCases={challenge.testCases} />
           ) : (

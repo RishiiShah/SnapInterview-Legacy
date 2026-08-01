@@ -9,7 +9,7 @@ export default function AnalyticsLoading() {
             <div className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-700">
               Reading Your Interview Patterns
             </div>
-            <p className="max-w-xl text-sm text-zinc-500">
+            <p className="max-w-xl text-sm text-zinc-600">
               Building a quick view of your strongest responses, repeated misses, and momentum over time.
             </p>
           </div>

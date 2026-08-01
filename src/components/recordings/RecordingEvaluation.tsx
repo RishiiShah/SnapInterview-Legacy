@@ -33,7 +33,7 @@ export function RecordingEvaluation({ evaluation }: { evaluation: EvaluationResu
                 </div>
                 <div>
                     <h3 className="text-lg font-bold text-zinc-900">Overall Score</h3>
-                    <p className="text-sm text-zinc-500 mt-1">Based on technical depth, communication, and structure.</p>
+                    <p className="text-sm text-zinc-600 mt-1">Based on technical depth, communication, and structure.</p>
                 </div>
             </div>
 
@@ -46,7 +46,7 @@ export function RecordingEvaluation({ evaluation }: { evaluation: EvaluationResu
                         { label: "Clarity", value: evaluation.clarity, bar: "bg-emerald-400" },
                     ].map(({ label, value, bar }) => (
                         <div key={label} className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-3">
-                            <p className="text-[10px] font-medium text-zinc-500 mb-1">{label}</p>
+                            <p className="text-[10px] font-medium text-zinc-600 mb-1">{label}</p>
                             {value != null ? (
                                 <>
                                     <p className="text-xl font-bold tracking-tight text-zinc-900 leading-none mb-2">{value}</p>
@@ -58,7 +58,7 @@ export function RecordingEvaluation({ evaluation }: { evaluation: EvaluationResu
                                     </div>
                                 </>
                             ) : (
-                                <p className="text-xs text-zinc-400 italic">—</p>
+                                <p className="text-xs text-zinc-600 italic">—</p>
                             )}
                         </div>
                     ))}
@@ -67,7 +67,7 @@ export function RecordingEvaluation({ evaluation }: { evaluation: EvaluationResu
 
             {/* Feedback Summary */}
             <div>
-                <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-zinc-500">Feedback Summary</h3>
+                <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-zinc-600">Feedback Summary</h3>
                 <p className="text-sm text-zinc-700 leading-relaxed bg-zinc-50 p-4 rounded-xl border border-zinc-100">
                     {evaluation.feedback}
                 </p>

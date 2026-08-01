@@ -105,7 +105,7 @@ export default function SearchableDropdown({
         <div>
             <label className="mb-1.5 block text-sm font-medium text-zinc-700">
                 {label}
-                {isOptional && <span className="text-zinc-400"> (optional)</span>}
+                {isOptional && <span className="text-zinc-600"> (optional)</span>}
             </label>
 
             <div ref={containerRef} className="relative">
@@ -154,7 +154,7 @@ export default function SearchableDropdown({
                                 </button>
                             ))
                         ) : (
-                            <div className="px-4 py-3 text-center text-sm text-zinc-400">No matches found</div>
+                            <div className="px-4 py-3 text-center text-sm text-zinc-600">No matches found</div>
                         )}
                     </div>
                 )}

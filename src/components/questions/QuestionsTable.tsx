@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { CATEGORIES } from "@/data/constants";
-import type { Difficulty, InterviewType, Question } from "@/data/types";
+import type { Difficulty, QuestionCategory, Question } from "@/data/types";
 
 type SortKey = "category" | "difficulty" | "time";
 type SortDir = "asc" | "desc";
@@ -30,7 +30,7 @@ type QuestionsTableProps = {
   filtered: Question[];
   totalQuestions: number;
   setSearch: (value: string) => void;
-  setSelectedCategory: (value: InterviewType | "all") => void;
+  setSelectedCategory: (value: QuestionCategory | "all") => void;
   setSelectedDifficulty: (value: Difficulty | "all") => void;
   sortKey: SortKey | null;
   sortDir: SortDir;
@@ -56,11 +56,11 @@ export default function QuestionsTable({
     return map[d];
   };
 
-  const categoryLabel = (cat: InterviewType) => CATEGORIES.find((c) => c.value === cat);
+  const categoryLabel = (cat: QuestionCategory) => CATEGORIES.find((c) => c.value === cat);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white">
-      <div className="grid grid-cols-[48px_1fr_140px_100px_80px] items-center border-b border-zinc-100 bg-zinc-50/60 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+      <div className="grid grid-cols-[48px_1fr_140px_100px_80px] items-center border-b border-zinc-100 bg-zinc-50/60 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-zinc-600">
         <span>#</span>
         <span>Title</span>
         <button onClick={() => toggleSort("category")} className="flex cursor-pointer items-center text-left transition-colors hover:text-zinc-900">
@@ -85,21 +85,21 @@ export default function QuestionsTable({
 
             return (
               <Link key={q.id} href={`/questions/${q.slug}`} className="group grid grid-cols-[48px_1fr_140px_100px_80px] items-center px-4 py-3.5 transition-colors hover:bg-zinc-50">
-                <span className="text-sm font-medium text-zinc-400">{q.id}</span>
+                <span className="text-sm font-medium text-zinc-600">{q.id}</span>
                 <span className="line-clamp-1 pr-4 text-sm font-medium text-zinc-900 group-hover:text-zinc-700">{q.text}</span>
                 <span className={`inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${cat?.color || ""}`}>
                   {q.type === "coding" && <span className="font-bold">{"</>"}</span>}
                   {cat?.label}
                 </span>
                 <span className={`text-sm font-medium ${diff.color}`}>{diff.text}</span>
-                <span className="text-right text-sm text-zinc-400">{q.estimatedTime}</span>
+                <span className="text-right text-sm text-zinc-600">{q.estimatedTime}</span>
               </Link>
             );
           })}
         </div>
       ) : (
         <div className="py-16 text-center">
-          <p className="text-sm text-zinc-400">No questions match your filters.</p>
+          <p className="text-sm text-zinc-600">No questions match your filters.</p>
           <button
             onClick={() => {
               setSearch("");

@@ -20,7 +20,7 @@ export function TestResultPanel({
   }
 
   if (!runResult) {
-    return <p className="py-4 text-center text-sm text-zinc-500">Run your code to see results.</p>;
+    return <p className="py-4 text-center text-sm text-zinc-600">Run your code to see results.</p>;
   }
 
   const passed = runResult.results.filter((r) => r.passed).length;
@@ -55,7 +55,7 @@ export function TestResultPanel({
             <span className={`font-bold ${r.passed ? "text-emerald-700" : "text-red-700"}`}>
               {r.passed ? "✓" : "✗"} Case {i + 1}
             </span>
-            <span className="text-zinc-400 font-mono">{r.executionTimeMs}ms</span>
+            <span className="text-zinc-600 font-mono">{r.executionTimeMs}ms</span>
           </div>
           {!r.passed && (
             <div className="mt-2 space-y-1">
@@ -67,11 +67,11 @@ export function TestResultPanel({
               )}
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <p className="font-semibold text-zinc-500">Expected:</p>
+                  <p className="font-semibold text-zinc-600">Expected:</p>
                   <pre className="mt-0.5 font-mono whitespace-pre-wrap text-zinc-800">{r.expectedOutput}</pre>
                 </div>
                 <div>
-                  <p className="font-semibold text-zinc-500">Got:</p>
+                  <p className="font-semibold text-zinc-600">Got:</p>
                   <pre className="mt-0.5 font-mono whitespace-pre-wrap text-zinc-800">{r.stdout || "(empty)"}</pre>
                 </div>
               </div>

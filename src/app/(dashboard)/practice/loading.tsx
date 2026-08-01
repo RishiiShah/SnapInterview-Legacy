@@ -8,7 +8,7 @@ export default function PracticeLoading() {
           <div className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-700">
             Setting Up Your Next Mock
           </div>
-          <p className="max-w-xl text-sm text-zinc-500">
+          <p className="max-w-xl text-sm text-zinc-600">
             Loading your practice presets, saved preferences, and recent interview context.
           </p>
         </div>

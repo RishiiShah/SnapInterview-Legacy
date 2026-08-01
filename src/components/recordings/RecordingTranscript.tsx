@@ -73,7 +73,7 @@ export function RecordingTranscript({ transcript, interviewId, feedback }: Props
                         {/* Question Bubble */}
                         <div className="flex justify-start gap-2">
                             <div className="max-w-[90%] rounded-2xl rounded-tl-sm bg-zinc-100 p-4 text-sm text-zinc-800">
-                                <span className="block text-xs font-bold text-zinc-500 mb-1">Interviewer (Q{idx + 1})</span>
+                                <span className="block text-xs font-bold text-zinc-600 mb-1">Interviewer (Q{idx + 1})</span>
                                 {entry.question}
                             </div>
                             {/* Feedback buttons */}
@@ -85,7 +85,7 @@ export function RecordingTranscript({ transcript, interviewId, feedback }: Props
                                     className={`flex h-7 w-7 items-center justify-center rounded-full border transition-colors ${
                                         currentRating === "up"
                                             ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                                            : "border-zinc-200 bg-white text-zinc-400 hover:border-emerald-400 hover:text-emerald-500"
+                                            : "border-zinc-200 bg-white text-zinc-600 hover:border-emerald-400 hover:text-emerald-500"
                                     } disabled:opacity-50`}
                                 >
                                     <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -99,7 +99,7 @@ export function RecordingTranscript({ transcript, interviewId, feedback }: Props
                                     className={`flex h-7 w-7 items-center justify-center rounded-full border transition-colors ${
                                         currentRating === "down"
                                             ? "border-red-400 bg-red-50 text-red-500"
-                                            : "border-zinc-200 bg-white text-zinc-400 hover:border-red-300 hover:text-red-400"
+                                            : "border-zinc-200 bg-white text-zinc-600 hover:border-red-300 hover:text-red-400"
                                     } disabled:opacity-50`}
                                 >
                                     <svg className="h-3.5 w-3.5 rotate-180" fill="currentColor" viewBox="0 0 20 20">

@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 
 import { CATEGORIES } from "@/data/constants";
-import type { InterviewType, Difficulty, Question } from "@/data/types";
+import type { Difficulty, Question, QuestionCategory } from "@/data/types";
 import { FadeIn, SlideIn } from "@/components/ui/motion";
 import QuestionsFilterBar from "@/components/questions/QuestionsFilterBar";
 import QuestionsTable from "@/components/questions/QuestionsTable";
@@ -17,7 +17,13 @@ type QuestionsPageClientProps = {
 };
 
 const DIFFICULTY_ORDER: Record<Difficulty, number> = { easy: 0, medium: 1, hard: 2 };
-const CATEGORY_ORDER: Record<InterviewType, number> = { behavioral: 0, technical: 1, "system-design": 2, leadership: 3, coding: 4 };
+const CATEGORY_ORDER: Record<QuestionCategory, number> = {
+  behavioral: 0,
+  technical: 1,
+  "system-design": 2,
+  leadership: 3,
+  coding: 4,
+};
 
 function getMinutes(t: string): number {
   const m = t.match(/(\d+)/);
@@ -34,7 +40,7 @@ function compareFn(a: Question, b: Question, key: SortKey, dir: SortDir): number
 
 export default function QuestionsPageClient({ initialSolvedIds, questions }: QuestionsPageClientProps) {
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<InterviewType | "all">("all");
+  const [selectedCategory, setSelectedCategory] = useState<QuestionCategory | "all">("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | "all">("all");
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -81,7 +87,7 @@ export default function QuestionsPageClient({ initialSolvedIds, questions }: Que
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Question Bank</h1>
-              <p className="mt-1 text-sm text-zinc-500">
+              <p className="mt-1 text-sm text-zinc-600">
                 {questions.length} questions across {CATEGORIES.length} categories
               </p>
             </div>
@@ -106,7 +112,7 @@ export default function QuestionsPageClient({ initialSolvedIds, questions }: Que
         </FadeIn>
 
         <FadeIn delay={0.25} direction="up" className="relative z-10">
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-zinc-600">
             Showing {filtered.length} of {questions.length} question{filtered.length !== 1 ? "s" : ""}
           </p>
         </FadeIn>

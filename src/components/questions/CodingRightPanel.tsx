@@ -103,7 +103,7 @@ export function CodingRightPanel({ question, onSolved }: CodingRightPanelProps) 
         </div>
         <button
           onClick={handleReset}
-          className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-500 transition-all hover:bg-zinc-50 hover:text-zinc-700"
+          className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-600 transition-all hover:bg-zinc-50 hover:text-zinc-700"
         >
           Reset
         </button>
@@ -141,7 +141,7 @@ export function CodingRightPanel({ question, onSolved }: CodingRightPanelProps) 
                 key={tab}
                 onClick={() => setBottomTab(tab)}
                 className={`relative cursor-pointer px-4 py-2 text-xs font-bold capitalize transition-all ${
-                  bottomTab === tab ? "text-zinc-900" : "text-zinc-400 hover:text-zinc-600"
+                  bottomTab === tab ? "text-zinc-900" : "text-zinc-600 hover:text-zinc-600"
                 }`}
               >
                 {tab === "testcase" ? "Test Cases" : "Result"}

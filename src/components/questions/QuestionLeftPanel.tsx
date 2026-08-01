@@ -1,7 +1,7 @@
 "use client";
 
 import { CATEGORIES } from "@/data/constants";
-import type { Question, Difficulty, InterviewType } from "@/data/types";
+import type { Question, Difficulty, QuestionCategory } from "@/data/types";
 import {
     IconAcademicCap,
     IconCheckCircle,
@@ -27,7 +27,7 @@ interface QuestionLeftPanelProps {
 
 const diffLabel = (d: Difficulty) =>
     ({ easy: "Easy", medium: "Medium", hard: "Hard" })[d];
-const catInfo = (c: InterviewType) => CATEGORIES.find((x) => x.value === c);
+const catInfo = (c: QuestionCategory) => CATEGORIES.find((x) => x.value === c);
 
 export function QuestionLeftPanel({
     question, leftTab, setLeftTab, showHint, setShowHint, showTopics, setShowTopics,
@@ -44,7 +44,7 @@ export function QuestionLeftPanel({
                         className={`relative cursor-pointer px-4 py-3 text-xs font-semibold capitalize transition-all ${
                             leftTab === tab
                                 ? "text-zinc-900"
-                                : "text-zinc-400 hover:text-zinc-600"
+                                : "text-zinc-600 hover:text-zinc-600"
                         }`}
                     >
                         {tab === "description" ? "📄 Description" : "💡 Solutions"}
@@ -82,7 +82,7 @@ export function QuestionLeftPanel({
                                     <div className="whitespace-pre-wrap">{question.description}</div>
                                     {question.constraints && (
                                         <div className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-4">
-                                            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Constraints</p>
+                                            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 mb-2">Constraints</p>
                                             <pre className="text-xs text-zinc-700 font-mono whitespace-pre-wrap">{question.constraints}</pre>
                                         </div>
                                     )}
@@ -94,11 +94,11 @@ export function QuestionLeftPanel({
                             )}
                             <div className="grid grid-cols-2 gap-4 rounded-xl border border-zinc-100 bg-zinc-50/50 p-4">
                                 <div>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Category</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">Category</p>
                                     <p className="mt-0.5 font-medium text-zinc-900">{catInfo(question.category)?.label}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Time Est.</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">Time Est.</p>
                                     <p className="mt-0.5 font-medium text-zinc-900">{question.estimatedTime}</p>
                                 </div>
                             </div>
@@ -124,7 +124,7 @@ export function QuestionLeftPanel({
                         {/* Topics (collapsible) */}
                         <button
                             onClick={() => setShowTopics(!showTopics)}
-                            className="flex w-full cursor-pointer items-center justify-between py-2 text-sm font-semibold text-zinc-500 transition-colors hover:text-zinc-900"
+                            className="flex w-full cursor-pointer items-center justify-between py-2 text-sm font-semibold text-zinc-600 transition-colors hover:text-zinc-900"
                         >
                             <span className="flex items-center gap-2.5">
                                 <IconTag className="h-4 w-4" />
@@ -147,7 +147,7 @@ export function QuestionLeftPanel({
                             <>
                                 <button
                                     onClick={() => setShowHint(!showHint)}
-                                    className="flex w-full cursor-pointer items-center justify-between py-2 text-sm font-semibold text-zinc-500 transition-colors hover:text-zinc-900"
+                                    className="flex w-full cursor-pointer items-center justify-between py-2 text-sm font-semibold text-zinc-600 transition-colors hover:text-zinc-900"
                                 >
                                     <span className="flex items-center gap-2.5">
                                         <IconLightBulb className="h-4 w-4 text-amber-500" />
@@ -187,11 +187,11 @@ export function QuestionLeftPanel({
                 ) : (
                     /* Solutions tab */
                     <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-zinc-50 border border-zinc-100 text-zinc-400">
+                        <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-zinc-50 border border-zinc-100 text-zinc-600">
                             <IconLightBulb className="h-7 w-7" />
                         </div>
                         <p className="text-sm font-semibold text-zinc-900">Community solutions coming soon.</p>
-                        <p className="mt-2 max-w-[240px] text-xs text-zinc-500 leading-relaxed">Practice this question and build your own approach to share with others.</p>
+                        <p className="mt-2 max-w-[240px] text-xs text-zinc-600 leading-relaxed">Practice this question and build your own approach to share with others.</p>
                     </div>
                 )}
             </div>

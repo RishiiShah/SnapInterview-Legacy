@@ -133,7 +133,7 @@ export default function SecurityTab() {
         <div className="flex items-center justify-between border-b border-zinc-100 px-8 py-6">
           <div>
             <h2 className="text-lg font-semibold text-zinc-900">Signed-in devices</h2>
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="mt-1 text-sm text-zinc-600">
               Active login sessions grouped by device. Revoke any device you no longer trust.
             </p>
           </div>
@@ -150,9 +150,9 @@ export default function SecurityTab() {
 
         <div className="divide-y divide-zinc-100">
           {loading ? (
-            <p className="px-8 py-6 text-sm text-zinc-500">Loading devices…</p>
+            <p className="px-8 py-6 text-sm text-zinc-600">Loading devices…</p>
           ) : data.devices.length === 0 ? (
-            <p className="px-8 py-6 text-sm text-zinc-500">No active devices found.</p>
+            <p className="px-8 py-6 text-sm text-zinc-600">No active devices found.</p>
           ) : (
             data.devices.map((device) => (
               <div key={device.deviceKey} className="flex items-center justify-between gap-4 px-8 py-4">
@@ -165,7 +165,7 @@ export default function SecurityTab() {
                       </span>
                     )}
                   </p>
-                  <p className="mt-1 text-xs text-zinc-500">
+                  <p className="mt-1 text-xs text-zinc-600">
                     Last seen {formatDate(device.lastSeenAt)} • Expires {formatDate(device.expiresAt)}
                     {device.sessionIds.length > 1
                       ? ` • ${device.sessionIds.length} active sessions`
@@ -190,19 +190,19 @@ export default function SecurityTab() {
       <div className="rounded-2xl border border-zinc-200 bg-white">
         <div className="border-b border-zinc-100 px-8 py-6">
           <h2 className="text-lg font-semibold text-zinc-900">Recent sign-ins</h2>
-          <p className="mt-1 text-sm text-zinc-500">Successful logins from the last 30 days.</p>
+          <p className="mt-1 text-sm text-zinc-600">Successful logins from the last 30 days.</p>
         </div>
 
         <div className="divide-y divide-zinc-100">
           {loading ? (
-            <p className="px-8 py-6 text-sm text-zinc-500">Loading sign-ins…</p>
+            <p className="px-8 py-6 text-sm text-zinc-600">Loading sign-ins…</p>
           ) : data.loginSuccesses.length === 0 ? (
-            <p className="px-8 py-6 text-sm text-zinc-500">No recent sign-ins recorded.</p>
+            <p className="px-8 py-6 text-sm text-zinc-600">No recent sign-ins recorded.</p>
           ) : (
             data.loginSuccesses.map((entry) => (
               <div key={entry.id} className="px-8 py-4">
                 <p className="text-sm font-medium text-zinc-900">Signed in</p>
-                <p className="mt-1 text-xs text-zinc-500">
+                <p className="mt-1 text-xs text-zinc-600">
                   {formatDate(entry.createdAt)} • {describeUserAgent(entry.userAgent)} •{" "}
                   {formatProvider(entry.provider)}
                 </p>
@@ -215,23 +215,23 @@ export default function SecurityTab() {
       <div className="rounded-2xl border border-zinc-200 bg-white">
         <div className="border-b border-zinc-100 px-8 py-6">
           <h2 className="text-lg font-semibold text-zinc-900">Suspicious sign-in attempts</h2>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-zinc-600">
             Multiple wrong-password attempts from the same device in the last 30 days.
           </p>
         </div>
 
         <div className="divide-y divide-zinc-100">
           {loading ? (
-            <p className="px-8 py-6 text-sm text-zinc-500">Loading attempts…</p>
+            <p className="px-8 py-6 text-sm text-zinc-600">Loading attempts…</p>
           ) : data.failedLoginAttempts.length === 0 ? (
-            <p className="px-8 py-6 text-sm text-zinc-500">No repeated failed attempts detected.</p>
+            <p className="px-8 py-6 text-sm text-zinc-600">No repeated failed attempts detected.</p>
           ) : (
             data.failedLoginAttempts.map((entry) => (
               <div key={entry.deviceKey} className="px-8 py-4">
                 <p className="text-sm font-medium text-zinc-900">
                   {entry.attemptCount} failed attempts
                 </p>
-                <p className="mt-1 text-xs text-zinc-500">
+                <p className="mt-1 text-xs text-zinc-600">
                   Last attempt {formatDate(entry.lastAttemptAt)} •{" "}
                   {describeUserAgent(entry.userAgent)}
                 </p>

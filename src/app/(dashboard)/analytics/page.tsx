@@ -66,7 +66,7 @@ export default async function AnalyticsPage() {
                     <div className="flex flex-wrap items-end justify-between gap-3">
                         <div>
                         <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Analytics</h1>
-                        <p className="mt-1 text-sm text-zinc-500">Track your progress and identify areas for improvement.</p>
+                        <p className="mt-1 text-sm text-zinc-600">Track your progress and identify areas for improvement.</p>
                         </div>
                         <Link
                             href="/recordings"
@@ -82,7 +82,7 @@ export default async function AnalyticsPage() {
                     <FadeIn triggerOnView={false} direction="up">
                         <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/40 px-6 py-20 text-center">
                             <p className="text-base font-semibold text-zinc-800">No interview data yet</p>
-                            <p className="mt-1.5 max-w-sm text-sm text-zinc-500">
+                            <p className="mt-1.5 max-w-sm text-sm text-zinc-600">
                                 Complete a mock interview to unlock your performance analytics and track your progress over time.
                             </p>
                             <Link
@@ -102,7 +102,7 @@ export default async function AnalyticsPage() {
                     <FadeIn triggerOnView={false} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-5">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
-                                <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">Last 30 days</p>
+                                <p className="text-xs font-semibold uppercase tracking-widest text-zinc-600">Last 30 days</p>
                                 <p className="mt-1 text-sm font-medium text-zinc-800">{periodComparison.summary}</p>
                             </div>
                             {periodComparison.scoreDelta !== null && (
@@ -134,9 +134,9 @@ export default async function AnalyticsPage() {
                         const pct = stat.prev > 0 ? Math.round((diff / stat.prev) * 100) : 0;
                         return (
                             <FadeInStaggerItem key={stat.label} className="rounded-2xl border border-zinc-200 bg-white p-4.5">
-                                <p className="text-sm font-medium text-zinc-500">{stat.label}</p>
+                                <p className="text-sm font-medium text-zinc-600">{stat.label}</p>
                                 <p className="mt-1 text-[1.75rem] font-bold tracking-tight text-zinc-900 leading-none">
-                                    {stat.current}<span className="text-lg font-medium text-zinc-400">{stat.suffix}</span>
+                                    {stat.current}<span className="text-lg font-medium text-zinc-600">{stat.suffix}</span>
                                 </p>
                                 <p className={`mt-1 text-xs font-medium ${diff >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                                     {diff >= 0 ? "↑" : "↓"} {Math.abs(pct)}% vs last month
@@ -154,7 +154,7 @@ export default async function AnalyticsPage() {
                 {/* Sub-score Breakdown */}
                 <FadeIn triggerOnView={false} delay={0.35} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
                     <h3 className="mb-1 text-sm font-semibold text-zinc-900">Score Breakdown</h3>
-                    <p className="mb-5 text-xs text-zinc-400">Average sub-scores across all evaluated interviews</p>
+                    <p className="mb-5 text-xs text-zinc-600">Average sub-scores across all evaluated interviews</p>
                     <div className="grid gap-4 sm:grid-cols-3">
                         {[
                             { label: "Communication", value: subScores.communication, description: "Clarity and articulation" },
@@ -162,8 +162,8 @@ export default async function AnalyticsPage() {
                             { label: "Clarity", value: subScores.clarity, description: "Structure and logical flow" },
                         ].map(({ label, value, description }) => (
                             <div key={label} className="rounded-xl border border-zinc-100 p-4">
-                                <p className="text-xs font-medium text-zinc-500">{label}</p>
-                                <p className="text-xs text-zinc-400 mt-0.5 mb-3">{description}</p>
+                                <p className="text-xs font-medium text-zinc-600">{label}</p>
+                                <p className="text-xs text-zinc-600 mt-0.5 mb-3">{description}</p>
                                 {value !== null ? (
                                     <>
                                         <div className="flex items-end justify-between mb-1.5">
@@ -188,7 +188,7 @@ export default async function AnalyticsPage() {
                                         </div>
                                     </>
                                 ) : (
-                                    <p className="text-sm text-zinc-400 italic">No data yet</p>
+                                    <p className="text-sm text-zinc-600 italic">No data yet</p>
                                 )}
                             </div>
                         ))}
@@ -200,15 +200,15 @@ export default async function AnalyticsPage() {
                 {/* Question Feedback */}
                 <FadeIn triggerOnView={false} delay={0.45} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
                     <h3 className="mb-1 text-sm font-semibold text-zinc-900">Question Feedback</h3>
-                    <p className="mb-5 text-xs text-zinc-400">Questions you rated across all interviews</p>
+                    <p className="mb-5 text-xs text-zinc-600">Questions you rated across all interviews</p>
                     {feedbackStats.total === 0 ? (
                         <div className="flex flex-col items-center justify-center py-6 text-center border-2 border-dashed border-zinc-100 rounded-2xl bg-zinc-50/30">
-                            <p className="text-sm font-medium text-zinc-500 italic">Rate questions in the Transcript tab to see insights here</p>
+                            <p className="text-sm font-medium text-zinc-600 italic">Rate questions in the Transcript tab to see insights here</p>
                         </div>
                     ) : (
                         <div className="space-y-4">
                             <div className="flex items-center justify-between text-sm">
-                                <span className="text-zinc-500">{feedbackStats.total} question{feedbackStats.total !== 1 ? "s" : ""} rated</span>
+                                <span className="text-zinc-600">{feedbackStats.total} question{feedbackStats.total !== 1 ? "s" : ""} rated</span>
                                 <span className="font-medium text-zinc-700">
                                     {Math.round((feedbackStats.thumbsUp / feedbackStats.total) * 100)}% positive
                                 </span>
@@ -226,7 +226,7 @@ export default async function AnalyticsPage() {
                                     </svg>
                                     <div>
                                         <p className="text-lg font-bold text-zinc-900 leading-none">{feedbackStats.thumbsUp}</p>
-                                        <p className="text-xs text-zinc-500 mt-0.5">Went well</p>
+                                        <p className="text-xs text-zinc-600 mt-0.5">Went well</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2.5 rounded-xl border border-red-100 bg-red-50/50 px-4 py-3">
@@ -235,7 +235,7 @@ export default async function AnalyticsPage() {
                                     </svg>
                                     <div>
                                         <p className="text-lg font-bold text-zinc-900 leading-none">{feedbackStats.thumbsDown}</p>
-                                        <p className="text-xs text-zinc-500 mt-0.5">Challenging</p>
+                                        <p className="text-xs text-zinc-600 mt-0.5">Challenging</p>
                                     </div>
                                 </div>
                             </div>
@@ -247,7 +247,7 @@ export default async function AnalyticsPage() {
                 <div className="grid gap-6 lg:grid-cols-2 pb-8">
                     <FadeIn triggerOnView={false} delay={0.4} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
                         <h3 className="mb-1 text-sm font-semibold text-zinc-900">Strengths</h3>
-                        <p className="mb-4 text-xs text-zinc-400">Keep leveraging these in interviews</p>
+                        <p className="mb-4 text-xs text-zinc-600">Keep leveraging these in interviews</p>
                         <div className="space-y-2.5">
                             {strengths.length > 0 ? (
                                 strengths.map((skill, idx) => (
@@ -258,7 +258,7 @@ export default async function AnalyticsPage() {
                                 ))
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-8 text-center border-2 border-dashed border-zinc-100 rounded-2xl bg-zinc-50/30">
-                                    <p className="text-sm font-medium text-zinc-500 italic">Complete an interview to get insights</p>
+                                    <p className="text-sm font-medium text-zinc-600 italic">Complete an interview to get insights</p>
                                 </div>
                             )}
                         </div>
@@ -266,7 +266,7 @@ export default async function AnalyticsPage() {
 
                     <FadeIn triggerOnView={false} delay={0.5} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
                         <h3 className="mb-1 text-sm font-semibold text-zinc-900">Areas to Improve</h3>
-                        <p className="mb-4 text-xs text-zinc-400">Focus areas for your next sessions</p>
+                        <p className="mb-4 text-xs text-zinc-600">Focus areas for your next sessions</p>
                         <div className="space-y-2.5">
                             {improvements.length > 0 ? (
                                 improvements.map((skill, idx) => (
@@ -277,7 +277,7 @@ export default async function AnalyticsPage() {
                                 ))
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-8 text-center border-2 border-dashed border-zinc-100 rounded-2xl bg-zinc-50/30">
-                                    <p className="text-sm font-medium text-zinc-500 italic">Complete an interview to get insights</p>
+                                    <p className="text-sm font-medium text-zinc-600 italic">Complete an interview to get insights</p>
                                 </div>
                             )}
                         </div>

@@ -111,12 +111,12 @@ export default function PermissionRequest({
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-zinc-800">
               <div className="text-center px-4">
                 <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-700">
-                  <IconVideoCamera className="h-7 w-7 text-zinc-400" strokeWidth={1.5} />
+                  <IconVideoCamera className="h-7 w-7 text-zinc-600" strokeWidth={2} />
                 </div>
                 {!hasPermission ? (
                   <>
                     <p className="text-lg font-semibold text-white">Camera & Microphone Access</p>
-                    <p className="mt-1.5 text-sm text-zinc-400">SnapInterview needs access to see and hear you.</p>
+                    <p className="mt-1.5 text-sm text-zinc-600">SnapInterview needs access to see and hear you.</p>
                     <button
                       type="button"
                       onClick={() => requestPermissions()}
@@ -129,8 +129,8 @@ export default function PermissionRequest({
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-medium text-zinc-400">Camera is off</p>
-                    <p className="mt-0.5 text-xs text-zinc-500">Click the camera button to turn it on</p>
+                    <p className="text-sm font-medium text-zinc-600">Camera is off</p>
+                    <p className="mt-0.5 text-xs text-zinc-600">Click the camera button to turn it on</p>
                   </>
                 )}
               </div>

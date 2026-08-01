@@ -2,10 +2,10 @@
 
 import { useEffect, useRef } from "react";
 import { DIFFICULTIES } from "@/data/constants";
-import type { Difficulty, InterviewType } from "@/data/types";
+import type { Difficulty, QuestionCategory } from "@/data/types";
 
 type CategoryStat = {
-  value: InterviewType;
+  value: QuestionCategory;
   label: string;
   color: string;
   count: number;
@@ -19,8 +19,8 @@ type QuestionsFilterBarProps = {
   showFilters: boolean;
   setShowFilters: (value: boolean) => void;
   activeFilterCount: number;
-  selectedCategory: InterviewType | "all";
-  setSelectedCategory: (value: InterviewType | "all") => void;
+  selectedCategory: QuestionCategory | "all";
+  setSelectedCategory: (value: QuestionCategory | "all") => void;
   selectedDifficulty: Difficulty | "all";
   setSelectedDifficulty: (value: Difficulty | "all") => void;
   stats: CategoryStat[];
@@ -56,7 +56,7 @@ export default function QuestionsFilterBar({
     <div className="relative">
       <div className="flex flex-wrap items-center gap-3 px-[1%]">
         <div className="relative min-w-[200px] flex-1">
-          <svg className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <svg className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
           <input
@@ -80,8 +80,8 @@ export default function QuestionsFilterBar({
           </div>
           <span className="whitespace-nowrap text-sm font-semibold text-zinc-900">
             {solvedCount}
-            <span className="font-normal text-zinc-400">/{totalQuestions}</span>
-            <span className="ml-1 text-xs font-normal text-zinc-400">Solved</span>
+            <span className="font-normal text-zinc-600">/{totalQuestions}</span>
+            <span className="ml-1 text-xs font-normal text-zinc-600">Solved</span>
           </span>
         </div>
 
@@ -106,7 +106,7 @@ export default function QuestionsFilterBar({
           {showFilters && (
             <div className="absolute right-0 top-full z-20 mt-2 w-80 rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl" style={{ animation: "fadeSlideIn 0.15s ease-out" }}>
               <div>
-                <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Category</h3>
+                <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-zinc-600">Category</h3>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => setSelectedCategory("all")}
@@ -130,7 +130,7 @@ export default function QuestionsFilterBar({
               <div className="my-4 border-t border-zinc-100" />
 
               <div>
-                <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Difficulty</h3>
+                <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-zinc-600">Difficulty</h3>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => setSelectedDifficulty("all")}

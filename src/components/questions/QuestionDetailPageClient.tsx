@@ -174,20 +174,20 @@ export default function QuestionDetailPageClient({
     <div className="-m-6 -mb-2 flex h-[calc(100vh-64px)] flex-col bg-zinc-50">
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-6">
         <div className="flex items-center gap-4">
-          <Link href="/questions" className="group flex items-center gap-2 text-xs font-semibold text-zinc-500 transition-colors hover:text-zinc-900">
+          <Link href="/questions" className="group flex items-center gap-2 text-xs font-semibold text-zinc-600 transition-colors hover:text-zinc-900">
             <IconChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
             Problem List
           </Link>
         </div>
         <div className="flex items-center gap-2">
           {prevQuestion && (
-            <Link href={`/questions/${prevQuestion.slug}`} className="grid h-8 w-8 place-items-center rounded-lg text-zinc-400 transition-all hover:bg-zinc-100 hover:text-zinc-900">
+            <Link href={`/questions/${prevQuestion.slug}`} className="grid h-8 w-8 place-items-center rounded-lg text-zinc-600 transition-all hover:bg-zinc-100 hover:text-zinc-900">
               <IconChevronLeft className="h-4 w-4" />
             </Link>
           )}
-          <span className="text-xs font-medium text-zinc-400">{currentIndex + 1} / {totalQuestions}</span>
+          <span className="text-xs font-medium text-zinc-600">{currentIndex + 1} / {totalQuestions}</span>
           {nextQuestion && (
-            <Link href={`/questions/${nextQuestion.slug}`} className="grid h-8 w-8 place-items-center rounded-lg text-zinc-400 transition-all hover:bg-zinc-100 hover:text-zinc-900">
+            <Link href={`/questions/${nextQuestion.slug}`} className="grid h-8 w-8 place-items-center rounded-lg text-zinc-600 transition-all hover:bg-zinc-100 hover:text-zinc-900">
               <IconChevronRight className="h-4 w-4" />
             </Link>
           )}

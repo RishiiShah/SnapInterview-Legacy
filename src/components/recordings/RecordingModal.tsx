@@ -212,7 +212,7 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[80] flex min-h-dvh items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+                className="fixed inset-0 z-[80] flex min-h-dvh items-center justify-center bg-[#0B0C10]/80 p-4 backdrop-blur-sm"
                 onClick={onClose}
             >
                 <motion.div
@@ -220,7 +220,7 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0.95, opacity: 0, y: 20 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="relative flex h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 md:flex-row"
+                    className="relative flex h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#12141A] shadow-2xl md:flex-row"
                     role="dialog"
                     aria-modal="true"
                     aria-label="Interview recording details"
@@ -228,7 +228,7 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                     {/* Close Button */}
                     <button
                         onClick={onClose}
-                        className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/10 text-zinc-600 backdrop-blur-md transition-colors hover:bg-black/20 hover:text-zinc-900 md:text-zinc-600 md:bg-transparent md:hover:bg-zinc-100"
+                        className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-[#C5CBD8] backdrop-blur-md transition-colors hover:bg-white/20 hover:text-[#F2F4F8] md:bg-transparent md:text-[#A8B0C2] md:hover:bg-white/[0.05] md:hover:text-[#E8ECF4]"
                     >
                         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -249,22 +249,22 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                                 />
                             ) : (
                                 <div className="flex flex-col items-center gap-3 text-center">
-                                    <svg className="h-12 w-12 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <svg className="h-12 w-12 text-[#A8B0C2]/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
                                         <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
                                     </svg>
-                                    <p className="text-sm text-zinc-600">No recording available</p>
+                                    <p className="text-sm text-[#A8B0C2]">No recording available</p>
                                 </div>
                             )}
                         </div>
                     </div>
 
                     {/* Right Side: Data Panel */}
-                    <div className="flex w-full flex-col bg-white md:w-1/2 lg:w-2/5 border-l border-zinc-200">
+                    <div className="flex w-full flex-col bg-[#12141A] md:w-1/2 lg:w-2/5 border-l border-white/[0.08]">
                         {/* Header */}
-                        <div className="border-b border-zinc-200 p-6 pt-8 md:pt-6">
+                        <div className="border-b border-white/[0.06] p-6 pt-8 md:pt-6">
                             <div className="flex items-start justify-between gap-3">
-                                <h2 className="text-xl font-bold text-zinc-900">
+                                <h2 className="text-xl font-bold text-[#F2F4F8]">
                                     {interviewData ? `${interviewData.role} Interview` : "Interview Session"}
                                 </h2>
                                 {interviewData && loadingStep === "idle" && (
@@ -280,7 +280,7 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                                                             setTimeout(() => setShareCopied(false), 2500);
                                                         });
                                                     }}
-                                                    className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-100"
+                                                    className="flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-400 transition-colors hover:bg-emerald-500/20"
                                                 >
                                                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
@@ -290,7 +290,7 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                                                 <button
                                                     onClick={() => void handleRevokeShare()}
                                                     disabled={sharingLoading}
-                                                    className="rounded-xl border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-xs text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-red-500 disabled:opacity-50"
+                                                    className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-2 py-1.5 text-xs text-[#A8B0C2] transition-colors hover:bg-white/[0.05] hover:text-red-400 disabled:opacity-50"
                                                     title="Remove share link"
                                                 >
                                                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -302,7 +302,7 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                                             <button
                                                 onClick={() => void handleShare()}
                                                 disabled={sharingLoading}
-                                                className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 disabled:opacity-50"
+                                                className="flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-1.5 text-xs font-medium text-[#C5CBD8] transition-colors hover:bg-white/[0.05] hover:text-[#E8ECF4] disabled:opacity-50"
                                             >
                                                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
@@ -312,7 +312,7 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                                         )}
                                         <button
                                             onClick={handleRetake}
-                                            className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100"
+                                            className="flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-1.5 text-xs font-medium text-[#C5CBD8] transition-colors hover:bg-white/[0.05] hover:text-[#E8ECF4]"
                                         >
                                             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -322,13 +322,13 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                                     </div>
                                 )}
                             </div>
-                            <div className="mt-2 flex items-center gap-3 text-sm text-zinc-600">
+                            <div className="mt-2 flex items-center gap-3 text-sm text-[#A8B0C2]">
                                 <span suppressHydrationWarning>{videoDate}</span>
                                 {interviewData && (
                                     <>
-                                        <span className="h-1 w-1 rounded-full bg-zinc-300" />
+                                        <span className="h-1 w-1 rounded-full bg-white/20" />
                                         <span className="capitalize">{interviewData.type}</span>
-                                        <span className="h-1 w-1 rounded-full bg-zinc-300" />
+                                        <span className="h-1 w-1 rounded-full bg-white/20" />
                                         <span className="capitalize">{interviewData.difficulty}</span>
                                     </>
                                 )}
@@ -336,16 +336,16 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                         </div>
 
                         {/* Tabs */}
-                        <div className="flex border-b border-zinc-200 px-6">
+                        <div className="flex border-b border-white/[0.06] px-6">
                             <button
                                 onClick={() => setActiveTab("results")}
-                                className={`border-b-2 py-4 px-1 text-sm font-medium transition-colors ${activeTab === "results" ? "border-blue-600 text-blue-600" : "border-transparent text-zinc-600 hover:text-zinc-700 hover:border-zinc-300"}`}
+                                className={`border-b-2 py-4 px-1 text-sm font-medium transition-colors ${activeTab === "results" ? "border-[#3B82F6] text-[#3B82F6]" : "border-transparent text-[#A8B0C2] hover:text-[#C5CBD8] hover:border-white/20"}`}
                             >
                                 Evaluation Results
                             </button>
                             <button
                                 onClick={() => setActiveTab("transcript")}
-                                className={`border-b-2 py-4 px-1 ml-6 text-sm font-medium transition-colors ${activeTab === "transcript" ? "border-blue-600 text-blue-600" : "border-transparent text-zinc-600 hover:text-zinc-700 hover:border-zinc-300"}`}
+                                className={`border-b-2 py-4 px-1 ml-6 text-sm font-medium transition-colors ${activeTab === "transcript" ? "border-[#3B82F6] text-[#3B82F6]" : "border-transparent text-[#A8B0C2] hover:text-[#C5CBD8] hover:border-white/20"}`}
                             >
                                 Transcript
                             </button>
@@ -353,21 +353,21 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
 
                         {/* Delete footer — only for sessions with no video */}
                         {!videoUrl && interviewId && loadingStep === "idle" && (
-                            <div className="border-t border-zinc-100 p-4">
+                            <div className="border-t border-white/[0.06] p-4">
                                 {!confirmingDelete ? (
                                     <button
                                         onClick={() => setConfirmingDelete(true)}
-                                        className="w-full rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-100"
+                                        className="w-full rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20"
                                     >
                                         Delete interview data
                                     </button>
                                 ) : (
                                     <div className="space-y-2.5">
-                                        <p className="text-xs text-zinc-600">This will permanently remove the transcript and evaluation. Are you sure?</p>
+                                        <p className="text-xs text-[#A8B0C2]">This will permanently remove the transcript and evaluation. Are you sure?</p>
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => setConfirmingDelete(false)}
-                                                className="flex-1 rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-50"
+                                                className="flex-1 rounded-xl border border-white/[0.08] px-3 py-2 text-sm text-[#C5CBD8] transition-colors hover:bg-white/[0.05]"
                                             >
                                                 Cancel
                                             </button>
@@ -387,8 +387,8 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                         <div className="flex-1 overflow-y-auto p-6">
                             {loadingStep !== "idle" ? (
                                 <div className="flex h-full flex-col items-center justify-center space-y-4 text-center">
-                                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
-                                    <p className="text-sm text-zinc-600">
+                                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#3B82F6] border-t-transparent" />
+                                    <p className="text-sm text-[#A8B0C2]">
                                         {loadingStep === "generatingEvaluation"
                                             ? "Analyzing interview transcript using AI..."
                                             : loadingStep === "deleting"
@@ -397,7 +397,7 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                                     </p>
                                 </div>
                             ) : displayError ? (
-                                <div className="rounded-xl bg-red-50 p-4 text-red-800 border border-red-100">
+                                <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-red-300">
                                     <p className="text-sm">{displayError}</p>
                                 </div>
                             ) : activeTab === "results" && interviewData?.evaluation ? (
@@ -409,7 +409,7 @@ export default function RecordingModal({ isOpen, onClose, videoUrl, interviewId,
                                     feedback={interviewData.feedback}
                                 />
                             ) : activeTab === "results" ? (
-                                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
+                                <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-sm text-[#A8B0C2]">
                                     Evaluation is not available for this interview yet.
                                 </div>
                             ) : (

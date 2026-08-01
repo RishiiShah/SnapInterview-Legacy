@@ -66,7 +66,7 @@ export const INTERVIEW_TYPE_META: Record<
   "bar-raiser": {
     label: "Bar raiser / panel",
     shortLabel: "Bar raiser",
-    description: "Cross-team calibration or additional panelists — not necessarily last",
+    description: "Cross-team calibration or additional panelists, not necessarily last",
   },
 };
 

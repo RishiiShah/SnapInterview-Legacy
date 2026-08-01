@@ -6,8 +6,10 @@ import { FadeIn } from "@/components/ui/motion";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 import Modal from "@/components/ui/Modal";
 import RecordingModal from "./RecordingModal";
+import { CompanyMark } from "@/components/ui/CompanyMark";
+import { displayCompany } from "@/lib/company-brands";
 import { IconSpinner } from "@/components/ui/icons";
-import { getScoreColor, getScoreLabel } from "@/utils/helpers";
+import { getScoreLabel } from "@/utils/helpers";
 import {
   coerceInterviewType,
   INTERVIEW_TYPE_META,
@@ -44,21 +46,33 @@ function typeBadgeClass(type: string): string {
   switch (coerced) {
     case "recruiter-screen":
     case "behavioral-leadership":
-      return "bg-blue-50 text-blue-700";
+      return "bg-sky-500/10 text-sky-300 border border-sky-500/20";
     case "coding-algorithms":
     case "domain-role":
-      return "bg-teal-50 text-teal-700";
+      return "bg-teal-500/10 text-teal-300 border border-teal-500/20";
     case "system-design":
-      return "bg-cyan-50 text-cyan-700";
+      return "bg-cyan-500/10 text-cyan-300 border border-cyan-500/20";
     case "take-home":
-      return "bg-amber-50 text-amber-700";
+      return "bg-amber-500/10 text-amber-300 border border-amber-500/20";
     case "hiring-manager":
-      return "bg-indigo-50 text-indigo-700";
+      return "bg-blue-500/10 text-blue-300 border border-blue-500/20";
     case "bar-raiser":
-      return "bg-rose-50 text-rose-700";
+      return "bg-rose-500/10 text-rose-300 border border-rose-500/20";
     default:
-      return "bg-zinc-100 text-zinc-600";
+      return "bg-white/[0.04] text-[#B0B8C8] border border-white/[0.08]";
   }
+}
+
+function scoreTone(score: number): string {
+  if (score >= 80) return "text-emerald-400";
+  if (score >= 70) return "text-amber-300";
+  return "text-rose-300";
+}
+
+function scoreBadgeClass(score: number): string {
+  if (score >= 80) return "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20";
+  if (score >= 70) return "bg-amber-500/10 text-amber-300 border border-amber-500/20";
+  return "bg-rose-500/10 text-rose-300 border border-rose-500/20";
 }
 
 type SessionCard = {
@@ -244,8 +258,8 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
             onClick={() => setFilterType(t)}
             className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
               filterType === t
-                ? "border-zinc-900 bg-zinc-900 text-white"
-                : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+                ? "border-[#3B82F6]/50 bg-[#3B82F6] text-white"
+                : "border-white/[0.08] bg-transparent text-[#A8B0C2] hover:border-white/[0.14] hover:bg-white/[0.03] hover:text-[#C5CBD8]"
             }`}
           >
             {typeLabel(t)}
@@ -253,13 +267,15 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
         ))}
       </div>
       {/* Sort toggle */}
-      <div className="flex items-center gap-1 rounded-xl border border-zinc-200 bg-white p-1">
+      <div className="flex items-center gap-1 rounded-xl border border-white/[0.08] bg-white/[0.02] p-1">
         {(["date", "score"] as SortBy[]).map((s) => (
           <button
             key={s}
             onClick={() => setSortBy(s)}
             className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors capitalize ${
-              sortBy === s ? "bg-zinc-900 text-white shadow-sm" : "text-zinc-600 hover:text-zinc-700"
+              sortBy === s
+                ? "bg-[#3B82F6]/15 text-white border border-[#3B82F6]/50"
+                : "border border-transparent text-[#A8B0C2] hover:text-[#C5CBD8]"
             }`}
           >
             {s === "date" ? "Newest" : "Top Score"}
@@ -273,29 +289,29 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
     return (
       <>
         {filterSortBar}
-        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/40 px-6 py-20 text-center">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.08] px-6 py-16 text-center">
           {filterType !== "all" ? (
             <>
-              <p className="text-base font-semibold text-zinc-800">No {typeLabel(filterType)} sessions</p>
-              <p className="mt-1.5 max-w-sm text-sm text-zinc-600">
+              <p className="text-base font-medium text-[#E8ECF4]">No {typeLabel(filterType)} sessions</p>
+              <p className="mt-1.5 max-w-sm text-sm text-[#A8B0C2]">
                 Try a different filter or start a new interview.
               </p>
               <button
                 onClick={() => setFilterType("all")}
-                className="mt-6 text-sm font-medium text-blue-600 hover:text-blue-800"
+                className="mt-6 text-sm font-medium text-[#93C5FD] transition-colors hover:text-white"
               >
                 Show all sessions
               </button>
             </>
           ) : (
             <>
-              <p className="text-base font-semibold text-zinc-800">No sessions yet</p>
-              <p className="mt-1.5 max-w-sm text-sm text-zinc-600">
+              <p className="font-display text-xl text-[#E8ECF4]">No sessions yet</p>
+              <p className="mt-1.5 max-w-sm text-sm text-[#A8B0C2]">
                 Your completed interview sessions will appear here.
               </p>
               <Link
                 href="/practice"
-                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700"
+                className="mt-6 inline-flex h-10 items-center gap-2 rounded-lg bg-[#3B82F6] px-5 text-sm font-medium text-white transition-colors hover:bg-[#4B8FF7]"
               >
                 Start an Interview
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -314,10 +330,10 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
       {filterSortBar}
       {isReloading ? (
         <div className="flex justify-center py-20">
-          <IconSpinner className="h-6 w-6 animate-spin text-zinc-600" />
+          <IconSpinner className="h-6 w-6 animate-spin text-[#A8B0C2]" />
         </div>
       ) : (
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="divide-y divide-white/[0.05] rounded-xl border border-white/[0.06] bg-white/[0.02]">
         {displayedSessions.map((session, idx) => {
           const date = formatSessionDate(session.createdAt);
           const hasVideo = Boolean(session.videoKey);
@@ -326,9 +342,9 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
           return (
             <FadeIn
               key={session.id}
-              delay={idx * 0.05}
+              delay={idx * 0.03}
               direction="up"
-              className="group overflow-hidden rounded-2xl border border-zinc-200 bg-white transition-all hover:border-blue-200 hover:shadow-lg flex flex-col cursor-pointer"
+              className="group flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-white/[0.03] sm:gap-5 sm:px-5"
               role="button"
               tabIndex={0}
               onClick={() => !isProcessing && openSession(session)}
@@ -341,81 +357,64 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
               }}
               aria-label="Open session details"
             >
-              {/* Thumbnail area */}
-              <div className="relative aspect-video shrink-0 bg-zinc-900 flex items-center justify-center">
-                {hasVideo ? (
-                  <div className="flex flex-col items-center gap-2 text-zinc-600">
-                    <svg className="h-8 w-8 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v7.764a1 1 0 01-1.447.894L15 15M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    <span className="text-[10px] uppercase tracking-widest font-semibold opacity-40">Recording</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-2 text-zinc-600">
-                    <svg className="h-8 w-8 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
-                      <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
-                    </svg>
-                    <span className="text-[10px] uppercase tracking-widest font-semibold opacity-40">No recording</span>
-                  </div>
-                )}
+              <CompanyMark company={displayCompany(session.company)} size="md" />
 
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 bg-black/20">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-md">
-                    {isProcessing ? (
-                      <IconSpinner className="h-6 w-6 text-white" />
-                    ) : (
-                      <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Info area */}
-              <div className="flex flex-1 flex-col p-4">
-                <div className="mb-1 flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="truncate text-sm font-semibold text-zinc-900">{session.role}</h3>
-                    {session.company && (
-                      <p className="truncate text-xs text-zinc-600">{session.company}</p>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${getScoreColor(session.score)}`}>
-                      {getScoreLabel(session.score)}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // If there is no video, the only option is to delete the entire interview data.
-                        setDeleteInterviewData(!hasVideo);
-                        setSessionToDelete(session);
-                      }}
-                      disabled={deletingId === session.id}
-                      className="flex cursor-pointer items-center justify-center rounded-lg p-1.5 text-zinc-600 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-default disabled:opacity-50"
-                      aria-label={hasVideo ? "Delete recording" : "Delete session"}
-                    >
-                      {deletingId === session.id ? (
-                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
-                      ) : (
-                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                </div>
-                <div className="mt-auto flex items-center justify-between pt-2">
-                  <p className="text-xs text-zinc-600" suppressHydrationWarning>{date}</p>
-                  {session.type && (
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${typeBadgeClass(session.type)}`}>
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <p className="truncate text-[15px] font-medium leading-tight text-[#E8ECF4] group-hover:text-white">
+                    {session.role}
+                  </p>
+                  {session.type ? (
+                    <span className={`shrink-0 rounded border px-1.5 py-px text-[10px] font-medium leading-tight tracking-wide ${typeBadgeClass(session.type)}`}>
                       {typeLabel(session.type)}
                     </span>
-                  )}
+                  ) : null}
                 </div>
+                <p className="mt-0.5 truncate text-[13px] leading-tight text-[#A8B0C2]" suppressHydrationWarning>
+                  <span className="text-[#C5CBD8]">{displayCompany(session.company)}</span>
+                  {" · "}
+                  {date}
+                  {!hasVideo ? " · No recording" : ""}
+                </p>
               </div>
+
+              <div className="hidden text-right sm:block">
+                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${scoreBadgeClass(session.score)}`}>
+                  {getScoreLabel(session.score)}
+                </span>
+              </div>
+
+              <span className={`shrink-0 font-mono text-base tabular-nums leading-none ${scoreTone(session.score)}`}>
+                {session.score}
+              </span>
+
+              {isProcessing ? (
+                <div className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-white/15 border-t-[#60A5FA]" />
+              ) : (
+                <span className="hidden w-4 text-[#B8C0CE] transition-colors group-hover:text-[#93C5FD] sm:inline">
+                  →
+                </span>
+              )}
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // If there is no video, the only option is to delete the entire interview data.
+                  setDeleteInterviewData(!hasVideo);
+                  setSessionToDelete(session);
+                }}
+                disabled={deletingId === session.id}
+                className="flex shrink-0 cursor-pointer items-center justify-center rounded-lg p-1.5 text-[#A8B0C2] transition-colors hover:bg-rose-500/10 hover:text-rose-300 disabled:cursor-default disabled:opacity-50"
+                aria-label={hasVideo ? "Delete recording" : "Delete session"}
+              >
+                {deletingId === session.id ? (
+                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-rose-400 border-t-transparent" />
+                ) : (
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                  </svg>
+                )}
+              </button>
             </FadeIn>
           );
         })}
@@ -423,11 +422,11 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
       )}
 
       {!isReloading && hasMore && (
-        <div className="mt-12 flex justify-center">
+        <div className="mt-10 flex justify-center">
           <button
             onClick={loadMore}
             disabled={isLoadingMore}
-            className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-8 py-2.5 text-sm font-semibold text-zinc-900 transition-all hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.03] px-8 py-2.5 text-sm font-medium text-[#E8ECF4] transition-colors hover:border-white/[0.16] hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isLoadingMore ? (
               <>
@@ -460,14 +459,14 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
         confirmLabel={!sessionToDelete?.videoKey || deleteInterviewData ? "Delete Everything" : "Delete Recording"}
         extraContent={
           sessionToDelete?.videoKey ? (
-            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-left">
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-white/[0.1] bg-white/[0.03] px-3 py-2 text-left">
               <input
                 type="checkbox"
                 checked={deleteInterviewData}
                 onChange={(e) => setDeleteInterviewData(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-red-600 focus:ring-red-500"
+                className="mt-0.5 h-4 w-4 rounded border-white/20 bg-transparent text-rose-500 focus:ring-rose-500/40"
               />
-              <span className="text-xs text-zinc-600">
+              <span className="text-xs text-[#A8B0C2]">
                 Also delete interview data (score, transcript, and feedback)
               </span>
             </label>

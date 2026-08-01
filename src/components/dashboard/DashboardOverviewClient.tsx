@@ -7,6 +7,8 @@ import { getScoreLabel } from "@/utils/helpers";
 import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 import RecordingModal from "@/components/recordings/RecordingModal";
 import { FlipDate } from "@/components/ui/FlipDate";
+import { CompanyMark } from "@/components/ui/CompanyMark";
+import { displayCompany } from "@/lib/company-brands";
 import { IconPractice } from "@/components/ui/icons";
 
 type StatItem = {
@@ -243,7 +245,7 @@ export default function DashboardOverviewClient({
       : average?.value && average.value !== "—"
         ? "Average"
         : null;
-  const signalDetail = latest ? `${latest.role} at ${latest.company}` : null;
+  const signalDetail = latest ? `${latest.role} at ${displayCompany(latest.company)}` : null;
 
   const instruments = [
     { label: "Completed", value: completed?.value ?? "0", suffix: completed?.suffix },
@@ -308,7 +310,7 @@ export default function DashboardOverviewClient({
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-11 pb-16 pt-2">
+    <div className="mx-auto max-w-5xl space-y-11 pb-16 pt-2 xl:max-w-6xl">
       <SlideIn>
         <header className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
           <FlipDate size="lg" />
@@ -484,6 +486,7 @@ export default function DashboardOverviewClient({
                       disabled={isOpening !== null}
                       className="group flex w-full cursor-pointer items-center gap-3.5 py-3 text-left transition-colors hover:bg-white/[0.02] disabled:pointer-events-none disabled:opacity-60 sm:gap-5"
                     >
+                      <CompanyMark company={displayCompany(s.company)} size="md" />
                       <div className="min-w-0 flex-1">
                         <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
                           <p className="truncate text-[15px] font-medium leading-tight text-[#E8ECF4] group-hover:text-white">
@@ -501,7 +504,9 @@ export default function DashboardOverviewClient({
                           ) : null}
                         </div>
                         <p className="mt-0.5 truncate text-[13px] leading-tight text-[#A8B0C2]">
-                          {s.company} · {s.date} · {s.duration}
+                          <span className="text-[#C5CBD8]">{displayCompany(s.company)}</span>
+                          {" · "}
+                          {s.date} · {s.duration}
                         </p>
                       </div>
                       <div className="hidden text-right sm:block">

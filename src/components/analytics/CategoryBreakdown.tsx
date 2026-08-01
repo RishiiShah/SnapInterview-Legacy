@@ -14,30 +14,30 @@ type CategoryBreakdownProps = {
 
 export default function CategoryBreakdown({ categories, delay = 0.3 }: CategoryBreakdownProps) {
   return (
-    <FadeIn triggerOnView={false} delay={delay} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-[18px]">
-      <h3 className="mb-1 text-sm font-semibold text-zinc-900">Category Breakdown</h3>
-      <p className="mb-3.5 text-xs text-zinc-600">Performance by interview dimension</p>
-      <div className="space-y-3">
+    <FadeIn triggerOnView={false} delay={delay} direction="up">
+      <h3 className="font-display text-lg tracking-tight text-[#F2F4F8] sm:text-xl">Category Breakdown</h3>
+      <p className="mt-1 mb-4 text-xs text-[#A8B0C2]">Performance by interview dimension</p>
+      <div className="space-y-4">
         {categories.map((cat) => (
-          <div key={cat.category} className="rounded-xl border border-zinc-100 p-3">
+          <div key={cat.category}>
             <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-sm font-medium text-zinc-700">{cat.category}</span>
+              <span className="text-sm font-medium text-[#E8ECF4]">{cat.category}</span>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-zinc-900">{cat.score}%</span>
+                <span className="font-mono text-sm font-medium text-[#F2F4F8]">{cat.score}%</span>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                  className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${
                     cat.score >= 80
-                      ? "bg-emerald-100 text-emerald-700"
+                      ? "bg-emerald-500/15 text-emerald-300"
                       : cat.score >= 70
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-amber-100 text-amber-700"
+                        ? "bg-blue-500/15 text-blue-300"
+                        : "bg-amber-500/15 text-amber-300"
                   }`}
                 >
                   {cat.score >= 80 ? "Strong" : cat.score >= 70 ? "Steady" : "Improve"}
                 </span>
               </div>
             </div>
-            <div className="h-2 w-full rounded-full bg-zinc-100">
+            <div className="h-1.5 w-full rounded-full bg-white/[0.06]">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
                   cat.score >= 80

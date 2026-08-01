@@ -80,7 +80,8 @@ describe("DashboardOverviewClient", () => {
     expect(screen.getByText("Frontend Engineer")).toBeDefined();
     expect(screen.getByText("Coding / algorithms")).toBeDefined();
     expect(screen.getByText("Medium")).toBeDefined();
-    expect(screen.getByText("Stripe · Jul 30, 2026 · 25m")).toBeDefined();
+    expect(screen.getByText("Stripe")).toBeDefined();
+    expect(screen.getByText(/Jul 30, 2026 · 25m/)).toBeDefined();
 
     expect(screen.getByText("Recommendations")).toBeDefined();
     expect(screen.getByText("Focus next")).toBeDefined();

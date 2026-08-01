@@ -34,7 +34,7 @@ export function RecordingTranscript({ transcript, interviewId, feedback }: Props
 
     if (!transcript.length) {
         return (
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
+            <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-sm text-[#A8B0C2]">
                 Transcript is not available for this interview.
             </div>
         );
@@ -72,8 +72,8 @@ export function RecordingTranscript({ transcript, interviewId, feedback }: Props
                     <div key={entry.id} className="space-y-3">
                         {/* Question Bubble */}
                         <div className="flex justify-start gap-2">
-                            <div className="max-w-[90%] rounded-2xl rounded-tl-sm bg-zinc-100 p-4 text-sm text-zinc-800">
-                                <span className="block text-xs font-bold text-zinc-600 mb-1">Interviewer (Q{idx + 1})</span>
+                            <div className="max-w-[90%] rounded-2xl rounded-tl-sm border border-white/[0.08] bg-white/[0.04] p-4 text-sm text-[#E8ECF4]">
+                                <span className="block text-xs font-bold text-[#A8B0C2] mb-1">Interviewer (Q{idx + 1})</span>
                                 {entry.question}
                             </div>
                             {/* Feedback buttons */}
@@ -84,8 +84,8 @@ export function RecordingTranscript({ transcript, interviewId, feedback }: Props
                                     aria-label="Thumbs up"
                                     className={`flex h-7 w-7 items-center justify-center rounded-full border transition-colors ${
                                         currentRating === "up"
-                                            ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                                            : "border-zinc-200 bg-white text-zinc-600 hover:border-emerald-400 hover:text-emerald-500"
+                                            ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-400"
+                                            : "border-white/[0.08] bg-white/[0.02] text-[#A8B0C2] hover:border-emerald-500/40 hover:text-emerald-400"
                                     } disabled:opacity-50`}
                                 >
                                     <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -98,8 +98,8 @@ export function RecordingTranscript({ transcript, interviewId, feedback }: Props
                                     aria-label="Thumbs down"
                                     className={`flex h-7 w-7 items-center justify-center rounded-full border transition-colors ${
                                         currentRating === "down"
-                                            ? "border-red-400 bg-red-50 text-red-500"
-                                            : "border-zinc-200 bg-white text-zinc-600 hover:border-red-300 hover:text-red-400"
+                                            ? "border-red-400/50 bg-red-500/15 text-red-400"
+                                            : "border-white/[0.08] bg-white/[0.02] text-[#A8B0C2] hover:border-red-400/40 hover:text-red-400"
                                     } disabled:opacity-50`}
                                 >
                                     <svg className="h-3.5 w-3.5 rotate-180" fill="currentColor" viewBox="0 0 20 20">
@@ -110,7 +110,7 @@ export function RecordingTranscript({ transcript, interviewId, feedback }: Props
                         </div>
                         {/* Answer Bubble */}
                         <div className="flex justify-end">
-                            <div className="max-w-[90%] rounded-2xl rounded-tr-sm bg-blue-600 p-4 text-sm text-white shadow-sm">
+                            <div className="max-w-[90%] rounded-2xl rounded-tr-sm bg-[#3B82F6] p-4 text-sm text-white shadow-sm">
                                 <span className="block text-xs font-semibold text-blue-200 mb-1">You</span>
                                 {entry.answer}
                             </div>

@@ -116,6 +116,7 @@ export default function SignupPage() {
           <AuthHeader
             title="Create your account"
             description="Practice realistic interviews with mic, video, transcript, and scoring."
+            align="center"
           />
 
           <form onSubmit={handleSubmit} className="space-y-3.5">

@@ -29,19 +29,19 @@ export default function Modal({
 
     const variantStyles = {
         danger: {
-            bg: "bg-red-100",
-            icon: "text-red-600",
-            button: "bg-red-600 hover:bg-red-700",
+            bg: "bg-rose-500/15",
+            icon: "text-rose-300",
+            button: "bg-rose-600 hover:bg-rose-500",
         },
         info: {
-            bg: "bg-blue-100",
-            icon: "text-blue-600",
-            button: "bg-blue-600 hover:bg-blue-700",
+            bg: "bg-[#3B82F6]/15",
+            icon: "text-[#60A5FA]",
+            button: "bg-[#3B82F6] hover:bg-[#4B8FF7]",
         },
         warning: {
-            bg: "bg-amber-100",
-            icon: "text-amber-600",
-            button: "bg-amber-600 hover:bg-amber-700",
+            bg: "bg-amber-500/15",
+            icon: "text-amber-300",
+            button: "bg-amber-600 hover:bg-amber-500",
         },
     };
 
@@ -56,7 +56,7 @@ export default function Modal({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={isLoading ? undefined : onClose}
-                        className="fixed inset-0 z-[80] flex min-h-dvh items-center justify-center bg-zinc-900/40 p-4 backdrop-blur-sm"
+                        className="fixed inset-0 z-[80] flex min-h-dvh items-center justify-center bg-[#0B0C10]/80 p-4 backdrop-blur-sm"
                     >
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -64,7 +64,7 @@ export default function Modal({
                             exit={{ opacity: 0, scale: 0.95, y: 10 }}
                             transition={{ type: "spring", duration: 0.3 }}
                             onClick={(e) => e.stopPropagation()}
-                            className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl shadow-zinc-900/10 ring-1 ring-zinc-200"
+                            className="w-full max-w-md overflow-hidden rounded-2xl border border-white/[0.08] bg-[#12141A] shadow-2xl"
                         >
                             <div className="p-6">
                                 <div className="flex items-start gap-4">
@@ -84,21 +84,21 @@ export default function Modal({
                                         )}
                                     </div>
                                     <div className="flex-1">
-                                        <h3 className="text-base font-semibold text-zinc-900">
+                                        <h3 className="text-base font-semibold text-[#F2F4F8]">
                                             {title}
                                         </h3>
-                                        <p className="mt-2 text-sm text-zinc-600 whitespace-pre-wrap">
+                                        <p className="mt-2 whitespace-pre-wrap text-sm text-[#A8B0C2]">
                                             {description}
                                         </p>
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex items-center justify-end gap-3 bg-zinc-50 px-6 py-4">
+                            <div className="flex items-center justify-end gap-3 border-t border-white/[0.06] bg-white/[0.02] px-6 py-4">
                                 {!isConfirmOnly && (
                                     <button
                                         onClick={onClose}
                                         disabled={isLoading}
-                                        className="cursor-pointer rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-default"
+                                        className="cursor-pointer rounded-lg px-4 py-2 text-sm font-medium text-[#C5CBD8] transition-colors hover:bg-white/[0.06] hover:text-[#E8ECF4] disabled:cursor-default disabled:opacity-50"
                                     >
                                         {cancelLabel}
                                     </button>
@@ -106,7 +106,7 @@ export default function Modal({
                                 <button
                                     onClick={onConfirm || onClose}
                                     disabled={isLoading}
-                                    className={`flex cursor-pointer items-center justify-center min-w-[80px] rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-default ${style.button}`}
+                                    className={`flex min-w-[80px] cursor-pointer items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-default disabled:opacity-50 ${style.button}`}
                                 >
                                     {isLoading ? (
                                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />

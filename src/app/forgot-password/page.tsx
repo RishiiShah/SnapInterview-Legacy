@@ -172,6 +172,7 @@ export default function ForgotPasswordPage() {
           <AuthHeader
             title="Forgot password?"
             description="Enter your email and we’ll send a verification code to reset it."
+            align="center"
           />
 
           <form onSubmit={handleEmailSubmit} className="space-y-4">

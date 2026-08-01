@@ -82,7 +82,6 @@ describe("PracticePageClient", () => {
   it("keeps explicit retake defaults from being overwritten by onboarding defaults", async () => {
     render(
       <PracticePageClient
-        recentPractice={[]}
         retakeDefaults={{
           role: "Frontend Developer",
           type: "behavioral-leadership",
@@ -94,9 +93,7 @@ describe("PracticePageClient", () => {
     await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/onboarding", { method: "GET" }));
 
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: /start interview/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^start interview$/i }));
 
     const payload = JSON.parse(sessionStorage.getItem("pending_interview_interview-1") ?? "{}") as Record<string, unknown>;
 

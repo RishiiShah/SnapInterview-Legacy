@@ -190,7 +190,7 @@ export function Header({
         (pathname.startsWith("/settings") ? "Settings" : "Workspace"));
 
   return (
-    <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center justify-between gap-3 border-b border-white/[0.06] bg-[#0B0C10]/80 px-4 backdrop-blur-md sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center justify-between gap-3 border-b border-white/[0.06] bg-[#0C0E14]/55 px-4 backdrop-blur-md sm:px-6 lg:px-10 xl:px-14 2xl:px-20">
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         {onSidebarToggle ? (
           <button

@@ -26,6 +26,10 @@ type QuestionsFilterBarProps = {
   stats: CategoryStat[];
 };
 
+const CHIP_IDLE =
+  "border border-white/[0.08] bg-white/[0.02] text-[#C5CBD8] hover:bg-white/[0.05] hover:text-[#E8ECF4]";
+const CHIP_ACTIVE = "bg-[#3B82F6]/15 text-[#93C5FD] border border-[#3B82F6]/25";
+
 export default function QuestionsFilterBar({
   search,
   setSearch,
@@ -56,7 +60,7 @@ export default function QuestionsFilterBar({
     <div className="relative">
       <div className="flex flex-wrap items-center gap-3 px-[1%]">
         <div className="relative min-w-[200px] flex-1">
-          <svg className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#A8B0C2]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
           <input
@@ -64,24 +68,24 @@ export default function QuestionsFilterBar({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search questions…"
-            className="w-full rounded-xl border border-zinc-200 bg-white py-2.5 pl-10 pr-4 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100"
+            className="w-full rounded-xl border border-white/[0.1] bg-white/[0.03] py-2.5 pl-10 pr-4 text-sm text-[#F2F4F8] placeholder-[#6B7385] outline-none transition-all focus:border-[#3B82F6]/50 focus:bg-white/[0.05] focus:ring-2 focus:ring-[#3B82F6]/15"
           />
         </div>
 
-        <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-2.5">
-          <div className="h-2 w-20 overflow-hidden rounded-full bg-zinc-100">
+        <div className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2.5">
+          <div className="h-2 w-20 overflow-hidden rounded-full bg-white/[0.06]">
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
                 width: `${totalQuestions > 0 ? (solvedCount / totalQuestions) * 100 : 0}%`,
-                backgroundColor: solvedCount === 0 ? "#e4e4e7" : solvedCount === totalQuestions ? "#10b981" : "#0ea5e9",
+                backgroundColor: solvedCount === 0 ? "rgba(255,255,255,0.12)" : solvedCount === totalQuestions ? "#10b981" : "#3B82F6",
               }}
             />
           </div>
-          <span className="whitespace-nowrap text-sm font-semibold text-zinc-900">
+          <span className="whitespace-nowrap text-sm font-semibold text-[#F2F4F8]">
             {solvedCount}
-            <span className="font-normal text-zinc-600">/{totalQuestions}</span>
-            <span className="ml-1 text-xs font-normal text-zinc-600">Solved</span>
+            <span className="font-normal text-[#A8B0C2]">/{totalQuestions}</span>
+            <span className="ml-1 text-xs font-normal text-[#A8B0C2]">Solved</span>
           </span>
         </div>
 
@@ -89,7 +93,9 @@ export default function QuestionsFilterBar({
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all ${
-              showFilters ? "border-zinc-900 bg-zinc-900 text-white shadow-sm" : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:shadow-sm"
+              showFilters
+                ? "border-[#3B82F6]/30 bg-[#3B82F6]/15 text-[#93C5FD]"
+                : "border-white/[0.1] bg-white/[0.03] text-[#C5CBD8] hover:bg-white/[0.05] hover:text-[#E8ECF4]"
             }`}
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -97,20 +103,29 @@ export default function QuestionsFilterBar({
             </svg>
             Filters
             {activeFilterCount > 0 && (
-              <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${showFilters ? "bg-white text-zinc-900" : "bg-sky-500 text-white"}`}>
+              <span
+                className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                  showFilters ? "bg-white/20 text-[#F2F4F8]" : "bg-[#3B82F6] text-white"
+                }`}
+              >
                 {activeFilterCount}
               </span>
             )}
           </button>
 
           {showFilters && (
-            <div className="absolute right-0 top-full z-20 mt-2 w-80 rounded-2xl border border-zinc-200 bg-white p-5 shadow-xl" style={{ animation: "fadeSlideIn 0.15s ease-out" }}>
+            <div
+              className="absolute right-0 top-full z-20 mt-2 w-80 rounded-2xl border border-white/[0.1] bg-[#12141A] p-5 shadow-xl"
+              style={{ animation: "fadeSlideIn 0.15s ease-out" }}
+            >
               <div>
-                <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-zinc-600">Category</h3>
+                <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-[#A8B0C2]">Category</h3>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => setSelectedCategory("all")}
-                    className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${selectedCategory === "all" ? "bg-zinc-900 text-white shadow-sm" : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}
+                    className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                      selectedCategory === "all" ? CHIP_ACTIVE : CHIP_IDLE
+                    }`}
                   >
                     All
                   </button>
@@ -118,23 +133,31 @@ export default function QuestionsFilterBar({
                     <button
                       key={s.value}
                       onClick={() => setSelectedCategory(s.value)}
-                      className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${selectedCategory === s.value ? "bg-zinc-900 text-white shadow-sm" : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}
+                      className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                        selectedCategory === s.value ? CHIP_ACTIVE : CHIP_IDLE
+                      }`}
                     >
-                      <span className={`inline-block h-1.5 w-1.5 rounded-full ${selectedCategory === s.value ? "bg-white/60" : s.color.split(" ")[0]}`} />
+                      <span
+                        className={`inline-block h-1.5 w-1.5 rounded-full ${
+                          selectedCategory === s.value ? "bg-[#93C5FD]" : "bg-[#3B82F6]/60"
+                        }`}
+                      />
                       {s.label}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="my-4 border-t border-zinc-100" />
+              <div className="my-4 border-t border-white/[0.06]" />
 
               <div>
-                <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-zinc-600">Difficulty</h3>
+                <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-[#A8B0C2]">Difficulty</h3>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => setSelectedDifficulty("all")}
-                    className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${selectedDifficulty === "all" ? "bg-zinc-900 text-white shadow-sm" : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}
+                    className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                      selectedDifficulty === "all" ? CHIP_ACTIVE : CHIP_IDLE
+                    }`}
                   >
                     All
                   </button>
@@ -142,7 +165,9 @@ export default function QuestionsFilterBar({
                     <button
                       key={d.value}
                       onClick={() => setSelectedDifficulty(d.value)}
-                      className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${selectedDifficulty === d.value ? "bg-zinc-900 text-white shadow-sm" : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}
+                      className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                        selectedDifficulty === d.value ? CHIP_ACTIVE : CHIP_IDLE
+                      }`}
                     >
                       {d.label}
                     </button>
@@ -152,13 +177,13 @@ export default function QuestionsFilterBar({
 
               {activeFilterCount > 0 && (
                 <>
-                  <div className="my-4 border-t border-zinc-100" />
+                  <div className="my-4 border-t border-white/[0.06]" />
                   <button
                     onClick={() => {
                       setSelectedCategory("all");
                       setSelectedDifficulty("all");
                     }}
-                    className="w-full cursor-pointer rounded-lg border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-600 transition-all hover:bg-zinc-50"
+                    className="w-full cursor-pointer rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-xs font-medium text-[#C5CBD8] transition-all hover:bg-white/[0.05] hover:text-[#E8ECF4]"
                   >
                     Clear All Filters
                   </button>

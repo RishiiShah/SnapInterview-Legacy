@@ -10,6 +10,8 @@ interface SearchableDropdownProps {
     options: string[];
     placeholder?: string;
     isOptional?: boolean;
+    /** Dashboard pages use dark; onboarding keeps light. */
+    tone?: "light" | "dark";
 }
 
 export default function SearchableDropdown({
@@ -19,18 +21,19 @@ export default function SearchableDropdown({
     options,
     placeholder = "Search or type...",
     isOptional = false,
+    tone = "light",
 }: SearchableDropdownProps) {
     const [open, setOpen] = useState(false);
     const [hoveredIndex, setHoveredIndex] = useState(-1);
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
-    // Filter options based on value
+    const dark = tone === "dark";
+
     const filteredOptions = options.filter((option) =>
         option.toLowerCase().includes(value.toLowerCase())
     );
 
-    // Close dropdown when clicking outside
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -44,14 +47,12 @@ export default function SearchableDropdown({
         }
     }, [open]);
 
-    // Focus input when dropdown opens
     useEffect(() => {
         if (open && inputRef.current) {
             inputRef.current.focus();
         }
     }, [open]);
 
-    // Handle keyboard input
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (!open && (e.key === "ArrowDown" || e.key === " " || e.key === "Enter")) {
             e.preventDefault();
@@ -91,7 +92,6 @@ export default function SearchableDropdown({
         setHoveredIndex(-1);
     };
 
-    // Auto-scroll to hovered item
     useEffect(() => {
         if (hoveredIndex >= 0 && listRef.current) {
             const hoveredElement = listRef.current.children[hoveredIndex] as HTMLElement;
@@ -103,13 +103,27 @@ export default function SearchableDropdown({
 
     return (
         <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-700">
-                {label}
-                {isOptional && <span className="text-zinc-600"> (optional)</span>}
-            </label>
+            {label ? (
+                <label
+                    className={`mb-1.5 block text-sm font-medium ${
+                        dark ? "text-[12px] text-[#A8B0C2]" : "text-zinc-700"
+                    }`}
+                >
+                    {label}
+                    {isOptional ? (
+                        <span className={dark ? "text-[#6B7385]" : "text-zinc-600"}> (optional)</span>
+                    ) : null}
+                </label>
+            ) : null}
 
-            <div ref={containerRef} className="relative">
-                <div className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none transition-colors focus-within:border-zinc-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-zinc-100">
+            <div ref={containerRef} className="relative" data-practice-selector>
+                <div
+                    className={`w-full text-sm outline-none transition-colors ${
+                        dark
+                            ? "border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-[#F2F4F8] focus-within:border-[#3B82F6]"
+                            : "rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-zinc-900 focus-within:border-zinc-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-zinc-100"
+                    }`}
+                >
                     <input
                         ref={inputRef}
                         type="text"
@@ -122,15 +136,22 @@ export default function SearchableDropdown({
                         onFocus={() => setOpen(true)}
                         onKeyDown={handleKeyDown}
                         placeholder={placeholder}
-                        className="w-full bg-transparent outline-none placeholder-zinc-400 text-zinc-900"
+                        className={`w-full bg-transparent outline-none ${
+                            dark
+                                ? "text-[15px] text-[#F2F4F8] placeholder-[#6B7385]"
+                                : "text-zinc-900 placeholder-zinc-400"
+                        }`}
                     />
                 </div>
 
-                {/* Dropdown options */}
-                {open && (
+                {open ? (
                     <div
                         ref={listRef}
-                        className="absolute top-full left-0 right-0 z-10 mt-1 max-h-48 overflow-y-auto rounded-lg border border-zinc-200 bg-white shadow-lg"
+                        className={`absolute top-full left-0 right-0 z-10 mt-1.5 max-h-48 overflow-y-auto rounded-xl ${
+                            dark
+                                ? "border border-white/[0.1] bg-[#14161E] shadow-[0_16px_40px_rgba(0,0,0,0.45)]"
+                                : "border border-zinc-200 bg-white shadow-lg"
+                        }`}
                     >
                         {filteredOptions.length > 0 ? (
                             filteredOptions.map((option, index) => (
@@ -139,25 +160,41 @@ export default function SearchableDropdown({
                                     onClick={() => selectOption(option)}
                                     onMouseEnter={() => setHoveredIndex(index)}
                                     onMouseLeave={() => setHoveredIndex(-1)}
-                                    className={`flex w-full cursor-pointer items-center justify-between px-4 py-2.5 text-left text-sm transition-colors ${
-                                        hoveredIndex === index
-                                            ? "bg-zinc-50 text-zinc-900"
-                                            : value === option
-                                            ? "bg-sky-50 text-sky-700 font-semibold"
-                                            : "text-zinc-700 hover:bg-zinc-50"
+                                    className={`flex w-full cursor-pointer items-center justify-between px-3 py-2.5 text-left text-sm transition-colors ${
+                                        dark
+                                            ? hoveredIndex === index
+                                                ? "bg-white/[0.06] text-[#F2F4F8]"
+                                                : value === option
+                                                  ? "bg-[#3B82F6]/15 font-medium text-[#93C5FD]"
+                                                  : "text-[#C5CBD8] hover:bg-white/[0.04]"
+                                            : hoveredIndex === index
+                                              ? "bg-zinc-50 text-zinc-900"
+                                              : value === option
+                                                ? "bg-sky-50 font-semibold text-sky-700"
+                                                : "text-zinc-700 hover:bg-zinc-50"
                                     }`}
                                 >
                                     <span className="truncate">{option}</span>
-                                    {value === option && (
-                                        <IconCheckCircle className="h-4 w-4 shrink-0 text-sky-600" />
-                                    )}
+                                    {value === option ? (
+                                        <IconCheckCircle
+                                            className={`h-4 w-4 shrink-0 ${
+                                                dark ? "text-[#60A5FA]" : "text-sky-600"
+                                            }`}
+                                        />
+                                    ) : null}
                                 </button>
                             ))
                         ) : (
-                            <div className="px-4 py-3 text-center text-sm text-zinc-600">No matches found</div>
+                            <div
+                                className={`px-4 py-3 text-center text-sm ${
+                                    dark ? "text-[#A8B0C2]" : "text-zinc-600"
+                                }`}
+                            >
+                                No matches found
+                            </div>
                         )}
                     </div>
-                )}
+                ) : null}
             </div>
         </div>
     );

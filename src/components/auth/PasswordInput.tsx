@@ -26,19 +26,9 @@ export function PasswordInput({
 
   return (
     <div>
-      <div className="mb-1.5 flex items-center justify-between">
-        <label htmlFor={id} className="block text-sm font-medium text-[#CBD5E1]">
-          {label}
-        </label>
-        {showForgotPasswordLink ? (
-          <Link
-            href="/forgot-password"
-            className="text-xs font-medium text-[#60A5FA] transition-colors hover:text-white"
-          >
-            Forgot password?
-          </Link>
-        ) : null}
-      </div>
+      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-[#CBD5E1]">
+        {label}
+      </label>
       <div className="relative">
         <input
           id={id}
@@ -62,6 +52,16 @@ export function PasswordInput({
           )}
         </button>
       </div>
+      {showForgotPasswordLink ? (
+        <p className="mt-2 text-center">
+          <Link
+            href="/forgot-password"
+            className="text-xs font-medium text-[#60A5FA] transition-colors hover:text-white"
+          >
+            Forgot password?
+          </Link>
+        </p>
+      ) : null}
     </div>
   );
 }

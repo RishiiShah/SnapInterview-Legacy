@@ -12,7 +12,7 @@ export function TestResultPanel({
 }) {
   if (isRunning) {
     return (
-      <div className="flex items-center justify-center gap-3 py-6 text-sm text-sky-600 font-bold">
+      <div className="flex items-center justify-center gap-3 py-6 text-sm font-bold text-[#93C5FD]">
         <IconSpinner className="h-5 w-5 animate-spin" />
         Running test cases...
       </div>
@@ -20,7 +20,7 @@ export function TestResultPanel({
   }
 
   if (!runResult) {
-    return <p className="py-4 text-center text-sm text-zinc-600">Run your code to see results.</p>;
+    return <p className="py-4 text-center text-sm text-[#A8B0C2]">Run your code to see results.</p>;
   }
 
   const passed = runResult.results.filter((r) => r.passed).length;
@@ -31,13 +31,13 @@ export function TestResultPanel({
       <div className="flex items-center gap-3">
         <span
           className={`text-sm font-bold ${
-            runResult.allPassed ? "text-emerald-600" : "text-red-600"
+            runResult.allPassed ? "text-emerald-400" : "text-rose-400"
           }`}
         >
           {passed}/{total} passed
         </span>
         {runResult.allPassed && (
-          <span className="rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+          <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
             Accepted
           </span>
         )}
@@ -47,32 +47,32 @@ export function TestResultPanel({
           key={i}
           className={`rounded-lg border px-3 py-2 text-xs ${
             r.passed
-              ? "border-emerald-100 bg-emerald-50/50"
-              : "border-red-100 bg-red-50/50"
+              ? "border-emerald-500/20 bg-emerald-500/10"
+              : "border-rose-500/20 bg-rose-500/10"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className={`font-bold ${r.passed ? "text-emerald-700" : "text-red-700"}`}>
+            <span className={`font-bold ${r.passed ? "text-emerald-300" : "text-rose-300"}`}>
               {r.passed ? "✓" : "✗"} Case {i + 1}
             </span>
-            <span className="text-zinc-600 font-mono">{r.executionTimeMs}ms</span>
+            <span className="font-mono text-[#A8B0C2]">{r.executionTimeMs}ms</span>
           </div>
           {!r.passed && (
             <div className="mt-2 space-y-1">
               {r.stderr && (
                 <div>
-                  <p className="font-semibold text-red-600">Error:</p>
-                  <pre className="mt-0.5 text-red-700 font-mono whitespace-pre-wrap">{r.stderr}</pre>
+                  <p className="font-semibold text-rose-400">Error:</p>
+                  <pre className="mt-0.5 whitespace-pre-wrap font-mono text-rose-300">{r.stderr}</pre>
                 </div>
               )}
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <p className="font-semibold text-zinc-600">Expected:</p>
-                  <pre className="mt-0.5 font-mono whitespace-pre-wrap text-zinc-800">{r.expectedOutput}</pre>
+                  <p className="font-semibold text-[#A8B0C2]">Expected:</p>
+                  <pre className="mt-0.5 whitespace-pre-wrap font-mono text-[#E8ECF4]">{r.expectedOutput}</pre>
                 </div>
                 <div>
-                  <p className="font-semibold text-zinc-600">Got:</p>
-                  <pre className="mt-0.5 font-mono whitespace-pre-wrap text-zinc-800">{r.stdout || "(empty)"}</pre>
+                  <p className="font-semibold text-[#A8B0C2]">Got:</p>
+                  <pre className="mt-0.5 whitespace-pre-wrap font-mono text-[#E8ECF4]">{r.stdout || "(empty)"}</pre>
                 </div>
               </div>
             </div>

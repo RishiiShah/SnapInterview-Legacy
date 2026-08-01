@@ -18,11 +18,11 @@ export default async function RecordingsPage({ searchParams }: RecordingsPagePro
         <div className="space-y-8 pb-8">
           <SlideIn>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Recordings</h1>
-              <p className="mt-1 text-sm text-zinc-600">Review and manage your saved interview sessions.</p>
+              <h1 className="font-display text-2xl tracking-tight text-[#F2F4F8]">Recordings</h1>
+              <p className="mt-1 text-sm text-[#A8B0C2]">Review and manage your saved interview sessions.</p>
             </div>
           </SlideIn>
-          <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 py-12 text-center text-sm text-zinc-600">
+          <div className="rounded-xl border border-dashed border-white/[0.08] py-12 text-center text-sm text-[#A8B0C2]">
             Please sign in to view recordings.
           </div>
         </div>
@@ -50,8 +50,8 @@ export default async function RecordingsPage({ searchParams }: RecordingsPagePro
       <div className="space-y-8 pb-8">
         <SlideIn>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Recordings</h1>
-            <p className="mt-1 text-sm text-zinc-600">Review and manage your saved interview sessions.</p>
+            <h1 className="font-display text-2xl tracking-tight text-[#F2F4F8]">Recordings</h1>
+            <p className="mt-1 text-sm text-[#A8B0C2]">Review and manage your saved interview sessions.</p>
           </div>
         </SlideIn>
 

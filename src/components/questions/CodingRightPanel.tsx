@@ -85,17 +85,16 @@ export function CodingRightPanel({ question, onSolved }: CodingRightPanelProps) 
   }, [currentCode, language, question.testCases, isRunning, onSolved]);
 
   return (
-    <div className="flex w-1/2 flex-col bg-white">
-      {/* Top bar */}
-      <div className="flex shrink-0 items-center justify-between border-b border-zinc-100 px-4 py-2 bg-white/50 backdrop-blur-sm">
+    <div className="flex w-1/2 flex-col bg-white/[0.02]">
+      <div className="flex shrink-0 items-center justify-between border-b border-white/[0.06] bg-white/[0.02] px-4 py-2">
         <div className="flex items-center gap-3">
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
-            className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-700 outline-none focus:border-zinc-400"
+            className="rounded-lg border border-white/[0.1] bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-[#E8ECF4] outline-none focus:border-[#3B82F6]/50"
           >
             {availableLanguages.map((l) => (
-              <option key={l.value} value={l.value}>
+              <option key={l.value} value={l.value} className="bg-[#12141A] text-[#E8ECF4]">
                 {l.label}
               </option>
             ))}
@@ -103,14 +102,13 @@ export function CodingRightPanel({ question, onSolved }: CodingRightPanelProps) 
         </div>
         <button
           onClick={handleReset}
-          className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-600 transition-all hover:bg-zinc-50 hover:text-zinc-700"
+          className="cursor-pointer rounded-lg border border-white/[0.1] px-3 py-1.5 text-xs font-semibold text-[#C5CBD8] transition-all hover:bg-white/[0.05] hover:text-[#E8ECF4]"
         >
           Reset
         </button>
       </div>
 
-      {/* Monaco Editor */}
-      <div className="flex-1 min-h-0">
+      <div className="min-h-0 flex-1">
         <Editor
           height="100%"
           language={MONACO_LANGUAGE_MAP[language]}
@@ -131,22 +129,20 @@ export function CodingRightPanel({ question, onSolved }: CodingRightPanelProps) 
         />
       </div>
 
-      {/* Bottom panel */}
-      <div className="shrink-0 border-t border-zinc-200 bg-zinc-50/30">
-        {/* Tab bar + actions */}
-        <div className="flex items-center justify-between border-b border-zinc-100 px-4">
+      <div className="shrink-0 border-t border-white/[0.08] bg-white/[0.02]">
+        <div className="flex items-center justify-between border-b border-white/[0.06] px-4">
           <div className="flex items-center gap-1">
             {(["testcase", "result"] as BottomTab[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setBottomTab(tab)}
                 className={`relative cursor-pointer px-4 py-2 text-xs font-bold capitalize transition-all ${
-                  bottomTab === tab ? "text-zinc-900" : "text-zinc-600 hover:text-zinc-600"
+                  bottomTab === tab ? "text-[#F2F4F8]" : "text-[#A8B0C2] hover:text-[#C5CBD8]"
                 }`}
               >
                 {tab === "testcase" ? "Test Cases" : "Result"}
                 {bottomTab === tab && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-900 rounded-full mx-2" />
+                  <div className="absolute bottom-0 left-0 right-0 mx-2 h-0.5 rounded-full bg-[#3B82F6]" />
                 )}
               </button>
             ))}
@@ -155,7 +151,7 @@ export function CodingRightPanel({ question, onSolved }: CodingRightPanelProps) 
             <button
               onClick={handleRun}
               disabled={isRunning}
-              className="cursor-pointer rounded-lg border border-zinc-300 bg-white px-4 py-1.5 text-xs font-bold text-zinc-700 transition-all hover:bg-zinc-50 disabled:opacity-40"
+              className="cursor-pointer rounded-lg border border-white/[0.1] bg-white/[0.04] px-4 py-1.5 text-xs font-bold text-[#C5CBD8] transition-all hover:bg-white/[0.06] hover:text-[#E8ECF4] disabled:opacity-40"
             >
               {isRunning ? <IconSpinner className="inline h-3 w-3 animate-spin" /> : "Run"}
             </button>
@@ -169,7 +165,6 @@ export function CodingRightPanel({ question, onSolved }: CodingRightPanelProps) 
           </div>
         </div>
 
-        {/* Panel content */}
         <div className="h-44 overflow-y-auto px-5 py-3">
           {bottomTab === "testcase" ? (
             <TestCasePanel testCases={question.testCases ?? []} />

@@ -108,6 +108,7 @@ export const ROLES: string[] = [
 
 /* ─────────────── Companies ─────────────── */
 export const COMPANIES: string[] = [
+    "General",
     "Google",
     "Meta",
     "Amazon",

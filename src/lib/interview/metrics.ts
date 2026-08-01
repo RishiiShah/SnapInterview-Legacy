@@ -409,7 +409,7 @@ export async function getRecentPracticeSessionsByUserId(
       return {
         id: session.id,
         role: session.role,
-        company: session.company || "Unknown",
+        company: session.company || "General",
         type: parsedType.data,
         score: getSessionScore(session),
         date: formatSessionDate(session.createdAt),
@@ -597,7 +597,7 @@ export async function getDashboardOverviewData(userId: string): Promise<Dashboar
     return {
       id: session.id,
       role: session.role,
-      company: session.company || "Unknown",
+      company: session.company || "General",
       type: parsedType.success ? parsedType.data : null,
       difficulty: session.difficulty ?? null,
       score: getRubricScore(session),

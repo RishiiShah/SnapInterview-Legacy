@@ -80,9 +80,9 @@ function ShellLayout({
         />
         <main
           ref={mainRef}
-          className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-6 text-[15px] leading-relaxed text-[#E8ECF4] sm:px-6 lg:px-8 lg:pb-10 lg:pt-7 lg:text-base [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="dashboard-main min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-6 text-[15px] leading-relaxed text-[#E8ECF4] sm:px-6 lg:px-10 lg:pb-12 lg:pt-8 lg:text-[16px] xl:px-14 2xl:px-20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          {children}
+          <div className="mx-auto w-full max-w-[88rem]">{children}</div>
         </main>
       </div>
 
@@ -110,16 +110,30 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
     : session;
 
   return (
-    <div className="relative flex h-screen w-full overflow-hidden bg-[#0B0C10] font-sans text-[#F2F4F8] selection:bg-[#3B82F6] selection:text-white">
-      {/* Single soft wash — no multi-orb glow stack */}
-      <div
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-        aria-hidden="true"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 50% at 10% -10%, rgba(59,130,246,0.07), transparent 55%)",
-        }}
-      />
+    <div className="relative flex h-screen w-full overflow-hidden bg-[#0C0E14] font-sans text-[#F2F4F8] antialiased selection:bg-[#3B82F6] selection:text-white">
+      {/* Room light: readable depth, still calm */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div
+          className="absolute inset-0"
+          style={{
+            background: [
+              "radial-gradient(ellipse 90% 55% at 50% -5%, rgba(70,90,130,0.18), transparent 58%)",
+              "radial-gradient(ellipse 55% 45% at 8% 20%, rgba(59,130,246,0.14), transparent 62%)",
+              "radial-gradient(ellipse 45% 40% at 96% 75%, rgba(99,120,160,0.08), transparent 60%)",
+              "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 22%, transparent 78%, rgba(0,0,0,0.22) 100%)",
+            ].join(", "),
+          }}
+        />
+        {/* Soft stage pool behind content */}
+        <div
+          className="absolute left-1/2 top-[18%] h-[55%] w-[min(52rem,80%)] -translate-x-1/2 rounded-[50%]"
+          style={{
+            background:
+              "radial-gradient(ellipse at center, rgba(59,130,246,0.06), transparent 70%)",
+          }}
+        />
+        <div className="dashboard-grain absolute inset-0 opacity-[0.07]" />
+      </div>
 
       <HoverSidebarProvider animate>
         <ShellLayout session={effectiveSession}>{children}</ShellLayout>

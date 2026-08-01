@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import PreJoinScreen, { type PreJoinScreenProps } from "./PreJoinScreen";
 
 vi.mock("framer-motion", () => ({
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   motion: { div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => <div {...props}>{children}</div> },
 }));
 

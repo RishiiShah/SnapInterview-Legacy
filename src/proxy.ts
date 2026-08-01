@@ -74,7 +74,7 @@ function createContentSecurityPolicy(nonce: string, isDev: boolean) {
         style-src 'self' https://cdn.jsdelivr.net;
         style-src-elem 'self' ${isDev ? "'unsafe-inline'" : `'nonce-${nonce}'`} https://cdn.jsdelivr.net;
         style-src-attr 'unsafe-inline';
-        img-src 'self' https://*.googleusercontent.com data: blob:;
+        img-src 'self' https://*.googleusercontent.com https://cdn.simpleicons.org data: blob:;
         font-src 'self' data:;
         object-src 'none';
         base-uri 'self';

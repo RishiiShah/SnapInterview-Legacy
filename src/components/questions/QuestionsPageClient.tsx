@@ -86,8 +86,10 @@ export default function QuestionsPageClient({ initialSolvedIds, questions }: Que
         <SlideIn>
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Question Bank</h1>
-              <p className="mt-1 text-sm text-zinc-600">
+              <h1 className="font-display text-2xl tracking-tight text-[#F2F4F8] sm:text-[1.75rem]">
+                Question Bank
+              </h1>
+              <p className="mt-1 text-sm text-[#A8B0C2]">
                 {questions.length} questions across {CATEGORIES.length} categories
               </p>
             </div>
@@ -112,7 +114,7 @@ export default function QuestionsPageClient({ initialSolvedIds, questions }: Que
         </FadeIn>
 
         <FadeIn delay={0.25} direction="up" className="relative z-10">
-          <p className="text-xs text-zinc-600">
+          <p className="text-xs text-[#A8B0C2]">
             Showing {filtered.length} of {questions.length} question{filtered.length !== 1 ? "s" : ""}
           </p>
         </FadeIn>

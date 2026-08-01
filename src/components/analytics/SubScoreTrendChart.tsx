@@ -13,17 +13,17 @@ const SUB_SCORES = [
   {
     key: "communication" as const,
     label: "Communication",
-    color: "bg-blue-400 group-hover:bg-blue-600",
+    color: "bg-blue-400/80 group-hover:bg-blue-400",
   },
   {
     key: "technicalDepth" as const,
     label: "Technical Depth",
-    color: "bg-violet-400 group-hover:bg-violet-600",
+    color: "bg-cyan-400/80 group-hover:bg-cyan-400",
   },
   {
     key: "clarity" as const,
     label: "Clarity",
-    color: "bg-emerald-400 group-hover:bg-emerald-600",
+    color: "bg-teal-400/80 group-hover:bg-teal-400",
   },
 ] as const;
 
@@ -33,10 +33,9 @@ export default function SubScoreTrendChart({ trends, delay = 0.4 }: SubScoreTren
       triggerOnView={false}
       delay={delay}
       direction="up"
-      className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-6"
     >
-      <h3 className="mb-1 text-sm font-semibold text-zinc-900">Sub-score Trends</h3>
-      <p className="mb-4 text-xs text-zinc-600 md:mb-5">Weekly breakdown by dimension</p>
+      <h3 className="font-display text-lg tracking-tight text-[#F2F4F8] sm:text-xl">Sub-score Trends</h3>
+      <p className="mt-1 mb-5 text-xs text-[#A8B0C2]">Weekly breakdown by dimension</p>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-4">
         {SUB_SCORES.map(({ key, label, color }, seriesIndex) => {
           const data = trends[key];
@@ -44,9 +43,9 @@ export default function SubScoreTrendChart({ trends, delay = 0.4 }: SubScoreTren
           return (
             <div
               key={key}
-              className="min-w-0 border-b border-zinc-100 pb-6 last:border-b-0 last:pb-0 md:border-b-0 md:pb-0"
+              className="min-w-0 border-b border-white/[0.06] pb-6 last:border-b-0 last:pb-0 md:border-b-0 md:pb-0"
             >
-              <p className="mb-2 text-xs font-medium text-zinc-600 md:text-[11px]">{label}</p>
+              <p className="mb-2 text-xs font-medium text-[#A8B0C2] md:text-[11px]">{label}</p>
               {hasData ? (
                 <div className="flex h-24 items-end gap-1.5 md:h-20 md:gap-1">
                   {data.map((d, i) => (
@@ -68,21 +67,21 @@ export default function SubScoreTrendChart({ trends, delay = 0.4 }: SubScoreTren
                           }}
                         >
                           {d.value > 0 && (
-                            <span className="absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium text-zinc-600 opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100">
+                            <span className="absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap font-mono text-[10px] font-medium text-[#C5CBD8] opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100">
                               {d.value}
                             </span>
                           )}
                         </motion.div>
                       </div>
-                      <span className="w-full truncate text-center text-[10px] text-zinc-600 md:text-[9px]">
+                      <span className="w-full truncate text-center text-[10px] text-[#A8B0C2] md:text-[9px]">
                         {d.label}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-zinc-100 md:h-20">
-                  <p className="text-xs text-zinc-600 italic md:text-[10px]">No data yet</p>
+                <div className="flex h-24 items-center md:h-20">
+                  <p className="text-xs text-[#A8B0C2] md:text-[10px]">No data yet</p>
                 </div>
               )}
             </div>

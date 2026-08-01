@@ -80,20 +80,25 @@ export default function NotificationsTab({ initialPrefs }: NotificationsTabProps
 
   return (
     <div>
-      <div className="border-b border-zinc-100 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Notification Preferences</h2>
-        <p className="mt-1 text-sm text-zinc-600">Choose what notifications you want to receive.</p>
+      <div className="border-b border-white/[0.06] px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+        <h2 className="text-lg font-semibold text-[#F2F4F8]">Notification Preferences</h2>
+        <p className="mt-1 text-sm text-[#A8B0C2]">Choose what notifications you want to receive.</p>
       </div>
 
       <div className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
         <div className="space-y-2">
           {preferenceItems.map((pref) => (
-            <div key={pref.label} className="flex flex-col items-start justify-between gap-3 rounded-xl border border-zinc-100 px-4 py-4 transition-all hover:border-zinc-200 hover:shadow-sm sm:flex-row sm:items-center sm:gap-4 sm:px-5">
+            <div
+              key={pref.label}
+              className="flex flex-col items-start justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-4 transition-all hover:bg-white/[0.04] sm:flex-row sm:items-center sm:gap-4 sm:px-5"
+            >
               <div className="flex items-center gap-3 sm:gap-4">
-                <span className={`shrink-0 ${pref.value ? "text-zinc-700" : "text-zinc-300"} transition-colors`}>{pref.icon}</span>
+                <span className={`shrink-0 transition-colors ${pref.value ? "text-[#93C5FD]" : "text-[#6B7385]"}`}>
+                  {pref.icon}
+                </span>
                 <div>
-                  <p className="text-sm font-medium text-zinc-900">{pref.label}</p>
-                  <p className="text-xs text-zinc-600">{pref.desc}</p>
+                  <p className="text-sm font-medium text-[#E8ECF4]">{pref.label}</p>
+                  <p className="text-xs text-[#A8B0C2]">{pref.desc}</p>
                 </div>
               </div>
               <button
@@ -101,14 +106,20 @@ export default function NotificationsTab({ initialPrefs }: NotificationsTabProps
                   void updatePreference(pref.key, !pref.value);
                 }}
                 disabled={isSavingKey === pref.key}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${pref.value ? "bg-zinc-900" : "bg-zinc-200"}`}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                  pref.value ? "bg-[#3B82F6]" : "bg-white/[0.12]"
+                }`}
               >
-                <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${pref.value ? "translate-x-5" : "translate-x-0"}`} />
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                    pref.value ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
               </button>
             </div>
           ))}
         </div>
-        {saveError && <p className="mt-3 text-sm text-red-600">{saveError}</p>}
+        {saveError && <p className="mt-3 text-sm text-rose-400">{saveError}</p>}
       </div>
     </div>
   );

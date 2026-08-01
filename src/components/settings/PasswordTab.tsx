@@ -3,12 +3,15 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 
+const darkInput =
+  "w-full rounded-xl border border-white/[0.1] bg-white/[0.03] px-4 py-2.5 pr-11 text-sm text-[#F2F4F8] outline-none transition-all focus:border-[#3B82F6]/50 focus:bg-white/[0.05] focus:ring-2 focus:ring-[#3B82F6]/15";
+
 function EyeToggle({ show, onToggle }: { show: boolean; onToggle: () => void }) {
   return (
     <button
       type="button"
       onClick={onToggle}
-      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-600 transition-colors"
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A8B0C2] transition-colors hover:text-[#C5CBD8]"
       aria-label={show ? "Hide password" : "Show password"}
     >
       {show ? (
@@ -44,7 +47,7 @@ export default function PasswordTab() {
     if (/[0-9]/.test(newPassword)) score++;
     if (/[^A-Za-z0-9]/.test(newPassword)) score++;
     const labels = ["", "Weak", "Fair", "Good", "Strong"];
-    const colors = ["", "bg-red-500", "bg-amber-500", "bg-blue-500", "bg-emerald-500"];
+    const colors = ["", "bg-rose-500", "bg-amber-500", "bg-[#3B82F6]", "bg-emerald-500"];
     return { score, label: labels[score], color: colors[score] };
   }, [newPassword]);
 
@@ -89,48 +92,48 @@ export default function PasswordTab() {
 
   return (
     <div>
-      <div className="border-b border-zinc-100 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Change Password</h2>
-        <p className="mt-1 text-sm text-zinc-600">Update your password to keep your account secure. Other active devices will be signed out.</p>
+      <div className="border-b border-white/[0.06] px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+        <h2 className="text-lg font-semibold text-[#F2F4F8]">Change Password</h2>
+        <p className="mt-1 text-sm text-[#A8B0C2]">Update your password to keep your account secure. Other active devices will be signed out.</p>
       </div>
 
       <div className="space-y-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700">Current Password</label>
+          <label className="mb-1.5 block text-sm font-medium text-[#C5CBD8]">Current Password</label>
           <div className="relative">
-            <input type={showCurrentPassword ? "text" : "password"} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 pr-11 text-sm text-zinc-900 outline-none transition-all focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100" />
+            <input type={showCurrentPassword ? "text" : "password"} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className={darkInput} />
             <EyeToggle show={showCurrentPassword} onToggle={() => setShowCurrentPassword(!showCurrentPassword)} />
           </div>
         </div>
 
-        <div className="h-px bg-zinc-100" />
+        <div className="h-px bg-white/[0.06]" />
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700">New Password</label>
+          <label className="mb-1.5 block text-sm font-medium text-[#C5CBD8]">New Password</label>
           <div className="relative">
-            <input type={showNewPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 pr-11 text-sm text-zinc-900 outline-none transition-all focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100" />
+            <input type={showNewPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={darkInput} />
             <EyeToggle show={showNewPassword} onToggle={() => setShowNewPassword(!showNewPassword)} />
           </div>
           {newPassword && (
             <div className="mt-2.5 space-y-1.5">
               <div className="flex gap-1">
                 {[1, 2, 3, 4].map((index) => (
-                  <div key={index} className={`h-1 flex-1 rounded-full transition-all duration-300 ${index <= passwordStrength.score ? passwordStrength.color : "bg-zinc-100"}`} />
+                  <div key={index} className={`h-1 flex-1 rounded-full transition-all duration-300 ${index <= passwordStrength.score ? passwordStrength.color : "bg-white/[0.08]"}`} />
                 ))}
               </div>
-              <p className="text-[11px] text-zinc-600">{passwordStrength.label}</p>
+              <p className="text-[11px] text-[#A8B0C2]">{passwordStrength.label}</p>
             </div>
           )}
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700">Confirm New Password</label>
+          <label className="mb-1.5 block text-sm font-medium text-[#C5CBD8]">Confirm New Password</label>
           <div className="relative">
-            <input type={showConfirmNewPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 pr-11 text-sm text-zinc-900 outline-none transition-all focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100" />
+            <input type={showConfirmNewPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={darkInput} />
             <EyeToggle show={showConfirmNewPassword} onToggle={() => setShowConfirmNewPassword(!showConfirmNewPassword)} />
           </div>
           {confirmPassword && (
-            <p className={`mt-2 text-[11px] flex items-center gap-1 ${confirmPassword === newPassword ? "text-emerald-600" : "text-red-500"}`}>
+            <p className={`mt-2 flex items-center gap-1 text-[11px] ${confirmPassword === newPassword ? "text-emerald-400" : "text-rose-400"}`}>
               {confirmPassword === newPassword ? (
                 <><svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg> Passwords match</>
               ) : (
@@ -140,8 +143,8 @@ export default function PasswordTab() {
           )}
         </div>
 
-        <div className="rounded-xl bg-zinc-50 p-4">
-          <p className="text-xs font-medium text-zinc-600 mb-2">Password requirements:</p>
+        <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-4">
+          <p className="mb-2 text-xs font-medium text-[#A8B0C2]">Password requirements:</p>
           <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
             {[
               { rule: "At least 8 characters", met: newPassword.length >= 8 },
@@ -149,8 +152,8 @@ export default function PasswordTab() {
               { rule: "One number", met: /[0-9]/.test(newPassword) },
               { rule: "One special character", met: /[^A-Za-z0-9]/.test(newPassword) },
             ].map((req) => (
-              <p key={req.rule} className={`text-[11px] flex items-center gap-1.5 ${!newPassword ? "text-zinc-600" : req.met ? "text-emerald-600" : "text-zinc-600"}`}>
-                <span className={`inline-block h-1 w-1 rounded-full ${!newPassword ? "bg-zinc-300" : req.met ? "bg-emerald-500" : "bg-zinc-300"}`} />
+              <p key={req.rule} className={`flex items-center gap-1.5 text-[11px] ${!newPassword ? "text-[#A8B0C2]" : req.met ? "text-emerald-400" : "text-[#A8B0C2]"}`}>
+                <span className={`inline-block h-1 w-1 rounded-full ${!newPassword ? "bg-white/[0.2]" : req.met ? "bg-emerald-400" : "bg-white/[0.2]"}`} />
                 {req.rule}
               </p>
             ))}
@@ -159,18 +162,23 @@ export default function PasswordTab() {
       </div>
 
       {passwordError && (
-        <div className="mx-4 mb-4 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 sm:mx-6 lg:mx-8">
+        <div className="mx-4 mb-4 flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300 sm:mx-6 lg:mx-8">
           <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
           {passwordError}
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-zinc-100 px-4 py-5 sm:px-6 lg:px-8">
-        <Button onClick={handleChangePassword} disabled={!currentPassword || !newPassword} loading={passwordSaving}>
+      <div className="flex flex-wrap items-center gap-3 border-t border-white/[0.06] px-4 py-5 sm:px-6 lg:px-8">
+        <Button
+          onClick={handleChangePassword}
+          disabled={!currentPassword || !newPassword}
+          loading={passwordSaving}
+          className="!bg-[#3B82F6] hover:!bg-[#4B8FF7] !shadow-none"
+        >
           {passwordSaving ? "Updating…" : "Update Password"}
         </Button>
         {passwordSaved && (
-          <span className="flex items-center gap-1.5 text-sm text-emerald-600">
+          <span className="flex items-center gap-1.5 text-sm text-emerald-400">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
             Password updated
           </span>

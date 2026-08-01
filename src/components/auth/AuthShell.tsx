@@ -16,9 +16,12 @@ const AUTH_EASE = [0.45, 0.05, 0.55, 0.95] as const;
 export function AuthShell({
   children,
   footer,
+  contentClassName,
 }: {
   children: ReactNode;
   footer?: ReactNode;
+  /** Override the default narrow auth column (e.g. onboarding). */
+  contentClassName?: string;
 }) {
   const reducedMotion = useReducedMotion() ?? false;
 
@@ -74,12 +77,12 @@ export function AuthShell({
           transition={
             reducedMotion ? { duration: 0 } : { duration: 0.4, ease: AUTH_EASE }
           }
-          className="w-full max-w-[22rem]"
+          className={contentClassName ?? "w-full max-w-[22rem]"}
         >
           {children}
 
           {footer ? (
-            <div className="mt-8 border-t border-white/[0.08] pt-6 text-center text-sm text-[#CBD5E1] sm:text-[0.95rem]">
+            <div className="mt-8 w-full border-t border-white/[0.08] pt-6 text-center text-sm text-[#CBD5E1] sm:text-[0.95rem]">
               {footer}
             </div>
           ) : null}

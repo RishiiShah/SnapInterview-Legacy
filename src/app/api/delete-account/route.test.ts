@@ -62,7 +62,7 @@ describe("DELETE /api/delete-account", () => {
 
     const request = new Request("http://localhost/api/delete-account", {
       method: "DELETE",
-      body: JSON.stringify({ confirm: "DELETE", currentPassword: "pw" }),
+      body: JSON.stringify({ confirm: "DELETE MY ACCOUNT", currentPassword: "pw" }),
     });
 
     const res = await DELETE(request);
@@ -77,7 +77,7 @@ describe("DELETE /api/delete-account", () => {
 
     const request = new Request("http://localhost/api/delete-account", {
       method: "DELETE",
-      body: JSON.stringify({ confirm: "DELETE", currentPassword: "pw" }),
+      body: JSON.stringify({ confirm: "DELETE MY ACCOUNT", currentPassword: "pw" }),
     });
 
     const res = await DELETE(request);
@@ -94,7 +94,7 @@ describe("DELETE /api/delete-account", () => {
 
     const request = new Request("http://localhost/api/delete-account", {
       method: "DELETE",
-      body: JSON.stringify({ confirm: "DELETE", currentPassword: "pw" }),
+      body: JSON.stringify({ confirm: "DELETE MY ACCOUNT", currentPassword: "pw" }),
     });
 
     const res = await DELETE(request);
@@ -104,7 +104,7 @@ describe("DELETE /api/delete-account", () => {
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
   });
 
-  it('requires confirm to be "DELETE" and a current password', async () => {
+  it('requires confirm to be "DELETE MY ACCOUNT" and a current password', async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
     vi.mocked(getServerAuthSession).mockResolvedValue({
       user: { email: "user@example.com" },
@@ -138,7 +138,7 @@ describe("DELETE /api/delete-account", () => {
 
     const request = new Request("http://localhost/api/delete-account", {
       method: "DELETE",
-      body: JSON.stringify({ confirm: "DELETE", currentPassword: "pw" }),
+      body: JSON.stringify({ confirm: "DELETE MY ACCOUNT", currentPassword: "pw" }),
     });
 
     const res = await DELETE(request);
@@ -170,7 +170,7 @@ describe("DELETE /api/delete-account", () => {
 
     const request = new Request("http://localhost/api/delete-account", {
       method: "DELETE",
-      body: JSON.stringify({ confirm: "DELETE", currentPassword: "wrong" }),
+      body: JSON.stringify({ confirm: "DELETE MY ACCOUNT", currentPassword: "wrong" }),
     });
 
     const res = await DELETE(request);
@@ -202,7 +202,7 @@ describe("DELETE /api/delete-account", () => {
 
     const request = new Request("http://localhost/api/delete-account", {
       method: "DELETE",
-      body: JSON.stringify({ confirm: "DELETE", currentPassword: "correct" }),
+      body: JSON.stringify({ confirm: "DELETE MY ACCOUNT", currentPassword: "correct" }),
     });
 
     const res = await DELETE(request);

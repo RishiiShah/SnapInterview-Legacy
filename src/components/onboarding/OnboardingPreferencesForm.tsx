@@ -5,10 +5,17 @@ import { useState } from "react";
 import SearchableDropdown from "@/components/SearchableDropdown";
 import SelectDropdown from "@/components/SelectDropdown";
 import { SendActionButton } from "@/components/ui/SendActionButton";
-import { COMPANIES, EXPERIENCE_LEVELS, INTERVIEW_GOALS, CATEGORIES, ROLES } from "@/data/constants";
+import {
+  COMPANIES,
+  EXPERIENCE_LEVELS,
+  INTERVIEW_GOALS,
+  INTERVIEW_KINDS,
+  ROLES,
+} from "@/data/constants";
 import type { InterviewType } from "@/data/types";
 import {
   DEFAULT_ONBOARDING_FORM_VALUES,
+  normalizeOnboardingFormValues,
   type OnboardingPreferencesFormValues,
 } from "@/lib/onboarding/preferences";
 
@@ -23,7 +30,32 @@ type OnboardingPreferencesFormProps = {
   /** Settings uses dark card; onboarding auth shell uses plain. */
   tone?: "light" | "dark";
   chrome?: "card" | "plain";
+  /** Persist unsaved edits across reloads (settings). Cleared after successful save. */
+  draftStorageKey?: string;
 };
+
+function readDraft(key: string): Partial<OnboardingPreferencesFormValues> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return null;
+    return normalizeOnboardingFormValues(parsed as Partial<OnboardingPreferencesFormValues>);
+  } catch {
+    return null;
+  }
+}
+
+function writeDraft(key: string, values: OnboardingPreferencesFormValues) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(key, JSON.stringify(values));
+}
+
+function clearDraft(key: string) {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(key);
+}
 
 export default function OnboardingPreferencesForm({
   initialValues,
@@ -35,16 +67,33 @@ export default function OnboardingPreferencesForm({
   onSaved,
   tone = "light",
   chrome = "card",
+  draftStorageKey,
 }: OnboardingPreferencesFormProps) {
   const router = useRouter();
   const dark = tone === "dark";
   const plain = chrome === "plain";
-  const [values, setValues] = useState<OnboardingPreferencesFormValues>({
-    ...DEFAULT_ONBOARDING_FORM_VALUES,
-    ...initialValues,
+  const [values, setValues] = useState<OnboardingPreferencesFormValues>(() => {
+    const draft = draftStorageKey ? readDraft(draftStorageKey) : null;
+    return {
+      ...DEFAULT_ONBOARDING_FORM_VALUES,
+      ...normalizeOnboardingFormValues(initialValues),
+      ...draft,
+    };
   });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function updateValues(
+    updater: (previous: OnboardingPreferencesFormValues) => OnboardingPreferencesFormValues,
+  ) {
+    setValues((previous) => {
+      const next = updater(previous);
+      if (draftStorageKey) {
+        writeDraft(draftStorageKey, next);
+      }
+      return next;
+    });
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,6 +125,10 @@ export default function OnboardingPreferencesForm({
         return;
       }
 
+      if (draftStorageKey) {
+        clearDraft(draftStorageKey);
+      }
+
       onSaved?.();
 
       if (redirectTo) {
@@ -105,7 +158,7 @@ export default function OnboardingPreferencesForm({
         <SearchableDropdown
           label="Target role"
           value={values.onboardingRole}
-          onChange={(onboardingRole) => setValues((previous) => ({ ...previous, onboardingRole }))}
+          onChange={(onboardingRole) => updateValues((previous) => ({ ...previous, onboardingRole }))}
           options={ROLES}
           placeholder="Search or type your target role"
           tone={tone}
@@ -114,7 +167,7 @@ export default function OnboardingPreferencesForm({
         <SelectDropdown
           label="Experience level"
           value={values.onboardingLevel}
-          onChange={(onboardingLevel) => setValues((previous) => ({ ...previous, onboardingLevel }))}
+          onChange={(onboardingLevel) => updateValues((previous) => ({ ...previous, onboardingLevel }))}
           options={EXPERIENCE_LEVELS}
           tone={tone}
         />
@@ -124,7 +177,9 @@ export default function OnboardingPreferencesForm({
         <SearchableDropdown
           label="Target company"
           value={values.onboardingCompany}
-          onChange={(onboardingCompany) => setValues((previous) => ({ ...previous, onboardingCompany }))}
+          onChange={(onboardingCompany) =>
+            updateValues((previous) => ({ ...previous, onboardingCompany }))
+          }
           options={COMPANIES}
           placeholder="Company, or General"
           tone={tone}
@@ -133,7 +188,7 @@ export default function OnboardingPreferencesForm({
         <SelectDropdown
           label="Primary goal"
           value={values.onboardingGoal}
-          onChange={(onboardingGoal) => setValues((previous) => ({ ...previous, onboardingGoal }))}
+          onChange={(onboardingGoal) => updateValues((previous) => ({ ...previous, onboardingGoal }))}
           options={INTERVIEW_GOALS}
           tone={tone}
         />
@@ -144,12 +199,16 @@ export default function OnboardingPreferencesForm({
           label="Default interview type"
           value={values.preferredInterviewType}
           onChange={(preferredInterviewType) =>
-            setValues((previous) => ({
+            updateValues((previous) => ({
               ...previous,
               preferredInterviewType: preferredInterviewType as InterviewType,
             }))
           }
-          options={CATEGORIES.map((category) => ({ value: category.value, label: category.label }))}
+          options={INTERVIEW_KINDS.map((kind) => ({
+            value: kind.value,
+            label: kind.label,
+            description: kind.description,
+          }))}
           tone={tone}
         />
       ) : null}

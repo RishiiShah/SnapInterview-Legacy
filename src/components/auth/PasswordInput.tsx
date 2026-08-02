@@ -37,12 +37,12 @@ export function PasswordInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           autoComplete={autoComplete}
-          className={`${authFieldClassName} pr-11`}
+          className={`${authFieldClassName} pr-11 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden`}
         />
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-[#B8C0CE] transition-colors hover:text-[#CBD5E1]"
+          className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 cursor-pointer items-center justify-center text-[#B8C0CE] transition-colors hover:text-[#E8ECF4]"
           aria-label={showPassword ? "Hide password" : "Show password"}
         >
           {showPassword ? (

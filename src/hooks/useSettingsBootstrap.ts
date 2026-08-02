@@ -39,6 +39,7 @@ function normalizeNotificationPrefs(value: unknown): NotificationPrefs {
 export function useSettingsBootstrap() {
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>(DEFAULT_NOTIFICATION_PREFS);
   const [onboardingPrefs, setOnboardingPrefs] = useState<OnboardingPreferencesFormValues>(DEFAULT_ONBOARDING_FORM_VALUES);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -65,6 +66,10 @@ export function useSettingsBootstrap() {
         }
       } catch {
         // Keep defaults when bootstrap fetch fails.
+      } finally {
+        if (!isCancelled) {
+          setIsLoaded(true);
+        }
       }
     };
 
@@ -78,5 +83,6 @@ export function useSettingsBootstrap() {
   return {
     notificationPrefs,
     onboardingPrefs,
+    isLoaded,
   };
 }

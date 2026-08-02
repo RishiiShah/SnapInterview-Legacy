@@ -2,10 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import QuestionDetailPageClient from "@/components/questions/QuestionDetailPageClient";
 import {
-  getPracticeQuestionBySlug,
+  filterQuestionsByScope,
   getPracticeQuestionRuntimeDataBySlug,
-  isCodingQuestion,
 } from "@/repositories/question-repo";
+import { isCodingQuestion } from "@/lib/questions/scope";
 
 export default async function CodingDetailPage({
   params,
@@ -13,14 +13,9 @@ export default async function CodingDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const runtimeData = await getPracticeQuestionRuntimeDataBySlug(slug, "coding");
+  const runtimeData = await getPracticeQuestionRuntimeDataBySlug(slug, "all");
 
   if (!runtimeData) {
-    const maybeInterview = await getPracticeQuestionBySlug(slug);
-    if (maybeInterview && !isCodingQuestion(maybeInterview)) {
-      redirect(`/questions/${slug}`);
-    }
-
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <h1 className="text-xl font-bold text-[#F2F4F8]">Problem not found</h1>
@@ -37,11 +32,16 @@ export default async function CodingDetailPage({
     );
   }
 
-  const { question, allQuestions, currentIndex } = runtimeData;
+  if (!isCodingQuestion(runtimeData.question)) {
+    redirect(`/questions/${slug}`);
+  }
+
+  const allQuestions = filterQuestionsByScope(runtimeData.allQuestions, "coding");
+  const currentIndex = allQuestions.findIndex((question) => question.slug === slug);
 
   return (
     <QuestionDetailPageClient
-      question={question}
+      question={runtimeData.question}
       currentIndex={currentIndex}
       totalQuestions={allQuestions.length}
       prevQuestion={currentIndex > 0 ? allQuestions[currentIndex - 1] : null}

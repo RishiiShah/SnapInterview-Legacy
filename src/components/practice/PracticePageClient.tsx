@@ -220,7 +220,7 @@ export default function PracticePageClient({
   }, [step, role]);
 
   return (
-    <div className="mx-auto w-full max-w-2xl pb-20 pt-6 xl:max-w-3xl">
+    <div className="mx-auto w-full max-w-4xl pb-20 pt-6 xl:max-w-5xl">
       {/* Soft progress */}
       <div className="mb-10 flex items-center gap-3">
         <div className="flex items-baseline gap-2">
@@ -495,7 +495,7 @@ export default function PracticePageClient({
             className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#0C0E14] via-[#0C0E14]/92 to-transparent"
             aria-hidden
           />
-          <div className="pointer-events-auto relative mx-auto flex w-full max-w-2xl items-center justify-between gap-3 xl:max-w-3xl">
+          <div className="pointer-events-auto relative mx-auto flex w-full max-w-4xl items-center justify-between gap-3 xl:max-w-5xl">
             <button
               type="button"
               onClick={goBack}

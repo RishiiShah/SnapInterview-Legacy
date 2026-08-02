@@ -9,6 +9,7 @@ import { QuestionRightPanel, type RightTab } from "@/components/questions/Questi
 import { CodingRightPanel } from "@/components/questions/CodingRightPanel";
 import { useResizableSplit } from "@/hooks/useResizableSplit";
 import { cn } from "@/lib/utils";
+import { isCodingQuestion } from "@/lib/questions/scope";
 
 type QuestionDetailPageClientProps = {
   question: Question;
@@ -52,7 +53,7 @@ export default function QuestionDetailPageClient({
     initialPercent: 42,
     minPercent: 28,
     maxPercent: 58,
-    storageKey: "snap-question-split-h",
+    storageKey: `snap-${basePath.slice(1)}-split-h`,
   });
 
   const getMinutes = (value: string) => {
@@ -262,7 +263,7 @@ export default function QuestionDetailPageClient({
           {...splitHandleProps}
         />
 
-        {question.type === "coding" ? (
+        {isCodingQuestion(question) ? (
           <CodingRightPanel
             question={question}
             onSolved={() => {

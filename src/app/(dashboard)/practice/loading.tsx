@@ -2,7 +2,7 @@ import { FadeIn, SlideIn } from "@/components/ui/motion";
 
 export default function PracticeLoading() {
   return (
-    <div className="mx-auto w-full max-w-2xl pb-20 pt-6 xl:max-w-3xl">
+    <div className="mx-auto w-full max-w-4xl pb-20 pt-6 xl:max-w-5xl">
       <div className="mb-10 flex items-center gap-3">
         <div className="h-3 w-8 animate-pulse rounded bg-white/[0.05]" />
         <div className="h-px flex-1 bg-white/[0.06]" />

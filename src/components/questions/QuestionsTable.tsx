@@ -7,12 +7,12 @@ import type { Difficulty, QuestionCategory, Question } from "@/data/types";
 type SortKey = "category" | "difficulty" | "time";
 type SortDir = "asc" | "desc";
 
-const CATEGORY_DARK: Record<QuestionCategory, string> = {
-  behavioral: "bg-blue-500/10 text-blue-300 border-blue-500/20",
-  technical: "bg-violet-500/10 text-violet-300 border-violet-500/20",
-  "system-design": "bg-amber-500/10 text-amber-300 border-amber-500/20",
-  leadership: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
-  coding: "bg-cyan-500/10 text-cyan-300 border-cyan-500/20",
+const CATEGORY_DOT: Record<QuestionCategory, string> = {
+  behavioral: "bg-[#3B82F6]",
+  technical: "bg-violet-400",
+  "system-design": "bg-amber-400",
+  leadership: "bg-emerald-400",
+  coding: "bg-cyan-400",
 };
 
 function renderSortIcon(col: SortKey, sortKey: SortKey | null, sortDir: SortDir) {
@@ -122,17 +122,19 @@ export default function QuestionsTable({
               >
                 <span className="text-sm font-medium text-[#A8B0C2]">{q.id}</span>
                 <span className="line-clamp-1 pr-4 text-sm font-medium text-[#E8ECF4] group-hover:text-[#F2F4F8]">
-                  {q.type === "coding" ? (
+                  {q.type === "coding" && !hideCategoryColumn ? (
                     <span className="mr-1.5 font-mono text-[11px] text-[#60A5FA]">{"</>"}</span>
                   ) : null}
                   {q.text}
                 </span>
                 {!hideCategoryColumn ? (
-                  <span
-                    className={`inline-flex w-fit items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${
-                      CATEGORY_DARK[q.category] ?? "bg-white/[0.04] text-[#B0B8C8] border-white/[0.08]"
-                    }`}
-                  >
+                  <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[11px] font-medium text-[#C5CBD8]">
+                    <span
+                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                        CATEGORY_DOT[q.category] ?? "bg-[#6B7385]"
+                      }`}
+                      aria-hidden
+                    />
                     {cat?.label}
                   </span>
                 ) : null}

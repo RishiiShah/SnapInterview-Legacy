@@ -203,14 +203,20 @@ export function QuestionLeftPanel({
                   ) : null}
                 </>
               ) : (
-                <p>
-                  Prepare a structured response to this interview question. Think about specific
-                  examples from your experience and how they demonstrate the required competencies.
-                </p>
+                <div className="space-y-3">
+                  <p>
+                    Prepare a structured response. Lead with the situation, your actions, and the
+                    outcome — then tie it back to the competency this question probes.
+                  </p>
+                  <p className="text-sm text-[#A8B0C2]">
+                    Use the timer on the right to rehearse under interview pressure. Hints and a
+                    sample answer are available above when you need a nudge.
+                  </p>
+                </div>
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-[#A8B0C2]">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-white/[0.06] pt-4 text-xs text-[#A8B0C2]">
               <span>
                 <span className="text-[#6B7385]">Category</span>{" "}
                 <span className="font-medium text-[#C5CBD8]">

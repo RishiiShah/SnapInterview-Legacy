@@ -8,8 +8,11 @@ import {
   adminActionButtonClass,
   adminActionLinkClass,
   adminDangerButtonClass,
+  adminInputOverrideClass,
   adminPaginationLinkClass,
   adminPaginationLinkDisabledClass,
+  adminPrimaryButtonClass,
+  adminSecondaryButtonClass,
 } from "@/components/admin/admin-styles";
 import { ConfirmActionForm } from "@/components/admin/ConfirmActionForm";
 import { IntegrityBadge } from "@/components/admin/IntegrityBadge";
@@ -22,7 +25,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
 const filterSelectClass =
-  "w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none transition-all focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100";
+  "w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3.5 py-2.5 text-sm text-[#F2F4F8] outline-none transition-colors focus:border-[#3B82F6]/45 focus:bg-white/[0.05] focus:ring-1 focus:ring-[#3B82F6]/25";
 
 function formatDate(value: Date) {
   return new Intl.DateTimeFormat("en-US", {
@@ -156,22 +159,22 @@ export default async function AdminInterviewsPage({
   return (
     <div className="space-y-6">
       <section>
-        <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">Interviews</h2>
-        <p className="mt-1 text-sm text-zinc-600">
+        <h2 className="text-2xl font-semibold tracking-tight text-[#F2F4F8]">Interviews</h2>
+        <p className="mt-1 text-sm text-[#A8B0C2]">
           Session moderation, recording integrity checks, and permanent deletion.
         </p>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-zinc-600">Total Sessions</p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">{totalCount.toLocaleString()}</p>
+        <div className="rounded-xl border border-white/[0.08] bg-[#12141A] p-4">
+          <p className="text-sm text-[#A8B0C2]">Total Sessions</p>
+          <p className="mt-2 text-2xl font-semibold text-[#F2F4F8]">{totalCount.toLocaleString()}</p>
         </div>
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <section className="rounded-xl border border-white/[0.08] bg-[#12141A] p-4">
         <form key={filterFormKey} className="grid gap-3 md:grid-cols-5">
-          <Input type="text" name="q" defaultValue={q} placeholder="Search candidate name/email" />
+          <Input type="text" name="q" defaultValue={q} placeholder="Search candidate name/email" className={adminInputOverrideClass} />
           <select name="status" defaultValue={status} className={filterSelectClass}>
             <option value="">All statuses</option>
             <option value="IN_PROGRESS">IN_PROGRESS</option>
@@ -182,17 +185,17 @@ export default async function AdminInterviewsPage({
             <option value="all">All recordings</option>
             <option value="issues">Recording issues only</option>
           </select>
-          <Button type="submit" size="md" className="w-full">
+          <Button type="submit" size="md" className={`w-full ${adminPrimaryButtonClass}`}>
             Apply filters
           </Button>
           <Link href="/admin/interviews" className="w-full">
-            <Button type="button" variant="secondary" size="md" className="w-full">
+            <Button type="button" variant="secondary" size="md" className={`w-full ${adminSecondaryButtonClass}`}>
               Clear filters
             </Button>
           </Link>
         </form>
         {integrityFilter === "issues" && (
-          <p className="mt-3 text-xs text-zinc-600">
+          <p className="mt-3 text-xs text-[#A8B0C2]">
             Showing {visibleInterviews.length} of {recentInterviews.length} sessions on this page with
             missing storage or URL/key mismatch.
           </p>
@@ -201,27 +204,27 @@ export default async function AdminInterviewsPage({
 
       <section className="grid gap-4 sm:grid-cols-3">
         {statusCounts.map((row) => (
-          <div key={row.status} className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <p className="text-sm text-zinc-600">{row.status}</p>
-            <p className="mt-2 text-2xl font-semibold text-zinc-900">{row._count._all.toLocaleString()}</p>
+          <div key={row.status} className="rounded-xl border border-white/[0.08] bg-[#12141A] p-4">
+            <p className="text-sm text-[#A8B0C2]">{row.status}</p>
+            <p className="mt-2 text-2xl font-semibold text-[#F2F4F8]">{row._count._all.toLocaleString()}</p>
           </div>
         ))}
       </section>
 
       <section className="space-y-3">
         {candidates.length === 0 ? (
-          <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-600 shadow-sm">
+          <div className="rounded-xl border border-white/[0.08] bg-[#12141A] p-8 text-center text-sm text-[#A8B0C2]">
             No interviews match the current filters.
           </div>
         ) : (
           candidates.map((candidate) => (
             <details
               key={candidate.key}
-              className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm"
+              className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#12141A]"
             >
-              <summary className="list-none px-4 py-3 hover:bg-zinc-50">
+              <summary className="list-none px-4 py-3 hover:bg-white/[0.03]">
                 <table className="w-full text-sm">
-                  <thead className="text-left text-xs uppercase tracking-wide text-zinc-600">
+                  <thead className="text-left text-xs uppercase tracking-wide text-[#A8B0C2]">
                     <tr>
                       <th className="pb-1 font-medium">Candidate</th>
                       <th className="pb-1 font-medium">Sessions</th>
@@ -230,19 +233,19 @@ export default async function AdminInterviewsPage({
                   <tbody>
                     <tr>
                       <td className="pt-1">
-                        <p className="font-medium text-zinc-900">{candidate.name}</p>
-                        <p className="text-xs text-zinc-600">{candidate.email}</p>
+                        <p className="font-medium text-[#F2F4F8]">{candidate.name}</p>
+                        <p className="text-xs text-[#A8B0C2]">{candidate.email}</p>
                       </td>
-                      <td className="pt-1 text-zinc-700">{candidate.sessions.length}</td>
+                      <td className="pt-1 text-[#C5CBD8]">{candidate.sessions.length}</td>
                     </tr>
                   </tbody>
                 </table>
               </summary>
 
-              <div className="border-t border-zinc-100 p-3">
+              <div className="border-t border-white/[0.06] p-3">
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
-                    <thead className="border-b border-zinc-200 bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-600">
+                    <thead className="border-b border-white/[0.08] bg-white/[0.02] text-left text-xs uppercase tracking-wide text-[#A8B0C2]">
                       <tr>
                         <th className="px-3 py-2">Role</th>
                         <th className="px-3 py-2">Type</th>
@@ -259,16 +262,16 @@ export default async function AdminInterviewsPage({
                       {candidate.sessions.map((session) => {
                         const integrity = integrityBySession.get(session.id)!;
                         return (
-                          <tr key={session.id} className="border-b border-zinc-100 last:border-b-0">
-                            <td className="px-3 py-2 text-zinc-700">{session.role}</td>
-                            <td className="px-3 py-2 text-zinc-700">{session.type}</td>
-                            <td className="px-3 py-2 text-zinc-700">{session.difficulty}</td>
-                            <td className="px-3 py-2 text-zinc-700">{session.status}</td>
+                          <tr key={session.id} className="border-b border-white/[0.05] last:border-b-0">
+                            <td className="px-3 py-2 text-[#C5CBD8]">{session.role}</td>
+                            <td className="px-3 py-2 text-[#C5CBD8]">{session.type}</td>
+                            <td className="px-3 py-2 text-[#C5CBD8]">{session.difficulty}</td>
+                            <td className="px-3 py-2 text-[#C5CBD8]">{session.status}</td>
                             <td className="px-3 py-2">
                               <IntegrityBadge integrity={integrity} />
                             </td>
-                            <td className="px-3 py-2 text-zinc-700">{session._count.transcript}</td>
-                            <td className="px-3 py-2 text-zinc-700">{formatDate(session.createdAt)}</td>
+                            <td className="px-3 py-2 text-[#C5CBD8]">{session._count.transcript}</td>
+                            <td className="px-3 py-2 text-[#C5CBD8]">{formatDate(session.createdAt)}</td>
                             <td className="px-3 py-2">
                               <Link
                                 href={`/admin/interviews/${session.id}`}
@@ -310,8 +313,8 @@ export default async function AdminInterviewsPage({
         )}
       </section>
 
-      <section className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm">
-        <p className="text-zinc-600">
+      <section className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[#12141A] px-4 py-3 text-sm">
+        <p className="text-[#A8B0C2]">
           Showing {(page - 1) * pageSize + 1}-
           {Math.min(page * pageSize, filteredCount)} of {filteredCount}
         </p>
@@ -322,7 +325,7 @@ export default async function AdminInterviewsPage({
           >
             Previous
           </Link>
-          <span className="text-zinc-600">
+          <span className="text-[#A8B0C2]">
             Page {page} / {totalPages}
           </span>
           <Link

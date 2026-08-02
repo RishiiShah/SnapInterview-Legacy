@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { adminFieldClass, adminLabelClass } from "./admin-styles";
 
 type SupportedLanguage = "javascript" | "python" | "cpp";
 
@@ -10,8 +11,7 @@ const LANGUAGES: { value: SupportedLanguage; label: string }[] = [
   { value: "cpp", label: "C++" },
 ];
 
-const fieldClass =
-  "w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-600 transition-all focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100 font-mono";
+const codeFieldClass = `${adminFieldClass} font-mono`;
 
 type TestCase = { input: string; expectedOutput: string; isHidden: boolean };
 
@@ -55,10 +55,9 @@ export function AdminCodingFields({
       <input type="hidden" name="testCases" value={JSON.stringify(testCases)} />
       <input type="hidden" name="solutionCode" value={JSON.stringify(solutionCode)} />
 
-      {/* Starter Code */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-zinc-700">Starter Code</label>
-        <div className="flex items-center gap-1 mb-2">
+        <label className={`mb-1.5 block ${adminLabelClass}`}>Starter Code</label>
+        <div className="mb-2 flex items-center gap-1">
           {LANGUAGES.map((l) => (
             <button
               key={l.value}
@@ -66,8 +65,8 @@ export function AdminCodingFields({
               onClick={() => setCodeTab(l.value)}
               className={`cursor-pointer rounded-md px-3 py-1 text-xs font-semibold transition-all ${
                 codeTab === l.value
-                  ? "bg-zinc-900 text-white"
-                  : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                  ? "bg-[#3B82F6] text-white"
+                  : "bg-white/[0.04] text-[#A8B0C2] hover:bg-white/[0.06] hover:text-[#E8ECF4]"
               }`}
             >
               {l.label}
@@ -78,47 +77,48 @@ export function AdminCodingFields({
           rows={8}
           value={starterCode[codeTab] ?? ""}
           onChange={(e) => setStarterCode({ ...starterCode, [codeTab]: e.target.value })}
-          className={fieldClass}
+          className={codeFieldClass}
           placeholder={`// ${codeTab} starter code`}
         />
       </div>
 
-      {/* Solution Code */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-zinc-700">Solution Code</label>
+        <label className={`mb-1.5 block ${adminLabelClass}`}>Solution Code</label>
         <textarea
           rows={8}
           value={solutionCode[codeTab] ?? ""}
           onChange={(e) => setSolutionCode({ ...solutionCode, [codeTab]: e.target.value })}
-          className={fieldClass}
+          className={codeFieldClass}
           placeholder={`// ${codeTab} solution code`}
         />
       </div>
 
-      {/* Test Cases */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-sm font-medium text-zinc-700">Test Cases</label>
+        <div className="mb-2 flex items-center justify-between">
+          <label className={adminLabelClass}>Test Cases</label>
           <button
             type="button"
             onClick={addTestCase}
-            className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-600 hover:bg-zinc-50"
+            className="cursor-pointer rounded-lg border border-white/[0.1] px-3 py-1 text-xs font-semibold text-[#A8B0C2] hover:bg-white/[0.04] hover:text-[#E8ECF4]"
           >
             + Add Case
           </button>
         </div>
         <div className="space-y-3">
           {testCases.map((tc, i) => (
-            <div key={i} className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 space-y-2">
+            <div
+              key={i}
+              className="space-y-2 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4"
+            >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-zinc-600">Case {i + 1}</span>
+                <span className="text-xs font-bold text-[#A8B0C2]">Case {i + 1}</span>
                 <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-1.5 text-xs text-zinc-600">
+                  <label className="flex items-center gap-1.5 text-xs text-[#A8B0C2]">
                     <input
                       type="checkbox"
                       checked={tc.isHidden}
                       onChange={(e) => updateTestCase(i, "isHidden", e.target.checked)}
-                      className="rounded"
+                      className="rounded border-white/20 bg-white/[0.04]"
                     />
                     Hidden
                   </label>
@@ -126,7 +126,7 @@ export function AdminCodingFields({
                     <button
                       type="button"
                       onClick={() => removeTestCase(i)}
-                      className="cursor-pointer text-xs text-red-500 hover:text-red-700"
+                      className="cursor-pointer text-xs text-red-300 hover:text-red-200"
                     >
                       Remove
                     </button>
@@ -137,14 +137,14 @@ export function AdminCodingFields({
                 rows={2}
                 value={tc.input}
                 onChange={(e) => updateTestCase(i, "input", e.target.value)}
-                className={fieldClass}
+                className={codeFieldClass}
                 placeholder="Input (stdin)"
               />
               <textarea
                 rows={2}
                 value={tc.expectedOutput}
                 onChange={(e) => updateTestCase(i, "expectedOutput", e.target.value)}
-                className={fieldClass}
+                className={codeFieldClass}
                 placeholder="Expected output (stdout)"
               />
             </div>

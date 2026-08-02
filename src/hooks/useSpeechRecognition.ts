@@ -126,13 +126,15 @@ export function useSpeechRecognition() {
 
                 recognition.onerror = (event: RecognitionErrorEvent) => {
                     const errorCode = event?.error;
-                    console.error("Speech recognition error", errorCode);
-                    
-                    // "no-speech" often happens if the user pauses.
-                    // We don't want to stop the UI recording state for this if it's intentional.
-                    if (errorCode === "no-speech") {
+
+                    // Benign / expected during continuous listening — don't surface as app errors.
+                    // "no-speech": user paused; recognition will end and we auto-restart.
+                    // "aborted": stop() / restart race.
+                    if (errorCode === "no-speech" || errorCode === "aborted") {
                       return;
                     }
+
+                    console.error("Speech recognition error", errorCode);
 
                     setSpeechError(getSpeechErrorMessage(errorCode));
                     setIsRecording(false);

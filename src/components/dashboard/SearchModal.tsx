@@ -123,7 +123,7 @@ export function SearchModal({ onClose }: { onClose: () => void }) {
                       <IconArrowRight className="h-4 w-4 shrink-0 text-[#B4C0D0]" />
                       <span className="flex-1 truncate">
                         {s.role}
-                        {s.company ? ` — ${s.company}` : ""}
+                        {s.company ? ` · ${s.company}` : ""}
                       </span>
                       <span className="shrink-0 text-xs text-[#B8C0CE]">
                         {categoryLabel(s.type)}

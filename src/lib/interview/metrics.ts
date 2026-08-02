@@ -835,13 +835,13 @@ export async function getAnalyticsOverviewData(userId: string): Promise<Analytic
   if (currentPeriodSessions.length === 0) {
     summary = "Start a session to track 30-day progress.";
   } else if (previousPeriodSessions.length === 0) {
-    summary = `${currentPeriodSessions.length} session${currentPeriodSessions.length !== 1 ? "s" : ""} in the last 30 days — keep it up to unlock comparisons.`;
+    summary = `${currentPeriodSessions.length} session${currentPeriodSessions.length !== 1 ? "s" : ""} in the last 30 days. Keep it up to unlock comparisons.`;
   } else if (scoreDelta === null) {
     summary = "Not enough data to compare periods.";
   } else if (scoreDelta > 0) {
     summary = `You're up ${Math.abs(scoreDelta)} points (${scoreDeltaPct}%) vs the prior 30 days.`;
   } else if (scoreDelta < 0) {
-    summary = `Down ${Math.abs(scoreDelta)} points vs the prior 30 days — refocus on areas to improve.`;
+    summary = `Down ${Math.abs(scoreDelta)} points vs the prior 30 days. Refocus on areas to improve.`;
   } else {
     summary = "Holding steady vs the prior 30 days.";
   }

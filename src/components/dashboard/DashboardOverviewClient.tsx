@@ -329,7 +329,7 @@ export default function DashboardOverviewClient({
             <p className="mt-3 text-[15px] leading-relaxed text-[#A8B0C2]">
               {hasSessions
                 ? "Pick up where you left off, or start a fresh run."
-                : "Mic, video, transcript, and a scored rubric — in one practice."}
+                : "Mic, video, transcript, and a scored rubric in one practice."}
             </p>
             <div className="mt-6 flex flex-wrap gap-3 sm:justify-end">
               <Link
@@ -371,7 +371,7 @@ export default function DashboardOverviewClient({
                 ) : (
                   <p className="text-sm text-[#C5CBD8]">
                     {signalDetail
-                      ? `${signalDetail} — score pending evaluation`
+                      ? `${signalDetail} (score pending evaluation)`
                       : "Scores appear after evaluation"}
                   </p>
                 )}

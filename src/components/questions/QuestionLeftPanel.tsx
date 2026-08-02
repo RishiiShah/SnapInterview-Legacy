@@ -206,7 +206,7 @@ export function QuestionLeftPanel({
                 <div className="space-y-3">
                   <p>
                     Prepare a structured response. Lead with the situation, your actions, and the
-                    outcome — then tie it back to the competency this question probes.
+                    outcome, then tie it back to the competency this question probes.
                   </p>
                   <p className="text-sm text-[#A8B0C2]">
                     Use the timer on the right to rehearse under interview pressure. Hints and a

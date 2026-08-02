@@ -39,7 +39,7 @@ export async function generateMetadata({
       : null;
 
   const titleSuffix = interview.company ? ` at ${interview.company}` : "";
-  const title = `${interview.role}${titleSuffix} — Mock Interview`;
+  const title = `${interview.role}${titleSuffix} · Mock Interview`;
   const description =
     evalScore !== null
       ? `Scored ${evalScore}/100 on a ${interview.difficulty} ${interview.type} mock interview. View the full evaluation on SnapInterview.`

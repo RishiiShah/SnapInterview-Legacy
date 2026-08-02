@@ -306,7 +306,7 @@ export default function ActiveInterviewScreen({
                   </ControlIconButton>
                   <div className="h-5 w-px bg-white/[0.1]" aria-hidden />
                   <span className="text-[12px] text-[#8B93A7]">
-                    Voice unavailable — type your answer below
+                    Voice unavailable. Type your answer below.
                   </span>
                 </div>
                 <div className="flex gap-2">

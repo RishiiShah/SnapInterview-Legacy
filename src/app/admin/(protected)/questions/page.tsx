@@ -191,7 +191,7 @@ export default async function AdminQuestionsPage({
             </Button>
           </div>
           <p className="text-xs text-[#A8B0C2]">
-            New slugs are added. Existing slugs only get new tags merged in—edit a question to remove tags that do not fit.
+            New slugs are added. Existing slugs only get new tags merged in. Edit a question to remove tags that do not fit.
           </p>
         </form>
       </section>

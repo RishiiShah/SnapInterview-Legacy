@@ -82,7 +82,7 @@ describe("SearchModal", () => {
     await waitFor(() => {
     expect(fetch).toHaveBeenCalledWith("/api/search?q=react");
     });
-    expect(screen.getByText("Frontend Developer — OpenAI")).not.toBeNull();
+    expect(screen.getByText("Frontend Developer · OpenAI")).not.toBeNull();
     expect(screen.getByRole("link", { name: /Frontend Developer/i }).getAttribute("href")).toBe(`/recordings?interviewId=${interviewId}`);
     expect(screen.getByText("Technical")).not.toBeNull();
     expect(screen.getByText("Explain React state updates")).not.toBeNull();

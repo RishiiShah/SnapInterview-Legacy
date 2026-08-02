@@ -175,7 +175,7 @@ export default function ForgotPasswordPage() {
             align="center"
           />
 
-          <form onSubmit={handleEmailSubmit} className="space-y-4">
+          <form onSubmit={handleEmailSubmit} noValidate autoComplete="off" className="space-y-4">
             <AuthTextField
               id="email"
               label="Email"
@@ -183,7 +183,7 @@ export default function ForgotPasswordPage() {
               value={email}
               onChange={setEmail}
               placeholder="you@example.com"
-              autoComplete="email"
+              autoComplete="off"
             />
 
             {emailError ? <AuthError message={emailError} /> : null}

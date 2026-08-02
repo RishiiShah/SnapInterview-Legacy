@@ -13,10 +13,15 @@ export default async function DashboardPage() {
   }
 
   const userId = session.user.id;
-  const onboardingUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { onboardingCompletedAt: true },
-  });
+  const onboardingUser = session.user.email
+    ? await prisma.user.findUnique({
+        where: { email: session.user.email.toLowerCase() },
+        select: { onboardingCompletedAt: true },
+      })
+    : await prisma.user.findUnique({
+        where: { id: userId },
+        select: { onboardingCompletedAt: true },
+      });
 
   if (!onboardingUser?.onboardingCompletedAt) {
     redirect("/onboarding");

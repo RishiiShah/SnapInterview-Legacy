@@ -59,8 +59,34 @@ export default function SignupPage() {
       return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
     if (password.length < 8) {
       setError("Password must be at least 8 characters.");
+      return;
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      setError("Password must contain at least one uppercase letter (A-Z).");
+      return;
+    }
+
+    if (!/[a-z]/.test(password)) {
+      setError("Password must contain at least one lowercase letter (a-z).");
+      return;
+    }
+
+    if (!/[0-9]/.test(password)) {
+      setError("Password must contain at least one number (0-9).");
+      return;
+    }
+
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      setError("Password must contain at least one special character (e.g. !@#$%^&*).");
       return;
     }
 
@@ -119,14 +145,14 @@ export default function SignupPage() {
             align="center"
           />
 
-          <form onSubmit={handleSubmit} className="space-y-2.5">
+          <form onSubmit={handleSubmit} noValidate autoComplete="off" className="space-y-2.5">
             <AuthTextField
               id="name"
               label="Full name"
               value={name}
               onChange={setName}
               placeholder="Jane Doe"
-              autoComplete="name"
+              autoComplete="off"
             />
 
             <AuthTextField
@@ -136,7 +162,7 @@ export default function SignupPage() {
               value={email}
               onChange={setEmail}
               placeholder="you@example.com"
-              autoComplete="email"
+              autoComplete="off"
             />
 
             <PasswordInput
@@ -144,8 +170,8 @@ export default function SignupPage() {
               label="Password"
               value={password}
               onChange={setPassword}
-              placeholder="Min. 8 characters"
-              autoComplete="new-password"
+              placeholder="Min. 8 chars, 1 uppercase, 1 number, 1 symbol"
+              autoComplete="off"
             />
 
             <PasswordInput
@@ -153,7 +179,7 @@ export default function SignupPage() {
               label="Confirm password"
               value={confirmPassword}
               onChange={setConfirmPassword}
-              autoComplete="new-password"
+              autoComplete="off"
             />
 
             {error ? <AuthError message={error} /> : null}
@@ -163,7 +189,7 @@ export default function SignupPage() {
             </p>
 
             <div className="pt-0.5">
-              <SubmitButton loading={loading} text="Create account" />
+              <SubmitButton loading={loading} text="Create account" sentText="Creating account..." />
             </div>
           </form>
 

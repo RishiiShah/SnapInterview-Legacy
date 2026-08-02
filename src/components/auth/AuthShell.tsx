@@ -148,7 +148,8 @@ export function AuthTextField({
   value,
   onChange,
   placeholder,
-  autoComplete,
+  autoComplete = "off",
+  error,
 }: {
   id: string;
   label: string;
@@ -157,6 +158,7 @@ export function AuthTextField({
   onChange: (value: string) => void;
   placeholder?: string;
   autoComplete?: string;
+  error?: string;
 }) {
   return (
     <div>
@@ -170,8 +172,11 @@ export function AuthTextField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        className={FIELD_CLASS}
+        className={`${FIELD_CLASS} ${error ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/20" : ""}`}
       />
+      {error ? (
+        <p className="mt-1 text-xs font-medium text-red-400">{error}</p>
+      ) : null}
     </div>
   );
 }

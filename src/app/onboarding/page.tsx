@@ -41,7 +41,7 @@ export default async function OnboardingPage() {
       <OnboardingPreferencesForm
         initialValues={normalizeOnboardingFormValues(user ?? session.user)}
         submitLabel="Complete setup"
-        showInterviewTypeField={false}
+        showInterviewTypeField={true}
         redirectTo="/dashboard"
         tone="dark"
         chrome="plain"

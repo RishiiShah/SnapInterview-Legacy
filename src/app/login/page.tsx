@@ -28,27 +28,39 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setEmailError("");
 
     if (!email.trim() || !password.trim()) {
       setError("Please fill in all fields.");
       return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setEmailError("Please enter a valid email address (e.g. name@example.com).");
+      return;
+    }
+
     setLoading(true);
 
-    const { error } = await signIn.email({ email, password });
-
-    setLoading(false);
+    const { error } = await signIn.email({ email: email.trim(), password });
 
     if (error) {
+      setLoading(false);
       setError("Invalid email or password.");
     } else {
-      router.push("/dashboard");
+      setLoading(false);
+      setSuccess(true);
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 500);
     }
   };
 
@@ -72,15 +84,19 @@ export default function LoginPage() {
         align="center"
       />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} noValidate autoComplete="off" className="space-y-4">
         <AuthTextField
           id="email"
           label="Email"
           type="email"
           value={email}
-          onChange={setEmail}
+          onChange={(v) => {
+            setEmail(v);
+            if (emailError) setEmailError("");
+          }}
           placeholder="you@example.com"
-          autoComplete="email"
+          autoComplete="off"
+          error={emailError}
         />
 
         <PasswordInput
@@ -89,13 +105,13 @@ export default function LoginPage() {
           value={password}
           onChange={setPassword}
           showForgotPasswordLink
-          autoComplete="current-password"
+          autoComplete="off"
         />
 
         {error ? <AuthError message={error} /> : null}
 
         <div className="pt-1">
-          <SubmitButton loading={loading} text="Log in" />
+          <SubmitButton loading={loading} success={success} text="Log in" sentText="Logging in..." />
         </div>
       </form>
 

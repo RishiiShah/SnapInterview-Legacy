@@ -11,6 +11,7 @@ interface PasswordInputProps {
   placeholder?: string;
   showForgotPasswordLink?: boolean;
   autoComplete?: string;
+  error?: string;
 }
 
 export function PasswordInput({
@@ -20,7 +21,8 @@ export function PasswordInput({
   onChange,
   placeholder = "••••••••",
   showForgotPasswordLink = false,
-  autoComplete = "current-password",
+  autoComplete = "off",
+  error,
 }: PasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -37,7 +39,9 @@ export function PasswordInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           autoComplete={autoComplete}
-          className={`${authFieldClassName} pr-11 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden`}
+          className={`${authFieldClassName} pr-11 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden ${
+            error ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/20" : ""
+          }`}
         />
         <button
           type="button"
@@ -52,6 +56,9 @@ export function PasswordInput({
           )}
         </button>
       </div>
+      {error ? (
+        <p className="mt-1 text-xs font-medium text-red-400">{error}</p>
+      ) : null}
       {showForgotPasswordLink ? (
         <p className="mt-2 text-center">
           <Link

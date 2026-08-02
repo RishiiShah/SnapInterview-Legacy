@@ -228,8 +228,7 @@ export async function proxy(request: NextRequest) {
                     ? await getSession(request, token)
                     : { status: "invalid" as const };
             if (validation.status === "valid" && validation.session.user) {
-                const hasOnboarding = !!validation.session.user.onboardingCompletedAt;
-                const response = NextResponse.redirect(new URL(hasOnboarding ? "/dashboard" : "/onboarding", request.url));
+                const response = NextResponse.redirect(new URL("/dashboard", request.url));
                 applySecurityHeaders(response, cspHeader);
                 return response;
             }

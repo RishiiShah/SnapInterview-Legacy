@@ -8,7 +8,17 @@ import {
   AnimatedBellIcon,
   AnimatedSearchIcon,
 } from "@/components/ui/animated-icons";
-import { IconMenu, IconPractice } from "@/components/ui/icons";
+import { useSession, signOut } from "@/lib/auth-client";
+import { UserAvatar } from "@/components/ui/UserAvatar";
+import { getInitials } from "@/utils/helpers";
+import {
+  IconMenu,
+  IconPractice,
+  IconSettings,
+  IconUser,
+  IconLogout,
+  IconChevronDown,
+} from "@/components/ui/icons";
 import { navItems } from "./Sidebar";
 
 function NotificationPanel({
@@ -123,6 +133,104 @@ function HeaderSearchButton({ onSearchOpen }: { onSearchOpen: () => void }) {
   );
 }
 
+function HeaderUserButton() {
+  const { data: session } = useSession();
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const userName = session?.user?.name || "Profile";
+  const userEmail = session?.user?.email || "";
+  const userImage = session?.user?.image;
+  const initials = getInitials(userName);
+
+  return (
+    <div ref={dropdownRef} className="relative ml-1">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="flex cursor-pointer items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.03] py-1 pl-1 pr-2.5 transition-colors hover:border-white/[0.18] hover:bg-white/[0.08]"
+        aria-label="User profile menu"
+      >
+        {userImage ? (
+          <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full">
+            <UserAvatar src={userImage} alt={userName} fill sizes="24px" className="object-cover" />
+          </div>
+        ) : (
+          <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#3B82F6] text-[10px] font-bold text-white">
+            {initials}
+          </div>
+        )}
+        <span className="hidden max-w-[110px] truncate text-xs font-medium text-[#E8ECF4] sm:inline">
+          {userName}
+        </span>
+        <IconChevronDown className="h-3.5 w-3.5 text-[#A8B0C2]" />
+      </button>
+
+      {open && (
+        <div
+          className="absolute right-0 top-10 z-50 w-56 rounded-xl border border-white/[0.08] bg-[#0C0F1A] p-1.5 shadow-xl"
+          style={{ animation: "fadeSlideIn 0.15s ease-out" }}
+        >
+          <div className="border-b border-white/[0.08] px-3 py-2.5">
+            <p className="truncate text-sm font-medium text-[#F2F4F8]">{userName}</p>
+            {userEmail ? (
+              <p className="truncate text-xs text-[#A8B0C2]">{userEmail}</p>
+            ) : null}
+          </div>
+
+          <div className="py-1">
+            <Link
+              href="/settings?tab=profile"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-[#C5CBD8] transition-colors hover:bg-white/[0.06] hover:text-[#F2F4F8]"
+            >
+              <IconUser className="h-4 w-4 text-[#A8B0C2]" />
+              Profile
+            </Link>
+            <Link
+              href="/settings?tab=preferences"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-[#C5CBD8] transition-colors hover:bg-white/[0.06] hover:text-[#F2F4F8]"
+            >
+              <IconSettings className="h-4 w-4 text-[#A8B0C2]" />
+              Settings
+            </Link>
+          </div>
+
+          <div className="border-t border-white/[0.08] pt-1">
+            <button
+              type="button"
+              onClick={() =>
+                signOut({
+                  fetchOptions: {
+                    onSuccess: () => {
+                      window.location.href = "/";
+                    },
+                  },
+                })
+              }
+              className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-rose-400 transition-colors hover:bg-rose-500/10 hover:text-rose-300"
+            >
+              <IconLogout className="h-4 w-4 text-rose-400" />
+              Log out
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Header({
   onSearchOpen,
   onSidebarToggle,
@@ -227,14 +335,7 @@ export function Header({
           />
         </div>
 
-        <Link
-          href="/practice"
-          className="ml-1 inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md bg-[#3B82F6] px-3 text-sm font-medium text-white transition-colors hover:bg-[#4B8FF7]"
-        >
-          <IconPractice className="h-4 w-4" />
-          <span className="hidden sm:inline">Start Interview</span>
-          <span className="sm:hidden">Start</span>
-        </Link>
+        <HeaderUserButton />
       </div>
     </header>
   );

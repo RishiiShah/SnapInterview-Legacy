@@ -21,6 +21,7 @@ function categoryLabel(type: string): string {
     technical: "Technical",
     "system-design": "System Design",
     leadership: "Leadership",
+    coding: "Coding",
   };
   return map[type] ?? type;
 }

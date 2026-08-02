@@ -41,25 +41,25 @@ function typeLabel(type: string): string {
   return coerced ? INTERVIEW_TYPE_META[coerced].shortLabel : type;
 }
 
-function typeBadgeClass(type: string): string {
+function typeStyle(type: string): string {
   const coerced = coerceInterviewType(type);
   switch (coerced) {
     case "recruiter-screen":
     case "behavioral-leadership":
-      return "bg-sky-500/10 text-sky-300 border border-sky-500/20";
+      return "text-sky-300/90 bg-sky-500/10 border-sky-500/20";
     case "coding-algorithms":
     case "domain-role":
-      return "bg-teal-500/10 text-teal-300 border border-teal-500/20";
+      return "text-teal-300/90 bg-teal-500/10 border-teal-500/20";
     case "system-design":
-      return "bg-cyan-500/10 text-cyan-300 border border-cyan-500/20";
+      return "text-cyan-300/90 bg-cyan-500/10 border-cyan-500/20";
     case "take-home":
-      return "bg-amber-500/10 text-amber-300 border border-amber-500/20";
+      return "text-amber-300/90 bg-amber-500/10 border-amber-500/20";
     case "hiring-manager":
-      return "bg-blue-500/10 text-blue-300 border border-blue-500/20";
+      return "text-blue-300/90 bg-blue-500/10 border-blue-500/20";
     case "bar-raiser":
-      return "bg-rose-500/10 text-rose-300 border border-rose-500/20";
+      return "text-rose-300/90 bg-rose-500/10 border-rose-500/20";
     default:
-      return "bg-white/[0.04] text-[#B0B8C8] border border-white/[0.08]";
+      return "text-[#B0B8C8] bg-white/[0.04] border-white/[0.08]";
   }
 }
 
@@ -67,12 +67,6 @@ function scoreTone(score: number): string {
   if (score >= 80) return "text-emerald-400";
   if (score >= 70) return "text-amber-300";
   return "text-rose-300";
-}
-
-function scoreBadgeClass(score: number): string {
-  if (score >= 80) return "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20";
-  if (score >= 70) return "bg-amber-500/10 text-amber-300 border border-amber-500/20";
-  return "bg-rose-500/10 text-rose-300 border border-rose-500/20";
 }
 
 type SessionCard = {
@@ -91,7 +85,11 @@ type RecordingsListProps = {
   initialOpenInterviewId?: string | null;
 };
 
-export default function RecordingsList({ initialSessions, initialHasMore, initialOpenInterviewId = null }: RecordingsListProps) {
+export default function RecordingsList({
+  initialSessions,
+  initialHasMore,
+  initialOpenInterviewId = null,
+}: RecordingsListProps) {
   const [sessions, setSessions] = useState<SessionCard[]>(initialSessions);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -104,8 +102,16 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sessionToDelete, setSessionToDelete] = useState<SessionCard | null>(null);
   const [deleteInterviewData, setDeleteInterviewData] = useState(false);
-  const [selectedVideo, setSelectedVideo] = useState<{ url: string; interviewId: string; date: string } | null>(null);
-  const [errorModal, setErrorModal] = useState<{ isOpen: boolean; title: string; description: string }>({
+  const [selectedVideo, setSelectedVideo] = useState<{
+    url: string;
+    interviewId: string;
+    date: string;
+  } | null>(null);
+  const [errorModal, setErrorModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+  }>({
     isOpen: false,
     title: "",
     description: "",
@@ -133,16 +139,25 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
         }
       })
       .catch(() => {
-        if (!cancelled) setErrorModal({ isOpen: true, title: "Error", description: "Failed to filter sessions. Please try again." });
+        if (!cancelled)
+          setErrorModal({
+            isOpen: true,
+            title: "Error",
+            description: "Failed to filter sessions. Please try again.",
+          });
       })
       .finally(() => {
         if (!cancelled) setIsReloading(false);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [filterType]);
 
   const displayedSessions = [...sessions].sort((a, b) =>
-    sortBy === "score" ? b.score - a.score : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    sortBy === "score"
+      ? b.score - a.score
+      : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
   const loadMore = async () => {
@@ -151,41 +166,52 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
     try {
       const res = await fetch(buildSessionsUrl(sessions.length, filterType));
       if (!res.ok) throw new Error("Failed to load more sessions");
-      const data = await res.json() as { sessions: SessionCard[]; hasMore: boolean };
+      const data = (await res.json()) as { sessions: SessionCard[]; hasMore: boolean };
       setSessions((prev) => [...prev, ...data.sessions]);
       setHasMore(data.hasMore);
     } catch {
-      setErrorModal({ isOpen: true, title: "Error", description: "Failed to load more sessions. Please try again." });
+      setErrorModal({
+        isOpen: true,
+        title: "Error",
+        description: "Failed to load more sessions. Please try again.",
+      });
     } finally {
       setIsLoadingMore(false);
     }
   };
 
-  const openSession = useCallback(async (session: SessionCard) => {
-    if (isOpening) return;
-    const date = formatSessionDate(session.createdAt);
+  const openSession = useCallback(
+    async (session: SessionCard) => {
+      if (isOpening) return;
+      const date = formatSessionDate(session.createdAt);
 
-    if (!session.videoKey) {
-      setSelectedVideo({ url: "", interviewId: session.id, date });
-      return;
-    }
+      if (!session.videoKey) {
+        setSelectedVideo({ url: "", interviewId: session.id, date });
+        return;
+      }
 
-    setIsOpening(session.id);
-    try {
-      const res = await fetch("/api/s3/videos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: session.videoKey }),
-      });
-      if (!res.ok) throw new Error("Failed to get video access");
-      const { url } = await res.json() as { url: string };
-      setSelectedVideo({ url, interviewId: session.id, date });
-    } catch {
-      setErrorModal({ isOpen: true, title: "Access Denied", description: "Unable to retrieve the video. Please try again later." });
-    } finally {
-      setIsOpening(null);
-    }
-  }, [isOpening]);
+      setIsOpening(session.id);
+      try {
+        const res = await fetch("/api/s3/videos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: session.videoKey }),
+        });
+        if (!res.ok) throw new Error("Failed to get video access");
+        const { url } = (await res.json()) as { url: string };
+        setSelectedVideo({ url, interviewId: session.id, date });
+      } catch {
+        setErrorModal({
+          isOpen: true,
+          title: "Access Denied",
+          description: "Unable to retrieve the video. Please try again later.",
+        });
+      } finally {
+        setIsOpening(null);
+      }
+    },
+    [isOpening],
+  );
 
   useEffect(() => {
     if (!initialOpenInterviewId || autoOpenedInterviewId.current === initialOpenInterviewId) return;
@@ -209,7 +235,6 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
     setDeletingId(sessionToDelete.id);
     try {
       if (sessionToDelete.videoKey) {
-        // Has video: Delete video (and optionally interview data)
         const res = await fetch("/api/s3/videos", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
@@ -220,15 +245,20 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
           if (deleteInterviewData) {
             setSessions((prev) => prev.filter((s) => s.id !== sessionToDelete.id));
           } else {
-            setSessions((prev) => prev.map((s) => s.id === sessionToDelete.id ? { ...s, videoKey: null } : s));
+            setSessions((prev) =>
+              prev.map((s) => (s.id === sessionToDelete.id ? { ...s, videoKey: null } : s)),
+            );
           }
           setSessionToDelete(null);
           setDeleteInterviewData(false);
         } else {
-          setErrorModal({ isOpen: true, title: "Delete Failed", description: "Failed to delete recording. Please try again later." });
+          setErrorModal({
+            isOpen: true,
+            title: "Delete Failed",
+            description: "Failed to delete recording. Please try again later.",
+          });
         }
       } else {
-        // No video: Delete interview session data only
         const res = await fetch(`/api/interview/session?interviewId=${sessionToDelete.id}`, {
           method: "DELETE",
         });
@@ -238,47 +268,54 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
           setSessionToDelete(null);
           setDeleteInterviewData(false);
         } else {
-          setErrorModal({ isOpen: true, title: "Delete Failed", description: "Failed to delete interview session. Please try again later." });
+          setErrorModal({
+            isOpen: true,
+            title: "Delete Failed",
+            description: "Failed to delete interview session. Please try again later.",
+          });
         }
       }
     } catch {
-      setErrorModal({ isOpen: true, title: "Delete Error", description: "An unexpected error occurred while deleting." });
+      setErrorModal({
+        isOpen: true,
+        title: "Delete Error",
+        description: "An unexpected error occurred while deleting.",
+      });
     } finally {
       setDeletingId(null);
     }
   };
 
   const filterSortBar = (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      {/* Type filter chips */}
-      <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3 border-b border-white/[0.06] pb-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         {FILTER_OPTIONS.map((t) => (
           <button
             key={t}
+            type="button"
             onClick={() => setFilterType(t)}
-            className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+            className={`cursor-pointer text-sm transition-colors ${
               filterType === t
-                ? "border-[#3B82F6]/50 bg-[#3B82F6] text-white"
-                : "border-white/[0.08] bg-transparent text-[#A8B0C2] hover:border-white/[0.14] hover:bg-white/[0.03] hover:text-[#C5CBD8]"
+                ? "text-[#E8ECF4]"
+                : "text-[#A8B0C2] hover:text-[#C5CBD8]"
             }`}
           >
             {typeLabel(t)}
           </button>
         ))}
       </div>
-      {/* Sort toggle */}
-      <div className="flex items-center gap-1 rounded-xl border border-white/[0.08] bg-white/[0.02] p-1">
+      <div className="flex items-center gap-3 text-sm">
+        <span className="text-[#6B7385]">Sort</span>
         {(["date", "score"] as SortBy[]).map((s) => (
           <button
             key={s}
+            type="button"
             onClick={() => setSortBy(s)}
-            className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors capitalize ${
-              sortBy === s
-                ? "bg-[#3B82F6]/15 text-white border border-[#3B82F6]/50"
-                : "border border-transparent text-[#A8B0C2] hover:text-[#C5CBD8]"
+            className={`cursor-pointer transition-colors ${
+              sortBy === s ? "text-[#E8ECF4]" : "text-[#A8B0C2] hover:text-[#C5CBD8]"
             }`}
           >
-            {s === "date" ? "Newest" : "Top Score"}
+            {s === "date" ? "Newest" : "Top score"}
           </button>
         ))}
       </div>
@@ -289,34 +326,34 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
     return (
       <>
         {filterSortBar}
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.08] px-6 py-16 text-center">
+        <div className="py-16 text-center">
           {filterType !== "all" ? (
             <>
-              <p className="text-base font-medium text-[#E8ECF4]">No {typeLabel(filterType)} sessions</p>
-              <p className="mt-1.5 max-w-sm text-sm text-[#A8B0C2]">
+              <p className="text-base font-medium text-[#E8ECF4]">
+                No {typeLabel(filterType)} sessions
+              </p>
+              <p className="mt-1.5 text-sm text-[#A8B0C2]">
                 Try a different filter or start a new interview.
               </p>
               <button
+                type="button"
                 onClick={() => setFilterType("all")}
-                className="mt-6 text-sm font-medium text-[#93C5FD] transition-colors hover:text-white"
+                className="mt-5 cursor-pointer text-sm text-[#60A5FA] transition-colors hover:text-[#93C5FD]"
               >
                 Show all sessions
               </button>
             </>
           ) : (
             <>
-              <p className="font-display text-xl text-[#E8ECF4]">No sessions yet</p>
-              <p className="mt-1.5 max-w-sm text-sm text-[#A8B0C2]">
+              <p className="font-display text-xl tracking-tight text-[#E8ECF4]">No sessions yet</p>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-[#A8B0C2]">
                 Your completed interview sessions will appear here.
               </p>
               <Link
                 href="/practice"
-                className="mt-6 inline-flex h-10 items-center gap-2 rounded-lg bg-[#3B82F6] px-5 text-sm font-medium text-white transition-colors hover:bg-[#4B8FF7]"
+                className="mt-6 inline-flex h-10 cursor-pointer items-center rounded-lg bg-[#3B82F6] px-5 text-sm font-medium text-white transition-colors hover:bg-[#4B8FF7]"
               >
-                Start an Interview
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
+                Start an interview
               </Link>
             </>
           )}
@@ -333,108 +370,126 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
           <IconSpinner className="h-6 w-6 animate-spin text-[#A8B0C2]" />
         </div>
       ) : (
-      <div className="divide-y divide-white/[0.05] rounded-xl border border-white/[0.06] bg-white/[0.02]">
-        {displayedSessions.map((session, idx) => {
-          const date = formatSessionDate(session.createdAt);
-          const hasVideo = Boolean(session.videoKey);
-          const isProcessing = isOpening === session.id;
+        <div className="divide-y divide-white/[0.05]">
+          {displayedSessions.map((session, idx) => {
+            const date = formatSessionDate(session.createdAt);
+            const hasVideo = Boolean(session.videoKey);
+            const isProcessing = isOpening === session.id;
 
-          return (
-            <FadeIn
-              key={session.id}
-              delay={idx * 0.03}
-              direction="up"
-              className="group flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-white/[0.03] sm:gap-5 sm:px-5"
-              role="button"
-              tabIndex={0}
-              onClick={() => !isProcessing && openSession(session)}
-              onKeyDown={(event) => {
-                if (isProcessing) return;
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  openSession(session);
-                }
-              }}
-              aria-label="Open session details"
-            >
-              <CompanyMark company={displayCompany(session.company)} size="md" />
-
-              <div className="min-w-0 flex-1">
-                <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
-                  <p className="truncate text-[15px] font-medium leading-tight text-[#E8ECF4] group-hover:text-white">
-                    {session.role}
-                  </p>
-                  {session.type ? (
-                    <span className={`shrink-0 rounded border px-1.5 py-px text-[10px] font-medium leading-tight tracking-wide ${typeBadgeClass(session.type)}`}>
-                      {typeLabel(session.type)}
-                    </span>
-                  ) : null}
-                </div>
-                <p className="mt-0.5 truncate text-[13px] leading-tight text-[#A8B0C2]" suppressHydrationWarning>
-                  <span className="text-[#C5CBD8]">{displayCompany(session.company)}</span>
-                  {" · "}
-                  {date}
-                  {!hasVideo ? " · No recording" : ""}
-                </p>
-              </div>
-
-              <div className="hidden text-right sm:block">
-                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${scoreBadgeClass(session.score)}`}>
-                  {getScoreLabel(session.score)}
-                </span>
-              </div>
-
-              <span className={`shrink-0 font-mono text-base tabular-nums leading-none ${scoreTone(session.score)}`}>
-                {session.score}
-              </span>
-
-              {isProcessing ? (
-                <div className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-white/15 border-t-[#60A5FA]" />
-              ) : (
-                <span className="hidden w-4 text-[#B8C0CE] transition-colors group-hover:text-[#93C5FD] sm:inline">
-                  →
-                </span>
-              )}
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // If there is no video, the only option is to delete the entire interview data.
-                  setDeleteInterviewData(!hasVideo);
-                  setSessionToDelete(session);
+            return (
+              <FadeIn
+                key={session.id}
+                delay={idx * 0.03}
+                direction="up"
+                className="group flex w-full cursor-pointer items-center gap-3.5 py-3.5 text-left transition-colors hover:bg-white/[0.02] sm:gap-5"
+                role="button"
+                tabIndex={0}
+                onClick={() => !isProcessing && openSession(session)}
+                onKeyDown={(event) => {
+                  if (isProcessing) return;
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openSession(session);
+                  }
                 }}
-                disabled={deletingId === session.id}
-                className="flex shrink-0 cursor-pointer items-center justify-center rounded-lg p-1.5 text-[#A8B0C2] transition-colors hover:bg-rose-500/10 hover:text-rose-300 disabled:cursor-default disabled:opacity-50"
-                aria-label={hasVideo ? "Delete recording" : "Delete session"}
+                aria-label="Open session details"
               >
-                {deletingId === session.id ? (
-                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-rose-400 border-t-transparent" />
+                <CompanyMark company={displayCompany(session.company)} size="md" />
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <p className="truncate text-[15px] font-medium leading-tight text-[#E8ECF4] group-hover:text-white">
+                      {session.role}
+                    </p>
+                    {session.type ? (
+                      <span
+                        className={`shrink-0 rounded border px-1.5 py-px text-[10px] font-medium leading-tight tracking-wide ${typeStyle(session.type)}`}
+                      >
+                        {typeLabel(session.type)}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p
+                    className="mt-0.5 truncate text-[13px] leading-tight text-[#A8B0C2]"
+                    suppressHydrationWarning
+                  >
+                    <span className="text-[#C5CBD8]">{displayCompany(session.company)}</span>
+                    {" · "}
+                    {date}
+                    {!hasVideo ? " · No recording" : ""}
+                  </p>
+                </div>
+
+                <div className="hidden text-right sm:block">
+                  <p className="text-xs leading-none text-[#B8C0CE]">
+                    {getScoreLabel(session.score)}
+                  </p>
+                </div>
+
+                <span
+                  className={`shrink-0 font-mono text-base tabular-nums leading-none ${scoreTone(session.score)}`}
+                >
+                  {session.score}
+                </span>
+
+                {isProcessing ? (
+                  <div className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-white/15 border-t-[#60A5FA]" />
                 ) : (
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                  </svg>
+                  <span className="hidden w-4 text-[#B8C0CE] transition-colors group-hover:text-[#93C5FD] sm:inline">
+                    →
+                  </span>
                 )}
-              </button>
-            </FadeIn>
-          );
-        })}
-      </div>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteInterviewData(!hasVideo);
+                    setSessionToDelete(session);
+                  }}
+                  disabled={deletingId === session.id}
+                  className="flex shrink-0 cursor-pointer items-center justify-center rounded-lg p-1.5 text-[#A8B0C2] transition-colors hover:bg-rose-500/10 hover:text-rose-300 disabled:cursor-default disabled:opacity-50"
+                  aria-label={hasVideo ? "Delete recording" : "Delete session"}
+                >
+                  {deletingId === session.id ? (
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-rose-400 border-t-transparent" />
+                  ) : (
+                    <svg
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </FadeIn>
+            );
+          })}
+        </div>
       )}
 
       {!isReloading && hasMore && (
         <div className="mt-10 flex justify-center">
           <button
+            type="button"
             onClick={loadMore}
             disabled={isLoadingMore}
-            className="flex items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.03] px-8 py-2.5 text-sm font-medium text-[#E8ECF4] transition-colors hover:border-white/[0.16] hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
+            className="cursor-pointer text-sm text-[#A8B0C2] transition-colors hover:text-[#C5CBD8] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isLoadingMore ? (
-              <>
+              <span className="inline-flex items-center gap-2">
                 <IconSpinner className="h-4 w-4 animate-spin" />
-                Loading...
-              </>
+                Loading…
+              </span>
             ) : (
-              "Load more sessions"
+              "Load more sessions →"
             )}
           </button>
         </div>
@@ -453,13 +508,17 @@ export default function RecordingsList({ initialSessions, initialHasMore, initia
           !sessionToDelete?.videoKey
             ? "This will permanently delete this interview session, including your score and feedback."
             : deleteInterviewData
-            ? "This will permanently delete the recording and all interview data (score, transcript, and feedback)."
-            : "This will delete only the recording. Your score and feedback will stay available for learning progress."
+              ? "This will permanently delete the recording and all interview data (score, transcript, and feedback)."
+              : "This will delete only the recording. Your score and feedback will stay available for learning progress."
         }
-        confirmLabel={!sessionToDelete?.videoKey || deleteInterviewData ? "Delete Everything" : "Delete Recording"}
+        confirmLabel={
+          !sessionToDelete?.videoKey || deleteInterviewData
+            ? "Delete Everything"
+            : "Delete Recording"
+        }
         extraContent={
           sessionToDelete?.videoKey ? (
-            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-white/[0.1] bg-white/[0.03] px-3 py-2 text-left">
+            <label className="flex cursor-pointer items-start gap-2 border-b border-white/[0.08] px-1 py-2 text-left">
               <input
                 type="checkbox"
                 checked={deleteInterviewData}

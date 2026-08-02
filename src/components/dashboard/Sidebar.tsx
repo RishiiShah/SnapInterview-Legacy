@@ -189,7 +189,7 @@ function AccountFooter({ session }: { session: DashboardSession }) {
           signOut({
             fetchOptions: {
               onSuccess: () => {
-                window.location.href = "/login";
+                window.location.href = "/";
               },
             },
           })

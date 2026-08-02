@@ -1,6 +1,14 @@
 "use client";
 
-import { useId, type ButtonHTMLAttributes, type CSSProperties } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ButtonHTMLAttributes,
+  type CSSProperties,
+  type MouseEvent,
+} from "react";
 import { cn } from "@/lib/utils";
 
 type SendActionButtonProps = {
@@ -20,6 +28,9 @@ const NEUTRAL_2 = "#161B28";
 const BORDER_FRAME_BG = `linear-gradient(${NEUTRAL_1}, ${NEUTRAL_2}) padding-box, linear-gradient(to bottom, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.05)) border-box`;
 
 const FACE_FILL_BG = `linear-gradient(to top, ${NEUTRAL_1}, ${NEUTRAL_2})`;
+
+/** Full send → sent sequence (take-off + appear delay + letter cascade). */
+const SEND_SEQUENCE_MS = 2400;
 
 function LetterSpans({
   text,
@@ -53,6 +64,7 @@ function LetterSpans({
 /**
  * Uiverse send button (marcelodolza) as a reusable Tailwind React component,
  * retinted for the dark auth / rehearsal-room theme.
+ * Click (not press-hold / focus) plays the full send → sent sequence.
  */
 export function SendActionButton({
   label,
@@ -64,17 +76,53 @@ export function SendActionButton({
   className,
   type = "button",
   style,
+  onClick,
   ...props
 }: SendActionButtonProps) {
   const reactId = useId();
   const shadowId = `send-shadow-${reactId}`;
   const isDisabled = Boolean(disabled || loading);
   const displayLabel = loading ? "…" : label;
+  const [launched, setLaunched] = useState(false);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showSent = launched || loading;
+
+  useEffect(() => {
+    if (loading) {
+      setLaunched(true);
+      if (resetTimerRef.current) {
+        clearTimeout(resetTimerRef.current);
+        resetTimerRef.current = null;
+      }
+      return;
+    }
+
+    if (!launched) return;
+
+    resetTimerRef.current = setTimeout(() => {
+      setLaunched(false);
+      resetTimerRef.current = null;
+    }, SEND_SEQUENCE_MS);
+
+    return () => {
+      if (resetTimerRef.current) {
+        clearTimeout(resetTimerRef.current);
+        resetTimerRef.current = null;
+      }
+    };
+  }, [loading, launched]);
+
+  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+    if (isDisabled) return;
+    setLaunched(true);
+    onClick?.(event);
+  };
 
   return (
     <button
       type={type}
       disabled={isDisabled}
+      data-state={showSent ? "sent" : "idle"}
       style={
         {
           "--send-primary": primaryColor,
@@ -87,12 +135,13 @@ export function SendActionButton({
         "transition-all duration-300 ease-in-out",
         "shadow-[0_10px_24px_rgba(0,0,0,0.35),0_2px_6px_rgba(0,0,0,0.25)]",
         "active:shadow-[0_8px_18px_rgba(0,0,0,0.4)]",
-        "focus:outline-none",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/40",
         "disabled:cursor-not-allowed disabled:opacity-55",
         fullWidth && "w-full min-w-0",
         className,
       )}
       {...props}
+      onClick={handleClick}
     >
       {/* Face fill — Uiverse ::before */}
       <span
@@ -109,17 +158,22 @@ export function SendActionButton({
       />
 
       {/* Default state */}
-      <span className="relative z-[2] flex pl-[29px] group-focus/send:absolute">
+      <span
+        className={cn(
+          "relative z-[2] flex pl-[29px]",
+          "group-data-[state=sent]/send:absolute",
+        )}
+      >
         <span
           className={cn(
             "absolute bottom-0 left-0 top-0 m-auto flex scale-125 items-center justify-center transition-all duration-300 ease-in-out",
             "group-hover/send:rotate-45 group-hover/send:scale-125",
-            "group-focus/send:rotate-0 group-focus/send:scale-125",
+            "group-data-[state=sent]/send:rotate-0 group-data-[state=sent]/send:scale-125",
           )}
         >
           <span
             aria-hidden
-            className="absolute left-[-5px] top-1/2 h-0.5 w-0 bg-gradient-to-r from-transparent to-white/40 group-focus/send:animate-send-contrail"
+            className="absolute left-[-5px] top-1/2 h-0.5 w-0 bg-gradient-to-r from-transparent to-white/40 group-data-[state=sent]/send:animate-send-contrail"
           />
           <svg
             width="1em"
@@ -127,7 +181,7 @@ export function SendActionButton({
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="overflow-visible animate-send-land group-focus/send:animate-send-take-off"
+            className="overflow-visible animate-send-land group-data-[state=sent]/send:animate-send-take-off"
           >
             <g style={{ filter: `url(#${shadowId})` }}>
               <path
@@ -153,14 +207,19 @@ export function SendActionButton({
             className={cn(
               "block opacity-0 animate-send-slide-down",
               "group-hover/send:animate-send-wave group-hover/send:opacity-100",
-              "group-focus/send:animate-send-disappear group-focus/send:opacity-100",
+              "group-data-[state=sent]/send:animate-send-disappear group-data-[state=sent]/send:opacity-100",
             )}
           />
         </p>
       </span>
 
-      {/* Sent state — shown on :focus like the Uiverse source */}
-      <span className="relative z-[2] hidden pl-[29px] group-focus/send:flex">
+      {/* Sent state — driven by click / loading, not :focus */}
+      <span
+        className={cn(
+          "relative z-[2] hidden pl-[29px]",
+          "group-data-[state=sent]/send:flex",
+        )}
+      >
         <span className="absolute bottom-0 left-0 top-0 m-auto flex scale-125 items-center justify-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -170,7 +229,7 @@ export function SendActionButton({
             width="1em"
             strokeWidth="0.5px"
             stroke="currentColor"
-            className="mr-2 scale-125 overflow-visible opacity-0 group-focus/send:animate-send-appear"
+            className="mr-2 scale-125 overflow-visible opacity-0 group-data-[state=sent]/send:animate-send-appear"
           >
             <g style={{ filter: `url(#${shadowId})` }}>
               <path
@@ -189,7 +248,7 @@ export function SendActionButton({
             text={sentLabel}
             startIndex={5}
             delayStep={0.2}
-            className="block opacity-0 group-focus/send:animate-send-slide-down"
+            className="block opacity-0 group-data-[state=sent]/send:animate-send-slide-down"
           />
         </p>
       </span>

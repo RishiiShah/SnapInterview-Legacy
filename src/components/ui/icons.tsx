@@ -45,6 +45,7 @@ import {
   Activity,
   Gem,
   UserCheck,
+  User,
   Zap,
   Building2,
   Briefcase,
@@ -125,6 +126,7 @@ export const IconLayout = makeIcon(Layout);
 export const IconActivity = makeIcon(Activity);
 export const IconGem = makeIcon(Gem);
 export const IconUserCheck = makeIcon(UserCheck);
+export const IconUser = makeIcon(User);
 export const IconZap = makeIcon(Zap);
 export const IconBuilding = makeIcon(Building2);
 export const IconBriefcase = makeIcon(Briefcase);

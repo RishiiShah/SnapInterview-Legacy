@@ -2,7 +2,7 @@ import { FadeIn, SlideIn } from "@/components/ui/motion";
 
 export default function DashboardLoading() {
   return (
-    <div className="mx-auto max-w-5xl space-y-11 pb-16 pt-2 xl:max-w-6xl">
+    <div className="mx-auto max-w-7xl space-y-11 pb-16 pt-2 xl:max-w-[88rem]">
       <SlideIn>
         <header className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex items-end gap-3.5">

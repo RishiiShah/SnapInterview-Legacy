@@ -63,8 +63,8 @@ export default async function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en" suppressHydrationWarning className="overflow-x-hidden bg-white dark:bg-zinc-950">
-            <body className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} antialiased min-h-screen w-full flex flex-col overflow-x-hidden`}>
+        <html lang="en" suppressHydrationWarning className="overflow-x-hidden bg-[#0B0C10]">
+            <body className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} antialiased min-h-screen w-full flex flex-col overflow-x-hidden bg-[#0B0C10] text-[#F2F4F8]`}>
                 <Providers>
                     <main className="flex-1 w-full flex flex-col">
                         {children}

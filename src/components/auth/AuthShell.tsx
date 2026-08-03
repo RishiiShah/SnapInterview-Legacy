@@ -16,14 +16,17 @@ const AUTH_EASE = [0.45, 0.05, 0.55, 0.95] as const;
 export function AuthShell({
   children,
   footer,
+  contentClassName,
 }: {
   children: ReactNode;
   footer?: ReactNode;
+  /** Override the default narrow auth column (e.g. onboarding). */
+  contentClassName?: string;
 }) {
   const reducedMotion = useReducedMotion() ?? false;
 
   return (
-    <div className="relative flex min-h-screen overflow-hidden bg-[#090A0F] font-sans text-[#F5F7FF] selection:bg-blue-600 selection:text-white">
+    <div className="auth-shell relative flex h-dvh max-h-dvh overflow-hidden bg-[#090A0F] font-sans text-[#F5F7FF] selection:bg-blue-600 selection:text-white">
       <div className="pointer-events-none absolute inset-0 z-0">
         <Image
           src={AUTH_BG}
@@ -67,19 +70,19 @@ export function AuthShell({
         </Link>
       </div>
 
-      <div className="relative z-10 flex min-h-screen w-full items-center justify-center px-4 py-24 sm:px-6">
+      <div className="relative z-10 flex h-full min-h-0 w-full items-center justify-center overflow-y-auto overscroll-contain px-4 pt-16 pb-6 sm:px-6 sm:pb-8">
         <motion.div
           initial={reducedMotion ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={
             reducedMotion ? { duration: 0 } : { duration: 0.4, ease: AUTH_EASE }
           }
-          className="w-full max-w-[22rem]"
+          className={contentClassName ?? "my-auto w-full max-w-[22rem]"}
         >
           {children}
 
           {footer ? (
-            <div className="mt-8 border-t border-white/[0.08] pt-6 text-center text-sm text-[#64748B]">
+            <div className="mt-6 w-full border-t border-white/[0.08] pt-5 text-center text-sm text-[#CBD5E1] sm:text-[0.95rem]">
               {footer}
             </div>
           ) : null}
@@ -99,12 +102,12 @@ export function AuthHeader({
   align?: "left" | "center";
 }) {
   return (
-    <div className={`mb-8 ${align === "center" ? "text-center" : ""}`}>
-      <h1 className="text-[clamp(1.75rem,4vw,2.15rem)] font-bold leading-[1.1] tracking-[-0.035em] text-white">
+    <div className={`mb-5 ${align === "center" ? "text-center" : ""}`}>
+      <h1 className="text-[clamp(1.55rem,3.5vw,1.95rem)] font-bold leading-[1.1] tracking-[-0.035em] text-white">
         {title}
       </h1>
       {description ? (
-        <p className="mt-3 text-[0.95rem] leading-relaxed text-[#94A3B8]">
+        <p className="mt-2 text-sm leading-relaxed text-[#CBD5E1] sm:text-[0.95rem]">
           {description}
         </p>
       ) : null}
@@ -127,7 +130,7 @@ export function AuthDivider({ label = "or" }: { label?: string }) {
   return (
     <div className="my-5 flex items-center gap-3">
       <span className="h-px flex-1 bg-white/[0.08]" />
-      <span className="text-[0.7rem] font-medium uppercase tracking-wider text-[#475569]">
+      <span className="text-[0.7rem] font-medium uppercase tracking-wider text-[#B8C0CE]">
         {label}
       </span>
       <span className="h-px flex-1 bg-white/[0.08]" />
@@ -136,7 +139,7 @@ export function AuthDivider({ label = "or" }: { label?: string }) {
 }
 
 const FIELD_CLASS =
-  "w-full rounded-xl border border-white/[0.08] bg-[#0C0F1A]/80 px-3.5 py-3 text-sm text-white outline-none placeholder:text-[#475569] transition-colors focus:border-blue-500/45 focus:ring-2 focus:ring-blue-500/15";
+  "w-full rounded-xl border border-white/[0.08] bg-[#0C0F1A]/80 px-3.5 py-3 text-[15px] text-white outline-none placeholder:text-[#B8C0CE] transition-colors focus:border-blue-500/45 focus:ring-2 focus:ring-blue-500/15 sm:text-base";
 
 export function AuthTextField({
   id,
@@ -145,7 +148,8 @@ export function AuthTextField({
   value,
   onChange,
   placeholder,
-  autoComplete,
+  autoComplete = "off",
+  error,
 }: {
   id: string;
   label: string;
@@ -154,6 +158,7 @@ export function AuthTextField({
   onChange: (value: string) => void;
   placeholder?: string;
   autoComplete?: string;
+  error?: string;
 }) {
   return (
     <div>
@@ -167,8 +172,11 @@ export function AuthTextField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        className={FIELD_CLASS}
+        className={`${FIELD_CLASS} ${error ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/20" : ""}`}
       />
+      {error ? (
+        <p className="mt-1 text-xs font-medium text-red-400">{error}</p>
+      ) : null}
     </div>
   );
 }

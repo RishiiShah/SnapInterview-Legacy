@@ -8,8 +8,11 @@ import Link from "next/link";
 import {
   adminActionButtonClass,
   adminDangerButtonClass,
+  adminInputOverrideClass,
   adminPaginationLinkClass,
   adminPaginationLinkDisabledClass,
+  adminPrimaryButtonClass,
+  adminSecondaryButtonClass,
 } from "@/components/admin/admin-styles";
 import { ConfirmActionForm } from "@/components/admin/ConfirmActionForm";
 import { Input } from "@/components/ui/Input";
@@ -25,7 +28,7 @@ function formatDate(value: Date | null) {
 }
 
 const filterSelectClass =
-  "w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none transition-all focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100";
+  "w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3.5 py-2.5 text-sm text-[#F2F4F8] outline-none transition-colors focus:border-[#3B82F6]/45 focus:bg-white/[0.05] focus:ring-1 focus:ring-[#3B82F6]/25";
 
 export default async function AdminUsersPage({
   searchParams,
@@ -202,32 +205,33 @@ export default async function AdminUsersPage({
   return (
     <div className="space-y-6">
       <section>
-        <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">Users</h2>
-        <p className="mt-1 text-sm text-zinc-500">Recent users and account health indicators.</p>
+        <h2 className="text-2xl font-semibold tracking-tight text-[#F2F4F8]">Users</h2>
+        <p className="mt-1 text-sm text-[#A8B0C2]">Recent users and account health indicators.</p>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-zinc-500">Total Users</p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">{totalUsers.toLocaleString()}</p>
+        <div className="rounded-xl border border-white/[0.08] bg-[#12141A] p-4">
+          <p className="text-sm text-[#A8B0C2]">Total Users</p>
+          <p className="mt-2 text-2xl font-semibold text-[#F2F4F8]">{totalUsers.toLocaleString()}</p>
         </div>
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-zinc-500">Onboarding Completed</p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">{onboardedUsers.toLocaleString()}</p>
+        <div className="rounded-xl border border-white/[0.08] bg-[#12141A] p-4">
+          <p className="text-sm text-[#A8B0C2]">Onboarding Completed</p>
+          <p className="mt-2 text-2xl font-semibold text-[#F2F4F8]">{onboardedUsers.toLocaleString()}</p>
         </div>
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-zinc-500">Currently Locked</p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">{lockedUsers.toLocaleString()}</p>
+        <div className="rounded-xl border border-white/[0.08] bg-[#12141A] p-4">
+          <p className="text-sm text-[#A8B0C2]">Currently Locked</p>
+          <p className="mt-2 text-2xl font-semibold text-[#F2F4F8]">{lockedUsers.toLocaleString()}</p>
         </div>
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <section className="rounded-xl border border-white/[0.08] bg-[#12141A] p-4">
         <form key={filterFormKey} className="grid gap-3 md:grid-cols-5">
           <Input
             type="text"
             name="q"
             defaultValue={q}
             placeholder="Search name or email"
+            className={adminInputOverrideClass}
           />
           <select
             name="lock"
@@ -247,20 +251,20 @@ export default async function AdminUsersPage({
             <option value="completed">Completed</option>
             <option value="pending">Pending</option>
           </select>
-          <Button type="submit" size="md" className="w-full">
+          <Button type="submit" size="md" className={`w-full ${adminPrimaryButtonClass}`}>
             Apply filters
           </Button>
           <Link href="/admin/users" className="w-full">
-            <Button type="button" variant="secondary" size="md" className="w-full">
+            <Button type="button" variant="secondary" size="md" className={`w-full ${adminSecondaryButtonClass}`}>
               Clear filters
             </Button>
           </Link>
         </form>
       </section>
 
-      <section className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
+      <section className="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#12141A]">
         <table className="min-w-full text-sm">
-          <thead className="border-b border-zinc-200 bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="border-b border-white/[0.08] bg-white/[0.02] text-left text-xs uppercase tracking-wide text-[#A8B0C2]">
             <tr>
               <th className="px-4 py-3">User</th>
               <th className="px-4 py-3">Created</th>
@@ -275,19 +279,19 @@ export default async function AdminUsersPage({
             {users.map((user) => {
               const isLocked = !!user.lockedUntil && user.lockedUntil > now;
               return (
-                <tr key={user.id} className="border-b border-zinc-100 last:border-b-0">
+                <tr key={user.id} className="border-b border-white/[0.05] last:border-b-0">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-zinc-900">{user.name}</p>
-                    <p className="text-xs text-zinc-500">{user.email}</p>
+                    <p className="font-medium text-[#F2F4F8]">{user.name}</p>
+                    <p className="text-xs text-[#A8B0C2]">{user.email}</p>
                   </td>
-                  <td className="px-4 py-3 text-zinc-700">{formatDate(user.createdAt)}</td>
-                  <td className="px-4 py-3 text-zinc-700">{user.onboardingCompletedAt ? "Completed" : "Pending"}</td>
-                  <td className="px-4 py-3 text-zinc-700">{user._count.interviewSessions}</td>
-                  <td className="px-4 py-3 text-zinc-700">{user.failedLoginCount}</td>
+                  <td className="px-4 py-3 text-[#C5CBD8]">{formatDate(user.createdAt)}</td>
+                  <td className="px-4 py-3 text-[#C5CBD8]">{user.onboardingCompletedAt ? "Completed" : "Pending"}</td>
+                  <td className="px-4 py-3 text-[#C5CBD8]">{user._count.interviewSessions}</td>
+                  <td className="px-4 py-3 text-[#C5CBD8]">{user.failedLoginCount}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                        isLocked ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700"
+                        isLocked ? "border border-red-500/30 bg-red-500/10 text-red-300" : "border border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
                       }`}
                     >
                       {isLocked ? "Locked" : "Active"}
@@ -334,8 +338,8 @@ export default async function AdminUsersPage({
         </table>
       </section>
 
-      <section className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm">
-        <p className="text-zinc-600">
+      <section className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[#12141A] px-4 py-3 text-sm">
+        <p className="text-[#A8B0C2]">
           Showing {(page - 1) * pageSize + 1}-
           {Math.min(page * pageSize, filteredUsersCount)} of {filteredUsersCount}
         </p>
@@ -346,7 +350,7 @@ export default async function AdminUsersPage({
           >
             Previous
           </Link>
-          <span className="text-zinc-500">Page {page} / {totalPages}</span>
+          <span className="text-[#A8B0C2]">Page {page} / {totalPages}</span>
           <Link
             href={paramsForPage(nextPage)}
             className={page === totalPages ? adminPaginationLinkDisabledClass : adminPaginationLinkClass}

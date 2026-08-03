@@ -34,7 +34,7 @@ export default function HeroWorkspace() {
       {/* Section Header — L→R title, quiet lede */}
       <div className="mb-10 flex flex-col items-center text-center pt-4">
         <LandingFadeOnly triggerOnView>
-          <span className="text-xs font-medium uppercase tracking-[0.22em] text-[#7B9FBF]">
+          <span className="text-xs font-medium uppercase tracking-[0.22em] text-[#9BB8D4]">
             Interactive Studio
           </span>
         </LandingFadeOnly>
@@ -44,7 +44,7 @@ export default function HeroWorkspace() {
           </h2>
         </LandingFadeOnly>
         <LandingFadeOnly triggerOnView delay={0.19} className="mt-3 max-w-2xl">
-          <p className="text-base leading-relaxed text-[#7A8A9E]">
+          <p className="text-base leading-relaxed text-[#A8B6C8]">
             A live coding environment, speech-to-text transcript, and automated feedback system operating in real time.
           </p>
         </LandingFadeOnly>
@@ -71,7 +71,7 @@ export default function HeroWorkspace() {
 
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <span className="text-[0.7rem] text-[#5A6A80]">Question 2 of 4</span>
+                  <span className="text-[0.7rem] text-[#9AABC0]">Question 2 of 4</span>
                   <div className="h-1 w-14 overflow-hidden rounded-full bg-white/10">
                     <div className="h-full w-1/2 rounded-full bg-[#4A6FA5]/70" />
                   </div>
@@ -94,14 +94,14 @@ export default function HeroWorkspace() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-sm font-semibold text-[#C8D3E0]">1. Two Sum</h3>
-                      <span className="text-xs text-[#4A5A6E]">Data Structures & Algorithms</span>
+                      <span className="text-xs text-[#8FA0B4]">Data Structures & Algorithms</span>
                     </div>
                     <span className="rounded px-2 py-0.5 text-xs font-medium text-[#A08050] bg-[#1A1610]">
                       Medium
                     </span>
                   </div>
 
-                  <p className="text-xs leading-relaxed text-[#8090A4]">
+                  <p className="text-xs leading-relaxed text-[#A8B6C8]">
                     Given an array of integers{" "}
                     <code className="rounded bg-white/[0.06] px-1 py-0.5 font-mono text-[0.7rem] text-[#8BA7C7]">nums</code>{" "}
                     and an integer{" "}
@@ -109,9 +109,9 @@ export default function HeroWorkspace() {
                     , return indices of the two numbers that add up to target.
                   </p>
 
-                  <div className="rounded-md bg-[#090C12] px-3 py-2.5 font-mono text-xs text-[#5A6A80] space-y-1">
-                    <div><span className="text-[#5A7A9A]">Input:</span> nums = [2,7,11,15], target = 9</div>
-                    <div><span className="text-[#5A7A9A]">Output:</span> <span className="text-[#6A9A7A]">[0,1]</span></div>
+                  <div className="rounded-md bg-[#090C12] px-3 py-2.5 font-mono text-xs text-[#9AABC0] space-y-1">
+                    <div><span className="text-[#8AABCD]">Input:</span> nums = [2,7,11,15], target = 9</div>
+                    <div><span className="text-[#8AABCD]">Output:</span> <span className="text-[#6A9A7A]">[0,1]</span></div>
                   </div>
                 </div>
 
@@ -122,17 +122,17 @@ export default function HeroWorkspace() {
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#1E2440] text-[#7080B0]">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#1E2440] text-[#9AABD0]">
                         <Cpu className="h-3.5 w-3.5" />
                       </div>
-                      <span className="text-xs font-medium text-[#8090A8]">AI Interviewer</span>
+                      <span className="text-xs font-medium text-[#A8B6C8]">AI Interviewer</span>
                     </div>
-                    <span className="flex items-center gap-1 text-[0.65rem] text-[#5A6A80]">
+                    <span className="flex items-center gap-1 text-[0.65rem] text-[#9AABC0]">
                       <Volume2 className="h-3 w-3" /> Speaking
                     </span>
                   </div>
 
-                  <p className="text-xs leading-relaxed text-[#9AAABB]">
+                  <p className="text-xs leading-relaxed text-[#C0CAD6]">
                     "Walk me through your logic for avoiding an O(N²) quadratic brute-force check."
                   </p>
                 </div>
@@ -143,13 +143,13 @@ export default function HeroWorkspace() {
                 {/* Candidate Transcript */}
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-xs text-[#5A7A7A]">
+                    <span className="flex items-center gap-1.5 text-xs text-[#8AB8B0]">
                       <Mic className="h-3 w-3" /> Candidate
                     </span>
-                    <span className="text-[0.65rem] text-[#4A6A5A]">● Live</span>
+                    <span className="text-[0.65rem] text-[#7FA892]">● Live</span>
                   </div>
 
-                  <p className="text-xs leading-relaxed text-[#8090A4]">
+                  <p className="text-xs leading-relaxed text-[#A8B6C8]">
                     "I'll use a hash map to store each number and its index. As I iterate through the array, I can check if the complement already exists in O(1) time."
                   </p>
                 </div>
@@ -161,11 +161,11 @@ export default function HeroWorkspace() {
 
                 {/* Tab Bar */}
                 <div className="flex items-center justify-between border-b border-white/[0.06] bg-[#090C12] px-5 py-2.5">
-                  <div className="flex items-center gap-1.5 px-3 py-1 text-xs font-mono text-[#8090A8] border-b border-[#4A6FA5]/50">
-                    <Code2 className="h-3.5 w-3.5 text-[#5A7A9A]" />
+                  <div className="flex items-center gap-1.5 px-3 py-1 text-xs font-mono text-[#A8B6C8] border-b border-[#4A6FA5]/50">
+                    <Code2 className="h-3.5 w-3.5 text-[#8AABCD]" />
                     solution.py
                   </div>
-                  <span className="text-[0.65rem] font-mono text-[#4A5A6E] bg-[#0D1017] px-2 py-0.5 rounded">
+                  <span className="text-[0.65rem] font-mono text-[#8FA0B4] bg-[#0D1017] px-2 py-0.5 rounded">
                     Python 3.11
                   </span>
                 </div>
@@ -174,7 +174,7 @@ export default function HeroWorkspace() {
                 <div className="min-h-[190px] flex-1 px-6 py-3.5 font-mono text-xs leading-[1.8]">
                   {CODE_LINES.map((line, index) => (
                     <div key={line.text} className="flex min-w-0 max-w-full">
-                      <span className="mr-5 w-4 shrink-0 select-none text-right text-[#2E3A4A]">{index + 1}</span>
+                      <span className="mr-5 w-4 shrink-0 select-none text-right text-[#6B7C90]">{index + 1}</span>
                       <code className={`min-w-0 break-words whitespace-pre-wrap ${line.color}`}>{line.text}</code>
                     </div>
                   ))}
@@ -183,12 +183,12 @@ export default function HeroWorkspace() {
                 {/* Terminal / Controls */}
                 <div className="border-t border-white/[0.06] bg-[#090C12] px-5 py-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs text-[#5A8A6A]">
+                    <div className="flex items-center gap-2 text-xs text-[#8ABC9A]">
                       <CheckCircle2 className="h-3.5 w-3.5" />
                       4/4 Test Cases Passed · 8ms
                     </div>
                     <div className="flex items-center gap-2">
-                      <button className="inline-flex items-center gap-1.5 rounded-md bg-white/[0.06] px-3 py-1.5 text-xs text-[#8090A8] hover:bg-white/10 transition">
+                      <button className="inline-flex items-center gap-1.5 rounded-md bg-white/[0.06] px-3 py-1.5 text-xs text-[#A8B6C8] hover:bg-white/10 transition">
                         <Play className="h-3 w-3 fill-current" /> Run
                       </button>
                       <button className="inline-flex items-center gap-1.5 rounded-md bg-[#1E3060] px-3.5 py-1.5 text-xs text-[#8AAAD0] hover:bg-[#263870] transition">
@@ -197,7 +197,7 @@ export default function HeroWorkspace() {
                     </div>
                   </div>
 
-                  <div className="rounded-md bg-[#080B10] px-3 py-2.5 font-mono text-xs text-[#4A6A5A] space-y-1">
+                  <div className="rounded-md bg-[#080B10] px-3 py-2.5 font-mono text-xs text-[#7FA892] space-y-1">
                     <div>✓ two_sum([2,7,11,15], 9) == [0,1]</div>
                     <div>✓ two_sum([3,2,4], 6) == [1,2]</div>
                   </div>
@@ -207,17 +207,17 @@ export default function HeroWorkspace() {
             </div>
 
             {/* Bottom Status Bar */}
-            <div className="flex flex-wrap items-center justify-between bg-[#0A0D13] border-t border-white/[0.06] px-6 py-2.5 text-xs text-[#4A5A6E]">
+            <div className="flex flex-wrap items-center justify-between bg-[#0A0D13] border-t border-white/[0.06] px-6 py-2.5 text-xs text-[#8FA0B4]">
               <div className="flex items-center gap-3">
                 <span className="flex items-center gap-1.5">
-                  <Mic className="h-3 w-3 text-[#4A7A5A]" /> Mic Enabled
+                  <Mic className="h-3 w-3 text-[#7FB892]" /> Mic Enabled
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Video className="h-3 w-3 text-[#4A6A8A]" /> Camera HD
+                  <Video className="h-3 w-3 text-[#8FA0C0]" /> Camera HD
                 </span>
               </div>
               <div className="flex items-center gap-5">
-                <span className="text-[#4A6A5A]">Rubric Active</span>
+                <span className="text-[#7FA892]">Rubric Active</span>
                 <span>Latency: 18ms</span>
               </div>
             </div>

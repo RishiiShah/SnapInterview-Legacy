@@ -188,7 +188,7 @@ export default function OtpDialog({
       <h2 className="text-[clamp(1.75rem,4vw,2.15rem)] font-bold leading-[1.1] tracking-[-0.035em] text-white">
         Email verified
       </h2>
-      <p className="mt-3 text-[0.95rem] text-[#94A3B8]">Signing you in…</p>
+      <p className="mt-3 text-[0.95rem] text-[#B4C0D0]">Signing you in…</p>
       <svg
         className="mt-4 h-5 w-5 animate-spin text-blue-400"
         xmlns="http://www.w3.org/2000/svg"
@@ -210,7 +210,7 @@ export default function OtpDialog({
         <button
           type="button"
           onClick={onCancel}
-          className="absolute right-4 top-4 cursor-pointer text-[#64748B] transition-colors hover:text-white"
+          className="absolute right-4 top-4 cursor-pointer text-[#B4C0D0] transition-colors hover:text-white"
           aria-label="Close"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -223,7 +223,7 @@ export default function OtpDialog({
         <h2 className="text-[clamp(1.75rem,4vw,2.15rem)] font-bold leading-[1.1] tracking-[-0.035em] text-white">
           Check your inbox
         </h2>
-        <p className="mt-3 text-[0.95rem] leading-relaxed text-[#94A3B8]">
+        <p className="mt-3 text-[0.95rem] leading-relaxed text-[#B4C0D0]">
           We sent a 6-digit code to{" "}
           <span className="font-medium text-[#CBD5E1]">{email}</span>
         </p>
@@ -256,7 +256,7 @@ export default function OtpDialog({
 
       <div className="mt-4">
         {timeLeft > 0 ? (
-          <p className="text-xs text-[#475569]">
+          <p className="text-xs text-[#B8C0CE]">
             Code expires in{" "}
             <span
               className={`font-mono font-semibold ${
@@ -305,7 +305,7 @@ export default function OtpDialog({
 
       <div className="mt-4">
         {resendCooldown > 0 ? (
-          <p className="text-xs text-[#475569]">
+          <p className="text-xs text-[#B8C0CE]">
             Resend code in{" "}
             <span className="font-mono font-semibold text-[#CBD5E1]">{resendCooldown}s</span>
           </p>
@@ -325,7 +325,7 @@ export default function OtpDialog({
         <button
           type="button"
           onClick={onCancel}
-          className="mt-6 flex w-full cursor-pointer items-center justify-center gap-1.5 text-xs text-[#64748B] transition-colors hover:text-[#CBD5E1]"
+          className="mt-6 flex w-full cursor-pointer items-center justify-center gap-1.5 text-xs text-[#B4C0D0] transition-colors hover:text-[#CBD5E1]"
         >
           <IconArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
           Use a different email

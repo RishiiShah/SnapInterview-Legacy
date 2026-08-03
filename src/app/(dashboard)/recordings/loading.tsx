@@ -2,35 +2,33 @@ import { FadeIn, SlideIn } from "@/components/ui/motion";
 
 export default function RecordingsLoading() {
   return (
-    <div className="w-full space-y-8 pb-8">
+    <div className="mx-auto max-w-7xl space-y-8 pb-16 pt-2 xl:max-w-[88rem]">
       <SlideIn>
         <div className="space-y-3">
-          <div className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-700">
-            Opening Your Practice Archive
-          </div>
-          <p className="max-w-xl text-sm text-zinc-500">
-            Pulling your saved recordings so you can replay tough moments and review them fast.
-          </p>
+          <div className="h-9 w-44 animate-pulse rounded bg-white/[0.08]" />
+          <div className="h-4 w-72 max-w-full animate-pulse rounded bg-white/[0.04]" />
         </div>
       </SlideIn>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {[...Array(6)].map((_, i) => (
-          <FadeIn key={i} delay={i * 0.04} direction="up" className="flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white">
-            <div className="relative flex aspect-video items-center justify-center bg-sky-50">
-              <div className="h-12 w-12 animate-pulse rounded-full bg-sky-100" />
-            </div>
+      <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-white/[0.06] pb-4">
+        <div className="flex flex-wrap gap-4">
+          {[36, 56, 48, 64, 40].map((w, i) => (
+            <div key={i} className="h-4 animate-pulse rounded bg-white/[0.05]" style={{ width: w }} />
+          ))}
+        </div>
+        <div className="h-4 w-28 animate-pulse rounded bg-white/[0.04]" />
+      </div>
 
-            <div className="flex flex-1 flex-col p-4">
-              <div className="mb-1 flex items-center justify-between gap-3">
-                <div className="h-4 w-32 animate-pulse rounded bg-zinc-200" />
-                <div className="h-8 w-8 animate-pulse rounded-lg bg-zinc-100" />
-              </div>
-              <div className="mt-2 flex items-center justify-between">
-                <div className="h-3 w-24 animate-pulse rounded bg-zinc-100" />
-                <div className="h-3 w-16 animate-pulse rounded bg-zinc-100" />
-              </div>
+      <div className="divide-y divide-white/[0.05]">
+        {[...Array(6)].map((_, i) => (
+          <FadeIn key={i} delay={i * 0.03} direction="up" className="flex items-center gap-4 py-3.5">
+            <div className="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-white/[0.05]" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="h-4 w-40 max-w-[55%] animate-pulse rounded bg-white/[0.07]" />
+              <div className="h-3 w-56 max-w-[70%] animate-pulse rounded bg-white/[0.04]" />
             </div>
+            <div className="hidden h-3 w-14 animate-pulse rounded bg-white/[0.04] sm:block" />
+            <div className="h-5 w-8 animate-pulse rounded bg-white/[0.06]" />
           </FadeIn>
         ))}
       </div>

@@ -45,7 +45,7 @@ const mockSessions = [
 ];
 
 const mockQuestions = [
-  { id: 1, slug: "reverse-linked-list", text: "Reverse a linked list", category: "Data Structures", difficulty: "easy" },
+  { id: 1, slug: "reverse-linked-list", text: "Reverse a linked list", category: "Data Structures", difficulty: "easy", type: "coding" },
 ];
 
 describe("GET /api/search", () => {

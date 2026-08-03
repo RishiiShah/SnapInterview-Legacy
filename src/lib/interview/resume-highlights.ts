@@ -27,8 +27,9 @@ const SKILL_KEYWORDS: { label: string; patterns: RegExp[] }[] = [
 ];
 
 const SYSTEM_DESIGN_HINTS = ["System Design", "Distributed Systems", "Kubernetes", "AWS"];
-const TECHNICAL_HINTS = ["Frontend", "Backend", "Python", "TypeScript", "Java", "Go", "Rust", "React", "Node.js"];
+const CODING_HINTS = ["Frontend", "Backend", "Python", "TypeScript", "Java", "Go", "Rust", "React", "Node.js"];
 const BEHAVIORAL_HINTS = ["Leadership"];
+const DOMAIN_HINTS = ["Machine Learning", "Data Engineering", "Frontend", "PostgreSQL"];
 
 export function extractResumeHighlights(resumeText: string): ResumeHighlights {
   if (!resumeText || resumeText.trim().length < 30) {
@@ -40,21 +41,27 @@ export function extractResumeHighlights(resumeText: string): ResumeHighlights {
     if (patterns.some((p) => p.test(resumeText))) detected.push(label);
   }
 
-  const counts = {
+  const counts: Record<InterviewType, number> = {
+    "recruiter-screen": 0,
+    "behavioral-leadership": detected.filter((s) => BEHAVIORAL_HINTS.includes(s)).length,
+    "coding-algorithms": detected.filter((s) => CODING_HINTS.includes(s)).length,
     "system-design": detected.filter((s) => SYSTEM_DESIGN_HINTS.includes(s)).length,
-    technical: detected.filter((s) => TECHNICAL_HINTS.includes(s)).length,
-    behavioral: detected.filter((s) => BEHAVIORAL_HINTS.includes(s)).length,
+    "domain-role": detected.filter((s) => DOMAIN_HINTS.includes(s)).length,
+    "take-home": 0,
+    "hiring-manager": 0,
+    "bar-raiser": 0,
   };
 
   let suggestedType: InterviewType | null = null;
-  const max = Math.max(counts["system-design"], counts.technical, counts.behavioral);
-  if (max > 0) {
-    if (counts["system-design"] >= 2 && counts["system-design"] === max) {
+  const ranked = (Object.entries(counts) as [InterviewType, number][])
+    .filter(([, n]) => n > 0)
+    .sort((a, b) => b[1] - a[1]);
+
+  if (ranked[0]) {
+    if (ranked[0][0] === "system-design" && ranked[0][1] >= 2) {
       suggestedType = "system-design";
-    } else if (counts.technical === max) {
-      suggestedType = "technical";
-    } else if (counts.behavioral === max) {
-      suggestedType = "behavioral";
+    } else {
+      suggestedType = ranked[0][0];
     }
   }
 

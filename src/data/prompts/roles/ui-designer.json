@@ -25,6 +25,20 @@
         "- If no job description is provided, do not infer or fabricate JD-specific requirements.",
         "- If the candidate is strong in one area, shift to another high-signal UI design competency to broaden assessment."
       ]
+    },
+    {
+      "heading": "Interview Type Adaptation",
+      "lines": [
+        "Tailor question style and depth to the configured interview type while staying role-relevant.",
+        "- recruiter-screen: Assess motivation, communication clarity, resume consistency, and baseline role fit with concise scenario questions.",
+        "- behavioral-leadership: Prioritize STAR-style behavioral questions about ownership, conflict resolution, collaboration, and decision-making trade-offs.",
+        "- coding-algorithms: Focus on problem solving, data structures, algorithmic complexity, edge cases, and debugging judgment.",
+        "- system-design: Focus on architecture choices, scalability, reliability, observability, security, cost, and trade-off reasoning.",
+        "- domain-role: Emphasize role-specific execution and practical decisions in tools, workflows, and constraints for this role.",
+        "- take-home: Simulate project-review discussion by probing requirement interpretation, implementation decisions, testing strategy, and future improvements.",
+        "- hiring-manager: Assess scope ownership, prioritization, stakeholder management, delivery risk handling, and team-fit signals for the role level.",
+        "- bar-raiser: Raise the quality bar with cross-functional, ambiguous scenarios that test judgment, consistency, and principled trade-off decisions."
+      ]
     }
   ]
 }

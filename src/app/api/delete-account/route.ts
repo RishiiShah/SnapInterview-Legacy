@@ -17,7 +17,7 @@ import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
 
 const deleteAccountSchema = z.object({
-  confirm: z.literal("DELETE"),
+  confirm: z.literal("DELETE MY ACCOUNT"),
   currentPassword: z
     .string()
     .min(1, "Current password is required to delete your account."),

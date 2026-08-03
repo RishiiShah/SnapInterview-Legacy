@@ -1,4 +1,5 @@
 import type { Difficulty, InterviewType } from "@/lib/interview/domain";
+import { coerceInterviewType, INTERVIEW_TYPE_VALUES } from "@/lib/interview/domain";
 
 export type PracticeRetakeDefaults = {
   role?: string;
@@ -12,7 +13,6 @@ export type PracticeRetakeSearchParams = {
   difficulty?: string | string[];
 };
 
-const RETAKE_INTERVIEW_TYPES = ["behavioral", "technical", "system-design", "leadership"] as const satisfies readonly InterviewType[];
 const RETAKE_DIFFICULTIES = ["easy", "medium", "hard"] as const satisfies readonly Difficulty[];
 
 function firstSearchParam(value: string | string[] | undefined): string | undefined {
@@ -25,10 +25,15 @@ export function parsePracticeRetakeDefaults(
   const role = firstSearchParam(searchParams?.role);
   const type = firstSearchParam(searchParams?.type);
   const difficulty = firstSearchParam(searchParams?.difficulty);
+  const coercedType = type ? coerceInterviewType(type) : null;
 
   return {
     ...(role ? { role } : {}),
-    ...(type && (RETAKE_INTERVIEW_TYPES as readonly string[]).includes(type) ? { type: type as InterviewType } : {}),
-    ...(difficulty && (RETAKE_DIFFICULTIES as readonly string[]).includes(difficulty) ? { difficulty: difficulty as Difficulty } : {}),
+    ...(coercedType && (INTERVIEW_TYPE_VALUES as readonly string[]).includes(coercedType)
+      ? { type: coercedType }
+      : {}),
+    ...(difficulty && (RETAKE_DIFFICULTIES as readonly string[]).includes(difficulty)
+      ? { difficulty: difficulty as Difficulty }
+      : {}),
   };
 }

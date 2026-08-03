@@ -10,6 +10,134 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-newsreader);
+
+  /* SendActionButton (Uiverse → Tailwind animation tokens) */
+  --animate-send-spin: send-spin 2s linear infinite;
+  --animate-send-wave: send-wave 0.5s ease forwards;
+  --animate-send-slide-down: send-slide-down 0.8s ease forwards;
+  --animate-send-disappear: send-disappear 0.6s ease forwards;
+  --animate-send-take-off: send-take-off 0.8s linear forwards;
+  --animate-send-land: send-land 0.6s ease forwards;
+  --animate-send-contrail: send-contrail 0.8s linear forwards;
+  --animate-send-appear: send-appear 1.2s ease forwards 0.8s;
+
+  @keyframes send-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes send-wave {
+    30% {
+      opacity: 1;
+      transform: translateY(4px);
+    }
+    50% {
+      opacity: 1;
+      transform: translateY(-3px);
+      color: var(--send-primary, #3b82f6);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes send-slide-down {
+    0% {
+      opacity: 0;
+      transform: translateY(-20px) translateX(5px) rotate(-90deg);
+      color: var(--send-primary, #3b82f6);
+      filter: blur(5px);
+    }
+    30% {
+      opacity: 1;
+      transform: translateY(4px) rotate(0);
+      filter: blur(0);
+    }
+    50% {
+      opacity: 1;
+      transform: translateY(-3px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes send-disappear {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+      transform: translateX(5px) translateY(20px);
+      color: var(--send-primary, #3b82f6);
+      filter: blur(5px);
+    }
+  }
+  @keyframes send-take-off {
+    0% {
+      opacity: 1;
+    }
+    60% {
+      opacity: 1;
+      transform: translateX(70px) rotate(45deg) scale(2);
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(160px) rotate(45deg) scale(0);
+    }
+  }
+  @keyframes send-land {
+    0% {
+      transform: translateX(-60px) translateY(30px) rotate(-50deg) scale(2);
+      opacity: 0;
+      filter: blur(3px);
+    }
+    100% {
+      transform: none;
+      opacity: 1;
+      filter: blur(0);
+    }
+  }
+  @keyframes send-contrail {
+    0% {
+      width: 0;
+      opacity: 1;
+    }
+    8% {
+      width: 15px;
+    }
+    60% {
+      opacity: 0.7;
+      width: 80px;
+    }
+    100% {
+      opacity: 0;
+      width: 160px;
+    }
+  }
+  @keyframes send-appear {
+    0% {
+      opacity: 0;
+      transform: scale(4) rotate(-40deg);
+      color: var(--send-primary, #3b82f6);
+      filter: blur(4px);
+    }
+    30% {
+      opacity: 1;
+      transform: scale(0.6);
+      filter: blur(1px);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.2);
+      filter: blur(0);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,12 +151,77 @@ html {
   background: var(--background);
   color: var(--foreground);
   overscroll-behavior-y: none;
+  color-scheme: dark;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Quiet site-wide scrollbars — thin thumb, no chunky OS chrome */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.24);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Hide Edge/IE native password reveal — we render our own eye toggle */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
+/* Fix browser autofill background/text color for dark mode */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: #ffffff !important;
+  transition: background-color 50000s ease-in-out 0s;
+  box-shadow: 0 0 0px 1000px #0c0f1a inset !important;
+  caret-color: #ffffff !important;
+}
+
+
+/* Dashboard: crisp type + quiet atmosphere helpers */
+.dashboard-main {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.dashboard-grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+  mix-blend-mode: soft-light;
 }
 
 .landing-page {
@@ -721,4 +914,73 @@ body {
   }
 }
 
+@keyframes flipIn {
+  0% {
+    transform: rotateX(-90deg);
+    opacity: 0.35;
+  }
+  60% {
+    transform: rotateX(8deg);
+    opacity: 1;
+  }
+  100% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+}
 
+/* Site-wide legibility — especially large / retina displays */
+html {
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (min-width: 1024px) {
+  html {
+    /* ~6% larger base type so UI copy stays crisp on wide monitors */
+    font-size: 106.25%;
+  }
+}
+
+@media (min-width: 1440px) {
+  html {
+    font-size: 109.375%;
+  }
+}
+
+/* Public surfaces (landing + auth): keep body copy readable on dark photography */
+.landing-page,
+.auth-shell {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.landing-page :where(p, li, label, span, a, button, input, textarea, select),
+.auth-shell :where(p, li, label, span, a, button, input, textarea, select) {
+  text-shadow: none;
+}
+
+@media (min-width: 1024px) {
+  .landing-page :where(p):not([class*="text-["]):not([class*="text-xs"]):not([class*="text-[0."]) {
+    line-height: 1.65;
+  }
+
+  .auth-shell input,
+  .auth-shell textarea,
+  .auth-shell button[type="submit"] {
+    font-size: 1rem;
+  }
+}
+
+/* Icons — sharper edges + consistent optical weight */
+.icon-crisp,
+svg.lucide {
+  shape-rendering: geometricPrecision;
+  flex-shrink: 0;
+}

@@ -6,7 +6,7 @@ function makePromptSession(overrides: Partial<PromptInterviewSession> = {}): Pro
   return {
     role: "Software Engineer",
     company: null,
-    type: "technical",
+    type: "coding-algorithms",
     difficulty: "medium",
     persona: "balanced",
     jobDescription: null,
@@ -22,7 +22,7 @@ function makePromptSession(overrides: Partial<PromptInterviewSession> = {}): Pro
 describe("buildSystemInstruction", () => {
   it("includes coding challenge instructions when type is coding", async () => {
     const instruction = await buildSystemInstruction(makePromptSession({
-      type: "coding",
+      type: "coding-algorithms",
       currentQuestion: 0,
     }));
 
@@ -33,10 +33,20 @@ describe("buildSystemInstruction", () => {
 
   it("does not include coding challenge instructions for non-coding types", async () => {
     const instruction = await buildSystemInstruction(makePromptSession({
-      type: "behavioral",
+      type: "behavioral-leadership",
     }));
 
     expect(instruction).not.toContain("CODING CHALLENGE INSTRUCTIONS");
+  });
+
+  it("includes the matching interview type directive", async () => {
+    const instruction = await buildSystemInstruction(makePromptSession({
+      type: "hiring-manager",
+    }));
+
+    expect(instruction).toContain("Interview type directive:");
+    expect(instruction).toContain("scope ownership");
+    expect(instruction).toContain("stakeholder management");
   });
 
   it("frames candidate resume and job description as untrusted data", async () => {

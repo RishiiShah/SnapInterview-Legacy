@@ -12,8 +12,8 @@ const BETTER_AUTH_COOKIE_NAMES = [
 ] as const;
 const SESSION_VALIDATION_CACHE_MS = 5 * 60 * 1000;
 const MAX_SESSION_VALIDATION_CACHE_ENTRIES = 1000;
-const PROTECTED_PATH_PREFIXES = ["/dashboard", "/practice", "/questions", "/analytics", "/recordings", "/settings", "/onboarding", "/interview", "/admin"] as const;
-const SERVER_GUARDED_PROTECTED_PATH_PREFIXES = ["/dashboard", "/practice", "/questions", "/analytics", "/recordings", "/settings", "/onboarding", "/interview", "/admin"] as const;
+const PROTECTED_PATH_PREFIXES = ["/dashboard", "/practice", "/questions", "/coding", "/analytics", "/recordings", "/settings", "/onboarding", "/interview", "/admin"] as const;
+const SERVER_GUARDED_PROTECTED_PATH_PREFIXES = ["/dashboard", "/practice", "/questions", "/coding", "/analytics", "/recordings", "/settings", "/onboarding", "/interview", "/admin"] as const;
 
 type ProxySessionData = {
     user?: {
@@ -74,7 +74,7 @@ function createContentSecurityPolicy(nonce: string, isDev: boolean) {
         style-src 'self' https://cdn.jsdelivr.net;
         style-src-elem 'self' ${isDev ? "'unsafe-inline'" : `'nonce-${nonce}'`} https://cdn.jsdelivr.net;
         style-src-attr 'unsafe-inline';
-        img-src 'self' https://*.googleusercontent.com data: blob:;
+        img-src 'self' https://*.googleusercontent.com https://cdn.simpleicons.org data: blob:;
         font-src 'self' data:;
         object-src 'none';
         base-uri 'self';
@@ -228,8 +228,7 @@ export async function proxy(request: NextRequest) {
                     ? await getSession(request, token)
                     : { status: "invalid" as const };
             if (validation.status === "valid" && validation.session.user) {
-                const hasOnboarding = !!validation.session.user.onboardingCompletedAt;
-                const response = NextResponse.redirect(new URL(hasOnboarding ? "/dashboard" : "/onboarding", request.url));
+                const response = NextResponse.redirect(new URL("/dashboard", request.url));
                 applySecurityHeaders(response, cspHeader);
                 return response;
             }

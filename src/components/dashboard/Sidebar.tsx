@@ -11,7 +11,6 @@ import {
   IconDashboard,
   IconLogout,
   IconMessage,
-  IconPractice,
   IconQuestionBank,
   IconRecordings,
   IconSettings,
@@ -114,7 +113,7 @@ function BrandRow() {
       href="/dashboard"
       className="flex h-10 items-center gap-2.5 px-2 transition-opacity hover:opacity-90"
     >
-      <AppLogo size={28} className="shrink-0 rounded-md" priority />
+      <AppLogo size={28} className="-translate-y-0.5 shrink-0 rounded-md" priority />
       <SidebarLabel className="text-sm font-semibold tracking-tight text-[#F5F7FF]">
         Snap<span className="text-blue-400">Interview</span>
       </SidebarLabel>
@@ -129,26 +128,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <p className="mb-1.5 px-2.5 text-[0.62rem] font-medium uppercase tracking-[0.2em] text-[#B8C0CE]">
       {children}
     </p>
-  );
-}
-
-function NewInterviewLink({ onNavigate }: { onNavigate?: () => void }) {
-  const { expanded } = useHoverSidebar();
-
-  return (
-    <Link
-      href="/practice"
-      onClick={onNavigate}
-      className={`flex h-11 cursor-pointer items-center gap-3 rounded-xl bg-blue-600 text-sm font-semibold text-white transition-colors hover:bg-blue-500 ${
-        expanded ? "justify-start px-2.5" : "justify-center px-0"
-      }`}
-      title="New interview"
-    >
-      <NavIcon>
-        <IconPractice className="text-white" />
-      </NavIcon>
-      <SidebarLabel>New interview</SidebarLabel>
-    </Link>
   );
 }
 
@@ -237,7 +216,6 @@ function SidebarContents({ session }: { session: DashboardSession }) {
     <div className="flex h-full flex-col justify-between gap-5">
       <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <BrandRow />
-        <NewInterviewLink onNavigate={onNavigate} />
 
         <div>
           <SectionLabel>Workspace</SectionLabel>

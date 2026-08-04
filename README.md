@@ -122,6 +122,6 @@ Deploy the Next.js app to Vercel and configure the variables from `.env.example`
 
 | Endpoint | Schedule (UTC) | Purpose |
 | --- | --- | --- |
-| `/api/cron/cleanup` | Daily at 02:00 | Permanently remove expired soft-deleted sessions. |
+| `/api/cron/cleanup` | Daily at 02:00 | Remove a bounded batch of expired rate-limit buckets. |
 | `/api/cron/practice-reminder` | Daily at 09:00 | Send practice reminders. |
 | `/api/cron/weekly-report` | Monday at 08:00 | Send weekly progress reports. |

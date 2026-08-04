@@ -60,18 +60,16 @@ function FlipCard({
  * Interview day has a clock; this is that object, quiet and physical.
  */
 export function FlipDate({ date, className, size = "md" }: FlipDateProps) {
-  const [now, setNow] = useState(() => date ?? new Date());
+  const [clockNow, setClockNow] = useState(() => new Date());
   const [mounted, setMounted] = useState(false);
   const reducedMotion = useReducedMotion() ?? false;
+  const now = date ?? clockNow;
 
   useEffect(() => {
-    if (date) {
-      setNow(date);
-      return;
-    }
+    if (date) return;
     const tomorrow = new Date();
     tomorrow.setHours(24, 0, 5, 0);
-    const id = window.setTimeout(() => setNow(new Date()), tomorrow.getTime() - Date.now());
+    const id = window.setTimeout(() => setClockNow(new Date()), tomorrow.getTime() - Date.now());
     return () => window.clearTimeout(id);
   }, [date]);
 

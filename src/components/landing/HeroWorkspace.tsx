@@ -133,7 +133,7 @@ export default function HeroWorkspace() {
                   </div>
 
                   <p className="text-xs leading-relaxed text-[#C0CAD6]">
-                    "Walk me through your logic for avoiding an O(N²) quadratic brute-force check."
+                    &ldquo;Walk me through your logic for avoiding an O(N²) quadratic brute-force check.&rdquo;
                   </p>
                 </div>
 
@@ -150,7 +150,7 @@ export default function HeroWorkspace() {
                   </div>
 
                   <p className="text-xs leading-relaxed text-[#A8B6C8]">
-                    "I'll use a hash map to store each number and its index. As I iterate through the array, I can check if the complement already exists in O(1) time."
+                    &ldquo;I&apos;ll use a hash map to store each number and its index. As I iterate through the array, I can check if the complement already exists in O(1) time.&rdquo;
                   </p>
                 </div>
 

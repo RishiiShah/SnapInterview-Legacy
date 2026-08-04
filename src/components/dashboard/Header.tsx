@@ -13,7 +13,6 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 import { getInitials } from "@/utils/helpers";
 import {
   IconMenu,
-  IconPractice,
   IconSettings,
   IconUser,
   IconLogout,

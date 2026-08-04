@@ -13,7 +13,9 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 // and new models (like PracticeQuestion) are available.
 const isStale = 
   globalForPrisma.prisma && 
-  (!("user" in globalForPrisma.prisma) || !("practiceQuestion" in globalForPrisma.prisma));
+  (!("user" in globalForPrisma.prisma) ||
+    !("practiceQuestion" in globalForPrisma.prisma) ||
+    !("codingQuestion" in globalForPrisma.prisma));
 
 // Cap the per-instance pg pool. On serverless each invocation handles ~one request
 // at a time, so a single connection is enough; this stops a burst of warm instances

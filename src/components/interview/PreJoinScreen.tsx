@@ -119,7 +119,7 @@ export default function PreJoinScreen({
             className="mb-6 border-b border-amber-500/30 pb-3 text-sm text-amber-200/90"
             role="status"
           >
-            Using backup interview voice
+            Interview voice could not be prepared. Reload and try again.
           </div>
         ) : null}
 

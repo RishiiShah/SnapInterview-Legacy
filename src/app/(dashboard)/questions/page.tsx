@@ -2,10 +2,7 @@ import { prisma } from "@/lib/prisma";
 import QuestionsPageClient from "@/components/questions/QuestionsPageClient";
 import { getServerAuthSession } from "@/lib/server-auth";
 import { redirect } from "next/navigation";
-import {
-  filterQuestionsByScope,
-  getAllPracticeQuestions,
-} from "@/repositories/question-repo";
+import { getAllPracticeQuestions } from "@/repositories/question-repo";
 
 export default async function QuestionsPage() {
   const session = await getServerAuthSession();
@@ -31,7 +28,7 @@ export default async function QuestionsPage() {
     initialSolvedIds = user?.solvedQuestions.map((item) => item.questionId) ?? [];
   }
 
-  const questions = filterQuestionsByScope(await getAllPracticeQuestions(), "interview");
+  const questions = await getAllPracticeQuestions();
 
   return (
     <QuestionsPageClient

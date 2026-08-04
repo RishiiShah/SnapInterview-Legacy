@@ -1,11 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import QuestionDetailPageClient from "@/components/questions/QuestionDetailPageClient";
-import {
-  filterQuestionsByScope,
-  getPracticeQuestionRuntimeDataBySlug,
-} from "@/repositories/question-repo";
-import { isCodingQuestion } from "@/lib/questions/scope";
+import { getPracticeQuestionRuntimeDataBySlug } from "@/repositories/question-repo";
 
 export default async function QuestionDetailPage({
   params,
@@ -13,7 +8,7 @@ export default async function QuestionDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const runtimeData = await getPracticeQuestionRuntimeDataBySlug(slug, "all");
+  const runtimeData = await getPracticeQuestionRuntimeDataBySlug(slug);
 
   if (!runtimeData) {
     return (
@@ -32,11 +27,7 @@ export default async function QuestionDetailPage({
     );
   }
 
-  if (isCodingQuestion(runtimeData.question)) {
-    redirect(`/coding/${slug}`);
-  }
-
-  const allQuestions = filterQuestionsByScope(runtimeData.allQuestions, "interview");
+  const allQuestions = runtimeData.allQuestions;
   const currentIndex = allQuestions.findIndex((question) => question.slug === slug);
 
   return (

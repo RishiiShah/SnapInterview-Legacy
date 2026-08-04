@@ -4,7 +4,7 @@ test.describe("Landing page", () => {
   test("renders the hero CTA section", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.getByRole("heading", { name: /start practicing/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /practice real interviews with ai that talks back/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /get started/i })).toBeVisible();
   });
 });

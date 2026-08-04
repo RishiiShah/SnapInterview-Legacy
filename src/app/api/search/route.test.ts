@@ -15,6 +15,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     interviewSession: { findMany: vi.fn() },
     practiceQuestion: { findMany: vi.fn() },
+    codingQuestion: { findMany: vi.fn() },
   },
 }));
 
@@ -45,7 +46,11 @@ const mockSessions = [
 ];
 
 const mockQuestions = [
-  { id: 1, slug: "reverse-linked-list", text: "Reverse a linked list", category: "Data Structures", difficulty: "easy", type: "coding" },
+  { id: 1, slug: "behavioral-example", text: "Tell me about a time", category: "behavioral", difficulty: "easy" },
+];
+
+const mockCodingQuestions = [
+  { id: "coding-1", slug: "reverse-linked-list", title: "Reverse a linked list", difficulty: "easy" },
 ];
 
 describe("GET /api/search", () => {
@@ -55,6 +60,7 @@ describe("GET /api/search", () => {
     isLimitedMock.mockResolvedValue(false);
     vi.mocked(prisma.interviewSession.findMany).mockResolvedValue(mockSessions as never);
     vi.mocked(prisma.practiceQuestion.findMany).mockResolvedValue(mockQuestions as never);
+    vi.mocked(prisma.codingQuestion.findMany).mockResolvedValue(mockCodingQuestions as never);
   });
 
   it("returns 401 when unauthenticated", async () => {
@@ -97,8 +103,11 @@ describe("GET /api/search", () => {
       company: "Acme",
       createdAt: "2026-01-01T00:00:00.000Z",
     });
-    expect(body.questions).toHaveLength(1);
-    expect(body.questions[0]).toMatchObject({ slug: "reverse-linked-list" });
+    expect(body.questions).toHaveLength(2);
+    expect(body.questions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ slug: "reverse-linked-list", type: "coding" }),
+      expect.objectContaining({ slug: "behavioral-example", type: "question" }),
+    ]));
   });
 
   it("passes userId and query to session search", async () => {
@@ -114,6 +123,7 @@ describe("GET /api/search", () => {
   it("returns empty arrays when no matches found", async () => {
     vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([]);
     vi.mocked(prisma.practiceQuestion.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.codingQuestion.findMany).mockResolvedValue([]);
 
     const res = await GET(makeRequest("zzz"));
     expect(res.status).toBe(200);

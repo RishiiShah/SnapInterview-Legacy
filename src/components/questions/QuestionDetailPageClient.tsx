@@ -6,10 +6,8 @@ import type { Question } from "@/data/types";
 import { IconChevronLeft, IconChevronRight } from "@/components/ui/icons";
 import { QuestionLeftPanel, type LeftTab } from "@/components/questions/QuestionLeftPanel";
 import { QuestionRightPanel, type RightTab } from "@/components/questions/QuestionRightPanel";
-import { CodingRightPanel } from "@/components/questions/CodingRightPanel";
 import { useResizableSplit } from "@/hooks/useResizableSplit";
 import { cn } from "@/lib/utils";
-import { isCodingQuestion } from "@/lib/questions/scope";
 
 type QuestionDetailPageClientProps = {
   question: Question;
@@ -263,31 +261,20 @@ export default function QuestionDetailPageClient({
           {...splitHandleProps}
         />
 
-        {isCodingQuestion(question) ? (
-          <CodingRightPanel
+        <div className="min-h-0 min-w-0 flex-1 overflow-hidden rounded-xl border border-white/[0.08] bg-[#12141A]/90">
+          <QuestionRightPanel
             question={question}
-            onSolved={() => {
-              if (!isSolved) {
-                void handleToggleSolved();
-              }
-            }}
+            answerText={answerText}
+            setAnswerText={setAnswerText}
+            timeRemaining={timeRemaining}
+            isTimerStarted={isTimerStarted}
+            score={score}
+            rightTab={rightTab}
+            setRightTab={setRightTab}
+            handleStart={handleStart}
+            handleSubmit={handleSubmit}
           />
-        ) : (
-          <div className="min-h-0 min-w-0 flex-1 overflow-hidden rounded-xl border border-white/[0.08] bg-[#12141A]/90">
-            <QuestionRightPanel
-              question={question}
-              answerText={answerText}
-              setAnswerText={setAnswerText}
-              timeRemaining={timeRemaining}
-              isTimerStarted={isTimerStarted}
-              score={score}
-              rightTab={rightTab}
-              setRightTab={setRightTab}
-              handleStart={handleStart}
-              handleSubmit={handleSubmit}
-            />
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

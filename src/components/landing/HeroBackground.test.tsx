@@ -15,7 +15,12 @@ vi.mock("next/link", () => ({
 
 vi.mock("next/image", () => ({
   default: ({ src, alt, ...props }: { src: string; alt: string; [key: string]: unknown }) => (
-    <img src={src} alt={alt} {...props} />
+    <span
+      data-next-image
+      data-src={src}
+      aria-label={alt}
+      {...Object.fromEntries(Object.entries(props).filter(([key]) => key !== "fill" && key !== "unoptimized"))}
+    />
   ),
 }));
 
@@ -46,8 +51,8 @@ describe("hero background image", () => {
   it("renders high resolution full bleed starry night background image", () => {
     render(<HeroSection />);
 
-    const bgImage = document.querySelector("img");
+    const bgImage = document.querySelector("[data-next-image]");
     expect(bgImage).toBeTruthy();
-    expect(bgImage?.getAttribute("src")).toContain("hero-starry-bg.jpg");
+    expect(bgImage?.getAttribute("data-src")).toContain("hero-starry-bg.jpg");
   });
 });

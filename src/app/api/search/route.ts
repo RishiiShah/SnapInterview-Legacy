@@ -16,10 +16,10 @@ export type SearchSession = {
 };
 
 export type SearchQuestion = {
-  id: number;
+  id: string;
   slug: string;
   text: string;
-  category: string;
+  category: string | null;
   difficulty: string;
   type: string;
 };
@@ -51,7 +51,7 @@ export async function GET(req: Request) {
       return badRequestError("Query too long");
     }
 
-    const [sessions, questions] = await Promise.all([
+    const [sessions, practiceQuestions, codingQuestions] = await Promise.all([
       prisma.interviewSession.findMany({
         where: {
           userId: authUser.userId,
@@ -75,7 +75,19 @@ export async function GET(req: Request) {
             { tags: { has: q.toLowerCase() } },
           ],
         },
-        select: { id: true, slug: true, text: true, category: true, difficulty: true, type: true },
+        select: { id: true, slug: true, text: true, category: true, difficulty: true },
+        take: 5,
+      }),
+      prisma.codingQuestion.findMany({
+        where: {
+          isPublished: true,
+          OR: [
+            { title: { contains: q, mode: "insensitive" } },
+            { description: { contains: q, mode: "insensitive" } },
+            { topics: { has: q.toLowerCase() } },
+          ],
+        },
+        select: { id: true, slug: true, title: true, difficulty: true },
         take: 5,
       }),
     ]);
@@ -85,10 +97,24 @@ export async function GET(req: Request) {
         ...s,
         createdAt: s.createdAt.toISOString(),
       })),
-      questions: questions.map((q) => ({
-        ...q,
-        type: q.type ?? "text",
-      })),
+      questions: [
+        ...practiceQuestions.map((question) => ({
+          id: String(question.id),
+          slug: question.slug,
+          text: question.text,
+          category: question.category,
+          difficulty: question.difficulty,
+          type: "question",
+        })),
+        ...codingQuestions.map((question) => ({
+          id: question.id,
+          slug: question.slug,
+          text: question.title,
+          category: null,
+          difficulty: question.difficulty,
+          type: "coding",
+        })),
+      ],
     };
 
     return apiJson(result);

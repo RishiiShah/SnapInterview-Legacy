@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 
 import {
@@ -20,7 +19,6 @@ import {
   INTERVIEW_DIFFICULTY_VALUES,
   INTERVIEW_TYPE_VALUES,
 } from "@/lib/interview/domain";
-import { AdminCodingFields } from "./AdminCodingFields";
 
 export type AdminQuestionFormValues = {
   slug: string;
@@ -31,12 +29,6 @@ export type AdminQuestionFormValues = {
   tags: string;
   hint: string;
   sampleAnswer: string;
-  type?: string;
-  description?: string;
-  constraints?: string;
-  starterCode?: Record<string, string>;
-  testCases?: Array<{ input: string; expectedOutput: string; isHidden: boolean }>;
-  solutionCode?: Record<string, string>;
 };
 
 const defaultValues: AdminQuestionFormValues = {
@@ -67,7 +59,6 @@ export function AdminQuestionForm({
 }: AdminQuestionFormProps) {
   const values = { ...defaultValues, ...initialValues };
   const title = mode === "create" ? "Add Question" : "Edit Question";
-  const [questionType, setQuestionType] = useState(values.type ?? "text");
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -95,40 +86,18 @@ export function AdminQuestionForm({
         {mode === "edit" && questionId != null ? (
           <input type="hidden" name="questionId" value={questionId} />
         ) : null}
-        <input type="hidden" name="type" value={questionType} />
-
-        <div>
-          <label className={`mb-1.5 block ${adminLabelClass}`}>Type</label>
-          <div className="flex items-center gap-2">
-            {(["text", "coding"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setQuestionType(t)}
-                className={`cursor-pointer rounded-lg px-4 py-2 text-xs font-bold capitalize transition-all ${
-                  questionType === t
-                    ? "bg-[#3B82F6] text-white"
-                    : "border border-white/[0.1] bg-transparent text-[#A8B0C2] hover:bg-white/[0.04] hover:text-[#E8ECF4]"
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <div>
           <label htmlFor="text" className={`mb-1.5 block ${adminLabelClass}`}>
-            {questionType === "coding" ? "Title" : "Question text"}
+            Question text
           </label>
           <textarea
             id="text"
             name="text"
             required
-            rows={questionType === "coding" ? 2 : 4}
+            rows={4}
             defaultValue={values.text}
             className={adminFieldClass}
-            placeholder={questionType === "coding" ? "Two Sum" : "Tell me about a time you..."}
+            placeholder="Tell me about a time you..."
           />
         </div>
 
@@ -170,7 +139,7 @@ export function AdminQuestionForm({
             <select
               id="category"
               name="category"
-              defaultValue={questionType === "coding" ? "coding" : values.category}
+              defaultValue={values.category}
               className={adminFieldClass}
             >
               {INTERVIEW_TYPE_VALUES.map((value) => (
@@ -226,56 +195,18 @@ export function AdminQuestionForm({
           />
         </div>
 
-        {questionType === "text" && (
-          <div>
-            <label htmlFor="sampleAnswer" className={`mb-1.5 block ${adminLabelClass}`}>
-              Sample answer (optional)
-            </label>
-            <textarea
-              id="sampleAnswer"
-              name="sampleAnswer"
-              rows={5}
-              defaultValue={values.sampleAnswer}
-              className={adminFieldClass}
-            />
-          </div>
-        )}
-
-        {questionType === "coding" && (
-          <>
-            <div>
-              <label htmlFor="description" className={`mb-1.5 block ${adminLabelClass}`}>
-                Problem Description
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                rows={6}
-                defaultValue={values.description ?? ""}
-                className={adminFieldClass}
-                placeholder="Given an array of integers nums and an integer target..."
-              />
-            </div>
-            <div>
-              <label htmlFor="constraints" className={`mb-1.5 block ${adminLabelClass}`}>
-                Constraints
-              </label>
-              <textarea
-                id="constraints"
-                name="constraints"
-                rows={3}
-                defaultValue={values.constraints ?? ""}
-                className={adminFieldClass}
-                placeholder="1 <= nums.length <= 10^4"
-              />
-            </div>
-            <AdminCodingFields
-              initialStarterCode={values.starterCode}
-              initialTestCases={values.testCases}
-              initialSolutionCode={values.solutionCode}
-            />
-          </>
-        )}
+        <div>
+          <label htmlFor="sampleAnswer" className={`mb-1.5 block ${adminLabelClass}`}>
+            Sample answer (optional)
+          </label>
+          <textarea
+            id="sampleAnswer"
+            name="sampleAnswer"
+            rows={5}
+            defaultValue={values.sampleAnswer}
+            className={adminFieldClass}
+          />
+        </div>
 
         <div className="flex flex-wrap gap-3 pt-2">
           <Button type="submit" className={adminPrimaryButtonClass}>

@@ -128,7 +128,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
     : session;
 
   return (
-    <div className="relative flex h-screen w-full overflow-hidden bg-[#0C0E14] font-sans text-[#F2F4F8] antialiased selection:bg-[#3B82F6] selection:text-white">
+    <div className="internal-app-shell relative flex h-screen w-full overflow-hidden bg-[#0C0E14] font-sans text-[#F2F4F8] antialiased selection:bg-[#3B82F6] selection:text-white">
       {/* Room light: readable depth, still calm */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div

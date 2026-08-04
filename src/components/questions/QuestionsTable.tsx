@@ -7,14 +7,6 @@ import type { Difficulty, QuestionCategory, Question } from "@/data/types";
 type SortKey = "category" | "difficulty" | "time";
 type SortDir = "asc" | "desc";
 
-const CATEGORY_DOT: Record<QuestionCategory, string> = {
-  behavioral: "bg-[#3B82F6]",
-  technical: "bg-violet-400",
-  "system-design": "bg-amber-400",
-  leadership: "bg-emerald-400",
-  coding: "bg-cyan-400",
-};
-
 function renderSortIcon(col: SortKey, sortKey: SortKey | null, sortDir: SortDir) {
   if (sortKey !== col) {
     return (
@@ -70,13 +62,13 @@ export default function QuestionsTable({
 
   const categoryLabel = (cat: QuestionCategory) => CATEGORIES.find((c) => c.value === cat);
   const gridCols = hideCategoryColumn
-    ? "grid-cols-[48px_1fr_100px_80px]"
-    : "grid-cols-[48px_1fr_140px_100px_80px]";
+    ? "grid-cols-[3rem_minmax(0,1fr)_6.5rem_5.5rem]"
+    : "grid-cols-[3rem_minmax(0,1fr)_9rem_6.5rem_5.5rem]";
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]">
+    <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#12141A]/90 shadow-[0_20px_50px_rgba(0,0,0,0.12)]">
       <div
-        className={`grid ${gridCols} items-center border-b border-white/[0.06] bg-white/[0.03] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[#A8B0C2]`}
+        className={`grid ${gridCols} items-center border-b border-white/[0.07] bg-black/[0.14] px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6B7385]`}
       >
         <span>#</span>
         <span>Title</span>
@@ -109,7 +101,7 @@ export default function QuestionsTable({
       </div>
 
       {filtered.length > 0 ? (
-        <div className="divide-y divide-white/[0.06]">
+        <div className="divide-y divide-white/[0.05]">
           {filtered.map((q) => {
             const diff = difficultyLabel(q.difficulty);
             const cat = categoryLabel(q.category);
@@ -118,28 +110,19 @@ export default function QuestionsTable({
               <Link
                 key={q.id}
                 href={`${basePath}/${q.slug}`}
-                className={`group grid ${gridCols} items-center px-4 py-3.5 transition-colors hover:bg-white/[0.03]`}
+                className={`group grid ${gridCols} items-center px-5 py-4 transition-colors hover:bg-[#3B82F6]/[0.06]`}
               >
-                <span className="text-sm font-medium text-[#A8B0C2]">{q.id}</span>
-                <span className="line-clamp-1 pr-4 text-sm font-medium text-[#E8ECF4] group-hover:text-[#F2F4F8]">
-                  {q.type === "coding" && !hideCategoryColumn ? (
-                    <span className="mr-1.5 font-mono text-[11px] text-[#60A5FA]">{"</>"}</span>
-                  ) : null}
+                <span className="font-mono text-xs text-[#6B7385]">{String(q.id).padStart(2, "0")}</span>
+                <span className="line-clamp-1 pr-4 text-sm font-medium text-[#DCE3F0] transition-colors group-hover:text-white">
                   {q.text}
                 </span>
                 {!hideCategoryColumn ? (
-                  <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[11px] font-medium text-[#C5CBD8]">
-                    <span
-                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                        CATEGORY_DOT[q.category] ?? "bg-[#6B7385]"
-                      }`}
-                      aria-hidden
-                    />
+                  <span className="text-xs font-medium text-[#A8B0C2]">
                     {cat?.label}
                   </span>
                 ) : null}
-                <span className={`text-sm font-medium ${diff.color}`}>{diff.text}</span>
-                <span className="text-right text-sm text-[#A8B0C2]">{q.estimatedTime}</span>
+                <span className={`text-xs font-semibold ${diff.color}`}>{diff.text}</span>
+                <span className="text-right text-xs font-medium tabular-nums text-[#A8B0C2]">{q.estimatedTime}</span>
               </Link>
             );
           })}

@@ -61,7 +61,7 @@ describe("POST /api/interview/session", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      error: "Invalid option: expected one of \"behavioral\"|\"technical\"|\"system-design\"|\"leadership\"|\"coding\"",
+      error: "Invalid option: expected one of \"recruiter-screen\"|\"behavioral-leadership\"|\"coding-algorithms\"|\"system-design\"|\"domain-role\"|\"take-home\"|\"hiring-manager\"|\"bar-raiser\"",
     });
     expect(startInterviewSession).not.toHaveBeenCalled();
   });
@@ -79,7 +79,7 @@ describe("POST /api/interview/session", () => {
       body: JSON.stringify({
         role: "Frontend Engineer",
         company: "Acme",
-        type: "technical",
+        type: "coding-algorithms",
         difficulty: "medium",
         persona: "balanced",
         questionCount: 10,
@@ -91,13 +91,15 @@ describe("POST /api/interview/session", () => {
     expect(response.status).toBe(201);
     expect(startInterviewSession).toHaveBeenCalledWith({
       userId: "user-1",
+      id: undefined,
       role: "Frontend Engineer",
       company: "Acme",
-      type: "technical",
+      type: "coding-algorithms",
       difficulty: "medium",
       persona: "balanced",
       jobDescription: undefined,
       resumeUrl: undefined,
+      resumeText: undefined,
       questionCount: 10,
     });
     await expect(response.json()).resolves.toEqual({ id: "session-1" });

@@ -19,20 +19,6 @@ const practiceQuestionSchema = z.object({
   tags: z.array(z.string().trim().min(1)).default([]),
   hint: z.string().trim().optional(),
   sampleAnswer: z.string().trim().optional(),
-  type: z.enum(["text", "coding"]).default("text"),
-  description: z.string().trim().optional(),
-  constraints: z.string().trim().optional(),
-  starterCode: z.record(z.string(), z.string()).optional(),
-  testCases: z
-    .array(
-      z.object({
-        input: z.string(),
-        expectedOutput: z.string(),
-        isHidden: z.boolean().default(false),
-      })
-    )
-    .optional(),
-  solutionCode: z.record(z.string(), z.string()).optional(),
 });
 
 export type PracticeQuestionFormData = z.infer<typeof practiceQuestionSchema>;
@@ -75,12 +61,6 @@ export function parsePracticeQuestionInput(input: {
   tags?: unknown;
   hint?: unknown;
   sampleAnswer?: unknown;
-  type?: unknown;
-  description?: unknown;
-  constraints?: unknown;
-  starterCode?: unknown;
-  testCases?: unknown;
-  solutionCode?: unknown;
 }) {
   const rawText = String(input.text ?? "");
   const rawSlug = String(input.slug ?? "").trim();
@@ -94,12 +74,6 @@ export function parsePracticeQuestionInput(input: {
     tags: normalizeTags(input.tags),
     hint: String(input.hint ?? "").trim() || undefined,
     sampleAnswer: String(input.sampleAnswer ?? "").trim() || undefined,
-    type: String(input.type ?? "text"),
-    description: input.description ? String(input.description).trim() || undefined : undefined,
-    constraints: input.constraints ? String(input.constraints).trim() || undefined : undefined,
-    starterCode: input.starterCode && typeof input.starterCode === "object" ? input.starterCode : undefined,
-    testCases: Array.isArray(input.testCases) ? input.testCases : undefined,
-    solutionCode: input.solutionCode && typeof input.solutionCode === "object" ? input.solutionCode : undefined,
   });
 
   if (!result.success) {
@@ -114,32 +88,11 @@ export function parsePracticeQuestionInput(input: {
       estimatedTime: result.data.estimatedTime ?? null,
       hint: result.data.hint ?? null,
       sampleAnswer: result.data.sampleAnswer ?? null,
-      description: result.data.description ?? null,
-      constraints: result.data.constraints ?? null,
-      starterCode: result.data.starterCode ?? undefined,
-      testCases: result.data.testCases ?? undefined,
-      solutionCode: result.data.solutionCode ?? undefined,
     },
   };
 }
 
 export function parsePracticeQuestionForm(formData: FormData) {
-  const type = (formData.get("type") as string) || "text";
-
-  let starterCode: Record<string, string> | undefined;
-  let testCases: Array<{ input: string; expectedOutput: string; isHidden: boolean }> | undefined;
-  let solutionCode: Record<string, string> | undefined;
-
-  if (type === "coding") {
-    const starterCodeRaw = formData.get("starterCode") as string | null;
-    const testCasesRaw = formData.get("testCases") as string | null;
-    const solutionCodeRaw = formData.get("solutionCode") as string | null;
-
-    try { starterCode = starterCodeRaw ? JSON.parse(starterCodeRaw) : undefined; } catch { /* ignore */ }
-    try { testCases = testCasesRaw ? JSON.parse(testCasesRaw) : undefined; } catch { /* ignore */ }
-    try { solutionCode = solutionCodeRaw ? JSON.parse(solutionCodeRaw) : undefined; } catch { /* ignore */ }
-  }
-
   return parsePracticeQuestionInput({
     slug: formData.get("slug"),
     text: formData.get("text"),
@@ -149,11 +102,5 @@ export function parsePracticeQuestionForm(formData: FormData) {
     tags: parseTags(formData.get("tags") as string | null),
     hint: formData.get("hint"),
     sampleAnswer: formData.get("sampleAnswer"),
-    type,
-    description: formData.get("description"),
-    constraints: formData.get("constraints"),
-    starterCode,
-    testCases,
-    solutionCode,
   });
 }

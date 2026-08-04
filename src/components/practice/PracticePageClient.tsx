@@ -21,6 +21,8 @@ import type { PracticeRetakeDefaults } from "@/lib/practice/retake-defaults";
 import { extractResumeHighlights } from "@/lib/interview/resume-highlights";
 import { FadeIn, SlideIn } from "@/components/ui/motion";
 import { IconPlay, IconSpinner, IconXMark } from "@/components/ui/icons";
+import { isLocalTtsEnabled } from "@/lib/tts/browser-tts";
+import { getSharedKokoroWorkerClient } from "@/lib/tts/kokoro-worker-client";
 
 type PracticePageClientProps = {
   retakeDefaults?: PracticeRetakeDefaults;
@@ -172,6 +174,11 @@ export default function PracticePageClient({
     setCreateError(null);
 
     try {
+      if (isLocalTtsEnabled()) {
+        void getSharedKokoroWorkerClient().preload().catch(() => {
+          // The pre-join room presents a recovery message if Kokoro cannot load.
+        });
+      }
       const interviewId = crypto.randomUUID();
       const payload = {
         role,

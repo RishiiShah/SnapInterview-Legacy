@@ -13,6 +13,7 @@ import { getSharedKokoroWorkerClient } from "@/lib/tts/kokoro-worker-client";
 
 const STORAGE_KEY = "tts_muted";
 const SPEED_STORAGE_KEY = "tts_speed";
+const STREAMING_SPEECH_MAX_CHARS = 220;
 
 const SPEECH_RATES: Record<string, number> = {
   slow: 0.85,
@@ -95,8 +96,9 @@ export function useStreamingTTS({
   const generationRef = useRef(0);
   const engineRef = useRef<BrowserTtsEngine | null>(null);
   const preloadPromiseRef = useRef<Promise<void> | null>(null);
+  const localReadyRef = useRef(false);
   const localFailureRef = useRef(!localEnabled);
-  const [status, setStatus] = useState<BrowserTtsStatus>(localEnabled ? "idle" : "fallback");
+  const [status, setStatus] = useState<BrowserTtsStatus>(localEnabled ? "idle" : "error");
 
   useEffect(() => {
     if (!localEnabled) {
@@ -107,10 +109,11 @@ export function useStreamingTTS({
     const engine = ttsEngine ?? getSharedKokoroWorkerClient();
     engineRef.current = engine;
     localFailureRef.current = false;
+    localReadyRef.current = false;
     const unsubscribe = engine.subscribe((nextStatus) => {
       if (nextStatus === "error") {
         localFailureRef.current = true;
-        setStatus("fallback");
+        setStatus("error");
         return;
       }
       setStatus(nextStatus);
@@ -119,10 +122,13 @@ export function useStreamingTTS({
     const preloadPromise = engine.preload();
     preloadPromiseRef.current = preloadPromise;
     void preloadPromise
-      .then(() => setStatus("ready"))
+      .then(() => {
+        localReadyRef.current = true;
+        setStatus("ready");
+      })
       .catch(() => {
         localFailureRef.current = true;
-        setStatus("fallback");
+        setStatus("error");
       });
 
     return () => {
@@ -130,6 +136,7 @@ export function useStreamingTTS({
       if (ttsEngine) engine.dispose();
       if (engineRef.current === engine) engineRef.current = null;
       if (preloadPromiseRef.current === preloadPromise) preloadPromiseRef.current = null;
+      localReadyRef.current = false;
     };
   }, [localEnabled, ttsEngine]);
 
@@ -155,6 +162,12 @@ export function useStreamingTTS({
     if (typeof window === "undefined" || mutedRef.current || !enabled) return;
     if (isSpeakingRef.current || currentSourceRef.current) return; // already fetching or playing
 
+    if (!localEnabled || localFailureRef.current) {
+      queueRef.current = [];
+      isSpeakingRef.current = false;
+      return;
+    }
+
     const nextText = queueRef.current.shift();
     if (!nextText) return;
 
@@ -178,42 +191,20 @@ export function useStreamingTTS({
       source.start();
     };
 
-    const fetchRemoteAudio = async () => {
-      const res = await fetch("/api/tts", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: nextText, persona: personaRef.current }),
-      });
-      if (!res.ok) {
-        const detail = await res.text().catch(() => "");
-        throw new Error(`TTS API ${res.status}: ${detail}`);
-      }
-      return res.arrayBuffer();
-    };
-
     const synthesize = async () => {
-      const engine = engineRef.current;
-      if (localEnabled && !localFailureRef.current && engine) {
-        try {
-          await preloadPromiseRef.current;
-          const audio = await engine.synthesize(nextText, { persona: personaRef.current });
-          if (requestGeneration !== generationRef.current) return;
-          playAudio(createAudioBufferFromPcm(getOrCreateAudioContext(audioContextRef), audio));
-          return;
-        } catch (error) {
-          if (requestGeneration !== generationRef.current) return;
-          localFailureRef.current = true;
-          setStatus("fallback");
-          console.error("[TTS] local playback error:", error);
-        }
+      const engine = engineRef.current ?? getSharedKokoroWorkerClient();
+      try {
+        await engine.preload();
+        const audio = await engine.synthesize(nextText, { persona: personaRef.current });
+        if (requestGeneration !== generationRef.current) return;
+        playAudio(createAudioBufferFromPcm(getOrCreateAudioContext(audioContextRef), audio));
+      } catch (error) {
+        if (requestGeneration !== generationRef.current) return;
+        localFailureRef.current = true;
+        setStatus("error");
+        console.error("[TTS] Kokoro playback error:", error);
+        throw error;
       }
-
-      const arrayBuffer = await fetchRemoteAudio();
-      if (requestGeneration !== generationRef.current) return;
-      const ctx = getOrCreateAudioContext(audioContextRef);
-      const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-      playAudio(audioBuffer);
     };
 
     void synthesize()
@@ -281,12 +272,15 @@ export function useStreamingTTS({
         unsaid.lastIndexOf("\n")
       );
 
-      if (lastBoundary === -1) return;
+      if (lastBoundary === -1 && unsaid.length < STREAMING_SPEECH_MAX_CHARS) return;
 
-      const speakable = unsaid.slice(0, lastBoundary + 1).trim();
+      const splitAt = lastBoundary >= 0
+        ? lastBoundary + 1
+        : Math.max(unsaid.lastIndexOf(" ", STREAMING_SPEECH_MAX_CHARS), 1);
+      const speakable = unsaid.slice(0, splitAt).trim();
       if (!speakable) return;
 
-      spokenPrefixRef.current += unsaid.slice(0, lastBoundary + 1);
+      spokenPrefixRef.current += unsaid.slice(0, splitAt);
       queueSpeech(speakable);
     },
     [enabled, queueSpeech]
@@ -301,6 +295,15 @@ export function useStreamingTTS({
     },
     [cancel]
   );
+
+  const warmup = useCallback(() => {
+    if (typeof window === "undefined" || !localEnabled) return;
+    getOrCreateAudioContext(audioContextRef);
+    const engine = engineRef.current ?? getSharedKokoroWorkerClient();
+    void engine.preload().catch(() => {
+      // The normal hook lifecycle records the failure for the pre-join UI.
+    });
+  }, [localEnabled]);
 
   useEffect(() => {
     if (!streamingText) return;
@@ -340,5 +343,5 @@ export function useStreamingTTS({
     };
   }, []);
 
-  return { muted, setMuted, cancel, status };
+  return { muted, setMuted, cancel, warmup, status };
 }

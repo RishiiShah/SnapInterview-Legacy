@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Code, Database, Layers, MessageSquare, Sparkles, Terminal, UserCheck } from "lucide-react";
+import { ArrowRight, Code, Database, Layers, MessageSquare, UserCheck } from "lucide-react";
 import Link from "next/link";
 
 const ROLES = [
@@ -146,7 +146,7 @@ export default function RoleSelectorSection() {
                 <span className="text-[0.65rem] text-emerald-400">Adaptive Probe Active</span>
               </div>
               <p className="text-sm font-medium leading-relaxed text-white">
-                "{activeRole.questionPreview}"
+                &ldquo;{activeRole.questionPreview}&rdquo;
               </p>
             </div>
 

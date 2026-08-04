@@ -1,10 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { QUESTIONS } from "@/data/questions";
 import type { Question } from "@/data/types";
-import { filterQuestionsByScope } from "@/lib/questions/scope";
 import { logger } from "@/utils/logger";
-
-export { filterQuestionsByScope, isCodingQuestion } from "@/lib/questions/scope";
 
 function mapPracticeQuestion(question: {
   id: number;
@@ -16,12 +13,6 @@ function mapPracticeQuestion(question: {
   tags: string[];
   hint: string | null;
   sampleAnswer: string | null;
-  type: string;
-  description: string | null;
-  constraints: string | null;
-  starterCode: unknown;
-  testCases: unknown;
-  solutionCode: unknown;
 }): Question {
   return {
     id: question.id,
@@ -33,12 +24,6 @@ function mapPracticeQuestion(question: {
     tags: question.tags,
     hint: question.hint || undefined,
     sampleAnswer: question.sampleAnswer || undefined,
-    type: (question.type === "coding" ? "coding" : "text") as Question["type"],
-    description: question.description || undefined,
-    constraints: question.constraints || undefined,
-    starterCode: question.starterCode as Record<string, string> | undefined,
-    testCases: question.testCases as Question["testCases"],
-    solutionCode: question.solutionCode as Record<string, string> | undefined,
   };
 }
 
@@ -125,13 +110,12 @@ export async function getPracticeQuestionById(id: number): Promise<Question | un
 
 export async function getPracticeQuestionRuntimeDataBySlug(
   slug: string,
-  scope: "all" | "coding" | "interview" = "all",
 ): Promise<{
   question: Question;
   allQuestions: Question[];
   currentIndex: number;
 } | null> {
-  const questions = filterQuestionsByScope(await getAllPracticeQuestions(), scope);
+  const questions = await getAllPracticeQuestions();
   const currentIndex = questions.findIndex((question) => question.slug === slug);
 
   if (currentIndex === -1) {

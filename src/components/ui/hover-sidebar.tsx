@@ -9,7 +9,7 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 
 interface SidebarContextProps {
@@ -284,7 +284,7 @@ export function HoverSidebarLink({
       href={link.href}
       onClick={onClick}
       className={cn(
-        "group/sidebar relative flex h-10 cursor-pointer items-center gap-3 rounded-xl px-2.5 text-sm transition-colors duration-200",
+        "group/sidebar relative flex h-10 cursor-pointer items-center gap-3 rounded-xl px-2.5 text-sm outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-400/45",
         active
           ? "bg-blue-500/[0.12] text-[#E8ECF4]"
           : "text-[#CBD5E1] hover:bg-white/[0.04] hover:text-[#F2F4F8]",

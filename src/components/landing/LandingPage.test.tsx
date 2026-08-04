@@ -20,7 +20,12 @@ vi.mock("next/link", () => ({
 
 vi.mock("next/image", () => ({
   default: ({ src, alt, ...props }: { src: string; alt: string; [key: string]: unknown }) => (
-    <img src={src} alt={alt} {...props} />
+    <span
+      data-next-image
+      data-src={src}
+      aria-label={alt}
+      {...Object.fromEntries(Object.entries(props).filter(([key]) => key !== "fill" && key !== "unoptimized"))}
+    />
   ),
 }));
 
@@ -48,32 +53,9 @@ vi.mock("framer-motion", () => {
       }: Record<string, unknown> & { children?: React.ReactNode }) =>
         React.createElement(tag, omitMotionProps(props), children),
     }),
+    AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
     useReducedMotion: () => false,
     useInView: () => true,
-  };
-});
-
-vi.mock("motion/react", () => {
-  const motionPropNames = new Set([
-    "animate",
-    "exit",
-    "initial",
-    "layoutId",
-    "style",
-    "transition",
-  ]);
-  const omitMotionProps = (props: Record<string, unknown>) =>
-    Object.fromEntries(Object.entries(props).filter(([key]) => !motionPropNames.has(key)));
-
-  return {
-    motion: new Proxy({}, {
-      get: (_target, tag: string) => ({
-        children,
-        ...props
-      }: Record<string, unknown> & { children?: React.ReactNode }) =>
-        React.createElement(tag, omitMotionProps(props), children),
-    }),
-    AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
     useMotionValueEvent: () => undefined,
     useScroll: () => ({ scrollY: {} }),
   };

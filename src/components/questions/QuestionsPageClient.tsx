@@ -100,28 +100,45 @@ export default function QuestionsPageClient({
   }));
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-5 pb-8">
       <SlideIn>
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="font-display text-2xl tracking-tight text-[#F2F4F8] sm:text-[1.75rem]">
-              {isCoding ? "Coding" : "Question Bank"}
-            </h1>
-            <p className="mt-1 text-sm text-[#A8B0C2]">
-              {isCoding
-                ? `${questions.length} algorithm and data-structure problem${questions.length !== 1 ? "s" : ""}`
-                : `${questions.length} interview question${questions.length !== 1 ? "s" : ""} across ${filterCategories.length} categories`}
-            </p>
+        <section className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#12141A]/90 px-5 py-5 sm:px-6">
+          <div
+            className="pointer-events-none absolute inset-0"
+            aria-hidden="true"
+            style={{ background: "radial-gradient(ellipse 70% 120% at 100% 0%, rgba(59,130,246,0.12), transparent 64%)" }}
+          />
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#93C5FD]">Practice library</p>
+              <h1 className="mt-1.5 font-display text-2xl tracking-tight text-[#F2F4F8] sm:text-[1.85rem]">
+                {isCoding ? "Coding" : "Question Bank"}
+              </h1>
+              <p className="mt-1.5 max-w-xl text-sm text-[#A8B0C2]">
+                {isCoding
+                  ? "Work through focused problems and build a consistent solving rhythm."
+                  : "Build sharper interview stories across the areas that matter most."}
+              </p>
+            </div>
+            <div className="flex gap-5 sm:gap-7">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6B7385]">Available</p>
+                <p className="mt-1 text-xl font-semibold tabular-nums text-[#F2F4F8]">{questions.length}</p>
+              </div>
+              <div className="border-l border-white/[0.08] pl-5 sm:pl-7">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6B7385]">Solved</p>
+                <p className="mt-1 text-xl font-semibold tabular-nums text-emerald-400">{solvedCount}</p>
+              </div>
+              {!isCoding ? <div className="hidden border-l border-white/[0.08] pl-7 sm:block"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6B7385]">Focus areas</p><p className="mt-1 text-xl font-semibold tabular-nums text-[#F2F4F8]">{filterCategories.length}</p></div> : null}
+            </div>
           </div>
-        </div>
+        </section>
       </SlideIn>
 
       <FadeIn delay={0.1} direction="up" className="relative z-30">
         <QuestionsFilterBar
           search={search}
           setSearch={setSearch}
-          solvedCount={solvedCount}
-          totalQuestions={questions.length}
           showFilters={showFilters}
           setShowFilters={setShowFilters}
           activeFilterCount={activeFilterCount}

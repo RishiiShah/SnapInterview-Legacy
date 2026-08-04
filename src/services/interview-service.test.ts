@@ -190,7 +190,7 @@ describe("startInterviewSession", () => {
         persona: "balanced",
         questionCount: 10,
         focusAreas: [
-          "behavioral fundamentals",
+          "behavioral-leadership fundamentals",
           "structured communication",
         ],
         sessionPlan: {

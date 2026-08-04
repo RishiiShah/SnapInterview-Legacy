@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Editor from "@monaco-editor/react";
-import type { Question } from "@/data/types";
+import type { CodingWorkspaceQuestion } from "@/lib/coding/contracts";
 import {
   runTestCases,
   SUPPORTED_LANGUAGES,
@@ -28,8 +28,7 @@ import { cn } from "@/lib/utils";
 type BottomTab = "testcase" | "result";
 
 type CodingRightPanelProps = {
-  question: Question;
-  onSolved: () => void;
+  question: CodingWorkspaceQuestion;
 };
 
 const MONACO_LANGUAGE_MAP: Record<SupportedLanguage, string> = {
@@ -38,7 +37,7 @@ const MONACO_LANGUAGE_MAP: Record<SupportedLanguage, string> = {
   cpp: "cpp",
 };
 
-export function CodingRightPanel({ question, onSolved }: CodingRightPanelProps) {
+export function CodingRightPanel({ question }: CodingRightPanelProps) {
   const availableLanguages = SUPPORTED_LANGUAGES.filter(
     (l) => question.starterCode?.[l.value],
   );
@@ -90,27 +89,14 @@ export function CodingRightPanel({ question, onSolved }: CodingRightPanelProps) 
   }, [language, question.starterCode]);
 
   const handleRun = useCallback(async () => {
-    if (!question.testCases || isRunning) return;
+    if (isRunning) return;
     setIsRunning(true);
     setCollapsed(false);
     setBottomTab("result");
-    const result = await runTestCases(currentCode, language, question.testCases, true);
+    const result = await runTestCases(currentCode, language, question.sampleTestCases);
     setRunResult(result);
     setIsRunning(false);
-  }, [currentCode, language, question.testCases, isRunning]);
-
-  const handleSubmit = useCallback(async () => {
-    if (!question.testCases || isRunning) return;
-    setIsRunning(true);
-    setCollapsed(false);
-    setBottomTab("result");
-    const result = await runTestCases(currentCode, language, question.testCases, false);
-    setRunResult(result);
-    setIsRunning(false);
-    if (result.allPassed) {
-      onSolved();
-    }
-  }, [currentCode, language, question.testCases, isRunning, onSolved]);
+  }, [currentCode, language, question.sampleTestCases, isRunning]);
 
   const editorHeight = collapsed
     ? "calc(100% - 2.75rem)"
@@ -150,14 +136,6 @@ export function CodingRightPanel({ question, onSolved }: CodingRightPanelProps) 
                 <IconPlay className="h-3.5 w-3.5" />
               )}
               Run
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={isRunning}
-              className="inline-flex cursor-pointer items-center rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-500 focus:outline-none disabled:opacity-40"
-            >
-              Submit
             </button>
             <button
               type="button"
@@ -301,7 +279,7 @@ export function CodingRightPanel({ question, onSolved }: CodingRightPanelProps) 
           <>
             <div className="min-h-0 flex-1 overflow-hidden">
               {bottomTab === "testcase" ? (
-                <TestCasePanel testCases={question.testCases ?? []} editable />
+                <TestCasePanel testCases={question.sampleTestCases} editable={false} />
               ) : (
                 <div className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <TestResultPanel runResult={runResult} isRunning={isRunning} />
@@ -321,6 +299,7 @@ export function CodingRightPanel({ question, onSolved }: CodingRightPanelProps) 
               >
                 <IconHelp className="h-3.5 w-3.5" />
               </button>
+              <span className="text-xs text-[#6B7385]">Runs public sample cases in your browser.</span>
             </div>
           </>
         ) : null}

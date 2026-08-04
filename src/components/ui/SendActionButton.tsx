@@ -107,6 +107,7 @@ export function SendActionButton({
         className,
       )}
       {...props}
+      aria-label={label}
       onClick={handleClick}
     >
       {/* Face fill */}

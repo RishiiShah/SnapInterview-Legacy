@@ -36,7 +36,7 @@ export default function AdminShell({
   return (
     <div
       className={cn(
-        "flex h-screen overflow-hidden bg-[#0B0C10] font-sans text-[#E8ECF4] [color-scheme:dark]",
+        "internal-app-shell flex h-screen overflow-hidden bg-[#0B0C10] font-sans text-[#E8ECF4] [color-scheme:dark]",
         adminInteractiveClass,
       )}
     >

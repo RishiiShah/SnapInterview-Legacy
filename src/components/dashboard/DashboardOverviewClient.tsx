@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useId, useMemo } from "react";
+import { useState, useEffect, useId, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getScoreLabel } from "@/utils/helpers";
@@ -269,14 +269,14 @@ export default function DashboardOverviewClient({
     }
   }, [userId, isFirstLogin]);
 
-  function dismissWelcome() {
+  const dismissWelcome = useCallback(() => {
     try {
       localStorage.setItem(`snap-welcome-dismissed-${userId}`, "1");
     } catch {
       // ignore
     }
     setShowWelcome(false);
-  }
+  }, [userId]);
 
   useEffect(() => {
     if (!showWelcome) return;
@@ -285,7 +285,7 @@ export default function DashboardOverviewClient({
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [showWelcome, userId]);
+  }, [showWelcome, dismissWelcome]);
 
   async function openSession(session: SessionItem) {
     if (isOpening) return;

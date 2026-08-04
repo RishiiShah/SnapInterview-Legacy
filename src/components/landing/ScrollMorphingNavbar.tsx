@@ -6,7 +6,7 @@ import {
   motion,
   useMotionValueEvent,
   useScroll,
-} from "motion/react";
+} from "framer-motion";
 import Link from "next/link";
 import React, { useState } from "react";
 import { AppLogo } from "@/components/ui/AppLogo";

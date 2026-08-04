@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Code2, FileText, Mic, Video, CheckCircle, Clock, ChevronRight } from "lucide-react";
+import { FileText, CheckCircle, Clock, ChevronRight } from "lucide-react";
 import { LandingFadeIn, LandingFadeOnly, LandingScaleIn } from "./LandingMotion";
 
 const FEATURES = [
@@ -108,7 +108,7 @@ function VoiceConversationDiagram() {
         <div className="flex items-start gap-2.5">
           <span className="flex h-4 w-6 shrink-0 items-center justify-center rounded text-[0.55rem] font-bold tracking-wide text-slate-400 bg-slate-500/15">Me</span>
           <p className="text-xs leading-relaxed text-[#CBD5E1]">
-            Good point. I'll use a hash set to track seen elements so duplicate lookups stay O(1).
+            Good point. I&apos;ll use a hash set to track seen elements so duplicate lookups stay O(1).
           </p>
         </div>
         <div className="flex items-start gap-2.5">

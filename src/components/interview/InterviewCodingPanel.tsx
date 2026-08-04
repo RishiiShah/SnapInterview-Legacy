@@ -73,7 +73,7 @@ export function InterviewCodingPanel({ challenge, onSubmitCode }: InterviewCodin
     if (!challenge.testCases || isRunning) return;
     setIsRunning(true);
     setBottomTab("result");
-    const result = await runTestCases(currentCode, language, challenge.testCases, true);
+    const result = await runTestCases(currentCode, language, challenge.testCases);
     setRunResult(result);
     setIsRunning(false);
   }, [currentCode, language, challenge.testCases, isRunning]);
@@ -82,7 +82,7 @@ export function InterviewCodingPanel({ challenge, onSubmitCode }: InterviewCodin
     if (!challenge.testCases || isRunning || hasSubmitted) return;
     setIsRunning(true);
     setBottomTab("result");
-    const result = await runTestCases(currentCode, language, challenge.testCases, false);
+    const result = await runTestCases(currentCode, language, challenge.testCases);
     setRunResult(result);
     setIsRunning(false);
     setHasSubmitted(true);

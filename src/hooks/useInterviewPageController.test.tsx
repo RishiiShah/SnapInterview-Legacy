@@ -72,10 +72,12 @@ function setupHookMocks({
   const stopRecording = vi.fn();
   const stopStream = vi.fn();
   const mountVideoNode = vi.fn();
+  const requestPermissions = vi.fn().mockResolvedValue(undefined);
   const stream = { id: "mock-stream" } as MediaStream;
 
   mocks.useMediaPermissions.mockReturnValue({
     stream,
+    requestPermissions,
     isMicEnabled: true,
     stopStream,
     mountVideoNode,
@@ -96,7 +98,7 @@ function setupHookMocks({
     lastCompletedAiText: "",
     isThinking: false,
   });
-  mocks.useStreamingTTS.mockReturnValue({ isSpeaking: false });
+  mocks.useStreamingTTS.mockReturnValue({ isSpeaking: false, warmup: vi.fn() });
   mocks.useAudioAnalyser.mockReturnValue({ level: 0 });
   mocks.getInterviewBlockReason.mockResolvedValue(null);
   mocks.finalizeInterviewUpload.mockResolvedValue({ type: "ok" });
@@ -107,6 +109,7 @@ function setupHookMocks({
     stopRecording,
     stopStream,
     stream,
+    requestPermissions,
   };
 }
 
@@ -145,6 +148,36 @@ describe("useInterviewPageController", () => {
     });
 
     expect(mocks.routerPush).toHaveBeenCalledWith("/interview/other-interview");
+  });
+
+  it("warms the voice engine in the same user action as requesting media permission", async () => {
+    const { requestPermissions } = setupHookMocks();
+    const warmup = vi.fn();
+    mocks.useStreamingTTS.mockReturnValue({ isSpeaking: false, warmup });
+
+    const { result } = renderHook(() => useInterviewPageController({ interviewId: "interview-voice" }));
+
+    await act(async () => {
+      await result.current.requestPermissions();
+    });
+
+    expect(warmup).toHaveBeenCalledTimes(1);
+    expect(requestPermissions).toHaveBeenCalledTimes(1);
+    expect(warmup.mock.invocationCallOrder[0]).toBeLessThan(requestPermissions.mock.invocationCallOrder[0]!);
+  });
+
+  it("uses pending session metadata without requesting a session that does not exist yet", async () => {
+    setupHookMocks();
+    sessionStorage.setItem("pending_interview_interview-pending", JSON.stringify({
+      questionCount: 5,
+      persona: "strict",
+    }));
+
+    const { result } = renderHook(() => useInterviewPageController({ interviewId: "interview-pending" }));
+
+    await waitFor(() => expect(result.current.totalQuestions).toBe(5));
+    expect(result.current.tts).toBeDefined();
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("persists pending interview config before entering the interview", async () => {

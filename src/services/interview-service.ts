@@ -236,12 +236,13 @@ export async function runInterviewChat(params: {
     return { type: "error", message: "Interview session is invalid. Please start a new session." };
   }
 
-  const systemInstructionPromise = buildSystemInstruction(promptInterviewSession);
-
-  const [, systemInstruction] = await Promise.all([
-    saveLatestTranscriptEntry({ interviewId, currentQuestion, messages }),
-    systemInstructionPromise,
-  ]);
+  void Promise.resolve(saveLatestTranscriptEntry({ interviewId, currentQuestion, messages })).catch((error) => {
+    logger.error("Unable to save interview transcript entry", {
+      interviewId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
+  const systemInstruction = await buildSystemInstruction(promptInterviewSession);
   const formattedMessages = [
     { role: "system" as const, content: systemInstruction },
     ...messages.map((message) => ({ role: message.role, content: message.content })),

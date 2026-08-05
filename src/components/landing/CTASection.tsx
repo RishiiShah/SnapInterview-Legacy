@@ -22,12 +22,12 @@ function SessionPreview() {
               Mid-level software engineer
             </p>
             <p className="mt-0.5 text-[0.65rem] text-zinc-600">
-              Coding in progress
+              Coding discussion review
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
             <span className="rounded-full bg-sky-200/80 px-2.5 py-1 text-[0.6rem] font-semibold text-sky-900">
-              Pass
+              Reviewed
             </span>
             <p className="text-[0.6rem] tabular-nums text-zinc-600">
               Overall <span className="font-semibold text-zinc-800">8.1</span>
@@ -117,25 +117,25 @@ function SessionPreview() {
             AI: Walk me through your approach before you write any code, including data structures and edge cases.
           </p>
           <p className="text-[0.65rem] leading-snug text-zinc-700">
-            You: I&apos;d start with a hash map keyed by value to index for O(1) lookups, scan once for the complement, then verify empty arrays, single elements, and negatives before coding..
+            You: I&apos;d start with a hash map keyed by value to index for O(1) lookups, scan once for the complement, then verify empty arrays, single elements, and negatives.
           </p>
           <p className="text-[0.65rem] leading-snug text-violet-800">
             AI: What happens if the input contains duplicates, and how does that change your map strategy?
           </p>
           <p className="text-[0.65rem] leading-snug text-zinc-700">
-            You: I&apos;d store only the first-seen index for each value so later duplicates still resolve to a valid pair without rewriting the loop or adding a second pass..
+            You: I&apos;d store only the first-seen index for each value so later duplicates still resolve to a valid pair without rewriting the loop or adding a second pass.
           </p>
           <p className="text-[0.65rem] leading-snug text-violet-800">
-            AI: Could you sketch the time and space complexity before we move into the implementation?
+            AI: Could you sketch the time and space complexity before we compare the public sample?
           </p>
           <p className="text-[0.65rem] leading-snug text-zinc-700">
-            You: Time stays O(n) for one linear scan with constant-time map ops, and space is O(n) in the worst case when every value is unique and lands in the map..
+            You: Time stays O(n) for one linear scan with constant-time map ops, and space is O(n) in the worst case when every value is unique and lands in the map.
           </p>
         </div>
 
         <div className="mt-2.5 flex items-center gap-3">
           <p className="shrink-0 text-[0.55rem] text-zinc-600">
-            Mid-session · coding live
+            Mid-session · coding discussion
           </p>
           <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-500/25">
             <div className="h-full w-[57%] rounded-full bg-blue-600" />

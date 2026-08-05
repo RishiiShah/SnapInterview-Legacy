@@ -7,22 +7,23 @@ import {
 } from "./contracts";
 
 describe("coding contracts", () => {
-  it("accepts the supported browser languages", () => {
+  it("accepts only the language shown in the concept preview", () => {
     expect(SupportedLanguageSchema.safeParse("javascript").success).toBe(true);
-    expect(SupportedLanguageSchema.safeParse("python").success).toBe(true);
-    expect(SupportedLanguageSchema.safeParse("cpp").success).toBe(true);
+    expect(SupportedLanguageSchema.safeParse("python").success).toBe(false);
+    expect(SupportedLanguageSchema.safeParse("cpp").success).toBe(false);
   });
 
   it("rejects an unsupported language", () => {
     expect(SupportedLanguageSchema.safeParse("ruby").success).toBe(false);
   });
 
-  it("requires at least one non-empty starter source", () => {
+  it("requires non-empty JavaScript preview source", () => {
     expect(CodingStarterCodeSchema.safeParse({ javascript: "" }).success).toBe(false);
     expect(CodingStarterCodeSchema.safeParse({ javascript: "console.log(input);" }).success).toBe(true);
+    expect(CodingStarterCodeSchema.safeParse({ python: "print(input)" }).success).toBe(false);
   });
 
-  it("only accepts public sample cases in a browser workspace", () => {
+  it("exposes only public samples without a solved state in the concept workspace", () => {
     const parsed = CodingQuestionSchema.safeParse({
       id: "coding-1",
       slug: "sum-pair",
@@ -40,5 +41,6 @@ describe("coding contracts", () => {
 
     expect(parsed.success).toBe(true);
     expect(parsed.data?.sampleTestCases[0]).not.toHaveProperty("isHidden");
+    expect(parsed.data).not.toHaveProperty("solved");
   });
 });

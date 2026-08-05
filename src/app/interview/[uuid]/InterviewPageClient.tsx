@@ -17,6 +17,7 @@ export default function InterviewPageClient() {
     interviewDone,
     isUploading,
     totalQuestions,
+    interviewType,
     joinBlockedReason,
     answeredQuestions,
     questionProgressPercent,
@@ -109,6 +110,7 @@ export default function InterviewPageClient() {
             void chat.sendMessage(text);
           }}
           codingChallenge={codingChallenge}
+          codingInterview={interviewType === "coding-algorithms"}
           onSubmitCode={(message) => {
             tts.cancel();
             void chat.sendMessage(message);

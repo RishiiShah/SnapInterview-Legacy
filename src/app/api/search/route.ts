@@ -1,7 +1,9 @@
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
+import { QUESTION_CATEGORY_VALUES } from "@/lib/interview/domain";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
+import { toCodingWorkspaceQuestion } from "@/repositories/coding-question-repo";
 import { logger } from "@/utils/logger";
 
 const searchLimiter = createRateLimiter("search", 60 * 1000, 30);
@@ -69,10 +71,15 @@ export async function GET(req: Request) {
       }),
       prisma.practiceQuestion.findMany({
         where: {
-          OR: [
-            { text: { contains: q, mode: "insensitive" } },
-            { category: { contains: q, mode: "insensitive" } },
-            { tags: { has: q.toLowerCase() } },
+          AND: [
+            { category: { in: [...QUESTION_CATEGORY_VALUES] } },
+            {
+              OR: [
+                { text: { contains: q, mode: "insensitive" } },
+                { category: { contains: q, mode: "insensitive" } },
+                { tags: { has: q.toLowerCase() } },
+              ],
+            },
           ],
         },
         select: { id: true, slug: true, text: true, category: true, difficulty: true },
@@ -87,10 +94,47 @@ export async function GET(req: Request) {
             { topics: { has: q.toLowerCase() } },
           ],
         },
-        select: { id: true, slug: true, title: true, difficulty: true },
-        take: 5,
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          description: true,
+          constraints: true,
+          difficulty: true,
+          topics: true,
+          estimatedTime: true,
+          hint: true,
+          starterCode: true,
+          testCases: {
+            where: { isHidden: false },
+            select: { ordinal: true, input: true, expectedOutput: true },
+            orderBy: { ordinal: "asc" },
+          },
+        },
+        // Validate legacy JSON-backed rows in application code, then keep the
+        // first five valid concepts below. A small over-fetch prevents invalid
+        // published rows from crowding every usable result out of the demo.
+        take: 20,
       }),
     ]);
+
+    const codingSearchResults = codingQuestions.flatMap((question) => {
+      const workspace = toCodingWorkspaceQuestion({
+        ...question,
+        testCases: question.testCases.map((testCase) => ({ ...testCase, isHidden: false })),
+      });
+
+      return workspace
+        ? [{
+            id: workspace.id,
+            slug: workspace.slug,
+            text: workspace.title,
+            category: null,
+            difficulty: workspace.difficulty,
+            type: "coding",
+          }]
+        : [];
+    }).slice(0, 5);
 
     const result: SearchResults = {
       sessions: sessions.map((s) => ({
@@ -106,14 +150,7 @@ export async function GET(req: Request) {
           difficulty: question.difficulty,
           type: "question",
         })),
-        ...codingQuestions.map((question) => ({
-          id: question.id,
-          slug: question.slug,
-          text: question.title,
-          category: null,
-          difficulty: question.difficulty,
-          type: "coding",
-        })),
+        ...codingSearchResults,
       ],
     };
 

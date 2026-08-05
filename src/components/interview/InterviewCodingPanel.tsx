@@ -25,11 +25,7 @@ type InterviewCodingPanelProps = {
   onSubmitCode: (message: string) => void;
 };
 
-const MONACO_LANGUAGE_MAP: Record<string, string> = {
-  javascript: "javascript",
-  python: "python",
-  cpp: "cpp",
-};
+const MONACO_LANGUAGE_MAP: Record<SupportedLanguage, string> = { javascript: "javascript" };
 
 export function InterviewCodingPanel({ challenge, onSubmitCode }: InterviewCodingPanelProps) {
   const availableLanguages = SUPPORTED_LANGUAGES.filter(

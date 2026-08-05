@@ -22,6 +22,7 @@ const interviewSessionStateSelect = {
   questionCount: true,
   currentQuestion: true,
   persona: true,
+  type: true,
 } satisfies Prisma.InterviewSessionSelect;
 
 const interviewSessionChatSelect = {

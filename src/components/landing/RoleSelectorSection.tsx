@@ -11,7 +11,7 @@ const ROLES = [
     icon: Code,
     color: "from-blue-500 to-cyan-500",
     badge: "Most Popular",
-    topics: ["Data Structures & Algorithms", "System Design", "Coding Live on Mic", "Time & Space Complexity"],
+    topics: ["Data Structures & Algorithms", "System Design", "Coding Discussion on Mic", "Time & Space Complexity"],
     questionPreview: "How would you design a distributed rate limiter for 100,000 requests/sec?",
   },
   {

@@ -1,18 +1,22 @@
 import { z } from "zod";
 
-import { SupportedLanguageSchema } from "@/lib/coding/contracts";
 import { slugifyQuestionTitle } from "@/lib/admin/practice-question";
+import {
+  CODING_CONCEPT_LIMITS,
+  CodingEstimatedTimeSchema,
+  CodingPublicSampleExpectedOutputSchema,
+  CodingPublicSampleInputSchema,
+  CodingTopicSchema,
+  JavaScriptPreviewSourceSchema,
+} from "@/lib/coding/contracts";
 
 const starterCodeSchema = z.object({
   javascript: z.string().trim().optional(),
-  python: z.string().trim().optional(),
-  cpp: z.string().trim().optional(),
 }).strict();
 
 const testcaseSchema = z.object({
-  input: z.string(),
-  expectedOutput: z.string(),
-  isHidden: z.boolean().default(false),
+  input: CodingPublicSampleInputSchema,
+  expectedOutput: CodingPublicSampleExpectedOutputSchema,
 });
 
 const codingQuestionFormSchema = z.object({
@@ -21,24 +25,20 @@ const codingQuestionFormSchema = z.object({
   description: z.string().trim(),
   constraints: z.string().trim(),
   difficulty: z.enum(["easy", "medium", "hard"]),
-  topics: z.array(z.string().trim().min(1)).max(20),
-  estimatedTime: z.string().trim(),
+  topics: z.array(CodingTopicSchema).max(CODING_CONCEPT_LIMITS.topicCount),
+  estimatedTime: CodingEstimatedTimeSchema,
   hint: z.string().trim(),
   starterCode: starterCodeSchema,
-  solutionCode: z.record(SupportedLanguageSchema, z.string()).optional(),
   testCases: z.array(testcaseSchema).max(100),
   isPublished: z.boolean(),
 }).superRefine((value, context) => {
   if (!value.isPublished) return;
   if (!value.description) context.addIssue({ code: "custom", message: "Description is required before publishing." });
-  if (!Object.values(value.starterCode).some((source) => source && source.length > 0)) {
-    context.addIssue({ code: "custom", message: "At least one starter language is required before publishing." });
+  if (!JavaScriptPreviewSourceSchema.safeParse(value.starterCode.javascript).success) {
+    context.addIssue({ code: "custom", message: "JavaScript preview source is required before publishing." });
   }
   if (value.testCases.length === 0) {
-    context.addIssue({ code: "custom", message: "At least one testcase is required before publishing." });
-  }
-  if (!value.testCases.some((testCase) => !testCase.isHidden)) {
-    context.addIssue({ code: "custom", message: "At least one public sample testcase is required before publishing." });
+    context.addIssue({ code: "custom", message: "At least one public sample case is required before publishing." });
   }
 });
 
@@ -49,6 +49,14 @@ function parseJson(raw: FormDataEntryValue | null, fallback: unknown) {
   } catch {
     return fallback;
   }
+}
+
+function parseStarterCode(raw: FormDataEntryValue | null) {
+  const parsed = parseJson(raw, {});
+  if (typeof parsed !== "object" || parsed === null) return {};
+
+  const javascript = (parsed as Record<string, unknown>).javascript;
+  return typeof javascript === "string" ? { javascript } : {};
 }
 
 function parseTopics(raw: FormDataEntryValue | null) {
@@ -68,10 +76,9 @@ export function parseCodingQuestionForm(formData: FormData) {
     topics: parseTopics(formData.get("topics")),
     estimatedTime: String(formData.get("estimatedTime") ?? "").trim(),
     hint: String(formData.get("hint") ?? "").trim(),
-    starterCode: parseJson(formData.get("starterCode"), {}),
-    solutionCode: parseJson(formData.get("solutionCode"), undefined),
+    starterCode: parseStarterCode(formData.get("starterCode")),
     testCases: parseJson(formData.get("testCases"), []),
-    isPublished: formData.get("isPublished") === "true",
+    isPublished: formData.getAll("isPublished").some((value) => value === "true"),
   });
 
   if (!parsed.success) {
@@ -85,7 +92,6 @@ export function parseCodingQuestionForm(formData: FormData) {
       constraints: parsed.data.constraints || null,
       estimatedTime: parsed.data.estimatedTime || null,
       hint: parsed.data.hint || null,
-      solutionCode: parsed.data.solutionCode && Object.keys(parsed.data.solutionCode).length > 0 ? parsed.data.solutionCode : null,
       starterCode: Object.fromEntries(Object.entries(parsed.data.starterCode).filter(([, source]) => source)),
     },
   };

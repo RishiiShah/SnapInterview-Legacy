@@ -34,7 +34,6 @@ export default async function QuestionsPage() {
     <QuestionsPageClient
       initialSolvedIds={initialSolvedIds}
       questions={questions}
-      variant="interview"
     />
   );
 }

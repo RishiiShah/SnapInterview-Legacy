@@ -8,6 +8,7 @@ import { useStreamingTTS } from "@/hooks/useStreamingTTS";
 import { useAudioAnalyser } from "@/hooks/useAudioAnalyser";
 import { getInterviewBlockReason, type BrowserBlockResult } from "@/lib/interview/browser-block";
 import { finalizeInterviewUpload, type InterviewCompletionStatus } from "@/lib/video/upload-service";
+import { coerceInterviewType, type InterviewType } from "@/lib/interview/domain";
 
 type UseInterviewPageControllerOptions = {
   interviewId: string;
@@ -22,6 +23,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   const [isUploading, setIsUploading] = useState(false);
   const [totalQuestions, setTotalQuestions] = useState(10);
   const [persona, setPersona] = useState<string | null>(null);
+  const [interviewType, setInterviewType] = useState<InterviewType | null>(null);
   const [joinBlockedReason, setJoinBlockedReason] = useState<BrowserBlockResult>(null);
 
   const [modal, setModal] = useState<{
@@ -150,6 +152,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     if (pendingRaw) {
       const payload = JSON.parse(pendingRaw);
       payload.id = interviewId;
+      setInterviewType(coerceInterviewType(payload.type));
       sessionPromise = fetch("/api/interview/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -272,6 +275,9 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
           if (!isCancelled && typeof data?.persona === "string") {
             setPersona(data.persona);
           }
+          if (!isCancelled) {
+            setInterviewType(coerceInterviewType(data?.type));
+          }
           return;
         } catch {
           sessionStorage.removeItem(`pending_interview_${interviewId}`);
@@ -290,6 +296,9 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
         }
         if (!isCancelled && typeof data?.persona === "string") {
           setPersona(data.persona);
+        }
+        if (!isCancelled) {
+          setInterviewType(coerceInterviewType(data?.type));
         }
       } catch (error) {
         console.error("Failed to load interview session metadata:", error);
@@ -340,6 +349,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     interviewDone,
     isUploading,
     totalQuestions,
+    interviewType,
     joinBlockedReason,
     answeredQuestions,
     questionProgressPercent,

@@ -50,6 +50,7 @@ type ActiveInterviewScreenProps = {
   toggleCamera: () => void;
   toggleRecording: () => void;
   onSendTextAnswer: (text: string) => void;
+  codingInterview?: boolean;
   codingChallenge?: CodingChallenge | null;
   onSubmitCode?: (message: string) => void;
 };
@@ -81,11 +82,13 @@ export default function ActiveInterviewScreen({
   toggleCamera,
   toggleRecording,
   onSendTextAnswer,
+  codingInterview = false,
   codingChallenge,
   onSubmitCode,
 }: ActiveInterviewScreenProps) {
   const reducedMotion = useReducedMotion() ?? false;
   const [textDraft, setTextDraft] = useState("");
+  const codingLayout = shouldUseCodingLayout(codingInterview, codingChallenge);
 
   const handleTextSubmit = useCallback(() => {
     const trimmed = textDraft.trim();
@@ -113,7 +116,7 @@ export default function ActiveInterviewScreen({
       isThinking={isThinking}
       interimTranscript={interimTranscript}
       volatileTranscript={volatileTranscript}
-      compact={Boolean(codingChallenge)}
+      compact={codingLayout}
     />
   );
 
@@ -158,7 +161,7 @@ export default function ActiveInterviewScreen({
 
         {/* Stage */}
         <div className="relative flex min-h-0 flex-1 gap-0">
-          {codingChallenge ? (
+          {codingLayout ? (
             <>
               <div className="flex w-[38%] min-w-[280px] max-w-md flex-col border-r border-white/[0.06]">
                 <div className="relative h-36 shrink-0 overflow-hidden border-b border-white/[0.06] bg-[#0B0C10] sm:h-40">
@@ -176,10 +179,16 @@ export default function ActiveInterviewScreen({
               </div>
 
               <div className="min-h-0 min-w-0 flex-1 p-3 sm:p-4">
-                <InterviewCodingPanel
-                  challenge={codingChallenge}
-                  onSubmitCode={onSubmitCode!}
-                />
+                {codingChallenge ? (
+                  <InterviewCodingPanel
+                    challenge={codingChallenge}
+                    onSubmitCode={onSubmitCode!}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center rounded-xl border border-white/[0.08] bg-[#12141A]/90 px-6 text-center">
+                    <p className="text-sm text-[#8B93A7]">Preparing coding challenge…</p>
+                  </div>
+                )}
               </div>
             </>
           ) : (
@@ -341,6 +350,13 @@ export default function ActiveInterviewScreen({
       </div>
     </motion.div>
   );
+}
+
+export function shouldUseCodingLayout(
+  codingInterview: boolean,
+  codingChallenge: CodingChallenge | null | undefined,
+) {
+  return codingInterview || Boolean(codingChallenge);
 }
 
 function RecordingBadge({

@@ -29,6 +29,9 @@ describe("buildSystemInstruction", () => {
     expect(instruction).toContain("coding-challenge");
     expect(instruction).toContain("starterCode");
     expect(instruction).toContain("testCases");
+    expect(instruction).toContain('"javascript"');
+    expect(instruction).not.toContain('"python"');
+    expect(instruction).not.toContain("hidden ones");
   });
 
   it("does not include coding challenge instructions for non-coding types", async () => {

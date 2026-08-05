@@ -8,8 +8,8 @@ export function CodingCatalogPageClient({ questions }: { questions: CodingCatalo
   return (
     <div className="mx-auto w-full max-w-6xl p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-[#F2F4F8]">Coding Practice</h1>
-        <p className="mt-1 text-sm text-[#A8B0C2]">Run public sample cases in your browser.</p>
+        <h1 className="text-2xl font-semibold text-[#F2F4F8]">Coding concepts</h1>
+        <p className="mt-1 text-sm text-[#A8B0C2]">Explore conceptual workspaces with read-only JavaScript previews and public sample cases.</p>
       </div>
       <div className="grid gap-3">
         {questions.map((question) => (
@@ -19,10 +19,7 @@ export function CodingCatalogPageClient({ questions }: { questions: CodingCatalo
             className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[#12141A]/90 p-4 transition-colors hover:bg-white/[0.05]"
           >
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-medium text-[#F2F4F8]">{question.title}</h2>
-                {question.solved ? <span className="text-xs font-medium text-emerald-400">Solved</span> : null}
-              </div>
+              <h2 className="font-medium text-[#F2F4F8]">{question.title}</h2>
               <p className="mt-1 text-xs text-[#A8B0C2]">{question.topics.join(" · ")}</p>
             </div>
             <div className="text-right text-sm">

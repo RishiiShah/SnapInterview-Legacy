@@ -282,8 +282,8 @@ export async function buildSystemInstruction(interviewSession: PromptInterviewSe
 Interview type may include live coding. When appropriate, include exactly ONE coding challenge in your FIRST response.
 
 Format the challenge as a fenced code block with language identifier "coding-challenge" containing valid JSON with these fields:
-- "starterCode": object with "javascript" and "python" keys. Each value is a complete program that reads from stdin (line-by-line) and writes the answer to stdout. Include stdin-parsing boilerplate so the candidate only needs to fill in the solution logic.
-- "testCases": array of objects with "input" (string, use \\n for multiple lines), "expectedOutput" (string), "isHidden" (boolean). Include 2-3 visible test cases and 1-2 hidden ones.
+- "starterCode": object with a single "javascript" key. Its value is a complete JavaScript program that reads from stdin (line-by-line) and writes the answer to stdout. Include stdin-parsing boilerplate so the candidate only needs to fill in the solution logic.
+- "testCases": array of 2-3 public sample objects with "input" (string, use \\n for multiple lines), "expectedOutput" (string), and "isHidden": false. Do not include hidden tests.
 
 Before the fenced block, write the problem description in plain text including:
 - A clear problem statement

@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 
+import { QUESTION_CATEGORY_VALUES } from "@/lib/interview/domain";
 import { prisma } from "@/lib/prisma";
 
 export const ADMIN_QUESTION_FACETS_TAG = "admin-question-facets";
@@ -11,15 +12,18 @@ export type AdminQuestionFacets = {
 };
 
 async function loadQuestionFacets(): Promise<AdminQuestionFacets> {
+  const where = { category: { in: [...QUESTION_CATEGORY_VALUES] } };
   const [totalQuestions, categories, difficulties] = await Promise.all([
-    prisma.practiceQuestion.count(),
+    prisma.practiceQuestion.count({ where }),
     prisma.practiceQuestion.groupBy({
       by: ["category"],
+      where,
       _count: { _all: true },
       orderBy: { category: "asc" },
     }),
     prisma.practiceQuestion.groupBy({
       by: ["difficulty"],
+      where,
       _count: { _all: true },
       orderBy: { difficulty: "asc" },
     }),

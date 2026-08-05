@@ -19,7 +19,6 @@ type WorkspaceQuestionRecord = {
     expectedOutput: string;
     isHidden: boolean;
   }>;
-  solvedBy: Array<{ userId: string }>;
 };
 
 export type CodingCatalogQuestion = {
@@ -29,11 +28,10 @@ export type CodingCatalogQuestion = {
   difficulty: string;
   topics: string[];
   estimatedTime: string | null;
-  solved: boolean;
 };
 
-export function toCodingWorkspaceQuestion(question: WorkspaceQuestionRecord): CodingWorkspaceQuestion {
-  return CodingQuestionSchema.parse({
+export function toCodingWorkspaceQuestion(question: WorkspaceQuestionRecord): CodingWorkspaceQuestion | null {
+  const parsed = CodingQuestionSchema.safeParse({
     id: question.id,
     slug: question.slug,
     title: question.title,
@@ -46,36 +44,55 @@ export function toCodingWorkspaceQuestion(question: WorkspaceQuestionRecord): Co
     starterCode: question.starterCode,
     sampleTestCases: question.testCases
       .filter((testCase) => !testCase.isHidden)
-      .map(({ ordinal, input, expectedOutput }) => ({ ordinal, input, expectedOutput })),
-    solved: question.solvedBy.length > 0,
+      .map(({ input, expectedOutput }, index) => ({ ordinal: index + 1, input, expectedOutput })),
   });
+
+  return parsed.success ? parsed.data : null;
 }
 
-export async function getPublishedCodingQuestions(userId: string): Promise<CodingCatalogQuestion[]> {
+export async function getPublishedCodingQuestions(): Promise<CodingCatalogQuestion[]> {
   const questions = await prisma.codingQuestion.findMany({
     where: { isPublished: true },
     select: {
       id: true,
       slug: true,
       title: true,
+      description: true,
+      constraints: true,
       difficulty: true,
       topics: true,
       estimatedTime: true,
-      solvedBy: { where: { userId }, select: { userId: true } },
+      hint: true,
+      starterCode: true,
+      testCases: {
+        where: { isHidden: false },
+        select: { ordinal: true, input: true, expectedOutput: true },
+        orderBy: { ordinal: "asc" },
+      },
     },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
   });
 
-  return questions.map((question) => ({
-    ...question,
-    solved: question.solvedBy.length > 0,
-  }));
+  return questions.flatMap((question) => {
+    const workspace = toCodingWorkspaceQuestion({
+      ...question,
+      testCases: question.testCases.map((testCase) => ({ ...testCase, isHidden: false })),
+    });
+
+    return workspace
+      ? [{
+          id: workspace.id,
+          slug: workspace.slug,
+          title: workspace.title,
+          difficulty: workspace.difficulty,
+          topics: workspace.topics,
+          estimatedTime: workspace.estimatedTime,
+        }]
+      : [];
+  });
 }
 
-export async function getPublishedCodingWorkspace(
-  slug: string,
-  userId: string,
-): Promise<CodingWorkspaceQuestion | null> {
+export async function getPublishedCodingWorkspace(slug: string): Promise<CodingWorkspaceQuestion | null> {
   const question = await prisma.codingQuestion.findFirst({
     where: { slug, isPublished: true },
     select: {
@@ -94,25 +111,8 @@ export async function getPublishedCodingWorkspace(
         select: { ordinal: true, input: true, expectedOutput: true, isHidden: true },
         orderBy: { ordinal: "asc" },
       },
-      solvedBy: { where: { userId }, select: { userId: true } },
     },
   });
 
   return question ? toCodingWorkspaceQuestion(question) : null;
-}
-
-export async function getCodingSubmissionHistory(userId: string, codingQuestionId: string) {
-  return prisma.codingSubmission.findMany({
-    where: { userId, codingQuestionId },
-    select: {
-      id: true,
-      language: true,
-      verdict: true,
-      passedCount: true,
-      totalCount: true,
-      createdAt: true,
-    },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-  });
 }

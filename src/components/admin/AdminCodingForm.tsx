@@ -27,8 +27,7 @@ export type AdminCodingFormValues = {
   estimatedTime: string;
   hint: string;
   starterCode: Record<string, string>;
-  solutionCode?: Record<string, string>;
-  testCases: Array<{ input: string; expectedOutput: string; isHidden: boolean }>;
+  testCases: Array<{ input: string; expectedOutput: string }>;
   isPublished: boolean;
 };
 
@@ -62,7 +61,7 @@ export function AdminCodingForm({
       <div><label htmlFor="description" className={`mb-1.5 block ${adminLabelClass}`}>Description</label><textarea id="description" name="description" rows={7} defaultValue={values.description} className={adminFieldClass} /></div>
       <div><label htmlFor="constraints" className={`mb-1.5 block ${adminLabelClass}`}>Constraints</label><textarea id="constraints" name="constraints" rows={3} defaultValue={values.constraints} className={adminFieldClass} /></div>
       <div><label htmlFor="hint" className={`mb-1.5 block ${adminLabelClass}`}>Hint</label><textarea id="hint" name="hint" rows={3} defaultValue={values.hint} className={adminFieldClass} /></div>
-      <AdminCodingFields initialStarterCode={values.starterCode} initialSolutionCode={values.solutionCode} initialTestCases={values.testCases} />
+      <AdminCodingFields initialStarterCode={values.starterCode} initialTestCases={values.testCases} />
       <label className="flex items-center gap-2 text-sm text-[#E8ECF4]"><input type="hidden" name="isPublished" value="false" /><input type="checkbox" name="isPublished" value="true" defaultChecked={values.isPublished} /> Publish this problem</label>
       <div className="flex gap-3 pt-2"><Button type="submit" className={adminPrimaryButtonClass}>{mode === "create" ? "Create coding problem" : "Save changes"}</Button><Link href="/admin/coding"><Button type="button" variant="secondary" className={adminSecondaryButtonClass}>Cancel</Button></Link></div>
     </form>

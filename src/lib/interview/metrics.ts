@@ -9,10 +9,9 @@ const DASHBOARD_CACHE_TAG = "interview-dashboard-metrics-v1";
 const ANALYTICS_CACHE_TAG = "interview-analytics-metrics-v1";
 
 export function invalidateInterviewMetricsCache(userId: string) {
-  void userId;
   if (isTestEnv()) return;
-  revalidateTag(DASHBOARD_CACHE_TAG, "max");
-  revalidateTag(ANALYTICS_CACHE_TAG, "max");
+  revalidateTag(getDashboardCacheTag(userId), "max");
+  revalidateTag(getAnalyticsCacheTag(userId), "max");
 }
 
 export function invalidateAllInterviewMetricsCaches() {
@@ -834,22 +833,30 @@ async function getAnalyticsOverviewDataUncached(userId: string): Promise<Analyti
   return result;
 }
 
-const getCachedDashboardOverviewData = unstable_cache(
-  getDashboardOverviewDataUncached,
-  ["dashboard-overview-v1"],
-  { revalidate: 300, tags: [DASHBOARD_CACHE_TAG] },
-);
-
-const getCachedAnalyticsOverviewData = unstable_cache(
-  getAnalyticsOverviewDataUncached,
-  ["analytics-overview-v1"],
-  { revalidate: 300, tags: [ANALYTICS_CACHE_TAG] },
-);
-
 export function getDashboardOverviewData(userId: string): Promise<DashboardOverviewData> {
-  return isTestEnv() ? getDashboardOverviewDataUncached(userId) : getCachedDashboardOverviewData(userId);
+  return isTestEnv()
+    ? getDashboardOverviewDataUncached(userId)
+    : unstable_cache(
+        () => getDashboardOverviewDataUncached(userId),
+        ["dashboard-overview-v1", userId],
+        { revalidate: 300, tags: [DASHBOARD_CACHE_TAG, getDashboardCacheTag(userId)] },
+      )();
 }
 
 export function getAnalyticsOverviewData(userId: string): Promise<AnalyticsOverviewData> {
-  return isTestEnv() ? getAnalyticsOverviewDataUncached(userId) : getCachedAnalyticsOverviewData(userId);
+  return isTestEnv()
+    ? getAnalyticsOverviewDataUncached(userId)
+    : unstable_cache(
+        () => getAnalyticsOverviewDataUncached(userId),
+        ["analytics-overview-v1", userId],
+        { revalidate: 300, tags: [ANALYTICS_CACHE_TAG, getAnalyticsCacheTag(userId)] },
+      )();
+}
+
+function getDashboardCacheTag(userId: string) {
+  return `${DASHBOARD_CACHE_TAG}:${userId}`;
+}
+
+function getAnalyticsCacheTag(userId: string) {
+  return `${ANALYTICS_CACHE_TAG}:${userId}`;
 }

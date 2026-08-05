@@ -5,7 +5,7 @@ export type CodingChallengeTestCase = {
 };
 
 export type CodingChallenge = {
-  starterCode: Record<string, string>;
+  starterCode: { javascript: string };
   testCases: CodingChallengeTestCase[];
 };
 
@@ -44,6 +44,8 @@ export function parseCodingChallenge(text: string): ParseResult | null {
   if (
     typeof starterCode !== "object" ||
     starterCode === null ||
+    typeof (starterCode as Record<string, unknown>).javascript !== "string" ||
+    !(starterCode as Record<string, string>).javascript.trim() ||
     !Array.isArray(testCases)
   ) {
     return null;
@@ -53,8 +55,8 @@ export function parseCodingChallenge(text: string): ParseResult | null {
 
   return {
     challenge: {
-      starterCode: starterCode as Record<string, string>,
-      testCases: testCases as CodingChallengeTestCase[],
+      starterCode: { javascript: (starterCode as Record<string, string>).javascript },
+      testCases: (testCases as CodingChallengeTestCase[]).filter((testCase) => !testCase.isHidden),
     },
     displayText,
   };

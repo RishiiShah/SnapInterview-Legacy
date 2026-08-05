@@ -10,7 +10,6 @@ export default async function CodingPage() {
     redirect("/login");
   }
 
-  const userId = session.user.id;
-  const questions = await getPublishedCodingQuestions(userId);
+  const questions = await getPublishedCodingQuestions();
   return <CodingCatalogPageClient questions={questions} />;
 }

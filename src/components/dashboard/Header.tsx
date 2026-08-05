@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Notification } from "@/data/types";
 import {
   AnimatedBellIcon,
@@ -134,6 +134,7 @@ function HeaderSearchButton({ onSearchOpen }: { onSearchOpen: () => void }) {
 
 function HeaderUserButton() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -213,7 +214,7 @@ function HeaderUserButton() {
                 signOut({
                   fetchOptions: {
                     onSuccess: () => {
-                      window.location.href = "/";
+                      router.push("/");
                     },
                   },
                 })

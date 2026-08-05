@@ -142,7 +142,7 @@ export function SearchModal({ onClose }: { onClose: () => void }) {
                     <Link
                       key={q.id}
                       href={
-                        q.type === "coding" || q.category === "coding"
+                        q.type === "coding"
                           ? `/coding/${q.slug}`
                           : `/questions/${q.slug}`
                       }

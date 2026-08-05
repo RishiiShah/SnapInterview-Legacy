@@ -2,7 +2,7 @@ import { z } from "zod/v4";
 
 import {
   INTERVIEW_DIFFICULTY_VALUES,
-  INTERVIEW_TYPE_VALUES,
+  QUESTION_CATEGORY_VALUES,
 } from "@/lib/interview/domain";
 
 const practiceQuestionSchema = z.object({
@@ -13,7 +13,7 @@ const practiceQuestionSchema = z.object({
     .max(120)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase letters, numbers, and hyphens"),
   text: z.string().trim().min(1, "Question text is required"),
-  category: z.enum(INTERVIEW_TYPE_VALUES),
+  category: z.enum(QUESTION_CATEGORY_VALUES),
   difficulty: z.enum(INTERVIEW_DIFFICULTY_VALUES),
   estimatedTime: z.string().trim().optional(),
   tags: z.array(z.string().trim().min(1)).default([]),

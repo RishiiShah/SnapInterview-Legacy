@@ -78,7 +78,6 @@ export const QUESTION_CATEGORY_VALUES = [
   "technical",
   "system-design",
   "leadership",
-  "coding",
 ] as const;
 
 export const INTERVIEW_DIFFICULTY_VALUES = ["easy", "medium", "hard"] as const;

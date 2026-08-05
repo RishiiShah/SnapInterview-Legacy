@@ -1,7 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { QUESTIONS } from "@/data/questions";
 import type { Question } from "@/data/types";
+import { QUESTION_CATEGORY_VALUES } from "@/lib/interview/domain";
 import { logger } from "@/utils/logger";
+
+function isQuestionCategory(category: string): category is Question["category"] {
+  return (QUESTION_CATEGORY_VALUES as readonly string[]).includes(category);
+}
 
 function mapPracticeQuestion(question: {
   id: number;
@@ -13,12 +18,16 @@ function mapPracticeQuestion(question: {
   tags: string[];
   hint: string | null;
   sampleAnswer: string | null;
-}): Question {
+}): Question | null {
+  if (!isQuestionCategory(question.category)) {
+    return null;
+  }
+
   return {
     id: question.id,
     slug: question.slug,
     text: question.text,
-    category: question.category as Question["category"],
+    category: question.category,
     difficulty: question.difficulty as Question["difficulty"],
     estimatedTime: question.estimatedTime || "5 min",
     tags: question.tags,
@@ -46,7 +55,14 @@ export async function getAllPracticeQuestions(): Promise<Question[]> {
     });
 
     if (dbQuestions.length > 0) {
-      return dbQuestions.map(mapPracticeQuestion);
+      const questions = dbQuestions.flatMap((question) => {
+        const mapped = mapPracticeQuestion(question);
+        return mapped ? [mapped] : [];
+      });
+
+      if (questions.length > 0) {
+        return questions;
+      }
     }
 
     logStaticFallback("database-empty");
@@ -70,7 +86,10 @@ export async function getPracticeQuestionBySlug(slug: string): Promise<Question 
     });
 
     if (q) {
-      return mapPracticeQuestion(q);
+      const mapped = mapPracticeQuestion(q);
+      if (mapped) {
+        return mapped;
+      }
     }
 
     logStaticFallback("database-miss", { slug });
@@ -94,7 +113,10 @@ export async function getPracticeQuestionById(id: number): Promise<Question | un
     });
 
     if (q) {
-      return mapPracticeQuestion(q);
+      const mapped = mapPracticeQuestion(q);
+      if (mapped) {
+        return mapped;
+      }
     }
 
     logStaticFallback("database-miss", { id });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getAdminSessionOrNull } from "@/lib/admin-auth";
+import { QUESTION_CATEGORY_VALUES } from "@/lib/interview/domain";
 import { prisma } from "@/lib/prisma";
 
 function csvCell(value: string | null | undefined) {
@@ -26,6 +27,7 @@ export async function GET(request: Request) {
   const format = url.searchParams.get("format") === "csv" ? "csv" : "json";
 
   const questions = await prisma.practiceQuestion.findMany({
+    where: { category: { in: [...QUESTION_CATEGORY_VALUES] } },
     orderBy: { id: "asc" },
     select: {
       slug: true,
@@ -88,4 +90,3 @@ export async function GET(request: Request) {
     },
   });
 }
-

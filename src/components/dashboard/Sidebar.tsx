@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { ReactElement } from "react";
 import { AppLogo } from "@/components/ui/AppLogo";
 import { UserAvatar } from "@/components/ui/UserAvatar";
@@ -156,6 +156,7 @@ function UtilityLinks({ onNavigate }: { onNavigate?: () => void }) {
 
 function AccountFooter({ session }: { session: DashboardSession }) {
   const { expanded } = useHoverSidebar();
+  const router = useRouter();
   const userName = session?.user?.name || "User";
   const userImage = session?.user?.image;
   const initials = getInitials(userName);
@@ -168,7 +169,7 @@ function AccountFooter({ session }: { session: DashboardSession }) {
           signOut({
             fetchOptions: {
               onSuccess: () => {
-                window.location.href = "/";
+                router.push("/");
               },
             },
           })

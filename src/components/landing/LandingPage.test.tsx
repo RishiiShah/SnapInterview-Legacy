@@ -86,7 +86,11 @@ describe("landing experience", () => {
       screen.getByText(/Given an array of integers/i),
     ).toBeTruthy();
     expect(screen.getByText(/Two Sum/i)).toBeTruthy();
-    expect(screen.getByText(/4\/4 test cases passed/i)).toBeTruthy();
+    expect(screen.getByText("Concept preview")).toBeTruthy();
+    expect(screen.getByText(/Public sample cases/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Run$/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Submit$/i })).toBeNull();
+    expect(document.body.textContent).not.toMatch(/test cases passed|live test case execution/i);
   });
 
   it("keeps the floating navbar actions available", () => {
@@ -119,7 +123,8 @@ describe("landing experience", () => {
     expect(screen.getByText("Product Strengths")).toBeTruthy();
     expect(screen.getByText(/Speaks like a real interviewer/i)).toBeTruthy();
     expect(screen.getByText(/The AI listens to your full response/i)).toBeTruthy();
-    expect(screen.getByText(/Write and run code in the browser/i)).toBeTruthy();
+    expect(screen.getByText(/Study coding patterns in context/i)).toBeTruthy();
+    expect(screen.getByText(/read-only JavaScript problem previews/i)).toBeTruthy();
     expect(screen.getByText(/Review exactly what you said/i)).toBeTruthy();
     expect(screen.getByText(/Questions shaped by your context/i)).toBeTruthy();
     expect(screen.getByText(/Three steps to interview mastery/i)).toBeTruthy();
@@ -127,5 +132,9 @@ describe("landing experience", () => {
     expect(screen.getByText(/Ready to simplify interview prep/i)).toBeTruthy();
     expect(screen.getByRole("link", { name: /get started free/i })).toBeTruthy();
     expect(screen.getByText(/Session review/i)).toBeTruthy();
+    expect(screen.getByText(/Mid-session · coding discussion/i)).toBeTruthy();
+    expect(screen.getByText("Coding discussion review")).toBeTruthy();
+    expect(screen.getByText("Reviewed")).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/write and run code|solve coding challenges directly|test cases passed|coding live|live coding|coding in progress|move into the implementation|coding\.\./i);
   });
 });

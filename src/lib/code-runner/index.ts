@@ -1,10 +1,8 @@
 import type { ExecutionResult, TestCaseResult, RunResult } from "./types";
 import { runJavaScript } from "./javascript-runner";
-import { runPython } from "./python-runner";
-import { runCpp } from "./cpp-runner";
 
 export type { ExecutionResult, TestCaseResult, RunResult };
-export type SupportedLanguage = "javascript" | "python" | "cpp";
+export type SupportedLanguage = "javascript";
 
 export const SUPPORTED_LANGUAGES: { value: SupportedLanguage; label: string }[] = [
   { value: "javascript", label: "JavaScript" },
@@ -23,14 +21,7 @@ const executeCode: ExecuteCode = async (
   language: SupportedLanguage,
   input: string,
 ): Promise<ExecutionResult> => {
-  switch (language) {
-    case "javascript":
-      return runJavaScript(code, input);
-    case "python":
-      return runPython(code, input);
-    case "cpp":
-      return runCpp(code, input);
-  }
+  return runJavaScript(code, input);
 };
 
 export function normalizeOutput(output: string): string {

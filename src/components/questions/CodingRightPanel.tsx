@@ -31,11 +31,7 @@ type CodingRightPanelProps = {
   question: CodingWorkspaceQuestion;
 };
 
-const MONACO_LANGUAGE_MAP: Record<SupportedLanguage, string> = {
-  javascript: "javascript",
-  python: "python",
-  cpp: "cpp",
-};
+const MONACO_LANGUAGE_MAP: Record<SupportedLanguage, string> = { javascript: "javascript" };
 
 export function CodingRightPanel({ question }: CodingRightPanelProps) {
   const availableLanguages = SUPPORTED_LANGUAGES.filter(

@@ -180,6 +180,18 @@ describe("useInterviewPageController", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("sets the coding interview type from pending metadata before the challenge streams", async () => {
+    setupHookMocks();
+    sessionStorage.setItem("pending_interview_interview-coding", JSON.stringify({
+      type: "coding-algorithms",
+    }));
+
+    const { result } = renderHook(() => useInterviewPageController({ interviewId: "interview-coding" }));
+
+    await waitFor(() => expect(result.current.interviewType).toBe("coding-algorithms"));
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("persists pending interview config before entering the interview", async () => {
     const { startScreenRecording } = setupHookMocks();
     sessionStorage.setItem("pending_interview_interview-1", JSON.stringify({

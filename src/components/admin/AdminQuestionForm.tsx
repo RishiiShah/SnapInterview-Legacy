@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import {
   INTERVIEW_DIFFICULTY_VALUES,
-  INTERVIEW_TYPE_VALUES,
+  QUESTION_CATEGORY_VALUES,
 } from "@/lib/interview/domain";
 
 export type AdminQuestionFormValues = {
@@ -142,7 +142,7 @@ export function AdminQuestionForm({
               defaultValue={values.category}
               className={adminFieldClass}
             >
-              {INTERVIEW_TYPE_VALUES.map((value) => (
+              {QUESTION_CATEGORY_VALUES.map((value) => (
                 <option key={value} value={value}>
                   {value}
                 </option>

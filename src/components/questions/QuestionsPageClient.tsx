@@ -10,12 +10,10 @@ import QuestionsTable from "@/components/questions/QuestionsTable";
 
 type SortKey = "category" | "difficulty" | "time";
 type SortDir = "asc" | "desc";
-type QuestionsVariant = "interview" | "coding";
 
 type QuestionsPageClientProps = {
   initialSolvedIds: number[];
   questions: Question[];
-  variant?: QuestionsVariant;
 };
 
 const DIFFICULTY_ORDER: Record<Difficulty, number> = { easy: 0, medium: 1, hard: 2 };
@@ -24,7 +22,6 @@ const CATEGORY_ORDER: Record<QuestionCategory, number> = {
   technical: 1,
   "system-design": 2,
   leadership: 3,
-  coding: 4,
 };
 
 function getMinutes(t: string): number {
@@ -43,17 +40,9 @@ function compareFn(a: Question, b: Question, key: SortKey, dir: SortDir): number
 export default function QuestionsPageClient({
   initialSolvedIds,
   questions,
-  variant = "interview",
 }: QuestionsPageClientProps) {
-  const isCoding = variant === "coding";
-  const filterCategories = isCoding
-    ? CATEGORIES.filter((c) => c.value === "coding")
-    : CATEGORIES.filter((c) => c.value !== "coding");
-
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<QuestionCategory | "all">(
-    isCoding ? "coding" : "all",
-  );
+  const [selectedCategory, setSelectedCategory] = useState<QuestionCategory | "all">("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | "all">("all");
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -66,8 +55,7 @@ export default function QuestionsPageClient({
   );
 
   const activeFilterCount =
-    (selectedCategory !== "all" && !(isCoding && selectedCategory === "coding") ? 1 : 0) +
-    (selectedDifficulty !== "all" ? 1 : 0);
+    (selectedCategory !== "all" ? 1 : 0) + (selectedDifficulty !== "all" ? 1 : 0);
 
   const filtered = useMemo(() => {
     let result = questions.filter((q) => {
@@ -94,7 +82,7 @@ export default function QuestionsPageClient({
     }
   };
 
-  const stats = filterCategories.map((cat) => ({
+  const stats = CATEGORIES.map((cat) => ({
     ...cat,
     count: questions.filter((q) => q.category === cat.value).length,
   }));
@@ -112,12 +100,10 @@ export default function QuestionsPageClient({
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#93C5FD]">Practice library</p>
               <h1 className="mt-1.5 font-display text-2xl tracking-tight text-[#F2F4F8] sm:text-[1.85rem]">
-                {isCoding ? "Coding" : "Question Bank"}
+                Question Bank
               </h1>
               <p className="mt-1.5 max-w-xl text-sm text-[#A8B0C2]">
-                {isCoding
-                  ? "Work through focused problems and build a consistent solving rhythm."
-                  : "Build sharper interview stories across the areas that matter most."}
+                Build sharper interview stories across the areas that matter most.
               </p>
             </div>
             <div className="flex gap-5 sm:gap-7">
@@ -129,7 +115,7 @@ export default function QuestionsPageClient({
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6B7385]">Solved</p>
                 <p className="mt-1 text-xl font-semibold tabular-nums text-emerald-400">{solvedCount}</p>
               </div>
-              {!isCoding ? <div className="hidden border-l border-white/[0.08] pl-7 sm:block"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6B7385]">Focus areas</p><p className="mt-1 text-xl font-semibold tabular-nums text-[#F2F4F8]">{filterCategories.length}</p></div> : null}
+              <div className="hidden border-l border-white/[0.08] pl-7 sm:block"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6B7385]">Focus areas</p><p className="mt-1 text-xl font-semibold tabular-nums text-[#F2F4F8]">{CATEGORIES.length}</p></div>
             </div>
           </div>
         </section>
@@ -147,14 +133,12 @@ export default function QuestionsPageClient({
           selectedDifficulty={selectedDifficulty}
           setSelectedDifficulty={setSelectedDifficulty}
           stats={stats}
-          hideCategoryFilter={isCoding}
         />
       </FadeIn>
 
       <FadeIn delay={0.25} direction="up" className="relative z-10">
         <p className="text-xs text-[#A8B0C2]">
-          Showing {filtered.length} of {questions.length}{" "}
-          {isCoding ? "problem" : "question"}
+          Showing {filtered.length} of {questions.length} question
           {filtered.length !== 1 ? "s" : ""}
         </p>
       </FadeIn>
@@ -169,8 +153,6 @@ export default function QuestionsPageClient({
           sortKey={sortKey}
           sortDir={sortDir}
           toggleSort={toggleSort}
-          basePath={isCoding ? "/coding" : "/questions"}
-          hideCategoryColumn={isCoding}
         />
       </FadeIn>
     </div>

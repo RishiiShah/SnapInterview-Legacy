@@ -22,7 +22,6 @@ type QuestionsFilterBarProps = {
   selectedDifficulty: Difficulty | "all";
   setSelectedDifficulty: (value: Difficulty | "all") => void;
   stats: CategoryStat[];
-  hideCategoryFilter?: boolean;
 };
 
 const CHIP_IDLE =
@@ -40,7 +39,6 @@ export default function QuestionsFilterBar({
   selectedDifficulty,
   setSelectedDifficulty,
   stats,
-  hideCategoryFilter = false,
 }: QuestionsFilterBarProps) {
   const filterRef = useRef<HTMLDivElement>(null);
 
@@ -65,7 +63,7 @@ export default function QuestionsFilterBar({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={hideCategoryFilter ? "Search problems…" : "Search questions…"}
+            placeholder="Search questions…"
             className="w-full rounded-xl border border-transparent bg-white/[0.04] py-2.5 pl-10 pr-4 text-sm text-[#F2F4F8] placeholder-[#6B7385] outline-none transition-all hover:bg-white/[0.06] focus:border-[#3B82F6]/35 focus:bg-white/[0.06] focus:ring-2 focus:ring-[#3B82F6]/15"
           />
         </div>
@@ -99,45 +97,41 @@ export default function QuestionsFilterBar({
               className="absolute right-0 top-full z-20 mt-2 w-80 rounded-2xl border border-white/[0.1] bg-[#12141A] p-5 shadow-xl"
               style={{ animation: "fadeSlideIn 0.15s ease-out" }}
             >
-              {!hideCategoryFilter ? (
-                <>
-                  <div>
-                    <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-[#A8B0C2]">
-                      Category
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCategory("all")}
-                        className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-                          selectedCategory === "all" ? CHIP_ACTIVE : CHIP_IDLE
+              <div>
+                <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-[#A8B0C2]">
+                  Category
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory("all")}
+                    className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                      selectedCategory === "all" ? CHIP_ACTIVE : CHIP_IDLE
+                    }`}
+                  >
+                    All
+                  </button>
+                  {stats.map((s) => (
+                    <button
+                      key={s.value}
+                      type="button"
+                      onClick={() => setSelectedCategory(s.value)}
+                      className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                        selectedCategory === s.value ? CHIP_ACTIVE : CHIP_IDLE
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-1.5 w-1.5 rounded-full ${
+                          selectedCategory === s.value ? "bg-[#93C5FD]" : "bg-[#3B82F6]/60"
                         }`}
-                      >
-                        All
-                      </button>
-                      {stats.map((s) => (
-                        <button
-                          key={s.value}
-                          type="button"
-                          onClick={() => setSelectedCategory(s.value)}
-                          className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-                            selectedCategory === s.value ? CHIP_ACTIVE : CHIP_IDLE
-                          }`}
-                        >
-                          <span
-                            className={`inline-block h-1.5 w-1.5 rounded-full ${
-                              selectedCategory === s.value ? "bg-[#93C5FD]" : "bg-[#3B82F6]/60"
-                            }`}
-                          />
-                          {s.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                      />
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-                  <div className="my-4 border-t border-white/[0.06]" />
-                </>
-              ) : null}
+              <div className="my-4 border-t border-white/[0.06]" />
 
               <div>
                 <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-[#A8B0C2]">Difficulty</h3>
@@ -172,7 +166,7 @@ export default function QuestionsFilterBar({
                   <button
                     type="button"
                     onClick={() => {
-                      setSelectedCategory(hideCategoryFilter ? "coding" : "all");
+                      setSelectedCategory("all");
                       setSelectedDifficulty("all");
                     }}
                     className="w-full cursor-pointer rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-xs font-medium text-[#C5CBD8] transition-all hover:bg-white/[0.05] hover:text-[#E8ECF4]"

@@ -12,7 +12,7 @@ export default async function CodingDetailPage({
   const session = await getServerAuthSession();
   if (!session?.user) redirect("/login");
   const { slug } = await params;
-  const workspace = await getPublishedCodingWorkspace(slug, session.user.id);
+  const workspace = await getPublishedCodingWorkspace(slug);
 
   if (!workspace) {
     return (

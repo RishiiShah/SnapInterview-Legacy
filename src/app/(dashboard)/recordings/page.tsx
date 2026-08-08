@@ -1,9 +1,11 @@
-
 import { SlideIn } from "@/components/ui/motion";
 import RecordingsList from "@/components/recordings/RecordingsList";
 import { interviewIdSchema } from "@/lib/interview/domain";
 import { getServerAuthSession } from "@/lib/server-auth";
-import { getCompletedSessionCardForUser, listCompletedSessionsForUser } from "@/repositories/interview-repo";
+import {
+  getCompletedSessionCardForUser,
+  listCompletedSessionsForUser,
+} from "@/repositories/interview-repo";
 
 type RecordingsPageProps = {
   searchParams?: Promise<{ interviewId?: string }>;
@@ -14,19 +16,19 @@ export default async function RecordingsPage({ searchParams }: RecordingsPagePro
 
   if (!session?.user?.email) {
     return (
-      <>
-        <div className="space-y-8 pb-8">
-          <SlideIn>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Recordings</h1>
-              <p className="mt-1 text-sm text-zinc-500">Review and manage your saved interview sessions.</p>
-            </div>
-          </SlideIn>
-          <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 py-12 text-center text-sm text-zinc-500">
-            Please sign in to view recordings.
+      <div className="mx-auto max-w-7xl space-y-8 pb-16 pt-2 xl:max-w-[88rem]">
+        <SlideIn>
+          <div>
+            <h1 className="font-display text-[2rem] leading-[1.15] tracking-[-0.02em] text-[#F2F4F8] sm:text-[2.35rem]">
+              Recordings
+            </h1>
+            <p className="mt-3 text-[15px] leading-relaxed text-[#A8B0C2]">
+              Review and manage your saved interview sessions.
+            </p>
           </div>
-        </div>
-      </>
+        </SlideIn>
+        <p className="py-12 text-center text-sm text-[#A8B0C2]">Please sign in to view recordings.</p>
+      </div>
     );
   }
 
@@ -40,27 +42,30 @@ export default async function RecordingsPage({ searchParams }: RecordingsPagePro
       ? getCompletedSessionCardForUser({ userId, interviewId: deepLinkInterviewId })
       : Promise.resolve(null),
   ]);
-  const sessions = deepLinkedSession && !sessionList.sessions.some((item) => item.id === deepLinkedSession.id)
-    ? [deepLinkedSession, ...sessionList.sessions]
-    : sessionList.sessions;
+  const sessions =
+    deepLinkedSession && !sessionList.sessions.some((item) => item.id === deepLinkedSession.id)
+      ? [deepLinkedSession, ...sessionList.sessions]
+      : sessionList.sessions;
   const initialSessions = sessions.map((s) => ({ ...s, createdAt: s.createdAt.toISOString() }));
 
   return (
-    <>
-      <div className="space-y-8 pb-8">
-        <SlideIn>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Recordings</h1>
-            <p className="mt-1 text-sm text-zinc-500">Review and manage your saved interview sessions.</p>
-          </div>
-        </SlideIn>
+    <div className="mx-auto max-w-7xl space-y-8 pb-16 pt-2 xl:max-w-[88rem]">
+      <SlideIn>
+        <div>
+          <h1 className="font-display text-[2rem] leading-[1.15] tracking-[-0.02em] text-[#F2F4F8] sm:text-[2.35rem]">
+            Recordings
+          </h1>
+          <p className="mt-3 text-[15px] leading-relaxed text-[#A8B0C2]">
+            Review and manage your saved interview sessions.
+          </p>
+        </div>
+      </SlideIn>
 
-        <RecordingsList
-          initialSessions={initialSessions}
-          initialHasMore={sessionList.hasMore}
-          initialOpenInterviewId={deepLinkedSession?.id ?? null}
-        />
-      </div>
-    </>
+      <RecordingsList
+        initialSessions={initialSessions}
+        initialHasMore={sessionList.hasMore}
+        initialOpenInterviewId={deepLinkedSession?.id ?? null}
+      />
+    </div>
   );
 }

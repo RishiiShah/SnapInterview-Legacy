@@ -5,13 +5,21 @@ import { normalizeOnboardingResponse } from "@/lib/onboarding/preferences";
 import { withCsrfProtection } from "@/lib/route-security";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { logger } from "@/utils/logger";
+import { interviewTypeSchema } from "@/lib/interview/domain";
 
 const onboardingSchema = z.object({
   onboardingRole: z.string().trim().min(1, "Target role is required").max(200, "Target role is too long"),
   onboardingLevel: z.string().trim().min(1, "Experience level is required").max(64, "Experience level is too long"),
   onboardingCompany: z.string().trim().max(100).optional().default(""),
   onboardingGoal: z.string().trim().min(1, "Primary goal is required").max(200, "Primary goal is too long"),
-  preferredInterviewType: z.enum(["behavioral", "technical", "system-design", "leadership"]),
+  preferredInterviewType: z.string().transform((value, ctx) => {
+    const parsed = interviewTypeSchema.safeParse(value);
+    if (!parsed.success) {
+      ctx.addIssue({ code: "custom", message: "Invalid interview type" });
+      return z.NEVER;
+    }
+    return parsed.data;
+  }),
 });
 
 export async function GET() {

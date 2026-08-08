@@ -37,7 +37,7 @@ function useHoverAnimation(isHovered: boolean | undefined, start: () => void, st
 
 // Landing / Sparkles
 export const AnimatedSparklesIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-  ({ size = 24, color = "currentColor", strokeWidth = 2, className = "", isHovered, ...svgProps }, ref) => {
+  ({ size = 24, color = "currentColor", strokeWidth = 2.25, className = "", isHovered, ...svgProps }, ref) => {
     const [scope, animate] = useAnimate();
     const start = () => animate(".sparkle", { scale: [1, 1.2, 1], rotate: [0, 16, 0] }, { duration: 0.6, ease: "easeInOut" });
     const stop = () => animate(".sparkle", { scale: 1, rotate: 0 }, { duration: 0.2 });
@@ -49,7 +49,7 @@ export const AnimatedSparklesIcon = forwardRef<AnimatedIconHandle, AnimatedIconP
         {...svgProps}
         ref={scope} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
         fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
-        className={`${className} cursor-pointer`} onHoverStart={start} onHoverEnd={stop}
+        className={`icon-crisp ${className} cursor-pointer`.trim()} onHoverStart={start} onHoverEnd={stop}
       >
         <motion.path
           className="sparkle"
@@ -64,7 +64,7 @@ AnimatedSparklesIcon.displayName = "AnimatedSparklesIcon";
 
 // Landing / ChartBars
 export const AnimatedChartBarsIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-  ({ size = 24, color = "currentColor", strokeWidth = 2, className = "", isHovered, ...svgProps }, ref) => {
+  ({ size = 24, color = "currentColor", strokeWidth = 2.25, className = "", isHovered, ...svgProps }, ref) => {
     const [scope, animate] = useAnimate();
     const start = () => animate(".bar", { y: [0, -4, 0] }, { duration: 0.6, delay: stagger(0.08) });
     const stop = () => animate(".bar", { y: 0 }, { duration: 0.2 });
@@ -76,7 +76,7 @@ export const AnimatedChartBarsIcon = forwardRef<AnimatedIconHandle, AnimatedIcon
         {...svgProps}
         ref={scope} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
         fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
-        className={`${className} cursor-pointer`} onHoverStart={start} onHoverEnd={stop}
+        className={`icon-crisp ${className} cursor-pointer`.trim()} onHoverStart={start} onHoverEnd={stop}
       >
         <path d="M3 3v18h18" />
         <motion.path d="M8 17v-3" className="bar" />
@@ -90,7 +90,7 @@ AnimatedChartBarsIcon.displayName = "AnimatedChartBarsIcon";
 
 // Landing / Clock
 export const AnimatedClockIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-  ({ size = 24, color = "currentColor", strokeWidth = 2, className = "", isHovered, ...svgProps }, ref) => {
+  ({ size = 24, color = "currentColor", strokeWidth = 2.25, className = "", isHovered, ...svgProps }, ref) => {
     const [scope, animate] = useAnimate();
     const start = () => animate(".clock-hands", { rotate: 360 }, { duration: 1, ease: "easeInOut" });
     const stop = () => animate(".clock-hands", { rotate: 0 }, { duration: 0.3 });
@@ -102,7 +102,7 @@ export const AnimatedClockIcon = forwardRef<AnimatedIconHandle, AnimatedIconProp
         {...svgProps}
         ref={scope} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
         fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
-        className={`${className} cursor-pointer`} onHoverStart={start} onHoverEnd={stop}
+        className={`icon-crisp ${className} cursor-pointer`.trim()} onHoverStart={start} onHoverEnd={stop}
       >
         <circle cx="12" cy="12" r="10" />
         <motion.path d="M12 6v6l4 2" className="clock-hands" style={{ transformOrigin: "12px 12px" }} />
@@ -114,7 +114,7 @@ AnimatedClockIcon.displayName = "AnimatedClockIcon";
 
 // Landing / QuestionBank
 export const AnimatedQuestionBankIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-  ({ size = 24, color = "currentColor", strokeWidth = 2, className = "", isHovered, ...svgProps }, ref) => {
+  ({ size = 24, color = "currentColor", strokeWidth = 2.25, className = "", isHovered, ...svgProps }, ref) => {
     const [scope, animate] = useAnimate();
     const start = () => animate(".bookmark", { y: [0, -3, 0] }, { duration: 0.5, ease: "easeInOut" });
     const stop = () => animate(".bookmark", { y: 0 }, { duration: 0.2 });
@@ -126,7 +126,7 @@ export const AnimatedQuestionBankIcon = forwardRef<AnimatedIconHandle, AnimatedI
         {...svgProps}
         ref={scope} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
         fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
-        className={`${className} cursor-pointer`} onHoverStart={start} onHoverEnd={stop}
+        className={`icon-crisp ${className} cursor-pointer`.trim()} onHoverStart={start} onHoverEnd={stop}
       >
         <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
         <motion.path d="M10 2v8l3-3 3 3V2" className="bookmark" />
@@ -138,7 +138,7 @@ AnimatedQuestionBankIcon.displayName = "AnimatedQuestionBankIcon";
 
 // 1. Dashboard / LayoutDashboard
 export const AnimatedDashboardIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-  ({ size = 24, color = "currentColor", strokeWidth = 2, className = "", isHovered, ...svgProps }, ref) => {
+  ({ size = 24, color = "currentColor", strokeWidth = 2.25, className = "", isHovered, ...svgProps }, ref) => {
     const [scope, animate] = useAnimate();
 
     const start = () => {
@@ -161,7 +161,7 @@ export const AnimatedDashboardIcon = forwardRef<AnimatedIconHandle, AnimatedIcon
         {...svgProps}
         ref={scope} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
         fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
-        className={`${className} cursor-pointer`} onHoverStart={start} onHoverEnd={stop}
+        className={`icon-crisp ${className} cursor-pointer`.trim()} onHoverStart={start} onHoverEnd={stop}
       >
         <motion.rect className="rect-1" width="7" height="9" x="3" y="3" rx="1" />
         <motion.rect className="rect-2" width="7" height="5" x="14" y="3" rx="1" />
@@ -176,7 +176,7 @@ export const AnimatedHomeIcon = AnimatedDashboardIcon;
 
 // 2. Practice / MessageSquare (Mock Interview)
 export const AnimatedMessageSquareIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-  ({ size = 24, color = "currentColor", strokeWidth = 2, className = "", isHovered, ...svgProps }, ref) => {
+  ({ size = 24, color = "currentColor", strokeWidth = 2.25, className = "", isHovered, ...svgProps }, ref) => {
     const [scope, animate] = useAnimate();
 
     const start = () => {
@@ -202,7 +202,7 @@ export const AnimatedMessageSquareIcon = forwardRef<AnimatedIconHandle, Animated
         {...svgProps}
         ref={scope} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
         fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
-        className={`${className} cursor-pointer`} onHoverStart={start} onHoverEnd={stop}
+        className={`icon-crisp ${className} cursor-pointer`.trim()} onHoverStart={start} onHoverEnd={stop}
       >
         <motion.path
           className="bubble"
@@ -220,7 +220,7 @@ AnimatedMessageSquareIcon.displayName = "AnimatedMessageSquareIcon";
 
 // 3. Question Bank / Library
 export const AnimatedLibraryIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-  ({ size = 24, color = "currentColor", strokeWidth = 2, className = "", isHovered, ...svgProps }, ref) => {
+  ({ size = 24, color = "currentColor", strokeWidth = 2.25, className = "", isHovered, ...svgProps }, ref) => {
     const [scope, animate] = useAnimate();
 
     const start = () => {
@@ -242,7 +242,7 @@ export const AnimatedLibraryIcon = forwardRef<AnimatedIconHandle, AnimatedIconPr
         {...svgProps}
         ref={scope} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
         fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
-        className={`${className} cursor-pointer`} onHoverStart={start} onHoverEnd={stop}
+        className={`icon-crisp ${className} cursor-pointer`.trim()} onHoverStart={start} onHoverEnd={stop}
         style={{ overflow: "visible" }}
       >
         <motion.path className="book-1" d="m16 6 4 14" style={{ transformOrigin: "18px 20px" }} />
@@ -257,7 +257,7 @@ AnimatedLibraryIcon.displayName = "AnimatedLibraryIcon";
 
 // 4. Analytics / ChartLine
 export const AnimatedChartLineIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-  ({ size = 24, color = "currentColor", strokeWidth = 2, className = "", isHovered, ...svgProps }, ref) => {
+  ({ size = 24, color = "currentColor", strokeWidth = 2.25, className = "", isHovered, ...svgProps }, ref) => {
     const [scope, animate] = useAnimate();
     
     const start = () => {
@@ -279,7 +279,7 @@ export const AnimatedChartLineIcon = forwardRef<AnimatedIconHandle, AnimatedIcon
         {...svgProps}
         ref={scope} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
         fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
-        className={`${className} cursor-pointer`} onHoverStart={start} onHoverEnd={stop}
+        className={`icon-crisp ${className} cursor-pointer`.trim()} onHoverStart={start} onHoverEnd={stop}
       >
         <path stroke="none" d="M0 0h24v24H0z" fill="none" />
         <motion.path
@@ -301,7 +301,7 @@ export const AnimatedTrendingUpIcon = AnimatedChartLineIcon;
 
 // 5. Recordings / VideoCamera (Red dot pulse)
 export const AnimatedVideoCameraIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-  ({ size = 24, color = "currentColor", strokeWidth = 2, className = "", isHovered, ...svgProps }, ref) => {
+  ({ size = 24, color = "currentColor", strokeWidth = 2.25, className = "", isHovered, ...svgProps }, ref) => {
     const [scope, animate] = useAnimate();
     const start = () => {
       animate(".camera-body", { scale: [1, 0.95, 1.02, 1] }, { duration: 0.5 });
@@ -320,7 +320,7 @@ export const AnimatedVideoCameraIcon = forwardRef<AnimatedIconHandle, AnimatedIc
         {...svgProps}
         ref={scope} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
         fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
-        className={`${className} cursor-pointer`} onHoverStart={start} onHoverEnd={stop}
+        className={`icon-crisp ${className} cursor-pointer`.trim()} onHoverStart={start} onHoverEnd={stop}
       >
         <motion.g className="camera-body" style={{ transformOrigin: "12px 12px" }}>
           <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" />
@@ -335,7 +335,7 @@ AnimatedVideoCameraIcon.displayName = "AnimatedVideoCameraIcon";
 
 // 6. SettingsIcon
 export const AnimatedSettingsIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-  ({ size = 24, color = "currentColor", strokeWidth = 2, className = "", isHovered, ...svgProps }, ref) => {
+  ({ size = 24, color = "currentColor", strokeWidth = 2.25, className = "", isHovered, ...svgProps }, ref) => {
     const [scope, animate] = useAnimate();
     const start = () => animate(scope.current, { rotate: [0, 90] }, { duration: 0.6, type: "spring", bounce: 0.3 });
     const stop = () => animate(scope.current, { rotate: 0 }, { duration: 0.4, type: "spring", bounce: 0 });
@@ -348,7 +348,7 @@ export const AnimatedSettingsIcon = forwardRef<AnimatedIconHandle, AnimatedIconP
         {...svgProps}
         ref={scope} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
         fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
-        className={`${className} cursor-pointer`} onHoverStart={start} onHoverEnd={stop}
+        className={`icon-crisp ${className} cursor-pointer`.trim()} onHoverStart={start} onHoverEnd={stop}
       >
         <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
         <circle cx="12" cy="12" r="3" />
@@ -360,7 +360,7 @@ AnimatedSettingsIcon.displayName = "AnimatedSettingsIcon";
 
 // 7. LogoutIcon
 export const AnimatedLogoutIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-  ({ size = 24, color = "currentColor", strokeWidth = 2, className = "", isHovered, ...svgProps }, ref) => {
+  ({ size = 24, color = "currentColor", strokeWidth = 2.25, className = "", isHovered, ...svgProps }, ref) => {
     const [scope, animate] = useAnimate();
     const start = () => animate(".arrow", { x: [0, 4, 0] }, { duration: 0.6, ease: "easeInOut" });
     const stop = () => animate(".arrow", { x: 0 }, { duration: 0.2 });
@@ -373,7 +373,7 @@ export const AnimatedLogoutIcon = forwardRef<AnimatedIconHandle, AnimatedIconPro
         {...svgProps}
         ref={scope} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
         fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
-        className={`${className} cursor-pointer`} onHoverStart={start} onHoverEnd={stop}
+        className={`icon-crisp ${className} cursor-pointer`.trim()} onHoverStart={start} onHoverEnd={stop}
       >
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
         <motion.g className="arrow">
@@ -388,7 +388,7 @@ AnimatedLogoutIcon.displayName = "AnimatedLogoutIcon";
 
 // 8. BellIcon
 export const AnimatedBellIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-  ({ size = 24, color = "currentColor", strokeWidth = 2, className = "", isHovered, ...svgProps }, ref) => {
+  ({ size = 24, color = "currentColor", strokeWidth = 2.25, className = "", isHovered, ...svgProps }, ref) => {
     const [scope, animate] = useAnimate();
     const start = () => animate(".bell", { rotate: [0, 15, -15, 10, -10, 0] }, { duration: 0.6, ease: "easeInOut" });
     const stop = () => animate(".bell", { rotate: 0 }, { duration: 0.2 });
@@ -401,7 +401,7 @@ export const AnimatedBellIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps
         {...svgProps}
         ref={scope} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
         fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
-        className={`${className} cursor-pointer`} onHoverStart={start} onHoverEnd={stop}
+        className={`icon-crisp ${className} cursor-pointer`.trim()} onHoverStart={start} onHoverEnd={stop}
       >
         <motion.g className="bell" style={{ transformOrigin: "top center" }}>
           <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
@@ -415,7 +415,7 @@ AnimatedBellIcon.displayName = "AnimatedBellIcon";
 
 // 9. SearchIcon
 export const AnimatedSearchIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-  ({ size = 24, color = "currentColor", strokeWidth = 2, className = "", isHovered, ...svgProps }, ref) => {
+  ({ size = 24, color = "currentColor", strokeWidth = 2.25, className = "", isHovered, ...svgProps }, ref) => {
     const [scope, animate] = useAnimate();
     const start = () => animate(".search-glass", { rotate: [0, 15, -10, 0] }, { duration: 0.6, ease: "easeInOut" });
     const stop = () => animate(".search-glass", { rotate: 0 }, { duration: 0.2 });
@@ -428,7 +428,7 @@ export const AnimatedSearchIcon = forwardRef<AnimatedIconHandle, AnimatedIconPro
         {...svgProps}
         ref={scope} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
         fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
-        className={`${className} cursor-pointer`} onHoverStart={start} onHoverEnd={stop}
+        className={`icon-crisp ${className} cursor-pointer`.trim()} onHoverStart={start} onHoverEnd={stop}
       >
         <motion.g className="search-glass" style={{ transformOrigin: "11px 11px" }}>
           <circle cx="11" cy="11" r="8" />
@@ -442,7 +442,7 @@ AnimatedSearchIcon.displayName = "AnimatedSearchIcon";
 
 // 10. Sidebar Open Icon
 export const AnimatedSidebarOpenIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-  ({ size = 24, color = "currentColor", strokeWidth = 2, className = "", isHovered, ...svgProps }, ref) => {
+  ({ size = 24, color = "currentColor", strokeWidth = 2.25, className = "", isHovered, ...svgProps }, ref) => {
     const [scope, animate] = useAnimate();
 
     const start = () => {
@@ -463,7 +463,7 @@ export const AnimatedSidebarOpenIcon = forwardRef<AnimatedIconHandle, AnimatedIc
         {...svgProps}
         ref={scope} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
         fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
-        className={`${className} cursor-pointer`} onHoverStart={start} onHoverEnd={stop}
+        className={`icon-crisp ${className} cursor-pointer`.trim()} onHoverStart={start} onHoverEnd={stop}
       >
         <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
         <motion.path className="sidebar" d="M15 4v16" />
@@ -476,7 +476,7 @@ AnimatedSidebarOpenIcon.displayName = "AnimatedSidebarOpenIcon";
 
 // 11. Sidebar Collapse Icon
 export const AnimatedSidebarCollapseIcon = forwardRef<AnimatedIconHandle, AnimatedIconProps>(
-  ({ size = 24, color = "currentColor", strokeWidth = 2, className = "", isHovered, ...svgProps }, ref) => {
+  ({ size = 24, color = "currentColor", strokeWidth = 2.25, className = "", isHovered, ...svgProps }, ref) => {
     const [scope, animate] = useAnimate();
 
     const start = () => {
@@ -497,7 +497,7 @@ export const AnimatedSidebarCollapseIcon = forwardRef<AnimatedIconHandle, Animat
         {...svgProps}
         ref={scope} xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
         fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
-        className={`${className} cursor-pointer`} onHoverStart={start} onHoverEnd={stop}
+        className={`icon-crisp ${className} cursor-pointer`.trim()} onHoverStart={start} onHoverEnd={stop}
       >
         <path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
         <motion.path className="sidebar" d="M9 4v16" />

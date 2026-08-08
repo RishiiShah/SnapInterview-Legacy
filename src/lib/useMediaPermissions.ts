@@ -39,7 +39,7 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
   const [audioOutputs, setAudioOutputs] = useState<MediaDeviceInfo[]>([]);
   const [videoInputs, setVideoInputs] = useState<MediaDeviceInfo[]>([]);
   const [isMicEnabled, setIsMicEnabled] = useState(true);
-  const [isCameraEnabled, setIsCameraEnabled] = useState(true);
+  const [isCameraEnabled, setIsCameraEnabled] = useState(false);
   const [selectedAudioInputId, setSelectedAudioInputId] = useState("");
   const [selectedAudioOutputId, setSelectedAudioOutputId] = useState("");
   const [selectedVideoInputId, setSelectedVideoInputId] = useState("");
@@ -163,21 +163,21 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
     // Must run in secure context (HTTPS or localhost) for getUserMedia to show prompts
     if (typeof window !== "undefined" && !window.isSecureContext) {
       setError(
-        "Camera and microphone require a secure connection. Please open this site over HTTPS or from localhost."
+        "Microphone access requires a secure connection. Please open this site over HTTPS or from localhost."
       );
       setHasPermission(false);
       return;
     }
 
     if (!navigator.mediaDevices?.getUserMedia) {
-      setError("Your browser doesn't support camera or microphone access.");
+      setError("Your browser doesn't support microphone access.");
       setHasPermission(false);
       return;
     }
 
-    // Critical for Chrome: start getUserMedia in the same synchronous turn as the user click.
-    // If we setState or await first, the "user gesture" expires and Chrome won't show the prompt.
-    const mediaPromise = navigator.mediaDevices.getUserMedia(buildConstraints(true, true));
+    // Mic is required; camera stays optional and is enabled later via toggle.
+    // Start getUserMedia in the same synchronous turn as the user click so Chrome shows the prompt.
+    const mediaPromise = navigator.mediaDevices.getUserMedia(buildConstraints(false, true));
 
     setIsLoading(true);
     setError(null);
@@ -187,7 +187,7 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
       setHasPermission(true);
       replaceStream(mediaStream);
       setIsMicEnabled(true);
-      setIsCameraEnabled(true);
+      setIsCameraEnabled(false);
       await refreshDevices();
       await applyAudioOutputToVideoElement(selectedAudioOutputId);
     } catch (err: unknown) {
@@ -195,10 +195,10 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
       const isNotAllowed =
         err instanceof DOMException && (err.name === "NotAllowedError" || err.name === "PermissionDeniedError");
       const errorMessage = isNotAllowed
-        ? "Browser didn't show the permission prompt. If you previously blocked this site, click the lock or info icon in the address bar → set Camera and Microphone to Allow → refresh and try again. Or try in a private/incognito window."
+        ? "Browser didn't show the permission prompt. If you previously blocked this site, click the lock or info icon in the address bar → set Microphone to Allow → refresh and try again. Or try in a private/incognito window."
         : err instanceof DOMException
           ? err.message
-          : "Failed to get camera or microphone access.";
+          : "Failed to get microphone access.";
       setError(errorMessage);
       console.error("Media permission error:", err);
     } finally {

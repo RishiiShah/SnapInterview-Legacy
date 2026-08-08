@@ -1,141 +1,122 @@
 "use client";
 
 import Link from "next/link";
-import { AppLogo } from "@/components/ui/AppLogo";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signIn, useSession } from "@/lib/auth-client";
-import { AuthSidePanel } from "@/components/auth/AuthSidePanel";
+import {
+  AuthDivider,
+  AuthError,
+  AuthHeader,
+  AuthShell,
+  AuthTextField,
+} from "@/components/auth/AuthShell";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { SubmitButton } from "@/components/auth/SubmitButton";
 
 export default function LoginPage() {
-    const router = useRouter();
-    const { data: session, isPending } = useSession();
+  const router = useRouter();
+  const { data: session, isPending } = useSession();
 
-    // Redirect to dashboard if user is already logged in
-    useEffect(() => {
-        if (!isPending && session) {
-            router.push("/dashboard");
-        }
-    }, [session, isPending, router]);
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
-    const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (!isPending && session) {
+      router.push("/dashboard");
+    }
+  }, [session, isPending, router]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-        if (!email.trim() || !password.trim()) {
-            setError("Please fill in all fields.");
-            return;
-        }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setEmailError("");
 
-        setLoading(true);
+    if (!email.trim() || !password.trim()) {
+      setError("Please fill in all fields.");
+      return;
+    }
 
-        const { error } = await signIn.email({
-            email,
-            password,
-        });
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setEmailError("Please enter a valid email address (e.g. name@example.com).");
+      return;
+    }
 
-        setLoading(false);
+    setLoading(true);
 
-        if (error) {
-            setError("Invalid email or password.");
-        } else {
-            router.push("/dashboard");
-        }
-    };
+    const { error } = await signIn.email({ email: email.trim(), password });
 
-    return (
-        <div className="flex min-h-screen bg-white font-[family-name:var(--font-geist-sans)]">
-            <AuthSidePanel
-                title="SnapInterview"
-                subtitle="Master your interview responses with our AI-powered practice tool. Straightforward feedback to help you build confidence."
-            />
+    if (error) {
+      setLoading(false);
+      setError("Invalid email or password.");
+    } else {
+      setLoading(false);
+      setSuccess(true);
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 500);
+    }
+  };
 
-            {/* ─── Right: Login Form ─── */}
-            <div className="flex w-full flex-col items-center justify-center bg-white px-6 lg:w-1/2">
-                {/* Mobile logo */}
-                <div className="mb-10 lg:hidden">
-                    <Link href="/" className="flex items-center gap-1.5">
-                        <AppLogo size={32} />
-                        <span className="text-lg font-semibold tracking-tight text-zinc-900">
-                            SnapInterview
-                        </span>
-                    </Link>
-                </div>
+  return (
+    <AuthShell
+      footer={
+        <>
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/signup"
+            className="font-medium text-[#CBD5E1] transition-colors hover:text-white"
+          >
+            Sign up <span className="text-[#60A5FA]">→</span>
+          </Link>
+        </>
+      }
+    >
+      <AuthHeader
+        title="Log in"
+        description="Pick up where you left off with practice sessions, recordings, and scores."
+        align="center"
+      />
 
-                <div className="w-full max-w-sm">
-                    <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-                        Welcome back
-                    </h1>
-                    <p className="mt-1 text-sm text-zinc-500">
-                        Log in to continue practicing
-                    </p>
+      <form onSubmit={handleSubmit} noValidate autoComplete="off" className="space-y-4">
+        <AuthTextField
+          id="email"
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(v) => {
+            setEmail(v);
+            if (emailError) setEmailError("");
+          }}
+          placeholder="you@example.com"
+          autoComplete="off"
+          error={emailError}
+        />
 
-                    <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-                        {/* Email */}
-                        <div>
-                            <label
-                                htmlFor="email"
-                                className="mb-1.5 block text-sm font-medium text-zinc-700"
-                            >
-                                Email
-                            </label>
-                            <input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="you@example.com"
-                                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition-all focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100"
-                            />
-                        </div>
+        <PasswordInput
+          id="password"
+          label="Password"
+          value={password}
+          onChange={setPassword}
+          showForgotPasswordLink
+          autoComplete="off"
+        />
 
-                        {/* Password */}
-                        <PasswordInput
-                            id="password"
-                            label="Password"
-                            value={password}
-                            onChange={setPassword}
-                            showForgotPasswordLink={true}
-                        />
+        {error ? <AuthError message={error} /> : null}
 
-                        {/* Error */}
-                        {error && (
-                            <p className="text-sm text-red-600">{error}</p>
-                        )}
-
-                        {/* Submit */}
-                        <SubmitButton loading={loading} text="Log in" />
-                    </form>
-
-                    {/* Divider */}
-                    <div className="my-6 flex items-center gap-3">
-                        <span className="h-px flex-1 bg-zinc-200" />
-                        <span className="text-xs text-zinc-400">or</span>
-                        <span className="h-px flex-1 bg-zinc-200" />
-                    </div>
-
-                    {/* Google login */}
-                    <GoogleSignInButton />
-
-                    {/* Sign up link */}
-                    <p className="mt-8 text-center text-sm text-zinc-500">
-                        Don&apos;t have an account?{" "}
-                        <Link
-                            href="/signup"
-                            className="font-semibold text-zinc-900 hover:underline"
-                        >
-                            Sign up
-                        </Link>
-                    </p>
-                </div>
-            </div>
+        <div className="pt-1">
+          <SubmitButton loading={loading} success={success} text="Log in" sentText="Logging in..." />
         </div>
-    );
+      </form>
+
+      <AuthDivider />
+      <GoogleSignInButton />
+    </AuthShell>
+  );
 }

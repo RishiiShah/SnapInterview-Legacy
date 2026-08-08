@@ -21,6 +21,7 @@ export type SearchQuestion = {
   text: string;
   category: string;
   difficulty: string;
+  type: string;
 };
 
 export type SearchResults = {
@@ -74,7 +75,7 @@ export async function GET(req: Request) {
             { tags: { has: q.toLowerCase() } },
           ],
         },
-        select: { id: true, slug: true, text: true, category: true, difficulty: true },
+        select: { id: true, slug: true, text: true, category: true, difficulty: true, type: true },
         take: 5,
       }),
     ]);
@@ -84,7 +85,10 @@ export async function GET(req: Request) {
         ...s,
         createdAt: s.createdAt.toISOString(),
       })),
-      questions,
+      questions: questions.map((q) => ({
+        ...q,
+        type: q.type ?? "text",
+      })),
     };
 
     return apiJson(result);

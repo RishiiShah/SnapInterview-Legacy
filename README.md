@@ -1,62 +1,49 @@
 # SnapInterview
 
-AI-powered technical interview practice platform. Users conduct voice-based mock interviews with an AI interviewer, get recorded, receive detailed evaluations, and track improvement over time.
+SnapInterview is a browser-based AI interview-practice application. Candidates can run tailored mock interviews, speak with an AI interviewer, record their session, review transcripts and evaluations, and work through focused behavioral or coding practice.
 
-**Live at** [snapinterview.app](https://snapinterview.app)
+The production site is [snapinterview.app](https://snapinterview.app).
 
----
+## Stack
 
-## Tech Stack
+- Next.js 16, React 19, TypeScript 6, and Tailwind CSS 4
+- Better Auth with email/password and optional Google sign-in
+- PostgreSQL through Prisma 7 and `@prisma/adapter-pg`
+- Groq for streamed interview chat and evaluations
+- Browser Speech Recognition plus Kokoro Web Worker TTS, with an optional ElevenLabs fallback
+- Direct-to-S3 video uploads, SMTP email, Vercel Analytics, Vitest, and Playwright
 
-- **Framework**: Next.js 16 (App Router), React 19, TypeScript
-- **Styling**: Tailwind CSS 4, Framer Motion
-- **Auth**: Better Auth (session-based, HTTP-only cookies) + Google OAuth
-- **Database**: PostgreSQL via Prisma ORM
-- **AI**: Groq Cloud (Llama 3.3 70B) for interview chat and evaluation
-- **Voice**: Web Speech API (recognition), ElevenLabs (TTS)
-- **Storage**: AWS S3 for video recordings (presigned uploads)
-- **Email**: Nodemailer via SMTP
-- **Testing**: Vitest (unit), Playwright (E2E)
-- **Hosting**: Vercel
+## Requirements
 
-## Prerequisites
+- Node.js 24, matching CI
+- npm and a PostgreSQL database
+- Optional provider credentials for AI, Google sign-in, S3, SMTP, and ElevenLabs capabilities
 
-- Node.js 22+ through 24.12.0 (newer Node 24 releases currently break Playwright in this project)
-- npm 10+
-- PostgreSQL database
+## Local setup
 
-## Local Setup
-
-1. **Install dependencies**
+1. Install dependencies.
 
    ```bash
    npm ci
    ```
 
-2. **Configure environment**
+2. Create a local environment file.
 
    ```bash
    cp .env.example .env
    ```
 
-   Fill in your values. Minimum to start the app:
+   At minimum, set `DATABASE_URL`, `AUTH_SECRET`, and `BETTER_AUTH_URL`.
+   `AUTH_SECRET` and `CRON_SECRET` must be strong, non-placeholder values in production.
 
-   | Variable          | Description                      |
-   | ----------------- | -------------------------------- |
-   | `DATABASE_URL`    | PostgreSQL connection string      |
-   | `AUTH_SECRET`     | Random secret for session signing |
-   | `BETTER_AUTH_URL` | `http://localhost:3000` for local |
-
-   See `.env.example` for the full list (Groq, ElevenLabs, S3, SMTP, etc.).
-
-3. **Set up the database**
+3. Generate the Prisma client and apply migrations.
 
    ```bash
    npx prisma generate
    npx prisma migrate deploy
    ```
 
-4. **Start the dev server**
+4. Start the app.
 
    ```bash
    npm run dev
@@ -64,116 +51,77 @@ AI-powered technical interview practice platform. Users conduct voice-based mock
 
    Open [http://localhost:3000](http://localhost:3000).
 
-## Scripts
+## Commands
 
-| Command              | Description                     |
-| -------------------- | ------------------------------- |
-| `npm run dev`        | Start dev server                 |
-| `npm run build`      | Production build                 |
-| `npm run start`      | Start production server          |
-| `npm run lint`       | ESLint                           |
-| `npm run typecheck`  | TypeScript check (no emit)       |
-| `npm test`           | Run unit tests (Vitest)          |
-| `npm run test:watch` | Tests in watch mode              |
-| `npm run test:e2e`   | Playwright E2E tests             |
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the local Next.js server. |
+| `npm run build` | Build the production application. |
+| `npm run start` | Run the production build. |
+| `npm run lint` | Run ESLint. |
+| `npm run typecheck` | Run TypeScript without emitting files. |
+| `npm test` | Run the Vitest suite once. |
+| `npm run test:watch` | Run Vitest in watch mode. |
+| `npm run test:e2e` | Run the Playwright suite. |
+| `npm run backfill:video-keys` | Backfill video keys for maintenance. |
+| `npm run cleanup:evaluations:preview` | Preview invalid-evaluation cleanup. |
+| `npm run cleanup:evaluations` | Remove invalid evaluations. |
+
+## What the application includes
+
+- Eight hiring-loop interview types, adjustable difficulty, persona, question count, resume and job-description context, and streamed AI follow-ups.
+- Browser voice interaction: Web Speech API recognition and local Kokoro synthesis when enabled; server-side ElevenLabs synthesis is the fallback.
+- Screen/video recording with direct multipart S3 uploads, session replay, transcripts, evaluations, sharing, and soft deletion.
+- Behavioral, technical, system-design, leadership, and coding practice; coding pages use a browser editor and test results.
+- Dashboard analytics, recordings, account settings, onboarding, notifications, search, and protected administrative workflows.
 
 ## Architecture
 
-Layered backend — unusual for Next.js, intentional for separation of concerns:
+The server code follows a layered preference:
 
-```
-API Routes → Services → Repositories → Prisma → PostgreSQL
-```
-
-- **API Routes** (`src/app/api/`) — thin controllers, input validation, auth checks
-- **Services** (`src/services/`) — business logic (interview, evaluation)
-- **Repositories** (`src/repositories/`) — data access layer (interview, user, question, notification)
-- **Proxy** (`src/proxy.ts`) — Next.js 16 proxy for route gating, CSRF, CSP headers
-
-Frontend state is composed from specialized hooks (no Redux/Zustand). The interview experience chains: `useInterviewPageController` → `useChatSession` + `useSpeechRecognition` + `useStreamingTTS` + `useVideoRecording`.
-
-Full architecture doc: `docs/architecture.md`
-
-### Project Structure
-
-```
-src/
-├── app/                    # Pages + API routes
-│   ├── (dashboard)/        # analytics, dashboard, practice, questions, recordings, settings
-│   ├── api/                # 19 API route directories
-│   └── interview/, login/, signup/, forgot-password/, onboarding/, share/
-├── components/             # UI organized by feature area
-├── data/                   # Constants, types, prompts/ (core + 28 role-specific JSONs)
-├── hooks/                  # 10 React hooks
-├── lib/                    # Core: ai/, auth, csrf, rate-limit, email, prisma, interview/, s3/
-├── repositories/           # Data access layer
-├── services/               # Business logic
-├── utils/                  # Helpers, logger, retry
-└── proxy.ts                # Route gating middleware
+```text
+Next.js route handler → service → repository → Prisma → PostgreSQL
 ```
 
-## Environment Variables
+Route handlers own HTTP concerns; services own interview and evaluation workflows; repositories isolate persistence. Client state for the interview room is composed from specialized React hooks rather than a global client-state store.
 
-See `.env.example` for the canonical list. Key groups:
+Detailed local references, when present, are available in `docs/architecture.md`, `docs/PRODUCT.md`, and `docs/DESIGN.md`. `docs/` is intentionally ignored in this repository, so those files are maintained with the workspace rather than published as tracked repository content.
 
-| Group    | Variables                                                            |
-| -------- | -------------------------------------------------------------------- |
-| Database | `DATABASE_URL`, `DIRECT_URL`                                         |
-| Auth     | `AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID/SECRET`           |
-| AI       | `GROQ_API_KEY`, `ELEVENLABS_API_KEY`                                 |
-| Storage  | `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME` |
-| Email    | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`     |
-| CSRF     | `CSRF_TRUSTED_ORIGINS`, `CSRF_TRUSTED_ORIGIN_SUFFIXES`               |
-| URLs     | `NEXT_PUBLIC_APP_URL`, `APP_URL`                                     |
-| Cron     | `CRON_SECRET`                                                        |
+## Environment
 
-Admin access uses `User.isAdmin` in the database. Sign in at `/login` (email or Google), then open `/admin`. Set `isAdmin = true` on the user row in your database (Prisma Studio, SQL, etc.).
+`.env.example` is the canonical environment-variable list. The major groups are:
 
-### CSRF & Origins
+| Area | Variables |
+| --- | --- |
+| Database | `DATABASE_URL`, `DIRECT_URL` |
+| Auth and URLs | `AUTH_SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, `APP_URL`, Google client credentials |
+| AI and voice | `GROQ_API_KEY`, `NEXT_PUBLIC_LOCAL_TTS_ENABLED`, ElevenLabs credentials and optional persona voice IDs |
+| Storage | `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME` |
+| Email | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` |
+| Security and jobs | `CSRF_TRUSTED_ORIGINS`, `CSRF_TRUSTED_ORIGIN_SUFFIXES`, `CRON_SECRET`, `ENABLE_TEST_AUTH` |
 
-All state-changing routes are protected by origin-based CSRF (`csrfRejectIfInvalid`). Valid origins come from `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, `APP_URL`, and the `CSRF_TRUSTED_*` variables. `localhost:3000` is auto-allowed in dev.
+Only enable `ENABLE_TEST_AUTH=1` for test environments. Do not set it in production.
 
 ## Security
 
-- CSP with nonce-based `script-src`, HSTS, X-Frame-Options DENY
-- Postgres-backed rate limiting (fails closed in prod, in-memory fallback in dev)
-- Failed login lockout, security event audit log
-- OTP registration with attempt counting + disposable email blocking
-- Server/client import boundary enforcement via ESLint
-- Cron endpoints require `Authorization: Bearer <CRON_SECRET>`
+- Protected routes are gated by the Next.js proxy and server-side session checks.
+- State-changing routes use origin-based CSRF protection.
+- The proxy applies a nonce-based CSP, HSTS, frame protection, referrer policy, and a camera/microphone permissions policy.
+- Login attempts are rate-limited, failed attempts can lock an account, and security events are recorded.
+- Cron routes expect `Authorization: Bearer <CRON_SECRET>`.
 
-## CI
+## Testing and CI
 
-GitHub Actions (`.github/workflows/ci.yml`) on push/PR to `main`:
+Tests live next to their source when practical; Playwright covers browser flows. The GitHub Actions workflow for `main` runs dependency installation, `npm audit`, Prisma generation, linting, type-checking, Vitest, a production build, Chromium installation, and Playwright smoke tests on Node 24.
 
-checkout → Node 24.12.0 → `npm ci` → `npm audit` → `prisma generate` → lint → typecheck → test → build → Playwright E2E
+## Deployment
 
-## Deployment (Vercel)
+Deploy the Next.js app to Vercel and configure the variables from `.env.example`. Production origin variables must use the deployed HTTPS origin. Keep the S3 bucket private; browser uploads use short-lived signed requests.
 
-1. Connect repo to Vercel — auto-detects Next.js 16.
-2. Set all env vars from `.env.example`. **Critical**: `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, and `APP_URL` must point to the production origin (e.g. `https://snapinterview.app`), not localhost.
-3. S3 bucket should be private (no public ACLs) — all access via signed URLs.
-4. Do **not** set `ENABLE_TEST_AUTH` in production.
+`vercel.json` schedules these protected cron endpoints:
 
-### Cron Jobs (configured in `vercel.json`)
-
-| Job                  | Schedule              | Purpose                                  |
-| -------------------- | --------------------- | ---------------------------------------- |
-| `/api/cron/cleanup`  | Daily 02:00 Server Time       | Hard-delete sessions soft-deleted 30+ days ago |
-| `/api/cron/practice-reminder` | Daily 09:00 Server Time | Email inactive users                     |
-| `/api/cron/weekly-report` | Mondays 08:00 Server Time | Weekly progress summary emails            |
-
-## Secrets Management
-
-- Never commit `.env`. `.gitignore` blocks `.env*` except `.env.example`.
-- CI uses placeholder secrets. Production secrets go in Vercel environment settings.
-- Rotate immediately if a secret is accidentally committed.
-
-## AI Tooling
-
-If you use AI coding assistants, keep the relevant context file updated:
-
-- **Claude Code** → `CLAUDE.md`
-- **Cursor / Copilot / Codex** → `AGENTS.md`
-
-Both reference `docs/architecture.md` as the canonical source of truth — don't duplicate it.
+| Endpoint | Schedule (UTC) | Purpose |
+| --- | --- | --- |
+| `/api/cron/cleanup` | Daily at 02:00 | Permanently remove expired soft-deleted sessions. |
+| `/api/cron/practice-reminder` | Daily at 09:00 | Send practice reminders. |
+| `/api/cron/weekly-report` | Monday at 08:00 | Send weekly progress reports. |

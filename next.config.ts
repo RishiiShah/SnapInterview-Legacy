@@ -32,6 +32,8 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    // Hero uses quality={100}; default allowlist is [75] only.
+    qualities: [75, 100],
     remotePatterns: [
       {
         protocol: "https",

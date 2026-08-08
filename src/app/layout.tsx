@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import Providers from "./providers";
 import "./globals.css";
 
@@ -12,6 +12,12 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
     variable: "--font-geist-mono",
     subsets: ["latin"],
+});
+
+const newsreader = Newsreader({
+    variable: "--font-newsreader",
+    subsets: ["latin"],
+    style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -57,8 +63,8 @@ export default async function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en" suppressHydrationWarning className="overflow-x-hidden bg-white dark:bg-zinc-950">
-            <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen w-full flex flex-col overflow-x-hidden`}>
+        <html lang="en" suppressHydrationWarning className="overflow-x-hidden bg-[#0B0C10]">
+            <body className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} antialiased min-h-screen w-full flex flex-col overflow-x-hidden bg-[#0B0C10] text-[#F2F4F8]`}>
                 <Providers>
                     <main className="flex-1 w-full flex flex-col">
                         {children}

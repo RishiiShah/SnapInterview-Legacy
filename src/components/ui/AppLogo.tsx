@@ -1,13 +1,7 @@
 import Image from "next/image";
 import { cn } from "@/utils/helpers";
 
-const SIZE_CLASS = {
-  28: "size-7",
-  32: "size-8",
-  36: "size-9",
-} as const;
-
-type AppLogoSize = keyof typeof SIZE_CLASS;
+type AppLogoSize = 28 | 32 | 36;
 
 type AppLogoProps = {
   size?: AppLogoSize;
@@ -22,7 +16,10 @@ type AppLogoProps = {
   alt?: string;
 };
 
-/** App mark with width/height aligned to CSS so Next/Image does not warn in dev. */
+/**
+ * App mark. logo.png is not square (479×520); keep intrinsic aspect via
+ * height: auto so Next/Image does not warn when CSS sizes one axis.
+ */
 export function AppLogo({
   size = 32,
   className,
@@ -35,10 +32,11 @@ export function AppLogo({
       src="/logo.png"
       alt={decorative ? "" : (alt ?? "SnapInterview")}
       aria-hidden={decorative ? true : undefined}
-      width={size}
-      height={size}
+      width={479}
+      height={520}
       priority={priority}
-      className={cn(SIZE_CLASS[size], "shrink-0 rounded-lg", className)}
+      style={{ width: size, height: "auto" }}
+      className={cn("shrink-0 rounded-lg", className)}
     />
   );
 }

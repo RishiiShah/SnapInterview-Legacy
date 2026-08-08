@@ -34,9 +34,7 @@ function getXTickIndices(count: number, maxLabels = MAX_X_LABELS): number[] {
 
 export function AdminUserBaseLineChart({ data }: AdminUserBaseLineChartProps) {
   if (data.length === 0) {
-    return (
-      <p className="mt-4 text-sm text-zinc-500">No user data for this period.</p>
-    );
+    return <p className="mt-4 text-sm text-[#A8B0C2]">No user data for this period.</p>;
   }
 
   const width = 480;
@@ -57,8 +55,7 @@ export function AdminUserBaseLineChart({ data }: AdminUserBaseLineChartProps) {
     const x =
       padding.left +
       (data.length <= 1 ? innerW / 2 : (index / (data.length - 1)) * innerW);
-    const y =
-      padding.top + innerH - ((point.totalUsers - yMin) / yRange) * innerH;
+    const y = padding.top + innerH - ((point.totalUsers - yMin) / yRange) * innerH;
     return { ...point, x, y };
   });
 
@@ -89,14 +86,15 @@ export function AdminUserBaseLineChart({ data }: AdminUserBaseLineChartProps) {
                 y1={y}
                 x2={padding.left + innerW}
                 y2={y}
-                className="stroke-zinc-100"
+                stroke="rgba(255,255,255,0.06)"
                 strokeWidth={1}
               />
               <text
                 x={padding.left - 8}
                 y={y + 4}
                 textAnchor="end"
-                className="fill-zinc-400 text-[10px]"
+                fill="#A8B0C2"
+                fontSize={10}
               >
                 {formatAxisValue(Math.round(tick))}
               </text>
@@ -104,11 +102,11 @@ export function AdminUserBaseLineChart({ data }: AdminUserBaseLineChartProps) {
           );
         })}
 
-        <path d={areaPath} className="fill-blue-500/10" />
+        <path d={areaPath} fill="rgba(59,130,246,0.12)" />
         <path
           d={linePath}
           fill="none"
-          className="stroke-blue-500"
+          stroke="#3B82F6"
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -120,7 +118,8 @@ export function AdminUserBaseLineChart({ data }: AdminUserBaseLineChartProps) {
             cx={point.x}
             cy={point.y}
             r={3.5}
-            className="fill-blue-500 stroke-white"
+            fill="#3B82F6"
+            stroke="#0C0E14"
             strokeWidth={2}
           >
             <title>
@@ -143,22 +142,17 @@ export function AdminUserBaseLineChart({ data }: AdminUserBaseLineChartProps) {
                 y1={padding.top + innerH}
                 x2={point.x}
                 y2={padding.top + innerH + 4}
-                className="stroke-zinc-300"
+                stroke="rgba(255,255,255,0.16)"
                 strokeWidth={1}
               />
-              <text
-                x={point.x}
-                y={height - 6}
-                textAnchor={textAnchor}
-                className="fill-zinc-500 text-[10px]"
-              >
+              <text x={point.x} y={height - 6} textAnchor={textAnchor} fill="#A8B0C2" fontSize={10}>
                 {point.axisLabel}
               </text>
             </g>
           );
         })}
       </svg>
-      <p className="mt-2 text-xs text-zinc-500">
+      <p className="mt-2 text-xs text-[#A8B0C2]">
         Cumulative registered users at end of each day.
       </p>
     </div>

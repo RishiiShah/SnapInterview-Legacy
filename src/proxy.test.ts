@@ -35,6 +35,8 @@ describe("proxy auth cookie handling", () => {
     "/practice",
     "/questions",
     "/questions/two-sum",
+    "/coding",
+    "/coding/two-sum",
     "/analytics",
     "/recordings",
     "/settings",

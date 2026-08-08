@@ -54,7 +54,7 @@ describe("/api/onboarding", () => {
       onboardingLevel: "mid-level",
       onboardingCompany: "",
       onboardingGoal: "switch-companies",
-      preferredInterviewType: "behavioral",
+      preferredInterviewType: "behavioral-leadership",
     });
   });
 
@@ -91,7 +91,7 @@ describe("/api/onboarding", () => {
           onboardingLevel: "mid-level",
           onboardingCompany: null,
           onboardingGoal: "switch-companies",
-          preferredInterviewType: "technical",
+          preferredInterviewType: "coding-algorithms",
           isFirstLogin: false,
         }),
       })

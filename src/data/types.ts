@@ -2,9 +2,15 @@ import { ReactNode } from "react";
 import type {
     Difficulty,
     InterviewType,
+    QuestionCategory,
 } from "@/lib/interview/domain";
 
-export type { Difficulty, InterviewPersona, InterviewType } from "@/lib/interview/domain";
+export type {
+    Difficulty,
+    InterviewPersona,
+    InterviewType,
+    QuestionCategory,
+} from "@/lib/interview/domain";
 
 /* ─────────────── Navigation ─────────────── */
 export interface NavItem {
@@ -53,7 +59,7 @@ export interface Question {
     id: number;
     slug: string;
     text: string;
-    category: InterviewType;
+    category: QuestionCategory;
     difficulty: Difficulty;
     estimatedTime: string;
     tags: string[];

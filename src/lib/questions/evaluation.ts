@@ -8,7 +8,6 @@ function questionCategoryToInterviewType(category: QuestionCategory): InterviewT
     case "leadership":
       return "behavioral-leadership";
     case "technical":
-    case "coding":
       return "coding-algorithms";
     case "system-design":
       return "system-design";

@@ -1,13 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { isAuthorizedCronRequest } from "@/lib/cron-auth";
+import { cleanupExpiredRateLimitBuckets } from "@/lib/rate-limit";
 import { logger } from "@/utils/logger";
 
-/** Soft-delete was removed; this cron is retained as a no-op for existing schedules. */
 export async function GET(request: NextRequest) {
   if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  logger.info("Cron cleanup: skipped (soft-delete removed)");
-  return NextResponse.json({ deleted: 0, skipped: true });
+  const deleted = await cleanupExpiredRateLimitBuckets(5_000);
+  logger.info("Cron cleanup: removed expired rate-limit buckets", { deleted });
+  return NextResponse.json({ deleted });
 }

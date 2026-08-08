@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Code, Database, Layers, MessageSquare, Sparkles, Terminal, UserCheck } from "lucide-react";
+import { ArrowRight, Code, Database, Layers, MessageSquare, UserCheck } from "lucide-react";
 import Link from "next/link";
 
 const ROLES = [
@@ -11,7 +11,7 @@ const ROLES = [
     icon: Code,
     color: "from-blue-500 to-cyan-500",
     badge: "Most Popular",
-    topics: ["Data Structures & Algorithms", "System Design", "Coding Live on Mic", "Time & Space Complexity"],
+    topics: ["Data Structures & Algorithms", "System Design", "Coding Discussion on Mic", "Time & Space Complexity"],
     questionPreview: "How would you design a distributed rate limiter for 100,000 requests/sec?",
   },
   {
@@ -146,7 +146,7 @@ export default function RoleSelectorSection() {
                 <span className="text-[0.65rem] text-emerald-400">Adaptive Probe Active</span>
               </div>
               <p className="text-sm font-medium leading-relaxed text-white">
-                "{activeRole.questionPreview}"
+                &ldquo;{activeRole.questionPreview}&rdquo;
               </p>
             </div>
 

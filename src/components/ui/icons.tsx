@@ -57,6 +57,7 @@ import {
   Maximize2,
   Minimize2,
   HelpCircle,
+  Shield,
   type LucideIcon,
   type LucideProps,
 } from "lucide-react";
@@ -138,3 +139,4 @@ export const IconVolumeOff = makeIcon(VolumeOff);
 export const IconMaximize = makeIcon(Maximize2);
 export const IconMinimize = makeIcon(Minimize2);
 export const IconHelp = makeIcon(HelpCircle);
+export const IconShield = makeIcon(Shield);

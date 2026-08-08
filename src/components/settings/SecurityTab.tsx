@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import PasswordTab from "@/components/settings/PasswordTab";
 import { describeUserAgent } from "@/lib/describe-user-agent";
 
@@ -52,6 +53,7 @@ function formatProvider(provider: string | null) {
 }
 
 export default function SecurityTab() {
+  const router = useRouter();
   const [data, setData] = useState<SecurityResponse>({
     devices: [],
     loginSuccesses: [],
@@ -62,7 +64,7 @@ export default function SecurityTab() {
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [busyDeviceKey, setBusyDeviceKey] = useState<string | null>(null);
 
-  const loadSecurityData = async () => {
+  const loadSecurityData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -72,7 +74,7 @@ export default function SecurityTab() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          window.location.href = "/login";
+          router.replace("/login");
           return;
         }
         setError(
@@ -87,12 +89,12 @@ export default function SecurityTab() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadSecurityData();
-  }, []);
+  }, [loadSecurityData]);
 
   async function runAction(
     body: { action: "revokeDevice"; deviceKey: string } | { action: "revokeOthers" },

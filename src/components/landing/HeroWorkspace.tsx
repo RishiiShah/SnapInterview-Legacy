@@ -1,12 +1,9 @@
 "use client";
 
 import {
-  CheckCircle2,
   Code2,
   Cpu,
   Mic,
-  Play,
-  Send,
   Video,
   Volume2,
 } from "lucide-react";
@@ -14,14 +11,15 @@ import { Safari } from "@/components/ui/Safari";
 import { LandingFadeOnly } from "./LandingMotion";
 
 const CODE_LINES = [
-  { text: "def two_sum(nums: list[int], target: int) -> list[int]:", color: "text-[#8BA7C7]" },
-  { text: "    seen = {}", color: "text-[#B8C4D4]" },
-  { text: "    for idx, num in enumerate(nums):", color: "text-[#8BA7C7]" },
-  { text: "        complement = target - num", color: "text-[#C8D3E0]" },
-  { text: "        if complement in seen:", color: "text-[#8BA7C7]" },
-  { text: "            return [seen[complement], idx]", color: "text-[#8ABDC8]" },
-  { text: "        seen[num] = idx", color: "text-[#C8D3E0]" },
-  { text: "    return []", color: "text-[#8BA7C7]" },
+  { text: "function twoSum(nums, target) {", color: "text-[#8BA7C7]" },
+  { text: "  const seen = new Map();", color: "text-[#B8C4D4]" },
+  { text: "  for (let i = 0; i < nums.length; i++) {", color: "text-[#8BA7C7]" },
+  { text: "    const complement = target - nums[i];", color: "text-[#C8D3E0]" },
+  { text: "    if (seen.has(complement)) {", color: "text-[#8BA7C7]" },
+  { text: "      return [seen.get(complement), i];", color: "text-[#8ABDC8]" },
+  { text: "    }", color: "text-[#C8D3E0]" },
+  { text: "  }", color: "text-[#8BA7C7]" },
+  { text: "}", color: "text-[#8BA7C7]" },
 ];
 
 export default function HeroWorkspace() {
@@ -33,19 +31,19 @@ export default function HeroWorkspace() {
     >
       {/* Section Header — L→R title, quiet lede */}
       <div className="mb-10 flex flex-col items-center text-center pt-4">
-        <LandingFadeOnly triggerOnView>
+        <LandingFadeOnly triggerOnView delay={0.10}>
           <span className="text-xs font-medium uppercase tracking-[0.22em] text-[#9BB8D4]">
             Interactive Studio
           </span>
         </LandingFadeOnly>
-        <LandingFadeOnly triggerOnView delay={0.11} className="mt-3">
+        <LandingFadeOnly triggerOnView delay={0.22} className="mt-3">
           <h2 className="text-3xl font-semibold tracking-tight text-[#D8E0EC] sm:text-4xl lg:text-5xl">
             Step inside the room before the interview begins
           </h2>
         </LandingFadeOnly>
-        <LandingFadeOnly triggerOnView delay={0.19} className="mt-3 max-w-2xl">
+        <LandingFadeOnly triggerOnView delay={0.32} className="mt-3 max-w-2xl">
           <p className="text-base leading-relaxed text-[#A8B6C8]">
-            A live coding environment, speech-to-text transcript, and automated feedback system operating in real time.
+            A voice-and-video interview workspace paired with an honest, read-only coding concept preview.
           </p>
         </LandingFadeOnly>
       </div>
@@ -57,8 +55,8 @@ export default function HeroWorkspace() {
           aria-hidden="true"
         />
 
-        {/* Safari frame — soft fade in */}
-        <LandingFadeOnly triggerOnView delay={0.14}>
+        {/* Safari frame — soft fade in with distinct entry delay */}
+        <LandingFadeOnly triggerOnView delay={0.42} duration={1.22}>
         <Safari url="snapinterview.app/practice/session" className="shadow-[0_20px_60px_rgba(0,0,0,0.7)]">
           {/* Workspace — unified muted dark surface, no sharp card borders */}
           <div className="flex flex-col h-full w-full bg-[#0D1017] text-[#C8D3E0] select-none font-sans">
@@ -133,7 +131,7 @@ export default function HeroWorkspace() {
                   </div>
 
                   <p className="text-xs leading-relaxed text-[#C0CAD6]">
-                    "Walk me through your logic for avoiding an O(N²) quadratic brute-force check."
+                    &ldquo;Walk me through your logic for avoiding an O(N²) quadratic brute-force check.&rdquo;
                   </p>
                 </div>
 
@@ -150,7 +148,7 @@ export default function HeroWorkspace() {
                   </div>
 
                   <p className="text-xs leading-relaxed text-[#A8B6C8]">
-                    "I'll use a hash map to store each number and its index. As I iterate through the array, I can check if the complement already exists in O(1) time."
+                    &ldquo;I&apos;ll use a hash map to store each number and its index. As I iterate through the array, I can check if the complement already exists in O(1) time.&rdquo;
                   </p>
                 </div>
 
@@ -163,10 +161,10 @@ export default function HeroWorkspace() {
                 <div className="flex items-center justify-between border-b border-white/[0.06] bg-[#090C12] px-5 py-2.5">
                   <div className="flex items-center gap-1.5 px-3 py-1 text-xs font-mono text-[#A8B6C8] border-b border-[#4A6FA5]/50">
                     <Code2 className="h-3.5 w-3.5 text-[#8AABCD]" />
-                    solution.py
+                    concept.js
                   </div>
                   <span className="text-[0.65rem] font-mono text-[#8FA0B4] bg-[#0D1017] px-2 py-0.5 rounded">
-                    Python 3.11
+                    JavaScript · Read only
                   </span>
                 </div>
 
@@ -180,26 +178,16 @@ export default function HeroWorkspace() {
                   ))}
                 </div>
 
-                {/* Terminal / Controls */}
+                {/* Public concept samples */}
                 <div className="border-t border-white/[0.06] bg-[#090C12] px-5 py-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs text-[#8ABC9A]">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      4/4 Test Cases Passed · 8ms
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button className="inline-flex items-center gap-1.5 rounded-md bg-white/[0.06] px-3 py-1.5 text-xs text-[#A8B6C8] hover:bg-white/10 transition">
-                        <Play className="h-3 w-3 fill-current" /> Run
-                      </button>
-                      <button className="inline-flex items-center gap-1.5 rounded-md bg-[#1E3060] px-3.5 py-1.5 text-xs text-[#8AAAD0] hover:bg-[#263870] transition">
-                        <Send className="h-3 w-3" /> Submit
-                      </button>
-                    </div>
+                    <div className="text-xs font-medium text-[#8ABC9A]">Concept preview</div>
+                    <div className="text-[0.65rem] text-[#8FA0B4]">Public sample cases</div>
                   </div>
 
-                  <div className="rounded-md bg-[#080B10] px-3 py-2.5 font-mono text-xs text-[#7FA892] space-y-1">
-                    <div>✓ two_sum([2,7,11,15], 9) == [0,1]</div>
-                    <div>✓ two_sum([3,2,4], 6) == [1,2]</div>
+                  <div className="rounded-md bg-[#080B10] px-3 py-2.5 font-mono text-xs text-[#9AABC0] space-y-1">
+                    <div><span className="text-[#8AABCD]">Input:</span> nums = [2,7,11,15], target = 9</div>
+                    <div><span className="text-[#8AABCD]">Expected:</span> <span className="text-[#7FA892]">[0,1]</span></div>
                   </div>
                 </div>
 

@@ -20,16 +20,16 @@ type LandingMotionDivProps = Omit<
   | "variants"
 >;
 
-export const LANDING_EASE = [0.45, 0.05, 0.55, 0.95] as const;
+export const LANDING_EASE = [0.16, 1, 0.3, 1] as const;
 
-const DEFAULT_DURATION = 1.15;
-const DEFAULT_STAGGER = 0.19;
+const DEFAULT_DURATION = 1.33;
+const DEFAULT_STAGGER = 0.20;
 
 const IN_VIEW_OPTS = {
   once: true,
-  amount: 0.45,
-  // Negative bottom margin: wait until the block is clearly in view, not peeking under the hero.
-  margin: "0px 0px -18% 0px",
+  amount: 0.2,
+  // Negative bottom margin: reveal naturally right as block approaches viewport.
+  margin: "0px 0px -8% 0px",
 } as const;
 
 export type ClipMode =
@@ -307,10 +307,10 @@ export function LandingFadeIn({
   duration?: number;
 } & LandingMotionDivProps) {
   const directions = {
-    up: { y: 56, x: 0 },
-    down: { y: -56, x: 0 },
-    left: { x: 64, y: 0 },
-    right: { x: -64, y: 0 },
+    up: { y: 16, x: 0 },
+    down: { y: -16, x: 0 },
+    left: { x: 20, y: 0 },
+    right: { x: -20, y: 0 },
     none: { x: 0, y: 0 },
   };
   const reducedMotion = useReducedMotion() ?? false;
@@ -359,10 +359,10 @@ export function LandingFadeInStaggerItem({
   direction?: "up" | "down" | "left" | "right" | "none";
 } & LandingMotionDivProps) {
   const directions = {
-    up: { y: 56, x: 0 },
-    down: { y: -56, x: 0 },
-    left: { x: 64, y: 0 },
-    right: { x: -64, y: 0 },
+    up: { y: 16, x: 0 },
+    down: { y: -16, x: 0 },
+    left: { x: 20, y: 0 },
+    right: { x: -20, y: 0 },
     none: { x: 0, y: 0 },
   };
   const reducedMotion = useReducedMotion() ?? false;

@@ -13,10 +13,7 @@ export type PreJoinScreenProps = {
   onPermissionsGranted: () => void;
   ttsStatus: BrowserTtsStatus;
   sttStatus?: SttWorkerStatus;
-} & Omit<
-  PermissionRequestProps,
-  "isOpen" | "onPermissionsGranted"
->;
+} & Omit<PermissionRequestProps, "isOpen" | "onPermissionsGranted">;
 
 export default function PreJoinScreen({
   onBack,
@@ -125,20 +122,26 @@ export default function PreJoinScreen({
             className="mb-6 border-b border-amber-500/30 pb-3 text-sm text-amber-200/90"
             role="status"
           >
-            Using backup interview voice
+            Interview voice could not be prepared. Reload and try again.
           </div>
         ) : null}
 
-        {sttStatus === "loading" && (
-          <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800" role="status">
+        {sttStatus === "loading" ? (
+          <div
+            className="mb-6 border-b border-[#3B82F6]/30 pb-3 text-sm text-[#93C5FD]"
+            role="status"
+          >
             Preparing speech recognition…
           </div>
-        )}
-        {sttStatus === "error" && (
-          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="status">
-            Speech recognition unavailable — you can type your answers instead.
+        ) : null}
+        {sttStatus === "error" ? (
+          <div
+            className="mb-6 border-b border-amber-500/30 pb-3 text-sm text-amber-200/90"
+            role="status"
+          >
+            Speech recognition unavailable. You can type your answers instead.
           </div>
-        )}
+        ) : null}
 
         <PermissionRequest
           isOpen={true}

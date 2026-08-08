@@ -62,15 +62,9 @@ export interface Question {
     category: QuestionCategory;
     difficulty: Difficulty;
     estimatedTime: string;
-    tags: string[];
-    hint?: string;
-    sampleAnswer?: string;
-    type?: "text" | "coding";
-    description?: string;
-    constraints?: string;
-    starterCode?: Record<string, string>;
-    testCases?: Array<{ input: string; expectedOutput: string; isHidden: boolean }>;
-    solutionCode?: Record<string, string>;
+  tags: string[];
+  hint?: string;
+  sampleAnswer?: string;
 }
 
 /* ─────────────── Analytics ─────────────── */

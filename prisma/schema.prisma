@@ -41,6 +41,8 @@ model User {
   accounts             Account[]
   interviewSessions    InterviewSession[]
   solvedQuestions      SolvedQuestion[]
+  codingSubmissions    CodingSubmission[]
+  codingSolved         CodingSolved[]
   passwordResetCodes   PasswordResetCode[]
   securityEvents       SecurityEvent[]
   pendingRegistrations PendingUser[]
@@ -182,7 +184,7 @@ enum InterviewStatus {
 }
 
 model InterviewSession {
-  id              String          @id @default(uuid())
+  id              String          @id @default(dbgenerated("(gen_random_uuid())::text"))
   userId          String
   role            String
   company         String?
@@ -210,6 +212,7 @@ model InterviewSession {
 
   @@index([userId])
   @@index([userId, deletedAt])
+  @@index([userId, status, deletedAt, createdAt(sort: Desc)])
 }
 
 model InterviewModerationNote {
@@ -262,16 +265,9 @@ model PracticeQuestion {
   sampleAnswer  String?  @db.Text
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
-  // Coding question fields
-  type          String   @default("text")
-  description   String?  @db.Text
-  constraints   String?  @db.Text
-  starterCode   Json?
-  testCases     Json?
-  solutionCode  Json?
-
   solvedBy      SolvedQuestion[]
+
+  @@index([category])
 }
 
 model SolvedQuestion {
@@ -284,6 +280,71 @@ model SolvedQuestion {
 
   @@unique([userId, questionId])
   @@index([userId])
+}
+
+model CodingQuestion {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  title         String
+  description   String
+  constraints   String?
+  difficulty    String
+  topics        String[]
+  estimatedTime String?
+  hint          String?
+  starterCode   Json
+  solutionCode  Json?
+  isPublished   Boolean  @default(false)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  testCases   CodingTestCase[]
+  submissions CodingSubmission[]
+  solvedBy    CodingSolved[]
+
+  @@index([isPublished, sortOrder, createdAt])
+}
+
+model CodingTestCase {
+  id             String         @id @default(cuid())
+  questionId     String
+  ordinal        Int
+  input          String
+  expectedOutput String
+  isHidden       Boolean        @default(false)
+  question       CodingQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, ordinal])
+}
+
+model CodingSubmission {
+  id                 String         @id @default(cuid())
+  clientSubmissionId String
+  userId             String
+  codingQuestionId   String
+  language           String
+  code               String
+  verdict            String
+  passedCount        Int
+  totalCount         Int
+  caseResults        Json?
+  executionTimeMs    Int?
+  createdAt          DateTime       @default(now())
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question           CodingQuestion @relation(fields: [codingQuestionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clientSubmissionId])
+  @@index([userId, codingQuestionId, createdAt])
+}
+
+model CodingSolved {
+  userId           String
+  codingQuestionId String
+  solvedAt         DateTime       @default(now())
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question         CodingQuestion @relation(fields: [codingQuestionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, codingQuestionId])
 }
 
 // ─── RAG: Interview Question Corpus ──────────────────────────────────────────

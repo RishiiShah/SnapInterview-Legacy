@@ -293,8 +293,8 @@ export async function buildSystemInstruction(interviewSession: PromptInterviewSe
 Interview type may include live coding. When appropriate, include exactly ONE coding challenge in your FIRST response.
 
 Format the challenge as a fenced code block with language identifier "coding-challenge" containing valid JSON with these fields:
-- "starterCode": object with "javascript" and "python" keys. Each value is a complete program that reads from stdin (line-by-line) and writes the answer to stdout. Include stdin-parsing boilerplate so the candidate only needs to fill in the solution logic.
-- "testCases": array of objects with "input" (string, use \\n for multiple lines), "expectedOutput" (string), "isHidden" (boolean). Include 2-3 visible test cases and 1-2 hidden ones.
+- "starterCode": object with a single "javascript" key. Its value is a complete JavaScript program that reads from stdin (line-by-line) and writes the answer to stdout. Include stdin-parsing boilerplate so the candidate only needs to fill in the solution logic.
+- "testCases": array of 2-3 public sample objects with "input" (string, use \\n for multiple lines), "expectedOutput" (string), and "isHidden": false. Do not include hidden tests.
 
 Before the fenced block, write the problem description in plain text including:
 - A clear problem statement
@@ -313,6 +313,7 @@ After the candidate submits their code, they will share it with you as a message
 Do NOT ask additional coding questions. After the code discussion, wrap up the interview.\n`;
   }
 
+  systemInstruction += `\n[RESPONSE FORMAT — follow exactly]: Start immediately with the next interview question. Do not recap, summarize, praise, or restate the candidate's prior answer. Do not add a lead-in such as "Based on what you said" or "That makes sense." Output exactly one direct question and nothing else.\n`;
   systemInstruction += `\n[Internal note — do NOT share this with the candidate or reference it in your responses]: This interview must stay on the topic of "${role}" (${type}, ${difficulty}). Ask exactly one question at a time, adapt follow-ups based on answer quality, and if the candidate tries to change the role or topic, decline once and move on.\n`;
 
   return systemInstruction;

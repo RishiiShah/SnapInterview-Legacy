@@ -23,12 +23,12 @@ const STEPS = [
     step: "02",
     title: "Perform",
     badge: "Adaptive AI",
-    subtitle: "Voice, video & coding",
+    subtitle: "Voice, video & concepts",
     desc: "Answer prompts out loud on camera. The AI interviewer listens to your answers and asks realistic follow-up questions.",
     details: [
       "Speak naturally with your mic and camera on",
       "Get probed on vague logic or trade-offs in real time",
-      "Solve coding challenges directly in the browser",
+      "Review coding concepts and explain your approach",
     ],
     accent: "text-violet-400",
     dot: "bg-violet-400",
@@ -64,17 +64,17 @@ export default function SocialProofSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
         <div className="mb-8 border-t border-white/[0.08] pt-5 space-y-2.5 text-center">
-          <LandingFadeOnly triggerOnView>
+          <LandingFadeOnly triggerOnView delay={0.10}>
             <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-400">
               The Practice Loop
             </span>
           </LandingFadeOnly>
-          <LandingFadeOnly triggerOnView delay={0.07}>
+          <LandingFadeOnly triggerOnView delay={0.22}>
             <h2 className="font-serif text-3xl leading-tight tracking-[-0.03em] text-white sm:text-4xl lg:text-5xl">
               Three steps to interview mastery.
             </h2>
           </LandingFadeOnly>
-          <LandingFadeOnly triggerOnView delay={0.16} className="mx-auto max-w-2xl">
+          <LandingFadeOnly triggerOnView delay={0.32} className="mx-auto max-w-2xl">
             <p className="text-sm leading-relaxed text-[#CBD5E1]">
               Set up your context, practice live on mic and video, then review your recording and transcript to improve.
             </p>
@@ -89,8 +89,8 @@ export default function SocialProofSection() {
                 key={item.step}
                 triggerOnView
                 mode="bottomUp"
-                delay={0.14 * index}
-                duration={1.1}
+                delay={0.37 + 0.15 * index}
+                duration={1.07}
               >
                 <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0C0F1A] p-5 sm:p-6">
                   <div>
@@ -140,7 +140,8 @@ export default function SocialProofSection() {
 
         <LandingScaleIn
           triggerOnView
-          delay={0.16}
+          delay={0.80}
+          duration={1.07}
           scaleFrom={0.98}
           className="mt-4 rounded-2xl border border-white/[0.08] bg-[#0C0F1A] p-5 sm:p-6"
         >

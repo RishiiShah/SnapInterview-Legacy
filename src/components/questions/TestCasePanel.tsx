@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { IconPlus } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
-export type TestCase = { input: string; expectedOutput: string; isHidden: boolean };
+export type TestCase = { input: string; expectedOutput: string; isHidden?: boolean };
 
 const DEFAULT_ARG_NAMES = ["nums", "target", "arg3", "arg4", "arg5"];
 

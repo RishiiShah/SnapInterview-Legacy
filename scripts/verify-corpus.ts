@@ -16,17 +16,17 @@ const PROBES = [
   {
     label: "React dev, resume mentions Redux, last answer on re-renders",
     query: "React Developer. Resume: Redux, hooks, performance tuning. Last answer discussed re-render optimization.",
-    types: ["technical"],
+    types: ["domain-role"],
   },
   {
     label: "DevOps, JD requires Kubernetes and CI/CD",
     query: "DevOps Engineer. Job description requires Kubernetes, CI/CD pipelines, infrastructure as code.",
-    types: ["technical", "system-design"],
+    types: ["domain-role", "system-design"],
   },
   {
     label: "Behavioural, shallow answer on a team disagreement",
     query: "Behavioural round. Candidate gave a shallow answer about a disagreement with a teammate.",
-    types: ["behavioral"],
+    types: ["behavioral-leadership"],
   },
 ];
 

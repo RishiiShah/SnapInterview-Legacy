@@ -6,7 +6,7 @@ import {
   motion,
   useMotionValueEvent,
   useScroll,
-} from "motion/react";
+} from "framer-motion";
 import Link from "next/link";
 import React, { useState } from "react";
 import { AppLogo } from "@/components/ui/AppLogo";
@@ -52,8 +52,8 @@ interface MobileNavMenuProps {
 }
 
 const NAV_MORPH = {
-  duration: 0.78,
-  ease: [0.22, 0.08, 0.2, 1] as const,
+  duration: 0.79,
+  ease: [0.16, 1, 0.3, 1] as const,
 };
 
 export const Navbar = ({ children, className }: NavbarProps) => {

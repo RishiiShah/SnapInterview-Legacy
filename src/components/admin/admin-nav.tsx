@@ -1,5 +1,6 @@
 import {
   IconChartBars,
+  IconCode,
   IconDashboard,
   IconQuestionBank,
   IconRecordings,
@@ -23,6 +24,11 @@ export const adminNavItems = [
     icon: <IconQuestionBank className="h-5 w-5 shrink-0" />,
   },
   {
+    label: "Coding",
+    href: "/admin/coding",
+    icon: <IconCode className="h-5 w-5 shrink-0" />,
+  },
+  {
     label: "Interviews",
     href: "/admin/interviews",
     icon: <IconRecordings className="h-5 w-5 shrink-0" />,
@@ -39,6 +45,7 @@ export function getAdminPageTitle(pathname: string): string {
   if (pathname.startsWith("/admin/analytics")) return "Analytics";
   if (pathname.startsWith("/admin/users")) return "Users";
   if (pathname.startsWith("/admin/questions")) return "Questions";
+  if (pathname.startsWith("/admin/coding")) return "Coding";
   if (/^\/admin\/interviews\/[^/]+$/.test(pathname)) return "Interview detail";
   if (pathname.startsWith("/admin/interviews")) return "Interviews";
   return "Admin";

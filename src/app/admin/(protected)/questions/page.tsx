@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { getAdminQuestionFacets } from "@/lib/admin/question-facets";
+import { QUESTION_CATEGORY_VALUES } from "@/lib/interview/domain";
 import { prisma } from "@/lib/prisma";
 import { deletePracticeQuestionAction, importPracticeQuestionsAction } from "./actions";
 import {
@@ -42,9 +43,11 @@ export default async function AdminQuestionsPage({
   const message = sp?.message ? decodeURIComponent(sp.message) : "";
   const pageSize = 20;
 
+  const isAllowedCategory = (QUESTION_CATEGORY_VALUES as readonly string[]).includes(category);
   const where = {
+    category: isAllowedCategory ? category : { in: [...QUESTION_CATEGORY_VALUES] },
     ...(q ? { slug: { contains: q, mode: "insensitive" as const } } : {}),
-    ...(category ? { category } : {}),
+    ...(category && !isAllowedCategory ? { id: -1 } : {}),
     ...(difficulty ? { difficulty } : {}),
   };
 

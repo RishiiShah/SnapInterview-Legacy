@@ -36,33 +36,33 @@ interface CategoryMapping {
 }
 
 const SOFTWARE_CATEGORY_MAP: Record<string, CategoryMapping> = {
-  "System Design": { types: ["system-design", "technical"], roleTags: [...ARCHITECT_ROLES, ...BACKEND_ROLES] },
-  "Distributed Systems": { types: ["system-design", "technical"], roleTags: [...ARCHITECT_ROLES, ...BACKEND_ROLES, "data-engineer"] },
-  DevOps: { types: ["technical", "system-design"], roleTags: ["devops-engineer", "cloud-architect", "system-administrator", "solutions-architect"] },
-  "Front-end": { types: ["technical"], roleTags: FRONTEND_ROLES },
-  "Back-end": { types: ["technical"], roleTags: BACKEND_ROLES },
-  "Full-stack": { types: ["technical"], roleTags: ["full-stack-developer", ...BACKEND_ROLES, ...FRONTEND_ROLES] },
-  "Web Development": { types: ["technical"], roleTags: [...FRONTEND_ROLES, "full-stack-developer"] },
-  Security: { types: ["technical", "system-design"], roleTags: ["security-engineer", ...BACKEND_ROLES, "devops-engineer"] },
-  "Data Structures": { types: ["coding", "technical"], roleTags: ALL_ENGINEERING },
-  Algorithms: { types: ["coding", "technical"], roleTags: ALL_ENGINEERING },
-  "Languages and Frameworks": { types: ["technical"], roleTags: ALL_ENGINEERING },
-  "General Programming": { types: ["technical"], roleTags: ALL_ENGINEERING },
-  "Database and SQL": { types: ["technical"], roleTags: [...BACKEND_ROLES, ...DATA_ROLES] },
-  "Data Engineering": { types: ["technical", "system-design"], roleTags: DATA_ROLES },
-  "Machine Learning": { types: ["technical"], roleTags: ["machine-learning-engineer", "data-scientist"] },
-  "Artificial Intelligence": { types: ["technical"], roleTags: ["machine-learning-engineer", "data-scientist"] },
-  "Software Testing": { types: ["technical"], roleTags: ["qa-engineer", ...ALL_ENGINEERING] },
-  "Version Control": { types: ["technical"], roleTags: ALL_ENGINEERING },
-  Networking: { types: ["technical", "system-design"], roleTags: ["devops-engineer", "cloud-architect", "system-administrator", "security-engineer"] },
-  "Low-level Systems": { types: ["technical"], roleTags: ["go-developer", "rust-developer", "system-administrator"] },
+  "System Design": { types: ["system-design", "domain-role"], roleTags: [...ARCHITECT_ROLES, ...BACKEND_ROLES] },
+  "Distributed Systems": { types: ["system-design", "domain-role"], roleTags: [...ARCHITECT_ROLES, ...BACKEND_ROLES, "data-engineer"] },
+  DevOps: { types: ["domain-role", "system-design"], roleTags: ["devops-engineer", "cloud-architect", "system-administrator", "solutions-architect"] },
+  "Front-end": { types: ["domain-role"], roleTags: FRONTEND_ROLES },
+  "Back-end": { types: ["domain-role"], roleTags: BACKEND_ROLES },
+  "Full-stack": { types: ["domain-role"], roleTags: ["full-stack-developer", ...BACKEND_ROLES, ...FRONTEND_ROLES] },
+  "Web Development": { types: ["domain-role"], roleTags: [...FRONTEND_ROLES, "full-stack-developer"] },
+  Security: { types: ["domain-role", "system-design"], roleTags: ["security-engineer", ...BACKEND_ROLES, "devops-engineer"] },
+  "Data Structures": { types: ["coding-algorithms", "domain-role"], roleTags: ALL_ENGINEERING },
+  Algorithms: { types: ["coding-algorithms", "domain-role"], roleTags: ALL_ENGINEERING },
+  "Languages and Frameworks": { types: ["domain-role"], roleTags: ALL_ENGINEERING },
+  "General Programming": { types: ["domain-role"], roleTags: ALL_ENGINEERING },
+  "Database and SQL": { types: ["domain-role"], roleTags: [...BACKEND_ROLES, ...DATA_ROLES] },
+  "Data Engineering": { types: ["domain-role", "system-design"], roleTags: DATA_ROLES },
+  "Machine Learning": { types: ["domain-role"], roleTags: ["machine-learning-engineer", "data-scientist"] },
+  "Artificial Intelligence": { types: ["domain-role"], roleTags: ["machine-learning-engineer", "data-scientist"] },
+  "Software Testing": { types: ["domain-role"], roleTags: ["qa-engineer", ...ALL_ENGINEERING] },
+  "Version Control": { types: ["domain-role"], roleTags: ALL_ENGINEERING },
+  Networking: { types: ["domain-role", "system-design"], roleTags: ["devops-engineer", "cloud-architect", "system-administrator", "security-engineer"] },
+  "Low-level Systems": { types: ["domain-role"], roleTags: ["go-developer", "rust-developer", "system-administrator"] },
 };
 
 export function mapSoftwareCategory(category: string): CategoryMapping {
   const normalized = normalizeCategory(category);
   // An unmapped category is still ingestible — vector similarity carries it.
-  // Tagging it `technical` with no roles keeps it retrievable rather than dead.
-  return SOFTWARE_CATEGORY_MAP[normalized] ?? { types: ["technical"], roleTags: [] };
+  // Tagging it domain-role with no roles keeps it retrievable rather than dead.
+  return SOFTWARE_CATEGORY_MAP[normalized] ?? { types: ["domain-role"], roleTags: [] };
 }
 
 /**
@@ -72,20 +72,20 @@ export function mapSoftwareCategory(category: string): CategoryMapping {
  * appeared under all 8 roles), so they carry no information to preserve.
  */
 const HR_CATEGORY_MAP: Record<string, InterviewType[]> = {
-  Leadership: ["leadership", "behavioral"],
-  Adaptability: ["behavioral"],
-  "Culture Fit": ["behavioral"],
-  Motivation: ["behavioral"],
-  "Work Style": ["behavioral"],
-  "Team Collaboration": ["behavioral"],
-  "Career Goals": ["behavioral"],
-  "Conflict Resolution": ["behavioral", "leadership"],
+  Leadership: ["behavioral-leadership", "hiring-manager"],
+  Adaptability: ["behavioral-leadership"],
+  "Culture Fit": ["behavioral-leadership", "recruiter-screen"],
+  Motivation: ["behavioral-leadership", "recruiter-screen"],
+  "Work Style": ["behavioral-leadership"],
+  "Team Collaboration": ["behavioral-leadership"],
+  "Career Goals": ["behavioral-leadership", "recruiter-screen"],
+  "Conflict Resolution": ["behavioral-leadership", "hiring-manager"],
 };
 
 export const HR_CATEGORIES = Object.keys(HR_CATEGORY_MAP);
 
 export function mapHrCategory(category: string): CategoryMapping {
-  return { types: HR_CATEGORY_MAP[category.trim()] ?? ["behavioral"], roleTags: [] };
+  return { types: HR_CATEGORY_MAP[category.trim()] ?? ["behavioral-leadership"], roleTags: [] };
 }
 
 /**

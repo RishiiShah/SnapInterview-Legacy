@@ -140,6 +140,9 @@ describe("DashboardOverviewClient", () => {
     expect(screen.getByText("Getting started")).toBeDefined();
     expect(screen.getByText("Upload your resume")).toBeDefined();
     expect(screen.getByText("Explore question bank")).toBeDefined();
+    expect(screen.getByText("Explore coding concepts")).toBeDefined();
+    expect(screen.getByText("Read-only JavaScript previews and public samples")).toBeDefined();
+    expect(screen.queryByText("Editor, test cases, and solutions")).toBeNull();
     expect(screen.getByText("Start your first interview")).toBeDefined();
   });
 });

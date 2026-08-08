@@ -3,11 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
 import { AppLogo } from "@/components/ui/AppLogo";
 
 const AUTH_BG = "/hero-starry-bg.jpg";
-const AUTH_EASE = [0.45, 0.05, 0.55, 0.95] as const;
+export const AUTH_EASE = [0.16, 1, 0.3, 1] as const;
 
 /**
  * Auth layout: same sharp hero photograph + vignettes as the landing,
@@ -72,10 +72,10 @@ export function AuthShell({
 
       <div className="relative z-10 flex h-full min-h-0 w-full items-center justify-center overflow-y-auto overscroll-contain px-4 pt-16 pb-6 sm:px-6 sm:pb-8">
         <motion.div
-          initial={reducedMotion ? false : { opacity: 0, y: 8 }}
+          initial={reducedMotion ? false : { opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={
-            reducedMotion ? { duration: 0 } : { duration: 0.4, ease: AUTH_EASE }
+            reducedMotion ? { duration: 0 } : { duration: 0.92, ease: AUTH_EASE }
           }
           className={contentClassName ?? "my-auto w-full max-w-[22rem]"}
         >
@@ -89,6 +89,66 @@ export function AuthShell({
         </motion.div>
       </div>
     </div>
+  );
+}
+
+/** Stagger container for auth form fields */
+export function AuthFormStagger({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  const reducedMotion = useReducedMotion() ?? false;
+
+  return (
+    <motion.div
+      initial={reducedMotion ? false : "hidden"}
+      animate="visible"
+      variants={{
+        hidden: {},
+        visible: {
+          transition: {
+            staggerChildren: reducedMotion ? 0 : 0.12,
+            delayChildren: reducedMotion ? 0 : 0.07,
+          },
+        },
+      }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/** Stagger item for auth form fields */
+export function AuthFormStaggerItem({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  const reducedMotion = useReducedMotion() ?? false;
+
+  return (
+    <motion.div
+      variants={{
+        hidden: reducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 },
+        visible: {
+          opacity: 1,
+          y: 0,
+          transition: reducedMotion
+            ? { duration: 0 }
+            : { duration: 0.75, ease: AUTH_EASE },
+        },
+      }}
+      className={className}
+      style={{ willChange: reducedMotion ? "auto" : "transform, opacity" }}
+    >
+      {children}
+    </motion.div>
   );
 }
 
@@ -116,13 +176,25 @@ export function AuthHeader({
 }
 
 export function AuthError({ message }: { message: string }) {
+  const reducedMotion = useReducedMotion() ?? false;
+
   return (
-    <div
-      role="alert"
-      className="rounded-xl border border-red-500/20 bg-red-500/[0.08] px-4 py-3 text-sm text-red-400"
-    >
-      {message}
-    </div>
+    <AnimatePresence>
+      {message ? (
+        <motion.div
+          role="alert"
+          initial={reducedMotion ? false : { opacity: 0, y: -6, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -6, scale: 0.98 }}
+          transition={
+            reducedMotion ? { duration: 0 } : { duration: 0.25, ease: AUTH_EASE }
+          }
+          className="rounded-xl border border-red-500/20 bg-red-500/[0.08] px-4 py-3 text-sm text-red-400"
+        >
+          {message}
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
   );
 }
 
@@ -139,7 +211,7 @@ export function AuthDivider({ label = "or" }: { label?: string }) {
 }
 
 const FIELD_CLASS =
-  "w-full rounded-xl border border-white/[0.08] bg-[#0C0F1A]/80 px-3.5 py-3 text-[15px] text-white outline-none placeholder:text-[#B8C0CE] transition-colors focus:border-blue-500/45 focus:ring-2 focus:ring-blue-500/15 sm:text-base";
+  "w-full rounded-xl border border-white/[0.08] bg-[#0C0F1A]/80 px-3.5 py-3 text-[15px] text-white outline-none placeholder:text-[#B8C0CE] transition-all duration-200 focus:border-blue-500/45 focus:ring-2 focus:ring-blue-500/15 sm:text-base";
 
 export function AuthTextField({
   id,

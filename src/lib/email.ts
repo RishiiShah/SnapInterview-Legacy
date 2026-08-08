@@ -337,3 +337,91 @@ export async function sendPracticeReminderEmail(params: {
         `.trim(),
     });
 }
+
+export async function sendSupportTicketEmail(params: {
+    ticketId: string;
+    userEmail: string;
+    userName: string;
+    category: string;
+    priority: string;
+    subject: string;
+    description: string;
+    attachmentName?: string;
+    attachmentBase64?: string;
+}): Promise<void> {
+    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.app";
+    const supportEmail = env.SMTP_USER || "support@snapinterview.app";
+    const { ticketId, userEmail, userName, category, priority, subject, description, attachmentName, attachmentBase64 } = params;
+
+    const safeSubject = escapeSubject(subject);
+    const safeName = escapeHtml(userName);
+    const safeUserEmail = escapeHtml(userEmail);
+    const safeCategory = escapeHtml(category);
+    const safePriority = escapeHtml(priority.toUpperCase());
+    const safeDescription = escapeHtml(description);
+
+    const attachments = attachmentName && attachmentBase64 ? [
+        {
+            filename: attachmentName,
+            content: attachmentBase64.split(",")[1] || attachmentBase64,
+            encoding: "base64",
+        }
+    ] : undefined;
+
+    // 1. Send Notification to Support Team
+    await transporter.sendMail({
+        from,
+        to: supportEmail,
+        replyTo: userEmail,
+        subject: `[Support Ticket #${ticketId}] ${safeSubject} (${safePriority})`,
+        attachments,
+        html: `
+<!DOCTYPE html>
+<html><head><meta charset="utf-8" /></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 20px;"><tr><td align="center">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+      <tr><td style="padding:24px 32px;background:#18181b;color:#ffffff;">
+        <h2 style="margin:0;font-size:18px;font-weight:700;">New Support Ticket #${ticketId}</h2>
+        <p style="margin:4px 0 0;font-size:13px;color:#a1a1aa;">Priority: <strong>${safePriority}</strong> &bull; Category: <strong>${safeCategory}</strong></p>
+      </td></tr>
+      <tr><td style="padding:24px 32px;">
+        <p style="margin:0 0 16px;font-size:14px;color:#3f3f46;"><strong>From:</strong> ${safeName} (&lt;${safeUserEmail}&gt;)</p>
+        <p style="margin:0 0 8px;font-size:14px;color:#18181b;"><strong>Subject:</strong> ${safeSubject}</p>
+        <div style="background:#fafafa;border:1px solid #e4e4e7;border-radius:12px;padding:16px;font-size:13px;line-height:1.6;color:#27272a;white-space:pre-wrap;">${safeDescription}</div>
+        ${attachmentName ? `<p style="margin:16px 0 0;font-size:12px;color:#71717a;">📷 Attached screenshot: <strong>${escapeHtml(attachmentName)}</strong></p>` : ""}
+      </td></tr>
+    </table>
+  </td></tr></table>
+</body></html>
+        `.trim(),
+    });
+
+    // 2. Send Confirmation to User
+    await transporter.sendMail({
+        from,
+        to: userEmail,
+        subject: `SnapInterview — Support Ticket Received (#${ticketId})`,
+        html: `
+<!DOCTYPE html>
+<html><head><meta charset="utf-8" /></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 20px;"><tr><td align="center">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+      <tr><td style="padding:32px 32px 0;"><table cellpadding="0" cellspacing="0"><tr>
+        <td style="width:32px;height:32px;background:#18181b;border-radius:8px;text-align:center;vertical-align:middle;color:#fff;font-size:11px;font-weight:700;">SI</td>
+        <td style="padding-left:10px;font-size:18px;font-weight:600;color:#18181b;">SnapInterview Support</td>
+      </tr></table></td></tr>
+      <tr><td style="padding:28px 32px 12px;">
+        <h1 style="margin:0;font-size:20px;font-weight:700;color:#18181b;">Ticket #${ticketId} Received</h1>
+        <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:#71717a;">Hi ${safeName}, we received your support request regarding <strong>${safeSubject}</strong>. Our support team is reviewing your ticket and will follow up shortly.</p>
+      </td></tr>
+      <tr><td style="padding:0 32px 32px;border-top:1px solid #f4f4f5;">
+        <p style="margin:16px 0 0;font-size:12px;color:#a1a1aa;">Reference Ticket ID: <strong>#${ticketId}</strong> &bull; Category: ${safeCategory}</p>
+      </td></tr>
+    </table>
+  </td></tr></table>
+</body></html>
+        `.trim(),
+    });
+}

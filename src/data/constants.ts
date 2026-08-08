@@ -35,7 +35,6 @@ export const CATEGORIES: { value: QuestionCategory; label: string; color: string
     { value: "technical", label: "Technical", color: "bg-violet-100 text-violet-700" },
     { value: "system-design", label: "System Design", color: "bg-amber-100 text-amber-700" },
     { value: "leadership", label: "Leadership", color: "bg-emerald-100 text-emerald-700" },
-    { value: "coding", label: "Coding", color: "bg-cyan-100 text-cyan-700" },
 ];
 
 /** Live mock interview kinds — real hiring-loop shapes. */
@@ -155,4 +154,3 @@ export const COMPANIES: string[] = [
     "Datadog",
     "Elastic",
 ];
-

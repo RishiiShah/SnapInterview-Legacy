@@ -1,4 +1,8 @@
+"use client";
+
+import { motion, useReducedMotion } from "framer-motion";
 import { signIn } from "@/lib/auth-client";
+import { AUTH_EASE } from "./AuthShell";
 
 interface GoogleSignInButtonProps {
   text?: string;
@@ -10,21 +14,19 @@ export function GoogleSignInButton({
   text = "Continue with Google",
   callbackUrl = "/dashboard",
 }: GoogleSignInButtonProps) {
+  const reducedMotion = useReducedMotion() ?? false;
+
   return (
-    <button
+    <motion.button
       type="button"
+      whileHover={reducedMotion ? undefined : { scale: 1.015 }}
+      whileTap={reducedMotion ? undefined : { scale: 0.985 }}
+      transition={{ duration: 0.2, ease: AUTH_EASE }}
       onClick={() =>
-        signIn.social(
-          {
-            provider: "google",
-            callbackURL: callbackUrl,
-          },
-          {
-            query: {
-              prompt: "select_account",
-            },
-          },
-        )
+        signIn.social({
+          provider: "google",
+          callbackURL: callbackUrl || "/dashboard",
+        })
       }
       className="inline-flex h-12 w-full cursor-pointer items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/[0.04] text-sm font-medium text-[#CBD5E1] transition-colors duration-200 hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40"
     >
@@ -47,6 +49,6 @@ export function GoogleSignInButton({
         />
       </svg>
       {text}
-    </button>
+    </motion.button>
   );
 }

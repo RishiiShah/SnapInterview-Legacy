@@ -1,21 +1,20 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import QuestionDetailPageClient from "@/components/questions/QuestionDetailPageClient";
-import {
-  filterQuestionsByScope,
-  getPracticeQuestionRuntimeDataBySlug,
-} from "@/repositories/question-repo";
-import { isCodingQuestion } from "@/lib/questions/scope";
+import { CodingWorkspacePageClient } from "@/components/coding/CodingWorkspacePageClient";
+import { getServerAuthSession } from "@/lib/server-auth";
+import { getPublishedCodingWorkspace } from "@/repositories/coding-question-repo";
 
 export default async function CodingDetailPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  const session = await getServerAuthSession();
+  if (!session?.user) redirect("/login");
   const { slug } = await params;
-  const runtimeData = await getPracticeQuestionRuntimeDataBySlug(slug, "all");
+  const workspace = await getPublishedCodingWorkspace(slug);
 
-  if (!runtimeData) {
+  if (!workspace) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <h1 className="text-xl font-bold text-[#F2F4F8]">Problem not found</h1>
@@ -32,22 +31,5 @@ export default async function CodingDetailPage({
     );
   }
 
-  if (!isCodingQuestion(runtimeData.question)) {
-    redirect(`/questions/${slug}`);
-  }
-
-  const allQuestions = filterQuestionsByScope(runtimeData.allQuestions, "coding");
-  const currentIndex = allQuestions.findIndex((question) => question.slug === slug);
-
-  return (
-    <QuestionDetailPageClient
-      question={runtimeData.question}
-      currentIndex={currentIndex}
-      totalQuestions={allQuestions.length}
-      prevQuestion={currentIndex > 0 ? allQuestions[currentIndex - 1] : null}
-      nextQuestion={currentIndex < allQuestions.length - 1 ? allQuestions[currentIndex + 1] : null}
-      basePath="/coding"
-      listLabel="Problem List"
-    />
-  );
+  return <CodingWorkspacePageClient question={workspace} />;
 }

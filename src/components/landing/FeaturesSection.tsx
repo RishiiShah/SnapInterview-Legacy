@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Code2, FileText, Mic, Video, CheckCircle, Clock, ChevronRight } from "lucide-react";
+import { FileText, CheckCircle, Clock, ChevronRight } from "lucide-react";
 import { LandingFadeIn, LandingFadeOnly, LandingScaleIn } from "./LandingMotion";
 
 const FEATURES = [
@@ -17,12 +17,12 @@ const FEATURES = [
   },
   {
     number: "002",
-    label: "In-browser IDE",
+    label: "Coding concepts",
     accent: "text-sky-400",
-    badge: "Practice in context",
-    title: "Write and run code in the browser",
+    badge: "Read-only workspace",
+    title: "Study coding patterns in context",
     description:
-      "Python, JavaScript, and Java with syntax highlighting, live test case execution, and output diff. Covers LeetCode-style problems, system design stubs, and SQL queries.",
+      "Review read-only JavaScript problem previews with constraints, topics, hints, and public sample cases. Use them to discuss an approach without simulated execution or grading.",
     diagram: "coding",
   },
   {
@@ -54,7 +54,7 @@ const TRACKS = [
     badge: "Most Popular",
     color: "text-sky-400",
     dot: "bg-sky-400",
-    topics: ["Data Structures and Algorithms", "System Design", "Live Coding on Mic", "Complexity Analysis"],
+    topics: ["Data Structures and Algorithms", "System Design", "Coding Discussion on Mic", "Complexity Analysis"],
     question: "How would you design a distributed rate limiter that handles 100,000 requests per second across multiple data centers?",
   },
   {
@@ -108,7 +108,7 @@ function VoiceConversationDiagram() {
         <div className="flex items-start gap-2.5">
           <span className="flex h-4 w-6 shrink-0 items-center justify-center rounded text-[0.55rem] font-bold tracking-wide text-slate-400 bg-slate-500/15">Me</span>
           <p className="text-xs leading-relaxed text-[#CBD5E1]">
-            Good point. I'll use a hash set to track seen elements so duplicate lookups stay O(1).
+            Good point. I&apos;ll use a hash set to track seen elements so duplicate lookups stay O(1).
           </p>
         </div>
         <div className="flex items-start gap-2.5">
@@ -142,34 +142,33 @@ function CodingDiagram() {
   return (
     <div aria-hidden="true" className="mt-4 border-t border-white/[0.08] pt-3 space-y-2">
       <div className="flex items-center justify-between text-[0.7rem] text-[#B8C0CE]">
-        <span className="font-mono">solution.py</span>
-        <span className="text-sky-400 font-medium">4 / 4 passed</span>
+        <span className="font-mono">concept.js</span>
+        <span className="text-sky-400 font-medium">Concept preview</span>
       </div>
       <div className="rounded-lg bg-[#0A0C14] border border-white/[0.06] px-3.5 py-2.5 font-mono text-xs space-y-1">
         <div className="flex gap-4">
           <span className="text-[#B0B8C8] w-4 shrink-0">1</span>
-          <span><span className="text-sky-300">def</span> <span className="text-slate-200">two_sum</span><span className="text-slate-400">(nums, target):</span></span>
+          <span><span className="text-sky-300">function</span> <span className="text-slate-200">twoSum</span><span className="text-slate-400">(nums, target) &#123;</span></span>
         </div>
         <div className="flex gap-4">
           <span className="text-[#B0B8C8] w-4 shrink-0">2</span>
-          <span className="text-slate-400 pl-4">seen = &#123;&#125;</span>
+          <span className="text-slate-400 pl-4">const seen = new Map();</span>
         </div>
         <div className="flex gap-4">
           <span className="text-[#B0B8C8] w-4 shrink-0">3</span>
-          <span className="pl-4"><span className="text-sky-300">for</span> <span className="text-slate-300">i, n</span> <span className="text-sky-300">in</span> <span className="text-slate-200">enumerate</span><span className="text-slate-400">(nums):</span></span>
+          <span className="pl-4"><span className="text-sky-300">for</span> <span className="text-slate-400">(let i = 0; i &lt; nums.length; i++) &#123;</span></span>
         </div>
         <div className="flex gap-4">
           <span className="text-[#B0B8C8] w-4 shrink-0">4</span>
-          <span className="pl-8 text-slate-400">complement = target - n</span>
+          <span className="pl-8 text-slate-400">const complement = target - nums[i];</span>
         </div>
         <div className="flex gap-4">
           <span className="text-[#B0B8C8] w-4 shrink-0">5</span>
-          <span className="pl-8"><span className="text-sky-300">if</span> <span className="text-slate-300">complement</span> <span className="text-sky-300">in</span> <span className="text-slate-300">seen</span>:</span>
+          <span className="pl-8"><span className="text-sky-300">if</span> <span className="text-slate-400">(seen.has(complement)) return [seen.get(complement), i];</span></span>
         </div>
       </div>
-      <div className="flex items-center gap-1.5 text-[0.7rem] text-emerald-500">
-        <CheckCircle className="h-3.5 w-3.5" />
-        All test cases passed in 12ms
+      <div className="flex items-center gap-1.5 text-[0.7rem] text-[#B8C0CE]">
+        Public sample: [2,7,11,15] + 9 → [0,1]
       </div>
     </div>
   );
@@ -326,7 +325,7 @@ export default function ProductStrengthsSection() {
           </LandingFadeOnly>
           <LandingFadeOnly triggerOnView delay={0.38} className="max-w-4xl">
             <p className="text-sm leading-relaxed text-[#CBD5E1]">
-              SnapInterview gives you a place to practice speaking, coding, and reviewing across every role and seniority level.
+              SnapInterview gives you a place to practice speaking, study coding concepts, and review sessions across every role and seniority level.
             </p>
           </LandingFadeOnly>
         </div>

@@ -1,4 +1,5 @@
 import type { HTMLAttributes, ReactNode } from "react";
+import Image from "next/image";
 
 const SAFARI_WIDTH = 1203;
 const SAFARI_HEIGHT = 640;
@@ -69,10 +70,13 @@ export function Safari({
             preload="metadata"
           />
         ) : imageSrc ? (
-          <img
+          <Image
             src={imageSrc}
             alt=""
-            className="block size-full object-cover object-top"
+            fill
+            unoptimized
+            sizes="100vw"
+            className="block object-cover object-top"
           />
         ) : null}
       </div>

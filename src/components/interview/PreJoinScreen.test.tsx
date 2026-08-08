@@ -38,10 +38,10 @@ describe("PreJoinScreen", () => {
     expect(screen.getByTestId("permission-request")).toBeTruthy();
   });
 
-  it("shows a non-blocking fallback message when local voice is unavailable", () => {
+  it("shows a recovery message when the Kokoro voice is unavailable", () => {
     render(<PreJoinScreen {...createProps("fallback")} />);
 
-    expect(screen.getByText("Using backup interview voice")).toBeTruthy();
+    expect(screen.getByText("Interview voice could not be prepared. Reload and try again.")).toBeTruthy();
   });
 
   it("shows speech-recognition download progress while the local model loads", () => {

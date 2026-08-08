@@ -1,58 +1,27 @@
 import { prisma } from "@/lib/prisma";
+import { revalidateTag, unstable_cache } from "next/cache";
 import { normalizeTranscriptEvaluation, type TranscriptEvaluationResponse } from "@/lib/interview/evaluation";
 import { interviewTypeSchema, INTERVIEW_TYPE_META, INTERVIEW_TYPE_VALUES, type InterviewType } from "@/lib/interview/domain";
 
 import { env } from "@/lib/env";
 
-const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000;
-const ANALYTICS_CACHE_TTL_MS = 5 * 60 * 1000;
-
-type CacheEntry<T> = {
-  expiresAtMs: number;
-  value: T;
-};
-
-const dashboardCache = new Map<string, CacheEntry<DashboardOverviewData>>();
-const analyticsCache = new Map<string, CacheEntry<AnalyticsOverviewData>>();
+const DASHBOARD_CACHE_TAG = "interview-dashboard-metrics-v1";
+const ANALYTICS_CACHE_TAG = "interview-analytics-metrics-v1";
 
 export function invalidateInterviewMetricsCache(userId: string) {
-  dashboardCache.delete(userId);
-  analyticsCache.delete(userId);
+  if (isTestEnv()) return;
+  revalidateTag(getDashboardCacheTag(userId), "max");
+  revalidateTag(getAnalyticsCacheTag(userId), "max");
 }
 
 export function invalidateAllInterviewMetricsCaches() {
-  dashboardCache.clear();
-  analyticsCache.clear();
+  if (isTestEnv()) return;
+  revalidateTag(DASHBOARD_CACHE_TAG, "max");
+  revalidateTag(ANALYTICS_CACHE_TAG, "max");
 }
 
 function isTestEnv() {
   return env.NODE_ENV === "test";
-}
-
-function readCache<T>(cache: Map<string, CacheEntry<T>>, key: string): T | null {
-  if (isTestEnv()) return null;
-
-  const entry = cache.get(key);
-  if (!entry) return null;
-  if (entry.expiresAtMs <= Date.now()) {
-    cache.delete(key);
-    return null;
-  }
-
-  return entry.value;
-}
-
-function writeCache<T>(
-  cache: Map<string, CacheEntry<T>>,
-  key: string,
-  value: T,
-  ttlMs: number
-) {
-  if (isTestEnv()) return;
-  cache.set(key, {
-    value,
-    expiresAtMs: Date.now() + ttlMs,
-  });
 }
 
 type SessionRecord = {
@@ -528,12 +497,7 @@ function deriveStrengthsAndImprovementsFromTranscripts(transcripts: TranscriptRe
   return { strengths, improvements };
 }
 
-export async function getDashboardOverviewData(userId: string): Promise<DashboardOverviewData> {
-  const cached = readCache(dashboardCache, userId);
-  if (cached) {
-    return cached;
-  }
-
+async function getDashboardOverviewDataUncached(userId: string): Promise<DashboardOverviewData> {
   const sessions = await getUserSessions(userId);
   const now = new Date();
   const last7Days = addDays(now, -7);
@@ -694,7 +658,6 @@ export async function getDashboardOverviewData(userId: string): Promise<Dashboar
     topFocus: insights?.improvements[0] ?? null,
   };
 
-  writeCache(dashboardCache, userId, result, DASHBOARD_CACHE_TTL_MS);
   return result;
 }
 
@@ -706,12 +669,7 @@ const prettifyCategory = (value: string): string => {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-export async function getAnalyticsOverviewData(userId: string): Promise<AnalyticsOverviewData> {
-  const cached = readCache(analyticsCache, userId);
-  if (cached) {
-    return cached;
-  }
-
+async function getAnalyticsOverviewDataUncached(userId: string): Promise<AnalyticsOverviewData> {
   const [allSessions, transcripts, feedbackRows] = await Promise.all([
     getUserSessions(userId),
     getUserTranscripts(userId),
@@ -872,6 +830,33 @@ export async function getAnalyticsOverviewData(userId: string): Promise<Analytic
     feedbackStats,
   };
 
-  writeCache(analyticsCache, userId, result, ANALYTICS_CACHE_TTL_MS);
   return result;
+}
+
+export function getDashboardOverviewData(userId: string): Promise<DashboardOverviewData> {
+  return isTestEnv()
+    ? getDashboardOverviewDataUncached(userId)
+    : unstable_cache(
+        () => getDashboardOverviewDataUncached(userId),
+        ["dashboard-overview-v1", userId],
+        { revalidate: 300, tags: [DASHBOARD_CACHE_TAG, getDashboardCacheTag(userId)] },
+      )();
+}
+
+export function getAnalyticsOverviewData(userId: string): Promise<AnalyticsOverviewData> {
+  return isTestEnv()
+    ? getAnalyticsOverviewDataUncached(userId)
+    : unstable_cache(
+        () => getAnalyticsOverviewDataUncached(userId),
+        ["analytics-overview-v1", userId],
+        { revalidate: 300, tags: [ANALYTICS_CACHE_TAG, getAnalyticsCacheTag(userId)] },
+      )();
+}
+
+function getDashboardCacheTag(userId: string) {
+  return `${DASHBOARD_CACHE_TAG}:${userId}`;
+}
+
+function getAnalyticsCacheTag(userId: string) {
+  return `${ANALYTICS_CACHE_TAG}:${userId}`;
 }

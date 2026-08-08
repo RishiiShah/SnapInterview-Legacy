@@ -29,6 +29,9 @@ describe("buildSystemInstruction", () => {
     expect(instruction).toContain("coding-challenge");
     expect(instruction).toContain("starterCode");
     expect(instruction).toContain("testCases");
+    expect(instruction).toContain('"javascript"');
+    expect(instruction).not.toContain('"python"');
+    expect(instruction).not.toContain("hidden ones");
   });
 
   it("does not include coding challenge instructions for non-coding types", async () => {
@@ -47,6 +50,17 @@ describe("buildSystemInstruction", () => {
     expect(instruction).toContain("Interview type directive:");
     expect(instruction).toContain("scope ownership");
     expect(instruction).toContain("stakeholder management");
+  });
+
+  it("requires the next response to start with a question instead of a recap", async () => {
+    const instruction = await buildSystemInstruction(makePromptSession({
+      type: "behavioral-leadership",
+      currentQuestion: 1,
+      transcript: [{ order: 0, question: "Tell me about a conflict.", answer: "I aligned the team." }],
+    }));
+
+    expect(instruction).toContain("Start immediately with the next interview question");
+    expect(instruction).toContain("Do not recap, summarize, praise, or restate the candidate's prior answer");
   });
 
   it("frames candidate resume and job description as untrusted data", async () => {

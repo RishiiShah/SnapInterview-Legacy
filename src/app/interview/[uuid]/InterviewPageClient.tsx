@@ -17,6 +17,7 @@ export default function InterviewPageClient() {
     interviewDone,
     isUploading,
     totalQuestions,
+    interviewType,
     joinBlockedReason,
     answeredQuestions,
     questionProgressPercent,
@@ -26,6 +27,7 @@ export default function InterviewPageClient() {
     chat,
     tts,
     media,
+    requestPermissions,
     videoRecording,
     audioLevels,
     handlePermissionsGranted,
@@ -52,7 +54,7 @@ export default function InterviewPageClient() {
           hasPermission={media.hasPermission}
           isLoading={media.isLoading}
           error={media.error}
-          requestPermissions={media.requestPermissions}
+          requestPermissions={requestPermissions}
           videoRef={media.videoRef}
           audioInputs={media.audioInputs}
           audioOutputs={media.audioOutputs}
@@ -109,6 +111,7 @@ export default function InterviewPageClient() {
             void chat.sendMessage(text);
           }}
           codingChallenge={codingChallenge}
+          codingInterview={interviewType === "coding-algorithms"}
           onSubmitCode={(message) => {
             tts.cancel();
             void chat.sendMessage(message);

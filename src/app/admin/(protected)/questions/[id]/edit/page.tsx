@@ -42,14 +42,7 @@ export default async function AdminQuestionsEditPage({
         tags: q.tags.join(", "),
         hint: q.hint ?? "",
         sampleAnswer: q.sampleAnswer ?? "",
-        type: q.type,
-        description: q.description ?? "",
-        constraints: q.constraints ?? "",
-        starterCode: q.starterCode as Record<string, string> | undefined,
-        testCases: q.testCases as Array<{ input: string; expectedOutput: string; isHidden: boolean }> | undefined,
-        solutionCode: q.solutionCode as Record<string, string> | undefined,
       }}
     />
   );
 }
-

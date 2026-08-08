@@ -9,12 +9,12 @@
  * Usage:
  *   npx tsx scripts/preview-retrieval.ts --role="Backend Developer"
  *   npx tsx scripts/preview-retrieval.ts \
- *     --role="React Developer" --type=technical \
+ *     --role="React Developer" --type=domain-role \
  *     --resume="5 years React, Redux, performance profiling" \
  *     --jd="Senior frontend engineer. React, TypeScript, SSR, accessibility." \
  *     --answer="I memoized the list and moved state up to avoid re-renders." \
  *     --asked="Explain the use of hooks in React."
- *   npx tsx scripts/preview-retrieval.ts --role="Product Manager" --type=behavioral
+ *   npx tsx scripts/preview-retrieval.ts --role="Product Manager" --type=behavioral-leadership
  */
 import { prisma } from "../src/lib/prisma";
 import type { InterviewType, PromptInterviewSession } from "../src/lib/interview/domain";
@@ -26,7 +26,7 @@ function main() {
   const flag = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.split("=").slice(1).join("=");
 
   const role = flag("role") ?? "Backend Developer";
-  const type = (flag("type") ?? "technical") as InterviewType;
+  const type = (flag("type") ?? "domain-role") as InterviewType;
   const answer = flag("answer") ?? null;
   const asked = (flag("asked") ?? "").split("|").map((q) => q.trim()).filter(Boolean);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useId, useMemo } from "react";
+import { useState, useEffect, useId, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getScoreLabel } from "@/utils/helpers";
@@ -269,14 +269,14 @@ export default function DashboardOverviewClient({
     }
   }, [userId, isFirstLogin]);
 
-  function dismissWelcome() {
+  const dismissWelcome = useCallback(() => {
     try {
       localStorage.setItem(`snap-welcome-dismissed-${userId}`, "1");
     } catch {
       // ignore
     }
     setShowWelcome(false);
-  }
+  }, [userId]);
 
   useEffect(() => {
     if (!showWelcome) return;
@@ -285,7 +285,7 @@ export default function DashboardOverviewClient({
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [showWelcome, userId]);
+  }, [showWelcome, dismissWelcome]);
 
   async function openSession(session: SessionItem) {
     if (isOpening) return;
@@ -604,8 +604,8 @@ export default function DashboardOverviewClient({
                 className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-3 py-3 transition-colors hover:bg-white/[0.04]"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-[#E8ECF4]">Practice coding problems</p>
-                  <p className="text-xs text-[#A8B0C2]">Editor, test cases, and solutions</p>
+                  <p className="text-sm font-medium text-[#E8ECF4]">Explore coding concepts</p>
+                  <p className="text-xs text-[#A8B0C2]">Read-only JavaScript previews and public samples</p>
                 </div>
                 <span className="text-[#A8B0C2]">→</span>
               </Link>

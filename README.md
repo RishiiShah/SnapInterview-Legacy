@@ -33,7 +33,7 @@ The production site is [snapinterview.app](https://snapinterview.app).
    cp .env.example .env
    ```
 
-   At minimum, set `DATABASE_URL`, `AUTH_SECRET`, and `BETTER_AUTH_URL`.
+   At minimum, set `DATABASE_URL`, `AUTH_SECRET`, `BETTER_AUTH_URL`, and `CRON_SECRET`.
    `AUTH_SECRET` and `CRON_SECRET` must be strong, non-placeholder values in production.
 
 3. Generate the Prisma client and apply migrations.
@@ -72,7 +72,7 @@ The production site is [snapinterview.app](https://snapinterview.app).
 - Eight hiring-loop interview types, adjustable difficulty, persona, question count, resume and job-description context, and streamed AI follow-ups.
 - Browser voice interaction: Web Speech API recognition and local Kokoro synthesis when enabled; server-side ElevenLabs synthesis is the fallback.
 - Screen/video recording with direct multipart S3 uploads, session replay, transcripts, evaluations, sharing, and soft deletion.
-- Behavioral, technical, system-design, leadership, and coding practice; coding pages use a browser editor and test results.
+- Behavioral, technical, system-design, and leadership Q&A practice, plus a separate conceptual coding catalog with read-only JavaScript previews and public sample cases.
 - Dashboard analytics, recordings, account settings, onboarding, notifications, search, and protected administrative workflows.
 
 ## Architecture
@@ -85,7 +85,7 @@ Next.js route handler → service → repository → Prisma → PostgreSQL
 
 Route handlers own HTTP concerns; services own interview and evaluation workflows; repositories isolate persistence. Client state for the interview room is composed from specialized React hooks rather than a global client-state store.
 
-Detailed local references, when present, are available in `docs/architecture.md`, `docs/PRODUCT.md`, and `docs/DESIGN.md`. `docs/` is intentionally ignored in this repository, so those files are maintained with the workspace rather than published as tracked repository content.
+The tracked product and design references are `docs/PRODUCT.md` and `docs/DESIGN.md`. The singular Q&A/Coding implementation specification is also tracked under `docs/superpowers/specs/`.
 
 ## Environment
 
@@ -122,6 +122,6 @@ Deploy the Next.js app to Vercel and configure the variables from `.env.example`
 
 | Endpoint | Schedule (UTC) | Purpose |
 | --- | --- | --- |
-| `/api/cron/cleanup` | Daily at 02:00 | Permanently remove expired soft-deleted sessions. |
+| `/api/cron/cleanup` | Daily at 02:00 | Remove a bounded batch of expired rate-limit buckets. |
 | `/api/cron/practice-reminder` | Daily at 09:00 | Send practice reminders. |
 | `/api/cron/weekly-report` | Monday at 08:00 | Send weekly progress reports. |

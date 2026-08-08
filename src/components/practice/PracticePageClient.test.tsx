@@ -5,10 +5,18 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PracticePageClient from "./PracticePageClient";
 
-const routerPush = vi.hoisted(() => vi.fn());
+const { routerPush, preloadKokoro } = vi.hoisted(() => ({
+  routerPush: vi.fn(),
+  preloadKokoro: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: routerPush }),
+}));
+
+vi.mock("@/lib/tts/browser-tts", () => ({ isLocalTtsEnabled: () => true }));
+vi.mock("@/lib/tts/kokoro-worker-client", () => ({
+  getSharedKokoroWorkerClient: () => ({ preload: preloadKokoro }),
 }));
 
 vi.mock("framer-motion", () => {
@@ -51,6 +59,8 @@ function jsonResponse(body: Record<string, unknown>) {
 describe("PracticePageClient", () => {
   beforeEach(() => {
     routerPush.mockReset();
+    preloadKokoro.mockReset();
+    preloadKokoro.mockResolvedValue(undefined);
     localStorage.clear();
     sessionStorage.clear();
     vi.stubGlobal("fetch", vi.fn(async (url: string | URL | Request) => {
@@ -105,6 +115,8 @@ describe("PracticePageClient", () => {
       questionCount: 10,
     });
     expect(payload.company).toBeUndefined();
+    expect(preloadKokoro).toHaveBeenCalledTimes(1);
+    expect(preloadKokoro.mock.invocationCallOrder[0]).toBeLessThan(routerPush.mock.invocationCallOrder[0]!);
     expect(routerPush).toHaveBeenCalledWith("/interview/interview-1");
   });
 });

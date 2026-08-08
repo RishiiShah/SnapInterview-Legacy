@@ -22,12 +22,12 @@ function SessionPreview() {
               Mid-level software engineer
             </p>
             <p className="mt-0.5 text-[0.65rem] text-zinc-600">
-              Coding in progress
+              Coding discussion review
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
             <span className="rounded-full bg-sky-200/80 px-2.5 py-1 text-[0.6rem] font-semibold text-sky-900">
-              Pass
+              Reviewed
             </span>
             <p className="text-[0.6rem] tabular-nums text-zinc-600">
               Overall <span className="font-semibold text-zinc-800">8.1</span>
@@ -117,25 +117,25 @@ function SessionPreview() {
             AI: Walk me through your approach before you write any code, including data structures and edge cases.
           </p>
           <p className="text-[0.65rem] leading-snug text-zinc-700">
-            You: I&apos;d start with a hash map keyed by value to index for O(1) lookups, scan once for the complement, then verify empty arrays, single elements, and negatives before coding..
+            You: I&apos;d start with a hash map keyed by value to index for O(1) lookups, scan once for the complement, then verify empty arrays, single elements, and negatives.
           </p>
           <p className="text-[0.65rem] leading-snug text-violet-800">
             AI: What happens if the input contains duplicates, and how does that change your map strategy?
           </p>
           <p className="text-[0.65rem] leading-snug text-zinc-700">
-            You: I&apos;d store only the first-seen index for each value so later duplicates still resolve to a valid pair without rewriting the loop or adding a second pass..
+            You: I&apos;d store only the first-seen index for each value so later duplicates still resolve to a valid pair without rewriting the loop or adding a second pass.
           </p>
           <p className="text-[0.65rem] leading-snug text-violet-800">
-            AI: Could you sketch the time and space complexity before we move into the implementation?
+            AI: Could you sketch the time and space complexity before we compare the public sample?
           </p>
           <p className="text-[0.65rem] leading-snug text-zinc-700">
-            You: Time stays O(n) for one linear scan with constant-time map ops, and space is O(n) in the worst case when every value is unique and lands in the map..
+            You: Time stays O(n) for one linear scan with constant-time map ops, and space is O(n) in the worst case when every value is unique and lands in the map.
           </p>
         </div>
 
         <div className="mt-2.5 flex items-center gap-3">
           <p className="shrink-0 text-[0.55rem] text-zinc-600">
-            Mid-session · coding live
+            Mid-session · coding discussion
           </p>
           <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-500/25">
             <div className="h-full w-[57%] rounded-full bg-blue-600" />
@@ -152,24 +152,24 @@ export default function CTASection() {
     <section id="get-started" className="landing-section relative z-10 bg-[#090A0F] py-8 md:py-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-8 border-t border-white/[0.08] pt-5 space-y-2.5 text-center">
-          <LandingFadeOnly triggerOnView>
+          <LandingFadeOnly triggerOnView delay={0.10}>
             <span className="text-xs font-semibold uppercase tracking-[0.25em] text-violet-400">
               Get Started
             </span>
           </LandingFadeOnly>
-          <LandingFadeOnly triggerOnView delay={0.07}>
+          <LandingFadeOnly triggerOnView delay={0.22}>
             <h2 className="font-serif text-3xl leading-tight tracking-[-0.03em] text-[#E2E8F0] sm:text-4xl lg:text-5xl">
               Practice before the interview that counts.
             </h2>
           </LandingFadeOnly>
-          <LandingFadeOnly triggerOnView delay={0.16} className="mx-auto max-w-5xl">
+          <LandingFadeOnly triggerOnView delay={0.32} className="mx-auto max-w-5xl">
             <p className="text-sm leading-relaxed text-[#CBD5E1] lg:whitespace-nowrap">
               Create a free account, practice out loud on mic and video, then scrub the recording and transcript before the real interview.
             </p>
           </LandingFadeOnly>
         </div>
 
-        <LandingScaleIn triggerOnView scaleFrom={0.98} duration={1.01} delay={0.11}>
+        <LandingScaleIn triggerOnView scaleFrom={0.98} duration={0.99} delay={0.37}>
         <div className="relative overflow-hidden rounded-[2rem] border border-white/[0.1] bg-[#111318] sm:rounded-[2.5rem]">
           <div
             className="pointer-events-none absolute inset-0 opacity-40"
@@ -216,7 +216,7 @@ export default function CTASection() {
           </svg>
 
           <div className="relative grid items-start gap-8 px-6 py-12 sm:px-10 sm:py-14 lg:grid-cols-[1fr_1.15fr] lg:gap-6 lg:px-12 lg:py-14 lg:pr-14 xl:px-14 xl:pr-16">
-            <LandingFadeOnly triggerOnView delay={0.16} className="max-w-xl">
+            <LandingFadeOnly triggerOnView delay={0.42} className="max-w-xl">
               <div className="mb-6 h-1 w-10 rounded-full bg-blue-500" aria-hidden="true" />
               <h3 className="font-serif text-[2rem] leading-[1.12] tracking-[-0.03em] text-[#E2E8F0] sm:text-4xl lg:text-[2.5rem]">
                 Ready to simplify interview prep?
@@ -245,8 +245,8 @@ export default function CTASection() {
             <LandingFadeIn
               triggerOnView
               direction="left"
-              delay={0.27}
-              duration={1.15}
+              delay={0.57}
+              duration={1.22}
               className="relative flex items-start justify-end overflow-visible pt-2 pb-6 pr-1 sm:pr-2"
             >
               <div className="pointer-events-none absolute right-0 top-4 h-32 w-32 rounded-full bg-blue-500/15 blur-3xl" />

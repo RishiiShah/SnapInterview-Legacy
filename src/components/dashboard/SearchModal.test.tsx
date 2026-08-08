@@ -97,7 +97,7 @@ describe("SearchModal", () => {
         id: 2,
         slug: "two-sum",
         text: "Two Sum",
-        category: "coding",
+        category: null,
         difficulty: "Easy",
         type: "coding",
       }],
@@ -113,6 +113,31 @@ describe("SearchModal", () => {
       expect(screen.getByText("Two Sum")).not.toBeNull();
     });
     expect(screen.getByRole("link", { name: /Two Sum/i }).getAttribute("href")).toBe("/coding/two-sum");
+  });
+
+  it("does not route a Q&A result through coding based on a legacy category", async () => {
+    vi.mocked(fetch).mockResolvedValue(mockSearchResponse({
+      sessions: [],
+      questions: [{
+        id: 3,
+        slug: "legacy-category",
+        text: "Legacy category question",
+        category: "coding",
+        difficulty: "Easy",
+        type: "question",
+      }],
+    }));
+
+    render(<SearchModal onClose={vi.fn()} />);
+    fireEvent.change(screen.getByPlaceholderText(/search interviews/i), {
+      target: { value: "legacy" },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Legacy category question")).not.toBeNull();
+    });
+    expect(screen.getByRole("link", { name: /Legacy category question/i }).getAttribute("href"))
+      .toBe("/questions/legacy-category");
   });
 
   it("renders an empty state when no static or dynamic results match", async () => {

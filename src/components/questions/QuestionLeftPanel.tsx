@@ -10,7 +10,6 @@ import {
   IconLightBulb,
   IconTag,
 } from "@/components/ui/icons";
-import { QuestionExamples } from "@/components/questions/QuestionExamples";
 import { cn } from "@/lib/utils";
 
 export type LeftTab = "description" | "solutions";
@@ -124,7 +123,21 @@ export function QuestionLeftPanel({
                 ) : null}
               </div>
 
-              <div className="mt-3 flex flex-wrap items-center gap-2">
+            </div>
+
+            <div className="space-y-3 text-[15px] leading-relaxed text-[#D5DBE8]">
+              <p>
+                Prepare a structured response. Lead with the situation, your actions, and the
+                outcome, then tie it back to the competency this question probes.
+              </p>
+              <p className="text-sm text-[#A8B0C2]">
+                Use the timer on the right to rehearse under interview pressure. Hints and a
+                sample answer are available below when you need a nudge.
+              </p>
+            </div>
+
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
                 <span
                   className={cn(
                     "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
@@ -178,42 +191,6 @@ export function QuestionLeftPanel({
                   {question.sampleAnswer}
                 </div>
               ) : null}
-            </div>
-
-            <div className="space-y-5 text-[15px] leading-relaxed text-[#D5DBE8]">
-              {question.type === "coding" && question.description ? (
-                <>
-                  <div className="whitespace-pre-wrap">{question.description}</div>
-                  {question.testCases && question.testCases.length > 0 ? (
-                    <QuestionExamples testCases={question.testCases} />
-                  ) : null}
-                  {question.constraints ? (
-                    <div>
-                      <p className="mb-2 text-sm font-semibold text-[#F2F4F8]">Constraints:</p>
-                      <ul className="list-disc space-y-1 pl-5 font-mono text-[13px] text-[#C5CBD8]">
-                        {question.constraints
-                          .split("\n")
-                          .map((line) => line.trim())
-                          .filter(Boolean)
-                          .map((line) => (
-                            <li key={line}>{line}</li>
-                          ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                </>
-              ) : (
-                <div className="space-y-3">
-                  <p>
-                    Prepare a structured response. Lead with the situation, your actions, and the
-                    outcome, then tie it back to the competency this question probes.
-                  </p>
-                  <p className="text-sm text-[#A8B0C2]">
-                    Use the timer on the right to rehearse under interview pressure. Hints and a
-                    sample answer are available above when you need a nudge.
-                  </p>
-                </div>
-              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-white/[0.06] pt-4 text-xs text-[#A8B0C2]">

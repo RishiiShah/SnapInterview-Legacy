@@ -33,12 +33,6 @@ export default function SettingsPage() {
   const { notificationPrefs, onboardingPrefs, isLoaded } = useSettingsBootstrap();
 
   useEffect(() => {
-    if (tabParam && tabs.some((t) => t.id === tabParam)) {
-      setActiveTab(tabParam);
-    }
-  }, [tabParam]);
-
-  useEffect(() => {
     if (!isPending && !session) {
       router.push("/login");
     }

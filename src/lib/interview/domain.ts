@@ -118,6 +118,9 @@ export type InterviewQuestionCount = z.infer<typeof interviewQuestionCountSchema
 export type PromptInterviewSession = {
   role: string;
   company: string | null;
+  // Optional: used only to exclude questions this user has already been asked
+  // in earlier sessions. Retrieval degrades to session-local exclusion without it.
+  userId?: string | null;
   type: InterviewType;
   difficulty: Difficulty;
   persona?: InterviewPersona | null;
@@ -138,6 +141,7 @@ export type PromptInterviewSession = {
 export function normalizePromptInterviewSession(session: {
   role: string;
   company: string | null;
+  userId?: string | null;
   type: string;
   difficulty: string;
   persona?: string | null;

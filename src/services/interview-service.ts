@@ -230,7 +230,9 @@ export async function runInterviewChat(params: {
     };
   }
 
-  const promptInterviewSession = normalizePromptInterviewSession(interviewSession);
+  // userId is threaded through so retrieval can exclude questions this user was
+  // already asked in earlier sessions. The "chat" view does not select it.
+  const promptInterviewSession = normalizePromptInterviewSession({ ...interviewSession, userId });
   if (!promptInterviewSession) {
     logger.error("Interview session contains invalid domain values", { interviewId });
     return { type: "error", message: "Interview session is invalid. Please start a new session." };

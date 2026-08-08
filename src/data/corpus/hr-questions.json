@@ -1,0 +1,452 @@
+[
+  {
+    "question": "Describe a time you failed and what you learned from it.",
+    "category": "Adaptability",
+    "keywords": [
+      "change",
+      "flexible",
+      "adjust",
+      "learn",
+      "new"
+    ]
+  },
+  {
+    "question": "How do you react to sudden changes in priorities?",
+    "category": "Adaptability",
+    "keywords": [
+      "adjust",
+      "change",
+      "flexible",
+      "new",
+      "learn"
+    ]
+  },
+  {
+    "question": "How do you stay updated with industry trends?",
+    "category": "Adaptability",
+    "keywords": [
+      "learn",
+      "adjust",
+      "new",
+      "change",
+      "flexible"
+    ]
+  },
+  {
+    "question": "Tell me about a time you had to learn something completely new quickly.",
+    "category": "Adaptability",
+    "keywords": [
+      "flexible",
+      "change",
+      "adjust",
+      "learn",
+      "new"
+    ]
+  },
+  {
+    "question": "What's the most significant change you've had to adapt to at work?",
+    "category": "Adaptability",
+    "keywords": [
+      "learn",
+      "adjust",
+      "flexible",
+      "new",
+      "change"
+    ]
+  },
+  {
+    "question": "How does this role fit into your career path?",
+    "category": "Career Goals",
+    "keywords": [
+      "dream",
+      "plan",
+      "future",
+      "aspiration",
+      "next step"
+    ]
+  },
+  {
+    "question": "What are your long-term career aspirations?",
+    "category": "Career Goals",
+    "keywords": [
+      "next step",
+      "aspiration",
+      "future",
+      "dream",
+      "plan"
+    ]
+  },
+  {
+    "question": "What kind of growth opportunities are you looking for?",
+    "category": "Career Goals",
+    "keywords": [
+      "dream",
+      "plan",
+      "next step",
+      "future",
+      "aspiration"
+    ]
+  },
+  {
+    "question": "What skills do you hope to develop in your next role?",
+    "category": "Career Goals",
+    "keywords": [
+      "future",
+      "aspiration",
+      "dream",
+      "plan",
+      "next step"
+    ]
+  },
+  {
+    "question": "Where do you see yourself in 5 years?",
+    "category": "Career Goals",
+    "keywords": [
+      "aspiration",
+      "dream",
+      "next step",
+      "plan",
+      "future"
+    ]
+  },
+  {
+    "question": "Describe a time you handled a difficult situation professionally.",
+    "category": "Conflict Resolution",
+    "keywords": [
+      "problem",
+      "disagree",
+      "challenge",
+      "conflict",
+      "resolve"
+    ]
+  },
+  {
+    "question": "How do you deal with feedback that you disagree with?",
+    "category": "Conflict Resolution",
+    "keywords": [
+      "resolve",
+      "conflict",
+      "challenge",
+      "problem",
+      "disagree"
+    ]
+  },
+  {
+    "question": "How do you respond when a teammate isn't pulling their weight?",
+    "category": "Conflict Resolution",
+    "keywords": [
+      "challenge",
+      "disagree",
+      "problem",
+      "resolve",
+      "conflict"
+    ]
+  },
+  {
+    "question": "Tell me about a conflict you had with a coworker and how you resolved it.",
+    "category": "Conflict Resolution",
+    "keywords": [
+      "problem",
+      "disagree",
+      "conflict",
+      "resolve",
+      "challenge"
+    ]
+  },
+  {
+    "question": "What would you do if you disagreed with your manager?",
+    "category": "Conflict Resolution",
+    "keywords": [
+      "challenge",
+      "problem",
+      "conflict",
+      "resolve",
+      "disagree"
+    ]
+  },
+  {
+    "question": "Describe a time you felt out of place in a workplace culture.",
+    "category": "Culture Fit",
+    "keywords": [
+      "value",
+      "environment",
+      "company",
+      "belief",
+      "culture",
+      "fit"
+    ]
+  },
+  {
+    "question": "How do you align with our company values?",
+    "category": "Culture Fit",
+    "keywords": [
+      "company",
+      "fit",
+      "culture",
+      "value",
+      "belief",
+      "environment"
+    ]
+  },
+  {
+    "question": "How do you contribute to a positive team environment?",
+    "category": "Culture Fit",
+    "keywords": [
+      "culture",
+      "environment",
+      "value",
+      "belief",
+      "company",
+      "fit"
+    ]
+  },
+  {
+    "question": "What are your expectations from leadership in a company?",
+    "category": "Culture Fit",
+    "keywords": [
+      "fit",
+      "company",
+      "belief",
+      "environment",
+      "value",
+      "culture"
+    ]
+  },
+  {
+    "question": "What type of company culture do you thrive in?",
+    "category": "Culture Fit",
+    "keywords": [
+      "company",
+      "culture",
+      "value",
+      "environment",
+      "belief",
+      "fit"
+    ]
+  },
+  {
+    "question": "Describe a time you led a project or team.",
+    "category": "Leadership",
+    "keywords": [
+      "mentor",
+      "manage",
+      "lead",
+      "supervise",
+      "guide"
+    ]
+  },
+  {
+    "question": "How do you delegate tasks effectively?",
+    "category": "Leadership",
+    "keywords": [
+      "supervise",
+      "manage",
+      "lead",
+      "guide",
+      "mentor"
+    ]
+  },
+  {
+    "question": "How do you motivate others in a leadership role?",
+    "category": "Leadership",
+    "keywords": [
+      "guide",
+      "mentor",
+      "manage",
+      "lead",
+      "supervise"
+    ]
+  },
+  {
+    "question": "Tell me about a time you mentored someone.",
+    "category": "Leadership",
+    "keywords": [
+      "manage",
+      "mentor",
+      "lead",
+      "supervise",
+      "guide"
+    ]
+  },
+  {
+    "question": "What makes a good leader in your opinion?",
+    "category": "Leadership",
+    "keywords": [
+      "mentor",
+      "guide",
+      "lead",
+      "manage",
+      "supervise"
+    ]
+  },
+  {
+    "question": "How do you stay motivated during repetitive tasks?",
+    "category": "Motivation",
+    "keywords": [
+      "inspiration",
+      "passion",
+      "reason",
+      "drive",
+      "goal",
+      "why"
+    ]
+  },
+  {
+    "question": "Tell me about a time you were highly motivated to achieve a goal.",
+    "category": "Motivation",
+    "keywords": [
+      "goal",
+      "reason",
+      "passion",
+      "drive",
+      "why",
+      "inspiration"
+    ]
+  },
+  {
+    "question": "What drives your passion for this field?",
+    "category": "Motivation",
+    "keywords": [
+      "reason",
+      "why",
+      "drive",
+      "inspiration",
+      "passion",
+      "goal"
+    ]
+  },
+  {
+    "question": "What motivates you to come to work every day?",
+    "category": "Motivation",
+    "keywords": [
+      "why",
+      "reason",
+      "inspiration",
+      "passion",
+      "goal",
+      "drive"
+    ]
+  },
+  {
+    "question": "Why do you want to work at our company?",
+    "category": "Motivation",
+    "keywords": [
+      "inspiration",
+      "why",
+      "reason",
+      "passion",
+      "goal",
+      "drive"
+    ]
+  },
+  {
+    "question": "Describe a project where teamwork was essential to success.",
+    "category": "Team Collaboration",
+    "keywords": [
+      "partner",
+      "team",
+      "group",
+      "collaboration",
+      "cooperate"
+    ]
+  },
+  {
+    "question": "How do you build trust with new teammates?",
+    "category": "Team Collaboration",
+    "keywords": [
+      "cooperate",
+      "team",
+      "partner",
+      "collaboration",
+      "group"
+    ]
+  },
+  {
+    "question": "How do you handle disagreements within a team?",
+    "category": "Team Collaboration",
+    "keywords": [
+      "partner",
+      "group",
+      "team",
+      "cooperate",
+      "collaboration"
+    ]
+  },
+  {
+    "question": "Tell me about a time you worked well within a team.",
+    "category": "Team Collaboration",
+    "keywords": [
+      "team",
+      "collaboration",
+      "group",
+      "partner",
+      "cooperate"
+    ]
+  },
+  {
+    "question": "What role do you usually play in group settings?",
+    "category": "Team Collaboration",
+    "keywords": [
+      "team",
+      "cooperate",
+      "partner",
+      "group",
+      "collaboration"
+    ]
+  },
+  {
+    "question": "Describe your ideal workday.",
+    "category": "Work Style",
+    "keywords": [
+      "method",
+      "workflow",
+      "tool",
+      "process",
+      "daily routine"
+    ]
+  },
+  {
+    "question": "Do you prefer working independently or in teams? Why?",
+    "category": "Work Style",
+    "keywords": [
+      "workflow",
+      "process",
+      "method",
+      "tool",
+      "daily routine"
+    ]
+  },
+  {
+    "question": "How do you ensure productivity when working remotely?",
+    "category": "Work Style",
+    "keywords": [
+      "process",
+      "tool",
+      "method",
+      "daily routine",
+      "workflow"
+    ]
+  },
+  {
+    "question": "How do you organize and prioritize your daily tasks?",
+    "category": "Work Style",
+    "keywords": [
+      "tool",
+      "process",
+      "workflow",
+      "daily routine",
+      "method"
+    ]
+  },
+  {
+    "question": "What tools or methods help you stay organized?",
+    "category": "Work Style",
+    "keywords": [
+      "daily routine",
+      "method",
+      "tool",
+      "process",
+      "workflow"
+    ]
+  }
+]

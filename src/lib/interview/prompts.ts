@@ -2,6 +2,7 @@ import { promises as fs, existsSync } from "fs";
 import path from "path";
 import { z } from "zod";
 import type { PromptInterviewSession } from "@/lib/interview/domain";
+import { formatRetrievedQuestions, retrieveQuestionsForSession } from "@/lib/rag/retrieve";
 import { logger } from "@/utils/logger";
 
 const DEFAULT_CORE_PROMPT = "You are a realistic mock interviewer. Ask exactly one question at a time, keep responses concise, and adapt follow-ups to the candidate's last answer.";
@@ -168,11 +169,14 @@ export async function buildSystemInstruction(interviewSession: PromptInterviewSe
 
   let systemInstruction = "";
 
-  const [coreInstruction, roleInstruction, defaultRoleInstruction] = await Promise.all([
-    loadPromptInstruction(corePromptPath),
-    loadPromptInstruction(specificRolePath),
-    loadPromptInstruction(defaultRolePath),
-  ]);
+  const [coreInstruction, roleInstruction, defaultRoleInstruction, retrievedQuestions] =
+    await Promise.all([
+      loadPromptInstruction(corePromptPath),
+      loadPromptInstruction(specificRolePath),
+      loadPromptInstruction(defaultRolePath),
+      // Best-effort: resolves to [] on failure or timeout rather than throwing.
+      retrieveQuestionsForSession(interviewSession),
+    ]);
 
   if (coreInstruction) {
     systemInstruction += `${coreInstruction}\n\n`;
@@ -232,6 +236,13 @@ export async function buildSystemInstruction(interviewSession: PromptInterviewSe
     if (latestAnswerSignal === "strong") {
       systemInstruction += "The candidate handled the previous answer well. Escalate the next question slightly in complexity or breadth.\n";
     }
+  }
+
+  // Placed with the interviewer's own guidance, ahead of the untrusted candidate
+  // blocks below, so corpus content is never mistaken for candidate input.
+  const retrievedBlock = formatRetrievedQuestions(retrievedQuestions);
+  if (retrievedBlock) {
+    systemInstruction += `\n${retrievedBlock}\n`;
   }
 
   if (resumeText) {

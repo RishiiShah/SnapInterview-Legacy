@@ -61,3 +61,5 @@ next-env.d.ts
 .code-review-graph/
 
 .mcp.json
+# RAG retrieval traces (local diagnostics)
+rag-trace*.jsonl

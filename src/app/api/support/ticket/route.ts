@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/server-auth";
+import { getServerAuthSession } from "@/lib/server-auth";
 import { sendSupportTicketEmail } from "@/lib/email";
 import { withCsrfProtection } from "@/lib/route-security";
 import { logger } from "@/utils/logger";
 
 export const POST = withCsrfProtection(async (request: NextRequest) => {
   try {
-    const session = await getServerSession();
+    const session = await getServerAuthSession();
     if (!session?.user?.email) {
       return NextResponse.json(
         { error: "Authentication required to submit a support ticket" },
@@ -43,7 +43,9 @@ export const POST = withCsrfProtection(async (request: NextRequest) => {
         attachmentBase64,
       });
     } catch (emailErr) {
-      logger.error("Failed to send support ticket email via SMTP:", emailErr);
+      logger.error("Failed to send support ticket email via SMTP", {
+        error: emailErr instanceof Error ? emailErr.message : String(emailErr),
+      });
     }
 
     return NextResponse.json({
@@ -52,7 +54,9 @@ export const POST = withCsrfProtection(async (request: NextRequest) => {
       message: "Ticket submitted successfully",
     });
   } catch (err) {
-    logger.error("Error processing support ticket:", err);
+    logger.error("Error processing support ticket", {
+      error: err instanceof Error ? err.message : String(err),
+    });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

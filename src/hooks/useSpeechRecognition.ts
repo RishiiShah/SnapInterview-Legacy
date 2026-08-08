@@ -1,267 +1,103 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { selectSttEngine } from "@/lib/stt/browser-stt";
+import { createWebSpeechEngine } from "@/lib/stt/web-speech-engine";
+import { createLocalSttEngine } from "@/lib/stt/local-stt-engine";
+import { createMicRecorder } from "@/lib/stt/capture";
+import { getSharedMoonshineWorkerClient } from "@/lib/stt/moonshine-worker-client";
+import { initialSttState, type SttEngine, type SttState } from "@/lib/stt/stt-engine";
+import type { SttWorkerStatus } from "@/lib/stt/stt-messages";
 
-type RecognitionAlternative = {
-    transcript: string;
-};
+const UNSUPPORTED_MESSAGE =
+  "Speech recognition is unavailable in this browser. Use Chrome or Edge for voice answers.";
 
-type RecognitionResult = {
-    isFinal: boolean;
-    [index: number]: RecognitionAlternative;
-};
+export function useSpeechRecognition(options?: { audioDeviceId?: string }) {
+  const [state, setState] = useState<SttState>(() =>
+    selectSttEngine() === "none"
+      ? { ...initialSttState, error: UNSUPPORTED_MESSAGE }
+      : initialSttState,
+  );
+  const [hasSupport] = useState<boolean>(() => selectSttEngine() !== "none");
+  // Web Speech has no download, so it's "ready" at once; local starts "idle" and
+  // the worker client's status subscription drives it from there.
+  const [sttStatus, setSttStatus] = useState<SttWorkerStatus>(() => {
+    const choice = selectSttEngine();
+    return choice === "web-speech" ? "ready" : choice === "none" ? "error" : "idle";
+  });
 
-type RecognitionResultList = {
-    length: number;
-    [index: number]: RecognitionResult;
-};
+  const engineRef = useRef<SttEngine | null>(null);
+  const recordingRef = useRef(false);
+  // Read at recording start (not at mount), so the latest selected mic wins.
+  const audioDeviceIdRef = useRef<string | undefined>(options?.audioDeviceId);
 
-type RecognitionEvent = {
-    resultIndex: number;
-    results: RecognitionResultList;
-};
+  useEffect(() => {
+    recordingRef.current = state.isRecording;
+  }, [state.isRecording]);
 
-type RecognitionErrorEvent = {
-    error?: string;
-};
+  useEffect(() => {
+    audioDeviceIdRef.current = options?.audioDeviceId;
+  }, [options?.audioDeviceId]);
 
-type RecognitionLike = {
-    continuous: boolean;
-    interimResults: boolean;
-    lang: string;
-    onresult: ((event: RecognitionEvent) => void) | null;
-    onerror: ((event: RecognitionErrorEvent) => void) | null;
-    onend: (() => void) | null;
-    start: () => void;
-    stop: () => void;
-};
+  useEffect(() => {
+    const choice = selectSttEngine();
 
-type SpeechRecognitionConstructor = new () => RecognitionLike;
+    // "none" state is set up via the useState initializers above.
+    if (choice === "none") return;
 
-type SpeechWindow = Window & {
-    SpeechRecognition?: SpeechRecognitionConstructor;
-    webkitSpeechRecognition?: SpeechRecognitionConstructor;
-};
+    let engine: SttEngine;
+    let unsubscribeStatus: (() => void) | undefined;
 
-type SpeechRecognitionErrorCode =
-    | "aborted"
-    | "audio-capture"
-    | "bad-grammar"
-    | "language-not-supported"
-    | "network"
-    | "no-speech"
-    | "not-allowed"
-    | "service-not-allowed";
-
-function getSpeechErrorMessage(errorCode?: string): string {
-    switch (errorCode as SpeechRecognitionErrorCode | undefined) {
-        case "network":
-            return "Speech recognition network error. In Brave, disable Shields for this site and allow microphone access, then retry.";
-        case "not-allowed":
-        case "service-not-allowed":
-            return "Microphone or speech service permission was denied. Please allow access and try again.";
-        case "audio-capture":
-            return "No microphone input detected. Check your selected microphone and browser permissions.";
-        case "no-speech":
-            return "No speech was detected. Please speak clearly and try again.";
-        case "language-not-supported":
-            return "Selected speech language is not supported in this browser.";
-        default:
-            return "Speech recognition is unavailable in this browser. Use Chrome or Edge for voice answers.";
+    if (choice === "web-speech") {
+      engine = createWebSpeechEngine();
+    } else {
+      const client = getSharedMoonshineWorkerClient();
+      engine = createLocalSttEngine({
+        createRecorder: () => createMicRecorder(audioDeviceIdRef.current),
+        client,
+      });
+      unsubscribeStatus = client.subscribe(setSttStatus);
+      // Preload the model during PreJoin so it's cached before the interview.
+      // Failures surface through the status subscription above.
+      void client.preload().catch(() => {});
     }
-}
 
-export function useSpeechRecognition() {
-    const [hasSupport] = useState<boolean>(() => {
-        if (typeof window === "undefined") return false;
-        const speechWindow = window as SpeechWindow;
-        return Boolean(speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition);
-    });
+    engineRef.current = engine;
+    const unsubscribe = engine.subscribe(setState);
 
-    const [isRecording, setIsRecording] = useState(false);
-    const [interimTranscript, setInterimTranscript] = useState("");
-    const [volatileTranscript, setVolatileTranscript] = useState("");
-    const [finalTranscriptBlock, setFinalTranscriptBlock] = useState("");
-    const [speechError, setSpeechError] = useState<string | null>(
-        hasSupport
-            ? null
-            : "Speech recognition is unavailable in this browser. Use Chrome or Edge for voice answers."
-    );
-
-    const recognitionRef = useRef<RecognitionLike | null>(null);
-    const fullTranscriptRef = useRef<string>("");
-    const isIntentionalRecordingRef = useRef<boolean>(false);
-    const userStoppedRef = useRef<boolean>(false);
-    const recognitionActiveRef = useRef<boolean>(false);
-
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const speechWindow = window as SpeechWindow;
-            const SpeechRecognition = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
-            if (SpeechRecognition) {
-                const recognition = new SpeechRecognition();
-                recognition.continuous = true;
-                recognition.interimResults = true;
-                recognition.lang = "en-US";
-
-                recognition.onresult = (event: RecognitionEvent) => {
-                    setSpeechError(null);
-                    let currentInterim = '';
-                    let currentFinal = '';
-                    for (let i = event.resultIndex; i < event.results.length; ++i) {
-                        if (event.results[i].isFinal) {
-                            currentFinal += event.results[i][0].transcript;
-                        } else {
-                            currentInterim += event.results[i][0].transcript;
-                        }
-                    }
-
-                    if (currentFinal) {
-                        const currentObj = fullTranscriptRef.current;
-                        fullTranscriptRef.current = currentObj + (currentObj.endsWith(' ') || currentFinal.startsWith(' ') || currentObj === '' ? '' : ' ') + currentFinal;
-                        setInterimTranscript(fullTranscriptRef.current);
-                    }
-                    setVolatileTranscript(currentInterim);
-                };
-
-                recognition.onerror = (event: RecognitionErrorEvent) => {
-                    const errorCode = event?.error;
-
-                    // Benign / expected during continuous listening — don't surface as app errors.
-                    // "no-speech": user paused; recognition will end and we auto-restart.
-                    // "aborted": stop() / restart race.
-                    if (errorCode === "no-speech" || errorCode === "aborted") {
-                      return;
-                    }
-
-                    console.error("Speech recognition error", errorCode);
-
-                    setSpeechError(getSpeechErrorMessage(errorCode));
-                    setIsRecording(false);
-                    isIntentionalRecordingRef.current = false;
-                    recognitionActiveRef.current = false;
-                };
-
-                recognition.onend = () => {
-                    // If the user didn't explicitly stop and recording is still intentional,
-                    // auto-restart (e.g., after "no-speech" or transient network dip).
-                    if (isIntentionalRecordingRef.current && !userStoppedRef.current && recognitionRef.current) {
-                      try {
-                        recognitionRef.current.start();
-                        recognitionActiveRef.current = true;
-                        return;
-                      } catch (err) {
-                        console.error("Auto-restart failed:", err);
-                      }
-                    }
-
-                    // User explicitly clicked stop → publish the transcript
-                    const shouldPublishTranscript = userStoppedRef.current || isIntentionalRecordingRef.current;
-                    isIntentionalRecordingRef.current = false;
-                    userStoppedRef.current = false;
-                    recognitionActiveRef.current = false;
-                    setIsRecording(false);
-
-                    if (shouldPublishTranscript) {
-                        const finalStr = fullTranscriptRef.current.trim();
-                        if (finalStr) {
-                            setFinalTranscriptBlock(finalStr);
-                        }
-                    }
-
-                    fullTranscriptRef.current = "";
-                    setInterimTranscript("");
-                    setVolatileTranscript("");
-                };
-
-                recognitionRef.current = recognition;
-            }
-        }
-
-        return () => {
-            if (recognitionRef.current) {
-                recognitionRef.current.onend = null;
-                try {
-                    recognitionRef.current.stop();
-                } catch {
-                    // Ignore stop errors during teardown when recognition is already inactive.
-                }
-            }
-        };
-    }, []);
-
-    const startRecording = useCallback(() => {
-        if (!recognitionRef.current) {
-            setSpeechError("Speech recognition is unavailable in this browser. Use Chrome or Edge for voice answers.");
-            return;
-        }
-        if (recognitionActiveRef.current || isRecording) {
-            return;
-        }
-        setFinalTranscriptBlock(""); // Clear the last finalized block on new start
-        setInterimTranscript("");
-        setVolatileTranscript("");
-        fullTranscriptRef.current = "";
-        isIntentionalRecordingRef.current = true;
-        setIsRecording(true);
-        setSpeechError(null);
-
-        try {
-            recognitionRef.current.start();
-            recognitionActiveRef.current = true;
-        } catch (e) {
-            console.error("Failed to start recognition", e);
-            setSpeechError("Unable to start speech recognition. Please retry or switch to Chrome/Edge.");
-            setIsRecording(false);
-            isIntentionalRecordingRef.current = false;
-            recognitionActiveRef.current = false;
-        }
-    }, [isRecording]);
-
-    const stopRecording = useCallback(() => {
-        if (!recognitionRef.current || !recognitionActiveRef.current) return;
-
-        // Capture any remaining interim text as final before stopping
-        const pending = fullTranscriptRef.current;
-        // Mark that the user explicitly stopped so onend publishes the transcript
-        userStoppedRef.current = true;
-
-        try {
-            recognitionRef.current.stop();
-        } catch (e) {
-            console.error("Failed to stop recognition", e);
-            // Manually finalize if stop() threw
-            const finalStr = pending.trim();
-            if (finalStr) {
-                setFinalTranscriptBlock(finalStr);
-            }
-            fullTranscriptRef.current = "";
-            setInterimTranscript("");
-            setVolatileTranscript("");
-            setIsRecording(false);
-            isIntentionalRecordingRef.current = false;
-            userStoppedRef.current = false;
-            recognitionActiveRef.current = false;
-        }
-    }, []);
-
-    const toggleRecording = useCallback(() => {
-        if (isRecording) {
-            stopRecording();
-        } else {
-            startRecording();
-        }
-    }, [isRecording, startRecording, stopRecording]);
-
-    return {
-        isRecording,
-        interimTranscript,
-        volatileTranscript,
-        finalTranscriptBlock,
-        speechError,
-        hasSupport,
-        startRecording,
-        stopRecording,
-        toggleRecording,
+    return () => {
+      unsubscribe();
+      unsubscribeStatus?.();
+      engine.dispose();
+      engineRef.current = null;
     };
+  }, []);
+
+  const startRecording = useCallback(() => {
+    engineRef.current?.start();
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    engineRef.current?.stop();
+  }, []);
+
+  const toggleRecording = useCallback(() => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    if (recordingRef.current) engine.stop();
+    else engine.start();
+  }, []);
+
+  return {
+    isRecording: state.isRecording,
+    interimTranscript: state.interimTranscript,
+    volatileTranscript: state.volatileTranscript,
+    finalTranscriptBlock: state.finalTranscriptBlock,
+    speechError: state.error,
+    hasSupport,
+    sttStatus,
+    startRecording,
+    stopRecording,
+    toggleRecording,
+  };
 }

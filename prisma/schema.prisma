@@ -346,3 +346,40 @@ model CodingSolved {
 
   @@id([userId, codingQuestionId])
 }
+
+// ─── RAG: Interview Question Corpus ──────────────────────────────────────────
+// Retrieval corpus backing interview question generation. `embedding` is a
+// pgvector column Prisma cannot type, so it is written and queried with raw SQL
+// (see src/lib/rag/). Everything else is ordinary Prisma.
+
+model QuestionCorpus {
+  id          String   @id @default(cuid())
+  question    String   @db.Text
+  // Reference answer. Trustworthy for the software corpus (used to ground
+  // grading); absent for the HR corpus, whose supplied answers were unusable.
+  answer      String?  @db.Text
+  category    String
+  // Soft signal only — the HR source labels difficulty at random, so never
+  // filter on this, rerank with it.
+  difficulty  String?
+  // Interview types this question suits, from INTERVIEW_TYPE_VALUES.
+  types       String[]
+  // Roles this question suits. Empty means role-agnostic (all behavioural
+  // questions), which is a match-anything wildcard, not missing data.
+  roleTags    String[]
+  keywords    String[]
+  source      String
+  // sha256 of the normalized question text — the dedupe key. Near-duplicate
+  // detection is deliberately NOT used: measured on the software corpus, every
+  // lexical near-match was a shared phrasing template between distinct
+  // questions ("What is OAuth..." vs "What is Docker...").
+  contentHash String   @unique
+  embedding   Unsupported("vector(384)")?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([source])
+  @@index([category])
+  @@index([types], type: Gin)
+  @@index([roleTags], type: Gin)
+}

@@ -49,6 +49,7 @@ export default function InterviewPageClient() {
             router.push("/practice");
           }}
           ttsStatus={tts.status}
+          sttStatus={speech.sttStatus}
           onPermissionsGranted={handlePermissionsGranted}
           hasPermission={media.hasPermission}
           isLoading={media.isLoading}

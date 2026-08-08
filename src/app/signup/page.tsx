@@ -205,11 +205,14 @@ function SignupForm() {
             transition={{ duration: 0.25, ease: AUTH_EASE }}
           >
             <OtpDialog
+              variant="inline"
               email={email}
-              password={password}
-              isOpen={step === "otp"}
-              onClose={() => setStep("form")}
-              onSuccess={handleVerifySuccess}
+              onVerified={handleVerifySuccess}
+              onCancel={() => {
+                setStep("form");
+                setError("");
+              }}
+              onResend={sendOtp}
             />
           </motion.div>
         )}

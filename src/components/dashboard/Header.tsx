@@ -77,7 +77,7 @@ function NotificationPanel({
                 <p className="text-xs font-semibold text-[#F2F4F8]">{n.title}</p>
                 <span className="shrink-0 text-[10px] text-[#7D889B]">{n.time}</span>
               </div>
-              <p className="mt-0.5 text-xs text-[#A8B0C2]">{n.description}</p>
+              <p className="mt-0.5 text-xs text-[#A8B0C2]">{n.message}</p>
             </div>
           ))
         )}

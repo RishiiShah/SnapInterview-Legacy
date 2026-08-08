@@ -66,7 +66,7 @@ export default function RoleSelectorSection() {
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
             Train for your exact role and seniority
           </h2>
-          <p className="mt-3.5 max-w-2xl text-base leading-relaxed text-[#94A3B8]">
+          <p className="mt-3.5 max-w-2xl text-base leading-relaxed text-[#CBD5E1]">
             Select your target career track below to see tailored interview questions, adaptive prompts, and rubric standards.
           </p>
         </div>
@@ -95,10 +95,10 @@ export default function RoleSelectorSection() {
                     </div>
                     <div>
                       <span className="block text-base font-bold text-white">{role.title}</span>
-                      <span className="block text-xs text-[#94A3B8] mt-0.5">{role.badge}</span>
+                      <span className="block text-xs text-[#CBD5E1] mt-0.5">{role.badge}</span>
                     </div>
                   </div>
-                  <ArrowRight className={`h-4 w-4 transition-transform ${isSelected ? "text-blue-400 translate-x-1" : "text-[#64748B]"}`} />
+                  <ArrowRight className={`h-4 w-4 transition-transform ${isSelected ? "text-blue-400 translate-x-1" : "text-[#CBD5E1]"}`} />
                 </button>
               );
             })}
@@ -128,7 +128,7 @@ export default function RoleSelectorSection() {
 
             {/* Topics covered */}
             <div className="mt-6">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">Core Evaluated Skills</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#CBD5E1]">Core Evaluated Skills</span>
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {activeRole.topics.map((topic) => (
                   <div key={topic} className="flex items-center gap-2.5 rounded-xl bg-white/[0.03] p-3 border border-white/5 text-xs text-[#CBD5E1]">
@@ -141,7 +141,7 @@ export default function RoleSelectorSection() {
 
             {/* Sample Question Preview */}
             <div className="mt-6 rounded-2xl border border-white/10 bg-[#06070E] p-5">
-              <div className="flex items-center justify-between text-xs text-[#94A3B8] mb-2">
+              <div className="flex items-center justify-between text-xs text-[#CBD5E1] mb-2">
                 <span className="font-mono text-blue-400 text-[0.7rem]">Sample AI Interview Prompt</span>
                 <span className="text-[0.65rem] text-emerald-400">Adaptive Probe Active</span>
               </div>

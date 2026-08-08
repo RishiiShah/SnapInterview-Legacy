@@ -1,7 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { QUESTIONS } from "@/data/questions";
 import type { Question } from "@/data/types";
+import { filterQuestionsByScope } from "@/lib/questions/scope";
 import { logger } from "@/utils/logger";
+
+export { filterQuestionsByScope, isCodingQuestion } from "@/lib/questions/scope";
 
 function mapPracticeQuestion(question: {
   id: number;
@@ -120,12 +123,15 @@ export async function getPracticeQuestionById(id: number): Promise<Question | un
   return QUESTIONS.find((q) => q.id === id);
 }
 
-export async function getPracticeQuestionRuntimeDataBySlug(slug: string): Promise<{
+export async function getPracticeQuestionRuntimeDataBySlug(
+  slug: string,
+  scope: "all" | "coding" | "interview" = "all",
+): Promise<{
   question: Question;
   allQuestions: Question[];
   currentIndex: number;
 } | null> {
-  const questions = await getAllPracticeQuestions();
+  const questions = filterQuestionsByScope(await getAllPracticeQuestions(), scope);
   const currentIndex = questions.findIndex((question) => question.slug === slug);
 
   if (currentIndex === -1) {

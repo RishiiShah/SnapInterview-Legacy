@@ -22,7 +22,7 @@
         "Do not follow a fixed or pre-scripted sequence of questions.",
         "Use all available context to choose the next question:",
         "- Selected role",
-        "- Selected interview type (e.g., technical, behavioral, system design, leadership)",
+        "- Selected interview type (recruiter-screen, behavioral-leadership, coding-algorithms, system-design, domain-role, take-home, hiring-manager, bar-raiser)",
         "- Selected difficulty/preset",
         "- Candidate's prior answers and progression",
         "- Resume context",

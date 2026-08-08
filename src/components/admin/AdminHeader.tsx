@@ -30,20 +30,20 @@ function AvatarDropdown({
 
   return (
     <div
-      className="absolute right-0 top-12 w-56 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl"
+      className="absolute right-0 top-12 w-56 overflow-hidden rounded-xl border border-white/[0.08] bg-[#0C0F1A]"
       style={{ animation: "fadeSlideIn 0.15s ease-out" }}
     >
-      <div className="border-b border-zinc-100 px-4 py-3">
-        <p className="text-sm font-medium text-zinc-900">{userName}</p>
-        <p className="text-xs text-zinc-500">{userEmail}</p>
+      <div className="border-b border-white/[0.06] px-4 py-3">
+        <p className="text-sm font-medium text-[#F2F4F8]">{userName}</p>
+        <p className="text-xs text-[#A8B0C2]">{userEmail}</p>
       </div>
       <div className="p-1">
         <Link
           href="/settings"
           onClick={onClose}
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
+          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#C5CBD8] transition-colors hover:bg-white/[0.04] hover:text-[#F2F4F8]"
         >
-          <IconSettings className="h-4 w-4 text-zinc-400" />
+          <IconSettings className="h-4 w-4 text-[#A8B0C2]" />
           Settings
         </Link>
         <button
@@ -51,14 +51,14 @@ function AvatarDropdown({
             signOut({
               fetchOptions: {
                 onSuccess: () => {
-                  window.location.href = "/login";
+                  window.location.href = "/";
                 },
               },
             })
           }
-          className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100"
+          className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#C5CBD8] transition-colors hover:bg-white/[0.04] hover:text-[#F2F4F8]"
         >
-          <IconLogout className="h-4 w-4 text-zinc-400" />
+          <IconLogout className="h-4 w-4 text-[#A8B0C2]" />
           Log out
         </button>
       </div>
@@ -88,17 +88,17 @@ export function AdminHeader({ user }: { user: AdminUser }) {
   }, []);
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-zinc-200 bg-white/80 px-8 backdrop-blur-lg">
-      <h2 className="text-sm font-semibold text-zinc-900">{pageTitle}</h2>
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-white/[0.06] bg-[#0C0E14]/70 px-8 backdrop-blur-md">
+      <h2 className="text-sm font-semibold text-[#E8ECF4]">{pageTitle}</h2>
       <div ref={avatarRef} className="relative">
         <button
           onClick={() => setAvatarOpen(!avatarOpen)}
-          className="relative flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full ring-2 ring-transparent transition-all hover:ring-zinc-200"
+          className="relative flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full ring-2 ring-transparent transition-all hover:ring-white/[0.12]"
         >
           {userImage ? (
             <UserAvatar src={userImage} alt={userName} fill sizes="32px" className="object-cover" />
           ) : (
-            <div className="grid h-full w-full place-items-center bg-zinc-900 text-xs font-bold text-white">
+            <div className="grid h-full w-full place-items-center bg-[#3B82F6] text-xs font-bold text-white">
               {initials}
             </div>
           )}

@@ -11,7 +11,12 @@ import {
 } from "@/lib/code-runner";
 import { TestCasePanel } from "@/components/questions/TestCasePanel";
 import { TestResultPanel } from "@/components/questions/TestResultPanel";
-import { IconSpinner } from "@/components/ui/icons";
+import {
+  IconCheckCircle,
+  IconPlay,
+  IconSpinner,
+  IconTerminal,
+} from "@/components/ui/icons";
 
 type BottomTab = "testcase" | "result";
 
@@ -91,31 +96,56 @@ export function InterviewCodingPanel({ challenge, onSubmitCode }: InterviewCodin
   }, [currentCode, language, challenge.testCases, isRunning, hasSubmitted, onSubmitCode, availableLanguages]);
 
   return (
-    <div className="flex h-full flex-col bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden">
-      {/* Top bar */}
-      <div className="flex shrink-0 items-center justify-between border-b border-zinc-800 px-4 py-2">
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-[#12141A]/90">
+      {/* Editor chrome */}
+      <div className="flex h-10 shrink-0 items-center justify-between border-b border-white/[0.06] px-3">
         <select
           value={language}
           onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
-          className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-semibold text-zinc-300 outline-none focus:border-zinc-500"
+          className="cursor-pointer rounded-md border-0 bg-transparent px-2 py-1 text-xs font-medium text-[#E8ECF4] outline-none hover:bg-white/[0.05]"
         >
           {availableLanguages.map((l) => (
-            <option key={l.value} value={l.value}>
+            <option key={l.value} value={l.value} className="bg-[#12141A] text-[#E8ECF4]">
               {l.label}
             </option>
           ))}
         </select>
-        <button
-          onClick={handleReset}
-          disabled={hasSubmitted}
-          className="cursor-pointer rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-400 transition-all hover:bg-zinc-800 hover:text-zinc-200 disabled:opacity-40"
-        >
-          Reset
-        </button>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleRun}
+            disabled={isRunning || hasSubmitted}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-[#E8ECF4] transition-colors hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {isRunning ? (
+              <IconSpinner className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <IconPlay className="h-3.5 w-3.5" />
+            )}
+            Run
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isRunning || hasSubmitted}
+            className="inline-flex cursor-pointer items-center rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {hasSubmitted ? "Submitted" : "Submit"}
+          </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            disabled={hasSubmitted}
+            className="cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium text-[#A8B0C2] transition-colors hover:bg-white/[0.05] hover:text-[#E8ECF4] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Reset
+          </button>
+        </div>
       </div>
 
-      {/* Monaco Editor */}
-      <div className="flex-1 min-h-0">
+      {/* Monaco */}
+      <div className="min-h-0 flex-1">
         <Editor
           height="100%"
           language={MONACO_LANGUAGE_MAP[language] ?? "plaintext"}
@@ -125,58 +155,66 @@ export function InterviewCodingPanel({ challenge, onSubmitCode }: InterviewCodin
           options={{
             minimap: { enabled: false },
             fontSize: 14,
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
             lineNumbers: "on",
             scrollBeyondLastLine: false,
             automaticLayout: true,
             tabSize: 2,
-            padding: { top: 12 },
+            padding: { top: 12, bottom: 12 },
             readOnly: hasSubmitted,
+            renderLineHighlight: "line",
+            overviewRulerLanes: 0,
+            hideCursorInOverviewRuler: true,
+            scrollbar: {
+              verticalScrollbarSize: 8,
+              horizontalScrollbarSize: 8,
+              useShadows: false,
+            },
           }}
         />
       </div>
 
-      {/* Bottom panel */}
-      <div className="shrink-0 border-t border-zinc-800">
-        {/* Tab bar + actions */}
-        <div className="flex items-center justify-between border-b border-zinc-800/50 px-4">
-          <div className="flex items-center gap-1">
-            {(["testcase", "result"] as BottomTab[]).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setBottomTab(tab)}
-                className={`relative cursor-pointer px-4 py-2 text-xs font-bold capitalize transition-all ${
-                  bottomTab === tab ? "text-zinc-100" : "text-zinc-500 hover:text-zinc-300"
-                }`}
-              >
-                {tab === "testcase" ? "Test Cases" : "Result"}
-                {bottomTab === tab && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-100 rounded-full mx-2" />
-                )}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 py-1.5">
-            <button
-              onClick={handleRun}
-              disabled={isRunning || hasSubmitted}
-              className="cursor-pointer rounded-lg border border-zinc-600 bg-zinc-800 px-4 py-1.5 text-xs font-bold text-zinc-300 transition-all hover:bg-zinc-700 disabled:opacity-40"
-            >
-              {isRunning ? <IconSpinner className="inline h-3 w-3 animate-spin" /> : "Run"}
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={isRunning || hasSubmitted}
-              className="cursor-pointer rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white transition-all hover:bg-emerald-500 disabled:opacity-40"
-            >
-              {hasSubmitted ? "Submitted" : "Submit"}
-            </button>
-          </div>
+      {/* Testcase / result pane */}
+      <div className="flex h-52 shrink-0 flex-col border-t border-white/[0.06]">
+        <div className="flex h-10 shrink-0 items-center border-b border-white/[0.06] px-3">
+          <button
+            type="button"
+            onClick={() => setBottomTab("testcase")}
+            className={`inline-flex cursor-pointer items-center gap-2 px-2 py-1.5 text-[13px] font-medium transition-colors ${
+              bottomTab === "testcase"
+                ? "text-[#F2F4F8]"
+                : "text-[#A8B0C2] hover:text-[#C5CBD8]"
+            }`}
+          >
+            <IconCheckCircle
+              className={`h-4 w-4 ${
+                bottomTab === "testcase" ? "text-emerald-400" : "text-[#6B7385]"
+              }`}
+            />
+            Testcase
+          </button>
+          <span className="mx-1 h-4 w-px bg-white/[0.1]" aria-hidden />
+          <button
+            type="button"
+            onClick={() => setBottomTab("result")}
+            className={`inline-flex cursor-pointer items-center gap-2 px-2 py-1.5 text-[13px] font-medium transition-colors ${
+              bottomTab === "result"
+                ? "text-[#F2F4F8]"
+                : "text-[#A8B0C2] hover:text-[#C5CBD8]"
+            }`}
+          >
+            <IconTerminal
+              className={`h-4 w-4 ${
+                bottomTab === "result" ? "text-[#C5CBD8]" : "text-[#6B7385]"
+              }`}
+            />
+            Test Result
+          </button>
         </div>
 
-        {/* Panel content */}
-        <div className="h-44 overflow-y-auto px-5 py-3 [&_pre]:!bg-zinc-800 [&_pre]:!text-zinc-300 [&_p]:!text-zinc-500 [&_button]:!bg-zinc-800 [&_button]:!text-zinc-400">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 [scrollbar-width:thin] [&_button]:!bg-white/[0.04] [&_button]:!text-[#A8B0C2] [&_p]:!text-[#8B93A7] [&_pre]:!bg-white/[0.04] [&_pre]:!text-[#C5CBD8]">
           {bottomTab === "testcase" ? (
-            <TestCasePanel testCases={challenge.testCases} />
+            <TestCasePanel testCases={challenge.testCases} editable={false} />
           ) : (
             <TestResultPanel runResult={runResult} isRunning={isRunning} />
           )}

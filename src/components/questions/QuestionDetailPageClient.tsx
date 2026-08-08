@@ -7,6 +7,9 @@ import { IconChevronLeft, IconChevronRight } from "@/components/ui/icons";
 import { QuestionLeftPanel, type LeftTab } from "@/components/questions/QuestionLeftPanel";
 import { QuestionRightPanel, type RightTab } from "@/components/questions/QuestionRightPanel";
 import { CodingRightPanel } from "@/components/questions/CodingRightPanel";
+import { useResizableSplit } from "@/hooks/useResizableSplit";
+import { cn } from "@/lib/utils";
+import { isCodingQuestion } from "@/lib/questions/scope";
 
 type QuestionDetailPageClientProps = {
   question: Question;
@@ -14,6 +17,8 @@ type QuestionDetailPageClientProps = {
   totalQuestions: number;
   prevQuestion: Question | null;
   nextQuestion: Question | null;
+  basePath?: "/questions" | "/coding";
+  listLabel?: string;
 };
 
 export default function QuestionDetailPageClient({
@@ -22,6 +27,8 @@ export default function QuestionDetailPageClient({
   totalQuestions,
   prevQuestion,
   nextQuestion,
+  basePath = "/questions",
+  listLabel = "Problem List",
 }: QuestionDetailPageClientProps) {
   const [leftTab, setLeftTab] = useState<LeftTab>("description");
   const [answerText, setAnswerText] = useState("");
@@ -36,6 +43,18 @@ export default function QuestionDetailPageClient({
   const [isSolved, setIsSolved] = useState(false);
   const [isSolveUpdating, setIsSolveUpdating] = useState(false);
   const [solveError, setSolveError] = useState<string | null>(null);
+
+  const {
+    percent: leftPercent,
+    containerRef: splitRef,
+    handleProps: splitHandleProps,
+  } = useResizableSplit({
+    orientation: "horizontal",
+    initialPercent: 42,
+    minPercent: 28,
+    maxPercent: 58,
+    storageKey: `snap-${basePath.slice(1)}-split-h`,
+  });
 
   const getMinutes = (value: string) => {
     const match = value.match(/(\d+)/);
@@ -171,30 +190,49 @@ export default function QuestionDetailPageClient({
   };
 
   return (
-    <div className="-m-6 -mb-2 flex h-[calc(100vh-64px)] flex-col bg-zinc-50">
-      <div className="flex h-12 shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-6">
-        <div className="flex items-center gap-4">
-          <Link href="/questions" className="group flex items-center gap-2 text-xs font-semibold text-zinc-500 transition-colors hover:text-zinc-900">
+    <div className="flex h-full min-h-0 flex-col gap-2 bg-transparent p-2">
+      <div className="flex h-11 shrink-0 items-center justify-between rounded-xl border border-white/[0.08] bg-[#12141A]/90 px-4">
+        <div className="flex items-center gap-3">
+          <Link
+            href={basePath}
+            className="group flex items-center gap-1.5 text-xs font-medium text-[#A8B0C2] transition-colors hover:text-[#E8ECF4]"
+          >
             <IconChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-            Problem List
+            {listLabel}
           </Link>
         </div>
-        <div className="flex items-center gap-2">
-          {prevQuestion && (
-            <Link href={`/questions/${prevQuestion.slug}`} className="grid h-8 w-8 place-items-center rounded-lg text-zinc-400 transition-all hover:bg-zinc-100 hover:text-zinc-900">
+        <div className="flex items-center gap-1.5">
+          {prevQuestion ? (
+            <Link
+              href={`${basePath}/${prevQuestion.slug}`}
+              className="grid h-8 w-8 place-items-center rounded-lg text-[#A8B0C2] transition-colors hover:bg-white/[0.05] hover:text-[#E8ECF4]"
+            >
               <IconChevronLeft className="h-4 w-4" />
             </Link>
+          ) : (
+            <span className="grid h-8 w-8 place-items-center text-[#4B5568]">
+              <IconChevronLeft className="h-4 w-4" />
+            </span>
           )}
-          <span className="text-xs font-medium text-zinc-400">{currentIndex + 1} / {totalQuestions}</span>
-          {nextQuestion && (
-            <Link href={`/questions/${nextQuestion.slug}`} className="grid h-8 w-8 place-items-center rounded-lg text-zinc-400 transition-all hover:bg-zinc-100 hover:text-zinc-900">
+          <span className="min-w-[3.5rem] text-center text-xs font-medium tabular-nums text-[#A8B0C2]">
+            {currentIndex + 1} / {totalQuestions}
+          </span>
+          {nextQuestion ? (
+            <Link
+              href={`${basePath}/${nextQuestion.slug}`}
+              className="grid h-8 w-8 place-items-center rounded-lg text-[#A8B0C2] transition-colors hover:bg-white/[0.05] hover:text-[#E8ECF4]"
+            >
               <IconChevronRight className="h-4 w-4" />
             </Link>
+          ) : (
+            <span className="grid h-8 w-8 place-items-center text-[#4B5568]">
+              <IconChevronRight className="h-4 w-4" />
+            </span>
           )}
         </div>
       </div>
 
-      <div className="flex flex-1 min-h-0">
+      <div ref={splitRef} className="relative flex min-h-0 flex-1 overflow-hidden">
         <QuestionLeftPanel
           question={question}
           leftTab={leftTab}
@@ -209,8 +247,23 @@ export default function QuestionDetailPageClient({
           isSolveUpdating={isSolveUpdating}
           solveError={solveError}
           handleToggleSolved={handleToggleSolved}
+          widthPercent={leftPercent}
         />
-        {question.type === "coding" ? (
+
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize panels"
+          tabIndex={0}
+          className={cn(
+            "group relative z-10 w-2 shrink-0 cursor-col-resize touch-none",
+            "before:absolute before:inset-y-0 before:left-1/2 before:w-px before:-translate-x-1/2 before:bg-white/[0.08]",
+            "hover:before:bg-[#3B82F6]/50 active:before:bg-[#3B82F6]",
+          )}
+          {...splitHandleProps}
+        />
+
+        {isCodingQuestion(question) ? (
           <CodingRightPanel
             question={question}
             onSolved={() => {
@@ -220,18 +273,20 @@ export default function QuestionDetailPageClient({
             }}
           />
         ) : (
-          <QuestionRightPanel
-            question={question}
-            answerText={answerText}
-            setAnswerText={setAnswerText}
-            timeRemaining={timeRemaining}
-            isTimerStarted={isTimerStarted}
-            score={score}
-            rightTab={rightTab}
-            setRightTab={setRightTab}
-            handleStart={handleStart}
-            handleSubmit={handleSubmit}
-          />
+          <div className="min-h-0 min-w-0 flex-1 overflow-hidden rounded-xl border border-white/[0.08] bg-[#12141A]/90">
+            <QuestionRightPanel
+              question={question}
+              answerText={answerText}
+              setAnswerText={setAnswerText}
+              timeRemaining={timeRemaining}
+              isTimerStarted={isTimerStarted}
+              score={score}
+              rightTab={rightTab}
+              setRightTab={setRightTab}
+              handleStart={handleStart}
+              handleSubmit={handleSubmit}
+            />
+          </div>
         )}
       </div>
     </div>

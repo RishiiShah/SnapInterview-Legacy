@@ -11,7 +11,19 @@ import {
 } from "@/lib/code-runner";
 import { TestCasePanel } from "./TestCasePanel";
 import { TestResultPanel } from "./TestResultPanel";
-import { IconSpinner } from "@/components/ui/icons";
+import {
+  IconCheckCircle,
+  IconChevronUp,
+  IconCode,
+  IconHelp,
+  IconMaximize,
+  IconMinimize,
+  IconPlay,
+  IconSpinner,
+  IconTerminal,
+} from "@/components/ui/icons";
+import { useResizableSplit } from "@/hooks/useResizableSplit";
+import { cn } from "@/lib/utils";
 
 type BottomTab = "testcase" | "result";
 
@@ -45,6 +57,20 @@ export function CodingRightPanel({ question, onSolved }: CodingRightPanelProps) 
   const [bottomTab, setBottomTab] = useState<BottomTab>("testcase");
   const [runResult, setRunResult] = useState<RunResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [maximized, setMaximized] = useState(false);
+
+  const {
+    percent: editorPercent,
+    containerRef: verticalRef,
+    handleProps: verticalHandleProps,
+  } = useResizableSplit({
+    orientation: "vertical",
+    initialPercent: 62,
+    minPercent: 35,
+    maxPercent: 78,
+    storageKey: "snap-question-split-v",
+  });
 
   const currentCode = codeMap[language] ?? "";
 
@@ -66,6 +92,7 @@ export function CodingRightPanel({ question, onSolved }: CodingRightPanelProps) 
   const handleRun = useCallback(async () => {
     if (!question.testCases || isRunning) return;
     setIsRunning(true);
+    setCollapsed(false);
     setBottomTab("result");
     const result = await runTestCases(currentCode, language, question.testCases, true);
     setRunResult(result);
@@ -75,6 +102,7 @@ export function CodingRightPanel({ question, onSolved }: CodingRightPanelProps) 
   const handleSubmit = useCallback(async () => {
     if (!question.testCases || isRunning) return;
     setIsRunning(true);
+    setCollapsed(false);
     setBottomTab("result");
     const result = await runTestCases(currentCode, language, question.testCases, false);
     setRunResult(result);
@@ -84,99 +112,218 @@ export function CodingRightPanel({ question, onSolved }: CodingRightPanelProps) 
     }
   }, [currentCode, language, question.testCases, isRunning, onSolved]);
 
+  const editorHeight = collapsed
+    ? "calc(100% - 2.75rem)"
+    : maximized
+      ? "calc(28% - 4px)"
+      : `calc(${editorPercent}% - 4px)`;
+
   return (
-    <div className="flex w-1/2 flex-col bg-white">
-      {/* Top bar */}
-      <div className="flex shrink-0 items-center justify-between border-b border-zinc-100 px-4 py-2 bg-white/50 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
+    <div ref={verticalRef} className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+      {/* Code pane */}
+      <div
+        className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-[#12141A]/90"
+        style={{ height: editorHeight }}
+      >
+        <div className="flex h-10 shrink-0 items-center justify-between border-b border-white/[0.06] px-3">
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
-            className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-700 outline-none focus:border-zinc-400"
+            className="cursor-pointer rounded-md border-0 bg-transparent px-2 py-1 text-xs font-medium text-[#E8ECF4] outline-none hover:bg-white/[0.05]"
           >
             {availableLanguages.map((l) => (
-              <option key={l.value} value={l.value}>
+              <option key={l.value} value={l.value} className="bg-[#12141A] text-[#E8ECF4]">
                 {l.label}
               </option>
             ))}
           </select>
-        </div>
-        <button
-          onClick={handleReset}
-          className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-500 transition-all hover:bg-zinc-50 hover:text-zinc-700"
-        >
-          Reset
-        </button>
-      </div>
-
-      {/* Monaco Editor */}
-      <div className="flex-1 min-h-0">
-        <Editor
-          height="100%"
-          language={MONACO_LANGUAGE_MAP[language]}
-          value={currentCode}
-          onChange={handleCodeChange}
-          theme="vs-dark"
-          options={{
-            minimap: { enabled: false },
-            fontSize: 14,
-            lineNumbers: "on",
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            tabSize: 2,
-            padding: { top: 12 },
-            dropIntoEditor: { enabled: false },
-            dragAndDrop: false,
-          }}
-        />
-      </div>
-
-      {/* Bottom panel */}
-      <div className="shrink-0 border-t border-zinc-200 bg-zinc-50/30">
-        {/* Tab bar + actions */}
-        <div className="flex items-center justify-between border-b border-zinc-100 px-4">
-          <div className="flex items-center gap-1">
-            {(["testcase", "result"] as BottomTab[]).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setBottomTab(tab)}
-                className={`relative cursor-pointer px-4 py-2 text-xs font-bold capitalize transition-all ${
-                  bottomTab === tab ? "text-zinc-900" : "text-zinc-400 hover:text-zinc-600"
-                }`}
-              >
-                {tab === "testcase" ? "Test Cases" : "Result"}
-                {bottomTab === tab && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-900 rounded-full mx-2" />
-                )}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 py-1.5">
+          <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={handleRun}
               disabled={isRunning}
-              className="cursor-pointer rounded-lg border border-zinc-300 bg-white px-4 py-1.5 text-xs font-bold text-zinc-700 transition-all hover:bg-zinc-50 disabled:opacity-40"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-[#E8ECF4] transition-colors hover:bg-white/[0.1] focus:outline-none disabled:opacity-40"
             >
-              {isRunning ? <IconSpinner className="inline h-3 w-3 animate-spin" /> : "Run"}
+              {isRunning ? (
+                <IconSpinner className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <IconPlay className="h-3.5 w-3.5" />
+              )}
+              Run
             </button>
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={isRunning}
-              className="cursor-pointer rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white transition-all hover:bg-emerald-500 disabled:opacity-40"
+              className="inline-flex cursor-pointer items-center rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-500 focus:outline-none disabled:opacity-40"
             >
               Submit
             </button>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium text-[#A8B0C2] transition-colors hover:bg-white/[0.05] hover:text-[#E8ECF4] focus:outline-none"
+            >
+              Reset
+            </button>
           </div>
         </div>
 
-        {/* Panel content */}
-        <div className="h-44 overflow-y-auto px-5 py-3">
-          {bottomTab === "testcase" ? (
-            <TestCasePanel testCases={question.testCases ?? []} />
-          ) : (
-            <TestResultPanel runResult={runResult} isRunning={isRunning} />
-          )}
+        <div className="min-h-0 flex-1">
+          <Editor
+            height="100%"
+            language={MONACO_LANGUAGE_MAP[language]}
+            value={currentCode}
+            onChange={handleCodeChange}
+            theme="vs-dark"
+            options={{
+              minimap: { enabled: false },
+              fontSize: 14,
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+              lineNumbers: "on",
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+              tabSize: 2,
+              padding: { top: 12, bottom: 12 },
+              dropIntoEditor: { enabled: false },
+              dragAndDrop: false,
+              renderLineHighlight: "line",
+              overviewRulerLanes: 0,
+              hideCursorInOverviewRuler: true,
+              scrollbar: {
+                verticalScrollbarSize: 8,
+                horizontalScrollbarSize: 8,
+                useShadows: false,
+              },
+            }}
+          />
         </div>
+      </div>
+
+      {!collapsed ? (
+        <div
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize editor and testcase"
+          tabIndex={0}
+          className={cn(
+            "group relative z-10 h-2 shrink-0 cursor-row-resize touch-none",
+            "before:absolute before:inset-x-0 before:top-1/2 before:h-px before:-translate-y-1/2 before:bg-white/[0.08]",
+            "hover:before:bg-[#3B82F6]/50 active:before:bg-[#3B82F6]",
+          )}
+          {...verticalHandleProps}
+        />
+      ) : null}
+
+      {/* Testcase pane — LeetCode-style chrome */}
+      <div
+        className={cn(
+          "flex flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-[#12141A]/90",
+          collapsed ? "h-11 shrink-0" : "min-h-0 flex-1",
+        )}
+      >
+        <div className="flex h-11 shrink-0 items-center justify-between border-b border-white/[0.06] px-3">
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={() => {
+                setCollapsed(false);
+                setBottomTab("testcase");
+              }}
+              className={cn(
+                "inline-flex cursor-pointer items-center gap-2 px-2 py-1.5 text-[13px] font-medium transition-colors focus:outline-none",
+                bottomTab === "testcase" ? "text-[#F2F4F8]" : "text-[#A8B0C2] hover:text-[#C5CBD8]",
+              )}
+            >
+              <IconCheckCircle
+                className={cn(
+                  "h-4 w-4",
+                  bottomTab === "testcase" ? "text-emerald-400" : "text-[#6B7385]",
+                )}
+              />
+              Testcase
+            </button>
+            <span className="mx-1 h-4 w-px bg-white/[0.1]" aria-hidden />
+            <button
+              type="button"
+              onClick={() => {
+                setCollapsed(false);
+                setBottomTab("result");
+              }}
+              className={cn(
+                "inline-flex cursor-pointer items-center gap-2 px-2 py-1.5 text-[13px] font-medium transition-colors focus:outline-none",
+                bottomTab === "result" ? "text-[#F2F4F8]" : "text-[#A8B0C2] hover:text-[#C5CBD8]",
+              )}
+            >
+              <IconTerminal
+                className={cn(
+                  "h-4 w-4",
+                  bottomTab === "result" ? "text-[#C5CBD8]" : "text-[#6B7385]",
+                )}
+              />
+              Test Result
+            </button>
+          </div>
+
+          <div className="flex items-center gap-0.5">
+            <button
+              type="button"
+              aria-label={maximized ? "Restore panel size" : "Expand panel"}
+              onClick={() => {
+                setCollapsed(false);
+                setMaximized((v) => !v);
+              }}
+              className="grid h-8 w-8 cursor-pointer place-items-center rounded-md text-[#A8B0C2] transition-colors hover:bg-white/[0.06] hover:text-[#E8ECF4] focus:outline-none"
+            >
+              {maximized ? (
+                <IconMinimize className="h-3.5 w-3.5" />
+              ) : (
+                <IconMaximize className="h-3.5 w-3.5" />
+              )}
+            </button>
+            <button
+              type="button"
+              aria-label={collapsed ? "Expand testcase panel" : "Collapse testcase panel"}
+              onClick={() => {
+                setCollapsed((v) => !v);
+                if (!collapsed) setMaximized(false);
+              }}
+              className="grid h-8 w-8 cursor-pointer place-items-center rounded-md text-[#A8B0C2] transition-colors hover:bg-white/[0.06] hover:text-[#E8ECF4] focus:outline-none"
+            >
+              <IconChevronUp
+                className={cn("h-4 w-4 transition-transform", collapsed && "rotate-180")}
+              />
+            </button>
+          </div>
+        </div>
+
+        {!collapsed ? (
+          <>
+            <div className="min-h-0 flex-1 overflow-hidden">
+              {bottomTab === "testcase" ? (
+                <TestCasePanel testCases={question.testCases ?? []} editable />
+              ) : (
+                <div className="h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <TestResultPanel runResult={runResult} isRunning={isRunning} />
+                </div>
+              )}
+            </div>
+            <div className="flex shrink-0 items-center gap-2 border-t border-white/[0.06] px-3 py-2">
+              <span className="inline-flex items-center gap-1.5 text-xs text-[#A8B0C2]">
+                <IconCode className="h-3.5 w-3.5" />
+                Source
+              </span>
+              <button
+                type="button"
+                aria-label="Help"
+                className="grid h-6 w-6 cursor-pointer place-items-center rounded text-[#6B7385] transition-colors hover:text-[#A8B0C2] focus:outline-none"
+                title="Sample inputs mirror the visible testcases for this problem."
+              >
+                <IconHelp className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </>
+        ) : null}
       </div>
     </div>
   );

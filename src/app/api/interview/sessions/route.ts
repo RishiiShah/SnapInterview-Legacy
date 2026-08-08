@@ -3,11 +3,12 @@ import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiJson, unauthorizedError, badRequestError, internalServerError } from "@/lib/api-response";
 import { listCompletedSessionsForUser } from "@/repositories/interview-repo";
 import type { InterviewType } from "@/lib/interview/domain";
+import { INTERVIEW_TYPE_VALUES } from "@/lib/interview/domain";
 import { logger } from "@/utils/logger";
 
 const DEFAULT_LIMIT = 12;
 const MAX_LIMIT = 48;
-const VALID_TYPES: InterviewType[] = ["behavioral", "technical", "system-design"];
+const VALID_TYPES = [...INTERVIEW_TYPE_VALUES] as InterviewType[];
 
 export async function GET(request: NextRequest) {
     const authUser = await getSessionUserIdentity();

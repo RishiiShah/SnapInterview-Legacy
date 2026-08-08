@@ -51,7 +51,7 @@ describe("Interview Lifecycle Integration", () => {
     const session = await startInterviewSession({
       userId,
       role: "Software Engineer",
-      type: "technical",
+      type: "coding-algorithms",
       difficulty: "medium",
     });
 
@@ -64,7 +64,7 @@ describe("Interview Lifecycle Integration", () => {
       questionCount: 5,
       currentQuestion: 0,
       role: "Software Engineer",
-      type: "technical",
+      type: "coding-algorithms",
       difficulty: "medium",
       transcript: [],
     } as any);
@@ -108,7 +108,7 @@ describe("Interview Lifecycle Integration", () => {
     vi.mocked(interviewRepo.getInterviewSession).mockResolvedValue({
       id: interviewId,
       status: "COMPLETED",
-      type: "technical",
+      type: "coding-algorithms",
       company: null,
       transcript: [
         { question: "Tell me about React.", answer: "It's a library." }

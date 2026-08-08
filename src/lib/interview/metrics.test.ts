@@ -80,6 +80,79 @@ describe("interview metrics scoring", () => {
     expect(analytics.categoryBreakdown[0]?.score).toBe(92);
   });
 
+  it("uses rubric scores only on the dashboard — never progress placeholders", async () => {
+    const now = new Date();
+
+    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([
+      {
+        id: "scored-zero",
+        role: "Backend Developer",
+        company: null,
+        videoKey: null,
+        type: "technical",
+        difficulty: "medium",
+        status: "COMPLETED",
+        questionCount: 5,
+        currentQuestion: 5,
+        evaluation: {
+          score: 0,
+          feedback: "Incomplete answers.",
+          strengths: [],
+          areasForImprovement: ["Depth"],
+        },
+        createdAt: now,
+      },
+      {
+        id: "in-progress",
+        role: "Backend Developer",
+        company: null,
+        videoKey: null,
+        type: "behavioral",
+        difficulty: "easy",
+        status: "IN_PROGRESS",
+        questionCount: 10,
+        currentQuestion: 2,
+        evaluation: null,
+        createdAt: now,
+      },
+      {
+        id: "completed-unscored",
+        role: "Backend Developer",
+        company: null,
+        videoKey: null,
+        type: "system-design",
+        difficulty: "hard",
+        status: "COMPLETED",
+        questionCount: 5,
+        currentQuestion: 5,
+        evaluation: null,
+        createdAt: new Date(now.getTime() - 60_000),
+      },
+    ] as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    const dashboard = await getDashboardOverviewData("user-rubric-only");
+    const avgStat = dashboard.stats.find((item) => item.label === "Average Score");
+
+    expect(dashboard.recentSessions).toHaveLength(2);
+    expect(dashboard.recentSessions[0]?.score).toBe(0);
+    expect(dashboard.recentSessions[0]?.type).toBe("coding-algorithms");
+    expect(dashboard.recentSessions[0]?.difficulty).toBe("medium");
+    expect(dashboard.recentSessions[1]?.score).toBeNull();
+    expect(dashboard.recentSessions[1]?.type).toBe("system-design");
+    expect(avgStat?.value).toBe("0");
+    // No invented mid-progress values (e.g. 16 from 2/10 questions).
+    expect(dashboard.chartData.every((point) => point.value === 0 || point.value >= 0)).toBe(true);
+    expect(dashboard.chartData.some((point) => point.value > 0 && point.value < 30)).toBe(false);
+    expect(dashboard.chartData.filter((point) => point.value === 0)).toHaveLength(1);
+    expect(dashboard.byType.find((t) => t.type === "coding-algorithms")?.count).toBe(1);
+    expect(dashboard.byType.find((t) => t.type === "coding-algorithms")?.avgScore).toBe(0);
+    expect(dashboard.byType.find((t) => t.type === "system-design")?.count).toBe(1);
+    expect(dashboard.byType.find((t) => t.type === "system-design")?.avgScore).toBeNull();
+    // Unpracticed kinds are omitted — dashboard only surfaces real data.
+    expect(dashboard.byType.find((t) => t.type === "behavioral-leadership")).toBeUndefined();
+    expect(dashboard.byType).toHaveLength(2);
+  });
+
   it("prefers persisted evaluation strengths and improvements over transcript keyword fallbacks", async () => {
     const now = new Date();
 

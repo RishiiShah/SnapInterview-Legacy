@@ -172,9 +172,10 @@ export default function ForgotPasswordPage() {
           <AuthHeader
             title="Forgot password?"
             description="Enter your email and we’ll send a verification code to reset it."
+            align="center"
           />
 
-          <form onSubmit={handleEmailSubmit} className="space-y-4">
+          <form onSubmit={handleEmailSubmit} noValidate autoComplete="off" className="space-y-4">
             <AuthTextField
               id="email"
               label="Email"
@@ -182,13 +183,17 @@ export default function ForgotPasswordPage() {
               value={email}
               onChange={setEmail}
               placeholder="you@example.com"
-              autoComplete="email"
+              autoComplete="off"
             />
 
             {emailError ? <AuthError message={emailError} /> : null}
 
             <div className="pt-1">
-              <SubmitButton loading={emailLoading} text="Send reset code" />
+              <SubmitButton
+                loading={emailLoading}
+                text="Send reset code"
+                sentText="Sent"
+              />
             </div>
           </form>
         </>
@@ -226,9 +231,9 @@ export default function ForgotPasswordPage() {
 
           <div className="mt-3">
             {resendCooldown > 0 ? (
-              <p className="text-xs text-[#475569]">
+              <p className="text-xs text-[#B8C0CE]">
                 Resend code in{" "}
-                <span className="font-mono font-semibold text-[#64748B]">{resendCooldown}s</span>
+                <span className="font-mono font-semibold text-[#CBD5E1]">{resendCooldown}s</span>
               </p>
             ) : (
               <button
@@ -280,7 +285,7 @@ export default function ForgotPasswordPage() {
           <button
             type="button"
             onClick={() => { setStep("email"); setOtp(Array(OTP_LENGTH).fill("")); setOtpError(""); }}
-            className="mt-5 flex w-full cursor-pointer items-center justify-center gap-1.5 text-xs text-[#64748B] transition-colors hover:text-[#CBD5E1]"
+            className="mt-5 flex w-full cursor-pointer items-center justify-center gap-1.5 text-xs text-[#CBD5E1] transition-colors hover:text-[#CBD5E1]"
           >
             <IconArrowLeft className="h-3.5 w-3.5" />
             Use a different email

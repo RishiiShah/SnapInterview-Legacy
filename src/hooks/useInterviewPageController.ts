@@ -81,9 +81,9 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   const chatScrollContainerRef = useRef<HTMLDivElement | null>(null);
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
 
-  const speech = useSpeechRecognition();
-
   const media = useMediaPermissions();
+
+  const speech = useSpeechRecognition({ audioDeviceId: media.selectedAudioInputId });
 
   const videoRecording = useVideoRecording({
     interviewId,

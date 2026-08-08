@@ -39,7 +39,7 @@ function SessionPreview() {
           <div className="min-w-0 rounded-lg border border-zinc-500/20 bg-[#D4D8DE] px-2 py-1.5">
             <div className="flex items-center gap-1">
               <Layers className="h-3 w-3 shrink-0 text-blue-700" />
-              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.08em] text-zinc-600">
                 Type
               </p>
             </div>
@@ -50,7 +50,7 @@ function SessionPreview() {
           <div className="min-w-0 rounded-lg border border-zinc-500/20 bg-[#D4D8DE] px-2 py-1.5">
             <div className="flex items-center gap-1">
               <FileText className="h-3 w-3 shrink-0 text-sky-700" />
-              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.08em] text-zinc-600">
                 Resume
               </p>
             </div>
@@ -61,7 +61,7 @@ function SessionPreview() {
           <div className="min-w-0 rounded-lg border border-zinc-500/20 bg-[#D4D8DE] px-2 py-1.5">
             <div className="flex items-center gap-1">
               <ScrollText className="h-3 w-3 shrink-0 text-violet-700" />
-              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.08em] text-zinc-600">
                 JD
               </p>
             </div>
@@ -72,7 +72,7 @@ function SessionPreview() {
           <div className="min-w-0 rounded-lg border border-zinc-500/20 bg-[#D4D8DE] px-2 py-1.5">
             <div className="flex items-center gap-1">
               <Gauge className="h-3 w-3 shrink-0 text-amber-700" />
-              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.08em] text-zinc-600">
                 Diff
               </p>
             </div>
@@ -81,7 +81,7 @@ function SessionPreview() {
           <div className="min-w-0 rounded-lg border border-zinc-500/20 bg-[#D4D8DE] px-2 py-1.5">
             <div className="flex items-center gap-1">
               <Clock className="h-3 w-3 shrink-0 text-emerald-700" />
-              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+              <p className="text-[0.5rem] font-semibold uppercase tracking-[0.08em] text-zinc-600">
                 Length
               </p>
             </div>
@@ -101,7 +101,7 @@ function SessionPreview() {
             >
               <p className="text-lg font-semibold tabular-nums leading-none text-zinc-800">{score}</p>
               <p className="mt-1 text-[0.6rem] font-medium leading-tight text-zinc-700">{label}</p>
-              <p className="mt-0.5 text-[0.55rem] leading-tight text-zinc-500">{note}</p>
+              <p className="mt-0.5 text-[0.55rem] leading-tight text-zinc-600">{note}</p>
             </div>
           ))}
         </div>
@@ -111,7 +111,7 @@ function SessionPreview() {
             <p className="text-[0.55rem] font-semibold uppercase tracking-[0.12em] text-zinc-600">
               Transcript
             </p>
-            <p className="text-[0.55rem] text-zinc-500">Coding · 10:24</p>
+            <p className="text-[0.55rem] text-zinc-600">Coding · 10:24</p>
           </div>
           <p className="text-[0.65rem] leading-snug text-violet-800">
             AI: Walk me through your approach before you write any code, including data structures and edge cases.
@@ -134,7 +134,7 @@ function SessionPreview() {
         </div>
 
         <div className="mt-2.5 flex items-center gap-3">
-          <p className="shrink-0 text-[0.55rem] text-zinc-500">
+          <p className="shrink-0 text-[0.55rem] text-zinc-600">
             Mid-session · coding live
           </p>
           <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-500/25">
@@ -163,7 +163,7 @@ export default function CTASection() {
             </h2>
           </LandingFadeOnly>
           <LandingFadeOnly triggerOnView delay={0.16} className="mx-auto max-w-5xl">
-            <p className="text-sm leading-relaxed text-[#64748B] lg:whitespace-nowrap">
+            <p className="text-sm leading-relaxed text-[#CBD5E1] lg:whitespace-nowrap">
               Create a free account, practice out loud on mic and video, then scrub the recording and transcript before the real interview.
             </p>
           </LandingFadeOnly>
@@ -221,7 +221,7 @@ export default function CTASection() {
               <h3 className="font-serif text-[2rem] leading-[1.12] tracking-[-0.03em] text-[#E2E8F0] sm:text-4xl lg:text-[2.5rem]">
                 Ready to simplify interview prep?
               </h3>
-              <p className="mt-4 max-w-md text-sm leading-relaxed text-[#94A3B8] sm:text-[0.95rem]">
+              <p className="mt-4 max-w-md text-sm leading-relaxed text-[#CBD5E1] sm:text-[0.95rem]">
                 Practice out loud with an adaptive interviewer, record the session, then review transcript and rubric scores before the real conversation.
               </p>
 

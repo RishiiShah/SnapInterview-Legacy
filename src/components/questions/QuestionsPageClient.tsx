@@ -3,21 +3,29 @@
 import { useState, useMemo } from "react";
 
 import { CATEGORIES } from "@/data/constants";
-import type { InterviewType, Difficulty, Question } from "@/data/types";
+import type { Difficulty, Question, QuestionCategory } from "@/data/types";
 import { FadeIn, SlideIn } from "@/components/ui/motion";
 import QuestionsFilterBar from "@/components/questions/QuestionsFilterBar";
 import QuestionsTable from "@/components/questions/QuestionsTable";
 
 type SortKey = "category" | "difficulty" | "time";
 type SortDir = "asc" | "desc";
+type QuestionsVariant = "interview" | "coding";
 
 type QuestionsPageClientProps = {
   initialSolvedIds: number[];
   questions: Question[];
+  variant?: QuestionsVariant;
 };
 
 const DIFFICULTY_ORDER: Record<Difficulty, number> = { easy: 0, medium: 1, hard: 2 };
-const CATEGORY_ORDER: Record<InterviewType, number> = { behavioral: 0, technical: 1, "system-design": 2, leadership: 3, coding: 4 };
+const CATEGORY_ORDER: Record<QuestionCategory, number> = {
+  behavioral: 0,
+  technical: 1,
+  "system-design": 2,
+  leadership: 3,
+  coding: 4,
+};
 
 function getMinutes(t: string): number {
   const m = t.match(/(\d+)/);
@@ -32,17 +40,34 @@ function compareFn(a: Question, b: Question, key: SortKey, dir: SortDir): number
   return dir === "asc" ? cmp : -cmp;
 }
 
-export default function QuestionsPageClient({ initialSolvedIds, questions }: QuestionsPageClientProps) {
+export default function QuestionsPageClient({
+  initialSolvedIds,
+  questions,
+  variant = "interview",
+}: QuestionsPageClientProps) {
+  const isCoding = variant === "coding";
+  const filterCategories = isCoding
+    ? CATEGORIES.filter((c) => c.value === "coding")
+    : CATEGORIES.filter((c) => c.value !== "coding");
+
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<InterviewType | "all">("all");
+  const [selectedCategory, setSelectedCategory] = useState<QuestionCategory | "all">(
+    isCoding ? "coding" : "all",
+  );
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | "all">("all");
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [showFilters, setShowFilters] = useState(false);
 
-  const solvedCount = useMemo(() => new Set(initialSolvedIds).size, [initialSolvedIds]);
+  const solvedIds = useMemo(() => new Set(initialSolvedIds), [initialSolvedIds]);
+  const solvedCount = useMemo(
+    () => questions.filter((q) => solvedIds.has(q.id)).length,
+    [questions, solvedIds],
+  );
 
-  const activeFilterCount = (selectedCategory !== "all" ? 1 : 0) + (selectedDifficulty !== "all" ? 1 : 0);
+  const activeFilterCount =
+    (selectedCategory !== "all" && !(isCoding && selectedCategory === "coding") ? 1 : 0) +
+    (selectedDifficulty !== "all" ? 1 : 0);
 
   const filtered = useMemo(() => {
     let result = questions.filter((q) => {
@@ -69,61 +94,68 @@ export default function QuestionsPageClient({ initialSolvedIds, questions }: Que
     }
   };
 
-  const stats = CATEGORIES.map((cat) => ({
+  const stats = filterCategories.map((cat) => ({
     ...cat,
     count: questions.filter((q) => q.category === cat.value).length,
   }));
 
   return (
-    <>
-      <div className="space-y-6 pb-8">
-        <SlideIn>
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Question Bank</h1>
-              <p className="mt-1 text-sm text-zinc-500">
-                {questions.length} questions across {CATEGORIES.length} categories
-              </p>
-            </div>
+    <div className="space-y-6 pb-8">
+      <SlideIn>
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="font-display text-2xl tracking-tight text-[#F2F4F8] sm:text-[1.75rem]">
+              {isCoding ? "Coding" : "Question Bank"}
+            </h1>
+            <p className="mt-1 text-sm text-[#A8B0C2]">
+              {isCoding
+                ? `${questions.length} algorithm and data-structure problem${questions.length !== 1 ? "s" : ""}`
+                : `${questions.length} interview question${questions.length !== 1 ? "s" : ""} across ${filterCategories.length} categories`}
+            </p>
           </div>
-        </SlideIn>
+        </div>
+      </SlideIn>
 
-        <FadeIn delay={0.1} direction="up" className="relative z-30">
-          <QuestionsFilterBar
-            search={search}
-            setSearch={setSearch}
-            solvedCount={solvedCount}
-            totalQuestions={questions.length}
-            showFilters={showFilters}
-            setShowFilters={setShowFilters}
-            activeFilterCount={activeFilterCount}
-            selectedCategory={selectedCategory}
-            setSelectedCategory={setSelectedCategory}
-            selectedDifficulty={selectedDifficulty}
-            setSelectedDifficulty={setSelectedDifficulty}
-            stats={stats}
-          />
-        </FadeIn>
+      <FadeIn delay={0.1} direction="up" className="relative z-30">
+        <QuestionsFilterBar
+          search={search}
+          setSearch={setSearch}
+          solvedCount={solvedCount}
+          totalQuestions={questions.length}
+          showFilters={showFilters}
+          setShowFilters={setShowFilters}
+          activeFilterCount={activeFilterCount}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          selectedDifficulty={selectedDifficulty}
+          setSelectedDifficulty={setSelectedDifficulty}
+          stats={stats}
+          hideCategoryFilter={isCoding}
+        />
+      </FadeIn>
 
-        <FadeIn delay={0.25} direction="up" className="relative z-10">
-          <p className="text-xs text-zinc-400">
-            Showing {filtered.length} of {questions.length} question{filtered.length !== 1 ? "s" : ""}
-          </p>
-        </FadeIn>
+      <FadeIn delay={0.25} direction="up" className="relative z-10">
+        <p className="text-xs text-[#A8B0C2]">
+          Showing {filtered.length} of {questions.length}{" "}
+          {isCoding ? "problem" : "question"}
+          {filtered.length !== 1 ? "s" : ""}
+        </p>
+      </FadeIn>
 
-        <FadeIn delay={0.3} direction="up" className="relative z-0">
-          <QuestionsTable
-            filtered={filtered}
-            totalQuestions={questions.length}
-            setSearch={setSearch}
-            setSelectedCategory={setSelectedCategory}
-            setSelectedDifficulty={setSelectedDifficulty}
-            sortKey={sortKey}
-            sortDir={sortDir}
-            toggleSort={toggleSort}
-          />
-        </FadeIn>
-      </div>
-    </>
+      <FadeIn delay={0.3} direction="up" className="relative z-0">
+        <QuestionsTable
+          filtered={filtered}
+          totalQuestions={questions.length}
+          setSearch={setSearch}
+          setSelectedCategory={setSelectedCategory}
+          setSelectedDifficulty={setSelectedDifficulty}
+          sortKey={sortKey}
+          sortDir={sortDir}
+          toggleSort={toggleSort}
+          basePath={isCoding ? "/coding" : "/questions"}
+          hideCategoryColumn={isCoding}
+        />
+      </FadeIn>
+    </div>
   );
 }

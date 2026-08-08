@@ -101,36 +101,36 @@ function VoiceConversationDiagram() {
       <div className="rounded-lg bg-[#0A0C14] border border-white/[0.06] p-3 space-y-2.5">
         <div className="flex items-start gap-2.5">
           <span className="flex h-4 w-6 shrink-0 items-center justify-center rounded text-[0.55rem] font-bold tracking-wide text-violet-300 bg-violet-500/15">AI</span>
-          <p className="text-xs leading-relaxed text-[#94A3B8]">
+          <p className="text-xs leading-relaxed text-[#CBD5E1]">
             You mentioned O(n) space. What happens if the input contains duplicates?
           </p>
         </div>
         <div className="flex items-start gap-2.5">
           <span className="flex h-4 w-6 shrink-0 items-center justify-center rounded text-[0.55rem] font-bold tracking-wide text-slate-400 bg-slate-500/15">Me</span>
-          <p className="text-xs leading-relaxed text-[#64748B]">
+          <p className="text-xs leading-relaxed text-[#CBD5E1]">
             Good point. I'll use a hash set to track seen elements so duplicate lookups stay O(1).
           </p>
         </div>
         <div className="flex items-start gap-2.5">
           <span className="flex h-4 w-6 shrink-0 items-center justify-center rounded text-[0.55rem] font-bold tracking-wide text-violet-300 bg-violet-500/15">AI</span>
-          <p className="text-xs leading-relaxed text-[#94A3B8]">
+          <p className="text-xs leading-relaxed text-[#CBD5E1]">
             Right. What is your overall time complexity after that adjustment?
           </p>
         </div>
         <div className="flex items-start gap-2.5">
           <span className="flex h-4 w-6 shrink-0 items-center justify-center rounded text-[0.55rem] font-bold tracking-wide text-slate-400 bg-slate-500/15">Me</span>
-          <p className="text-xs leading-relaxed text-[#64748B]">
+          <p className="text-xs leading-relaxed text-[#CBD5E1]">
             It remains O(n) overall, since set insertion and lookup both run in amortized constant time.
           </p>
         </div>
         <div className="flex items-start gap-2.5">
           <span className="flex h-4 w-6 shrink-0 items-center justify-center rounded text-[0.55rem] font-bold tracking-wide text-violet-300 bg-violet-500/15">AI</span>
-          <p className="text-xs leading-relaxed text-[#94A3B8]">
+          <p className="text-xs leading-relaxed text-[#CBD5E1]">
             Spot on. Can you now optimize this to O(1) auxiliary space using two pointers?
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-1.5 text-[0.7rem] text-[#475569]">
+      <div className="flex items-center gap-1.5 text-[0.7rem] text-[#B8C0CE]">
         <span className="h-1.5 w-1.5 rounded-full bg-violet-400 animate-pulse" />
         Live microphone active
       </div>
@@ -141,29 +141,29 @@ function VoiceConversationDiagram() {
 function CodingDiagram() {
   return (
     <div aria-hidden="true" className="mt-4 border-t border-white/[0.08] pt-3 space-y-2">
-      <div className="flex items-center justify-between text-[0.7rem] text-[#475569]">
+      <div className="flex items-center justify-between text-[0.7rem] text-[#B8C0CE]">
         <span className="font-mono">solution.py</span>
         <span className="text-sky-400 font-medium">4 / 4 passed</span>
       </div>
       <div className="rounded-lg bg-[#0A0C14] border border-white/[0.06] px-3.5 py-2.5 font-mono text-xs space-y-1">
         <div className="flex gap-4">
-          <span className="text-[#334155] w-4 shrink-0">1</span>
+          <span className="text-[#B0B8C8] w-4 shrink-0">1</span>
           <span><span className="text-sky-300">def</span> <span className="text-slate-200">two_sum</span><span className="text-slate-400">(nums, target):</span></span>
         </div>
         <div className="flex gap-4">
-          <span className="text-[#334155] w-4 shrink-0">2</span>
+          <span className="text-[#B0B8C8] w-4 shrink-0">2</span>
           <span className="text-slate-400 pl-4">seen = &#123;&#125;</span>
         </div>
         <div className="flex gap-4">
-          <span className="text-[#334155] w-4 shrink-0">3</span>
+          <span className="text-[#B0B8C8] w-4 shrink-0">3</span>
           <span className="pl-4"><span className="text-sky-300">for</span> <span className="text-slate-300">i, n</span> <span className="text-sky-300">in</span> <span className="text-slate-200">enumerate</span><span className="text-slate-400">(nums):</span></span>
         </div>
         <div className="flex gap-4">
-          <span className="text-[#334155] w-4 shrink-0">4</span>
+          <span className="text-[#B0B8C8] w-4 shrink-0">4</span>
           <span className="pl-8 text-slate-400">complement = target - n</span>
         </div>
         <div className="flex gap-4">
-          <span className="text-[#334155] w-4 shrink-0">5</span>
+          <span className="text-[#B0B8C8] w-4 shrink-0">5</span>
           <span className="pl-8"><span className="text-sky-300">if</span> <span className="text-slate-300">complement</span> <span className="text-sky-300">in</span> <span className="text-slate-300">seen</span>:</span>
         </div>
       </div>
@@ -180,7 +180,7 @@ function ReplayDiagram() {
     <div aria-hidden="true" className="mt-4 border-t border-white/[0.08] pt-3 space-y-2">
       <div className="rounded-lg bg-[#0A0C14] border border-white/[0.06] p-3 space-y-2.5">
         <div className="space-y-1">
-          <div className="flex items-center justify-between text-[0.7rem] text-[#475569]">
+          <div className="flex items-center justify-between text-[0.7rem] text-[#B8C0CE]">
             <span className="font-mono">session_2024-07-30.mp4</span>
             <span className="font-mono">04:27 / 18:12</span>
           </div>
@@ -190,16 +190,16 @@ function ReplayDiagram() {
         </div>
         <div className="border-t border-white/[0.06] pt-2 space-y-1">
           <div className="flex gap-2 text-xs">
-            <span className="font-mono text-[#475569] shrink-0">04:12</span>
-            <span className="text-[#64748B]">Candidate hesitates on space complexity for sliding window.</span>
+            <span className="font-mono text-[#B8C0CE] shrink-0">04:12</span>
+            <span className="text-[#CBD5E1]">Candidate hesitates on space complexity for sliding window.</span>
           </div>
           <div className="flex gap-2 text-xs">
-            <span className="font-mono text-[#475569] shrink-0">04:27</span>
-            <span className="text-[#94A3B8]">AI asks a follow-up about auxiliary space vs input space.</span>
+            <span className="font-mono text-[#B8C0CE] shrink-0">04:27</span>
+            <span className="text-[#CBD5E1]">AI asks a follow-up about auxiliary space vs input space.</span>
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-1.5 text-[0.7rem] text-[#475569]">
+      <div className="flex items-center gap-1.5 text-[0.7rem] text-[#B8C0CE]">
         <Clock className="h-3 w-3" />
         Transcript synced to playback position
       </div>
@@ -217,19 +217,19 @@ function ContextDiagram() {
           </div>
           <div>
             <p className="text-xs font-medium text-[#CBD5E1]">Staff Software Engineer, Stripe</p>
-            <p className="text-[0.68rem] text-[#475569]">Resume and job description uploaded</p>
+            <p className="text-[0.68rem] text-[#B8C0CE]">Resume and job description uploaded</p>
           </div>
         </div>
         <div className="border-t border-white/[0.06] pt-2 space-y-1">
-          <p className="text-[0.65rem] font-medium text-[#475569] uppercase tracking-wider">Generated focus areas</p>
+          <p className="text-[0.65rem] font-medium text-[#B8C0CE] uppercase tracking-wider">Generated focus areas</p>
           <div className="flex flex-wrap gap-1.5">
             {["Distributed systems", "API reliability", "Payment infra", "Cross-team leadership"].map((t) => (
-              <span key={t} className="rounded border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[0.68rem] text-[#8090A8]">{t}</span>
+              <span key={t} className="rounded border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[0.68rem] text-[#A8B6C8]">{t}</span>
             ))}
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-1.5 text-[0.7rem] text-[#475569]">
+      <div className="flex items-center gap-1.5 text-[0.7rem] text-[#B8C0CE]">
         <CheckCircle className="h-3 w-3 text-emerald-500" />
         Questions tailored to your specific interview target
       </div>
@@ -258,7 +258,7 @@ function TracksCard() {
                 className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-left transition-colors cursor-pointer ${
                   isActive
                     ? "bg-white/[0.06] text-white"
-                    : "text-[#475569] hover:text-[#94A3B8] hover:bg-white/[0.03]"
+                    : "text-[#B8C0CE] hover:text-[#E8ECF4] hover:bg-white/[0.03]"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
@@ -269,7 +269,7 @@ function TracksCard() {
               </button>
             );
           })}
-          <p className="pt-2 text-[0.7rem] text-[#334155] leading-relaxed">28+ tracks covering every role, level, and domain.</p>
+          <p className="pt-2 text-[0.7rem] text-[#B0B8C8] leading-relaxed">28+ tracks covering every role, level, and domain.</p>
         </div>
 
         {/* Right detail panel */}
@@ -280,7 +280,7 @@ function TracksCard() {
           </div>
 
           <div className="space-y-2">
-            <p className="text-[0.68rem] font-medium uppercase tracking-wider text-[#475569]">Core evaluated skills</p>
+            <p className="text-[0.68rem] font-medium uppercase tracking-wider text-[#B8C0CE]">Core evaluated skills</p>
             <div className="flex flex-wrap gap-2">
               {activeTrack.topics.map((topic) => (
                 <span key={topic} className="inline-flex items-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-[#CBD5E1]">
@@ -293,7 +293,7 @@ function TracksCard() {
 
           <div className="rounded-xl border border-white/[0.07] bg-[#070910] p-3.5 space-y-1.5">
             <div className="flex items-center justify-between text-[0.68rem]">
-              <span className="font-mono text-[#334155]">Sample AI prompt</span>
+              <span className="font-mono text-[#B0B8C8]">Sample AI prompt</span>
               <span className={`font-medium ${activeTrack.color}`}>Adaptive probe active</span>
             </div>
             <p className="text-sm leading-relaxed text-[#CBD5E1]">
@@ -325,7 +325,7 @@ export default function ProductStrengthsSection() {
             </h2>
           </LandingFadeOnly>
           <LandingFadeOnly triggerOnView delay={0.38} className="max-w-4xl">
-            <p className="text-sm leading-relaxed text-[#64748B]">
+            <p className="text-sm leading-relaxed text-[#CBD5E1]">
               SnapInterview gives you a place to practice speaking, coding, and reviewing across every role and seniority level.
             </p>
           </LandingFadeOnly>
@@ -351,7 +351,7 @@ export default function ProductStrengthsSection() {
                 <h3 className="mt-1.5 font-serif text-2xl leading-[1.05] tracking-tight text-white sm:text-3xl">
                   {feature.title}
                 </h3>
-                <p className="mt-2.5 text-sm leading-relaxed text-[#64748B]">
+                <p className="mt-2.5 text-sm leading-relaxed text-[#CBD5E1]">
                   {feature.description}
                 </p>
 

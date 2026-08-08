@@ -49,6 +49,29 @@ function inferAnswerSignal(answer: string | null | undefined) {
   return "solid";
 }
 
+function getInterviewTypeDirective(type: PromptInterviewSession["type"]) {
+  switch (type) {
+    case "recruiter-screen":
+      return "Prioritize motivation, communication clarity, resume consistency, and baseline role fit. Keep questions concise and practical.";
+    case "behavioral-leadership":
+      return "Prioritize behavioral and leadership signals. Ask for concrete past examples and probe ownership, conflict handling, and trade-off decisions.";
+    case "coding-algorithms":
+      return "Prioritize algorithmic thinking, data structures, complexity analysis, correctness on edge cases, and debugging judgment.";
+    case "system-design":
+      return "Prioritize architecture reasoning: scalability, reliability, observability, security, cost, and clear trade-offs.";
+    case "domain-role":
+      return "Prioritize role-specific depth for the selected role. Focus on practical implementation choices, workflows, constraints, and execution quality.";
+    case "take-home":
+      return "Treat the interview like a take-home review. Probe requirement interpretation, implementation decisions, testing strategy, and realistic iteration improvements.";
+    case "hiring-manager":
+      return "Prioritize scope ownership, prioritization, stakeholder management, execution risks, and level-appropriate team-fit judgment.";
+    case "bar-raiser":
+      return "Raise the evaluation bar with ambiguous and cross-functional scenarios that test consistency, judgment, and principled trade-offs under pressure.";
+    default:
+      return "Tailor question style to the configured interview type while remaining role-relevant and difficulty-appropriate.";
+  }
+}
+
 function formatUntrustedCandidateData(label: string, value: string, usageInstruction: string) {
   return [
     `${label}:`,
@@ -200,6 +223,7 @@ export async function buildSystemInstruction(interviewSession: PromptInterviewSe
 
   systemInstruction += `\nInterview role: ${role}.\n`;
   systemInstruction += `Interview type: ${type}.\n`;
+  systemInstruction += `Interview type directive: ${getInterviewTypeDirective(type)}\n`;
   systemInstruction += `Interview difficulty: ${difficulty}. Adjust question complexity accordingly.\n`;
   systemInstruction += `Interview length: ${questionCount} questions total. Vary the topics covered across questions.\n`;
 
@@ -263,10 +287,10 @@ export async function buildSystemInstruction(interviewSession: PromptInterviewSe
     )}\n`;
   }
 
-  if (type === "coding") {
+  if (type === "coding-algorithms") {
     systemInstruction += `\n## CODING CHALLENGE INSTRUCTIONS
 
-Interview type is coding. You MUST include exactly ONE coding challenge in your FIRST response.
+Interview type may include live coding. When appropriate, include exactly ONE coding challenge in your FIRST response.
 
 Format the challenge as a fenced code block with language identifier "coding-challenge" containing valid JSON with these fields:
 - "starterCode": object with "javascript" and "python" keys. Each value is a complete program that reads from stdin (line-by-line) and writes the answer to stdout. Include stdin-parsing boilerplate so the candidate only needs to fill in the solution logic.

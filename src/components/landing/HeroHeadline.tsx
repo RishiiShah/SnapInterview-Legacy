@@ -3,7 +3,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
 
-const EASE = [0.45, 0.05, 0.55, 0.95] as const;
+const EASE = [0.16, 1, 0.3, 1] as const;
 
 const HEADLINE_LINES = [
   "Practice real interviews",
@@ -27,8 +27,8 @@ export function HeroHeadline() {
         hidden: {},
         visible: {
           transition: {
-            staggerChildren: reducedMotion ? 0 : 0.2,
-            delayChildren: reducedMotion ? 0 : 0.15,
+            staggerChildren: reducedMotion ? 0 : 0.23,
+            delayChildren: reducedMotion ? 0 : 0.12,
           },
         },
       }}
@@ -46,7 +46,7 @@ export function HeroHeadline() {
               opacity: 1,
               transition: reducedMotion
                 ? { duration: 0 }
-                : { duration: 0.95, ease: EASE },
+                : { duration: 1.33, ease: EASE },
             },
           }}
           style={{ willChange: reducedMotion ? "auto" : "clip-path" }}
@@ -74,7 +74,7 @@ export function HeroSubcopy({ children, className }: { children: ReactNode; clas
       transition={
         reducedMotion
           ? { duration: 0 }
-          : { delay: 0.6, duration: 0.85, ease: EASE }
+          : { delay: 0.59, duration: 1.19, ease: EASE }
       }
       style={{ willChange: reducedMotion ? "auto" : "clip-path" }}
     >
@@ -90,12 +90,12 @@ export function HeroCtaPrimary({ children, className }: { children: ReactNode; c
   return (
     <motion.div
       className={className}
-      initial={reducedMotion ? false : { opacity: 0, scale: 0.94 }}
+      initial={reducedMotion ? false : { opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={
         reducedMotion
           ? { duration: 0 }
-          : { delay: 0.85, duration: 0.7, ease: EASE }
+          : { delay: 0.79, duration: 0.99, ease: EASE }
       }
       style={{
         transformOrigin: "center center",
@@ -119,7 +119,7 @@ export function HeroCtaSecondary({ children, className }: { children: ReactNode;
       transition={
         reducedMotion
           ? { duration: 0 }
-          : { delay: 1.05, duration: 0.7, ease: EASE }
+          : { delay: 0.89, duration: 0.99, ease: EASE }
       }
     >
       {children}

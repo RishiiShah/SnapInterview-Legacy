@@ -91,7 +91,7 @@ function ShellLayout({
             "dashboard-main min-h-0 flex-1 text-[15px] leading-relaxed text-[#E8ECF4] lg:text-[16px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
             fullscreenWorkspace
               ? "overflow-hidden p-0"
-              : "overflow-y-auto px-4 pb-8 pt-6 sm:px-6 lg:px-10 lg:pb-12 lg:pt-8 xl:px-14 2xl:px-20",
+              : "overflow-y-auto px-4 pb-8 pt-6 sm:px-5 lg:px-6 lg:pb-12 lg:pt-8",
           )}
         >
           <div

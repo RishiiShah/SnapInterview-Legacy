@@ -1,13 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { signIn, useSession } from "@/lib/auth-client";
 import OtpDialog from "@/components/OtpDialog";
 import {
+  AUTH_EASE,
   AuthDivider,
   AuthError,
+  AuthFormStagger,
+  AuthFormStaggerItem,
   AuthHeader,
   AuthShell,
   AuthTextField,
@@ -16,15 +20,19 @@ import { PasswordInput } from "@/components/auth/PasswordInput";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { SubmitButton } from "@/components/auth/SubmitButton";
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+
   const { data: session, isPending } = useSession();
+  const reducedMotion = useReducedMotion() ?? false;
 
   useEffect(() => {
     if (!isPending && session) {
-      router.push("/dashboard");
+      router.push(callbackUrl);
     }
-  }, [session, isPending, router]);
+  }, [session, isPending, router, callbackUrl]);
 
   const [step, setStep] = useState<"form" | "otp">("form");
   const [name, setName] = useState("");
@@ -66,27 +74,7 @@ export default function SignupPage() {
     }
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      setError("Password must contain at least one uppercase letter (A-Z).");
-      return;
-    }
-
-    if (!/[a-z]/.test(password)) {
-      setError("Password must contain at least one lowercase letter (a-z).");
-      return;
-    }
-
-    if (!/[0-9]/.test(password)) {
-      setError("Password must contain at least one number (0-9).");
-      return;
-    }
-
-    if (!/[^A-Za-z0-9]/.test(password)) {
-      setError("Password must contain at least one special character (e.g. !@#$%^&*).");
+      setError("Password must be at least 8 characters long.");
       return;
     }
 
@@ -100,114 +88,140 @@ export default function SignupPage() {
     try {
       await sendOtp();
       setStep("otp");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Registration failed.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOtpVerified = async () => {
-    const { error } = await signIn.email({
-      email,
-      password,
-    });
-
-    if (error) {
-      setStep("form");
-      setError("Account created but sign-in failed. Please log in manually.");
-    } else {
-      router.push("/dashboard");
-    }
+  const handleVerifySuccess = () => {
+    router.push(callbackUrl);
   };
 
   return (
     <AuthShell
       footer={
-        step === "form" ? (
-          <>
-            Already have an account?{" "}
-            <Link
-              href="/login"
-              className="font-medium text-[#CBD5E1] transition-colors hover:text-white"
-            >
-              Log in <span className="text-[#60A5FA]">→</span>
-            </Link>
-          </>
-        ) : null
+        <>
+          Already have an account?{" "}
+          <Link
+            href="/login"
+            className="font-medium text-[#CBD5E1] transition-colors hover:text-white"
+          >
+            Log in <span className="text-[#60A5FA]">→</span>
+          </Link>
+        </>
       }
     >
-      {step === "form" ? (
-        <>
-          <AuthHeader
-            title="Create your account"
-            description="Mic, video, transcript, and scoring in one practice."
-            align="center"
-          />
+      <AnimatePresence mode="wait" initial={false}>
+        {step === "form" ? (
+          <motion.div
+            key="signup-form"
+            initial={reducedMotion ? undefined : { opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={reducedMotion ? undefined : { opacity: 0, x: 8 }}
+            transition={{ duration: 0.25, ease: AUTH_EASE }}
+          >
+            <AuthFormStagger>
+              <AuthFormStaggerItem>
+                <AuthHeader
+                  title="Create an account"
+                  description="Start your AI mock interview practice in less than a minute."
+                  align="center"
+                />
+              </AuthFormStaggerItem>
 
-          <form onSubmit={handleSubmit} noValidate autoComplete="off" className="space-y-2.5">
-            <AuthTextField
-              id="name"
-              label="Full name"
-              value={name}
-              onChange={setName}
-              placeholder="Jane Doe"
-              autoComplete="off"
+              <form onSubmit={handleSubmit} noValidate autoComplete="off" className="space-y-4">
+                <AuthFormStaggerItem>
+                  <AuthTextField
+                    id="name"
+                    label="Full Name"
+                    type="text"
+                    value={name}
+                    onChange={setName}
+                    placeholder="Jane Doe"
+                    autoComplete="off"
+                  />
+                </AuthFormStaggerItem>
+
+                <AuthFormStaggerItem>
+                  <AuthTextField
+                    id="email"
+                    label="Email"
+                    type="email"
+                    value={email}
+                    onChange={setEmail}
+                    placeholder="you@example.com"
+                    autoComplete="off"
+                  />
+                </AuthFormStaggerItem>
+
+                <AuthFormStaggerItem>
+                  <PasswordInput
+                    id="password"
+                    label="Password"
+                    value={password}
+                    onChange={setPassword}
+                    autoComplete="off"
+                  />
+                </AuthFormStaggerItem>
+
+                <AuthFormStaggerItem>
+                  <PasswordInput
+                    id="confirmPassword"
+                    label="Confirm Password"
+                    value={confirmPassword}
+                    onChange={setConfirmPassword}
+                    autoComplete="off"
+                  />
+                </AuthFormStaggerItem>
+
+                {error ? (
+                  <AuthFormStaggerItem>
+                    <AuthError message={error} />
+                  </AuthFormStaggerItem>
+                ) : null}
+
+                <AuthFormStaggerItem className="pt-1">
+                  <SubmitButton loading={loading} text="Create account" sentText="Creating account..." />
+                </AuthFormStaggerItem>
+              </form>
+
+              <AuthFormStaggerItem>
+                <AuthDivider />
+              </AuthFormStaggerItem>
+
+              <AuthFormStaggerItem>
+                <GoogleSignInButton callbackUrl={callbackUrl} />
+              </AuthFormStaggerItem>
+            </AuthFormStagger>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="signup-otp"
+            initial={reducedMotion ? undefined : { opacity: 0, x: 8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={reducedMotion ? undefined : { opacity: 0, x: -8 }}
+            transition={{ duration: 0.25, ease: AUTH_EASE }}
+          >
+            <OtpDialog
+              email={email}
+              password={password}
+              isOpen={step === "otp"}
+              onClose={() => setStep("form")}
+              onSuccess={handleVerifySuccess}
             />
-
-            <AuthTextField
-              id="email"
-              label="Email"
-              type="email"
-              value={email}
-              onChange={setEmail}
-              placeholder="you@example.com"
-              autoComplete="off"
-            />
-
-            <PasswordInput
-              id="password"
-              label="Password"
-              value={password}
-              onChange={setPassword}
-              placeholder="Min. 8 chars, 1 uppercase, 1 number, 1 symbol"
-              autoComplete="off"
-            />
-
-            <PasswordInput
-              id="confirm-password"
-              label="Confirm password"
-              value={confirmPassword}
-              onChange={setConfirmPassword}
-              autoComplete="off"
-            />
-
-            {error ? <AuthError message={error} /> : null}
-
-            <p className="pt-0.5 text-center text-[11px] leading-relaxed text-[#CBD5E1]">
-              By continuing you agree to our Terms and Privacy Policy.
-            </p>
-
-            <div className="pt-0.5">
-              <SubmitButton loading={loading} text="Create account" sentText="Creating account..." />
-            </div>
-          </form>
-
-          <AuthDivider />
-          <GoogleSignInButton text="Continue with Google" />
-        </>
-      ) : (
-        <OtpDialog
-          variant="inline"
-          email={email}
-          onVerified={handleOtpVerified}
-          onCancel={() => {
-            setStep("form");
-            setError("");
-          }}
-          onResend={sendOtp}
-        />
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AuthShell>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0C0E14]" />}>
+      <SignupForm />
+    </Suspense>
   );
 }

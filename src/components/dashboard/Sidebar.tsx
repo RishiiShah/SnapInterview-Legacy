@@ -1,28 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import type { ReactElement } from "react";
 import { AppLogo } from "@/components/ui/AppLogo";
-import { UserAvatar } from "@/components/ui/UserAvatar";
+import { cn } from "@/lib/utils";
 import {
   IconChartBars,
   IconCode,
   IconDashboard,
-  IconLogout,
+  IconHelp,
   IconMessage,
   IconQuestionBank,
   IconRecordings,
   IconSettings,
 } from "@/components/ui/icons";
-import { signOut } from "@/lib/auth-client";
-import { getInitials } from "@/utils/helpers";
 import {
   HoverSidebarBody,
   HoverSidebarLink,
   SidebarLabel,
   useHoverSidebar,
 } from "@/components/ui/hover-sidebar";
+import {
+  AnimatedSidebarCollapseIcon,
+  AnimatedSidebarOpenIcon,
+} from "@/components/ui/animated-icons";
 
 type DashboardSession = {
   user?: {
@@ -50,7 +52,7 @@ function NavIcon({ children }: { children: ReactElement<{ className?: string }> 
   );
 }
 
-const primaryLinks = [
+const generalLinks = [
   {
     label: "Dashboard",
     href: "/dashboard",
@@ -87,6 +89,9 @@ const primaryLinks = [
       </NavIcon>
     ),
   },
+];
+
+const performanceLinks = [
   {
     label: "Analytics",
     href: "/analytics",
@@ -107,147 +112,139 @@ const primaryLinks = [
   },
 ];
 
+const bottomLinks = [
+  {
+    label: "Help & Support",
+    href: "/support",
+    icon: (
+      <NavIcon>
+        <IconHelp />
+      </NavIcon>
+    ),
+  },
+  {
+    label: "Settings",
+    href: "/settings",
+    icon: (
+      <NavIcon>
+        <IconSettings />
+      </NavIcon>
+    ),
+  },
+];
+
 function BrandRow() {
+  const { expanded, togglePinned, pinned } = useHoverSidebar();
+
   return (
-    <Link
-      href="/dashboard"
-      className="flex h-10 items-center gap-2.5 px-2 transition-opacity hover:opacity-90"
+    <div
+      className={cn(
+        "flex h-12 shrink-0 items-center justify-between",
+        expanded ? "px-3" : "px-0 justify-center"
+      )}
     >
-      <AppLogo size={28} className="-translate-y-0.5 shrink-0 rounded-md" priority />
-      <SidebarLabel className="text-sm font-semibold tracking-tight text-[#F5F7FF]">
-        Snap<span className="text-blue-400">Interview</span>
-      </SidebarLabel>
-    </Link>
+      <Link
+        href="/dashboard"
+        className={cn(
+          "flex h-8 items-center transition-opacity hover:opacity-90 min-w-0",
+          expanded ? "gap-2.5" : "w-8 h-8 justify-center mx-auto"
+        )}
+      >
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center">
+          <AppLogo size={28} className="shrink-0 rounded-md" priority />
+        </span>
+        <SidebarLabel className="text-sm font-semibold tracking-tight text-white flex items-center leading-none">
+          Snap<span className="text-blue-400">Interview</span>
+        </SidebarLabel>
+      </Link>
+
+      {expanded ? (
+        <button
+          type="button"
+          onClick={togglePinned}
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#7D889B] transition-colors hover:bg-white/[0.06] hover:text-white cursor-pointer"
+          title={pinned ? "Collapse sidebar" : "Pin sidebar"}
+        >
+          {pinned ? (
+            <AnimatedSidebarCollapseIcon size={16} />
+          ) : (
+            <AnimatedSidebarOpenIcon size={16} />
+          )}
+        </button>
+      ) : null}
+    </div>
   );
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   const { expanded } = useHoverSidebar();
-  if (!expanded) return <div className="h-2" />;
+  if (!expanded) return null;
   return (
-    <p className="mb-1.5 px-2.5 text-[0.62rem] font-medium uppercase tracking-[0.2em] text-[#B8C0CE]">
+    <p className="mb-1.5 px-2.5 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[#7D889B]">
       {children}
     </p>
   );
 }
 
-function UtilityLinks({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarContents() {
   const pathname = usePathname();
-
-  return (
-    <div className="space-y-0.5 border-t border-white/[0.08] pt-3">
-      <SectionLabel>Account</SectionLabel>
-      <HoverSidebarLink
-        link={{
-          label: "Settings",
-          href: "/settings",
-          icon: (
-            <NavIcon>
-              <IconSettings />
-            </NavIcon>
-          ),
-        }}
-        active={pathname === "/settings" || pathname.startsWith("/settings/")}
-        onClick={onNavigate}
-      />
-    </div>
-  );
-}
-
-function AccountFooter({ session }: { session: DashboardSession }) {
-  const { expanded } = useHoverSidebar();
-  const router = useRouter();
-  const userName = session?.user?.name || "User";
-  const userImage = session?.user?.image;
-  const initials = getInitials(userName);
-
-  return (
-    <div className="space-y-1 border-t border-white/[0.08] pt-3">
-      <button
-        type="button"
-        onClick={() =>
-          signOut({
-            fetchOptions: {
-              onSuccess: () => {
-                router.push("/");
-              },
-            },
-          })
-        }
-        className="group/sidebar flex w-full cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 text-sm text-[#CBD5E1] transition-colors hover:bg-white/[0.04] hover:text-[#F2F4F8]"
-      >
-        <NavIcon>
-          <IconLogout />
-        </NavIcon>
-        <SidebarLabel>Log out</SidebarLabel>
-      </button>
-
-      <div
-        className={`flex items-center gap-2.5 px-2.5 py-2 ${
-          expanded
-            ? "rounded-xl border border-white/[0.06] bg-[#070910]"
-            : "justify-center"
-        }`}
-      >
-        {userImage ? (
-          <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full">
-            <UserAvatar src={userImage} alt={userName} fill sizes="28px" className="object-cover" />
-          </div>
-        ) : (
-          <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
-            {initials}
-          </div>
-        )}
-        {expanded ? (
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-[#CBD5E1]">{userName}</p>
-          </div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function SidebarContents({ session }: { session: DashboardSession }) {
-  const pathname = usePathname();
-  const { setMobileOpen } = useHoverSidebar();
+  const { expanded, setMobileOpen } = useHoverSidebar();
   const onNavigate = () => setMobileOpen(false);
 
   return (
-    <div className="flex h-full flex-col justify-between gap-5">
-      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <BrandRow />
+    <div className="flex h-full flex-col justify-between">
+      <BrandRow />
 
-        <div>
-          <SectionLabel>Workspace</SectionLabel>
-          <div className="flex flex-col gap-0.5">
-            {primaryLinks.map((link) => {
-              const active =
-                pathname === link.href || pathname.startsWith(`${link.href}/`);
-              return (
+      <div className="flex min-h-0 flex-1 flex-col justify-between border-r border-white/[0.06] p-2.5 pt-1.5">
+        <nav className={expanded ? "space-y-4" : "space-y-0.5"}>
+          <div>
+            <SectionLabel>General</SectionLabel>
+            <div className="space-y-0.5">
+              {generalLinks.map((link) => (
                 <HoverSidebarLink
                   key={link.href}
                   link={link}
-                  active={active}
+                  active={pathname === link.href}
                   onClick={onNavigate}
                 />
-              );
-            })}
+              ))}
+            </div>
           </div>
+
+          <div>
+            <SectionLabel>Performance</SectionLabel>
+            <div className="space-y-0.5">
+              {performanceLinks.map((link) => (
+                <HoverSidebarLink
+                  key={link.href}
+                  link={link}
+                  active={pathname === link.href}
+                  onClick={onNavigate}
+                />
+              ))}
+            </div>
+          </div>
+        </nav>
+
+        <div className="pt-3 border-t border-white/[0.06] space-y-0.5">
+          {bottomLinks.map((link) => (
+            <HoverSidebarLink
+              key={link.href}
+              link={link}
+              active={pathname === link.href}
+              onClick={onNavigate}
+            />
+          ))}
         </div>
-
-        <UtilityLinks onNavigate={onNavigate} />
       </div>
-
-      <AccountFooter session={session} />
     </div>
   );
 }
 
-export function Sidebar({ session }: { session: DashboardSession }) {
+export function Sidebar({ session }: { session?: DashboardSession }) {
   return (
     <HoverSidebarBody>
-      <SidebarContents session={session} />
+      <SidebarContents />
     </HoverSidebarBody>
   );
 }

@@ -23,7 +23,7 @@ export default function DangerZoneTab() {
       });
       if (res.ok) {
         await signOut();
-        router.push("/");
+        window.location.href = "/";
       }
     } catch {
       setDeleteOpen(false);

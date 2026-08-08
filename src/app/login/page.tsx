@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, useSession } from "@/lib/auth-client";
 import {
   AuthDivider,
   AuthError,
+  AuthFormStagger,
+  AuthFormStaggerItem,
   AuthHeader,
   AuthShell,
   AuthTextField,
@@ -15,15 +17,18 @@ import { PasswordInput } from "@/components/auth/PasswordInput";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { SubmitButton } from "@/components/auth/SubmitButton";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+
   const { data: session, isPending } = useSession();
 
   useEffect(() => {
     if (!isPending && session) {
-      router.push("/dashboard");
+      router.push(callbackUrl);
     }
-  }, [session, isPending, router]);
+  }, [session, isPending, router, callbackUrl]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -59,7 +64,7 @@ export default function LoginPage() {
       setLoading(false);
       setSuccess(true);
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push(callbackUrl);
       }, 500);
     }
   };
@@ -78,45 +83,70 @@ export default function LoginPage() {
         </>
       }
     >
-      <AuthHeader
-        title="Log in"
-        description="Pick up where you left off with practice sessions, recordings, and scores."
-        align="center"
-      />
+      <AuthFormStagger>
+        <AuthFormStaggerItem>
+          <AuthHeader
+            title="Log in"
+            description="Pick up where you left off with practice sessions, recordings, and scores."
+            align="center"
+          />
+        </AuthFormStaggerItem>
 
-      <form onSubmit={handleSubmit} noValidate autoComplete="off" className="space-y-4">
-        <AuthTextField
-          id="email"
-          label="Email"
-          type="email"
-          value={email}
-          onChange={(v) => {
-            setEmail(v);
-            if (emailError) setEmailError("");
-          }}
-          placeholder="you@example.com"
-          autoComplete="off"
-          error={emailError}
-        />
+        <form onSubmit={handleSubmit} noValidate autoComplete="off" className="space-y-4">
+          <AuthFormStaggerItem>
+            <AuthTextField
+              id="email"
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(v) => {
+                setEmail(v);
+                if (emailError) setEmailError("");
+              }}
+              placeholder="you@example.com"
+              autoComplete="off"
+              error={emailError}
+            />
+          </AuthFormStaggerItem>
 
-        <PasswordInput
-          id="password"
-          label="Password"
-          value={password}
-          onChange={setPassword}
-          showForgotPasswordLink
-          autoComplete="off"
-        />
+          <AuthFormStaggerItem>
+            <PasswordInput
+              id="password"
+              label="Password"
+              value={password}
+              onChange={setPassword}
+              showForgotPasswordLink
+              autoComplete="off"
+            />
+          </AuthFormStaggerItem>
 
-        {error ? <AuthError message={error} /> : null}
+          {error ? (
+            <AuthFormStaggerItem>
+              <AuthError message={error} />
+            </AuthFormStaggerItem>
+          ) : null}
 
-        <div className="pt-1">
-          <SubmitButton loading={loading} success={success} text="Log in" sentText="Logging in..." />
-        </div>
-      </form>
+          <AuthFormStaggerItem className="pt-1">
+            <SubmitButton loading={loading} success={success} text="Log in" sentText="Logging in..." />
+          </AuthFormStaggerItem>
+        </form>
 
-      <AuthDivider />
-      <GoogleSignInButton />
+        <AuthFormStaggerItem>
+          <AuthDivider />
+        </AuthFormStaggerItem>
+
+        <AuthFormStaggerItem>
+          <GoogleSignInButton callbackUrl={callbackUrl} />
+        </AuthFormStaggerItem>
+      </AuthFormStagger>
     </AuthShell>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0C0E14]" />}>
+      <LoginForm />
+    </Suspense>
   );
 }

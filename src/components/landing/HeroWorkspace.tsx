@@ -31,17 +31,17 @@ export default function HeroWorkspace() {
     >
       {/* Section Header — L→R title, quiet lede */}
       <div className="mb-10 flex flex-col items-center text-center pt-4">
-        <LandingFadeOnly triggerOnView>
+        <LandingFadeOnly triggerOnView delay={0.10}>
           <span className="text-xs font-medium uppercase tracking-[0.22em] text-[#9BB8D4]">
             Interactive Studio
           </span>
         </LandingFadeOnly>
-        <LandingFadeOnly triggerOnView delay={0.11} className="mt-3">
+        <LandingFadeOnly triggerOnView delay={0.22} className="mt-3">
           <h2 className="text-3xl font-semibold tracking-tight text-[#D8E0EC] sm:text-4xl lg:text-5xl">
             Step inside the room before the interview begins
           </h2>
         </LandingFadeOnly>
-        <LandingFadeOnly triggerOnView delay={0.19} className="mt-3 max-w-2xl">
+        <LandingFadeOnly triggerOnView delay={0.32} className="mt-3 max-w-2xl">
           <p className="text-base leading-relaxed text-[#A8B6C8]">
             A voice-and-video interview workspace paired with an honest, read-only coding concept preview.
           </p>
@@ -55,8 +55,8 @@ export default function HeroWorkspace() {
           aria-hidden="true"
         />
 
-        {/* Safari frame — soft fade in */}
-        <LandingFadeOnly triggerOnView delay={0.14}>
+        {/* Safari frame — soft fade in with distinct entry delay */}
+        <LandingFadeOnly triggerOnView delay={0.42} duration={1.22}>
         <Safari url="snapinterview.app/practice/session" className="shadow-[0_20px_60px_rgba(0,0,0,0.7)]">
           {/* Workspace — unified muted dark surface, no sharp card borders */}
           <div className="flex flex-col h-full w-full bg-[#0D1017] text-[#C8D3E0] select-none font-sans">

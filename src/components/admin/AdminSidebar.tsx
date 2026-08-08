@@ -185,7 +185,7 @@ export function AdminSidebar({
                   signOut({
                     fetchOptions: {
                       onSuccess: () => {
-                        router.push("/");
+                        window.location.href = "/";
                       },
                     },
                   })

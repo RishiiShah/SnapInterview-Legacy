@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { AppLogo } from "@/components/ui/AppLogo";
+import { useSession } from "@/lib/auth-client";
 
 const LINKS = [
   { label: "Studio", href: "#studio" },
   { label: "Features", href: "#features" },
   { label: "How It Works", href: "#how-it-works" },
-  { label: "Get Started", href: "#get-started" },
+  { label: "FAQ", href: "/faq" },
+  { label: "Help & Support", href: "/support" },
   { label: "Sign In", href: "/login" },
   { label: "Register", href: "/signup" },
 ];
@@ -23,13 +25,17 @@ function scrollHome(event: React.MouseEvent<HTMLAnchorElement>) {
 }
 
 export default function LandingFooter() {
+  const { data: session } = useSession();
+  const isLoggedIn = Boolean(session?.user);
+
   return (
     <footer className="relative z-10 border-t border-white/[0.07] bg-[#090A0F] py-8 text-[#CBD5E1]">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[140rem] px-6 sm:px-10 lg:px-16 2xl:px-24">
         <div className="flex flex-col items-center justify-between gap-5 sm:flex-row">
 
           <Link
-            href="/"
+            href={isLoggedIn ? "/dashboard" : "/"}
+            prefetch={false}
             onClick={scrollHome}
             className="flex items-center gap-2 transition-opacity hover:opacity-80"
           >
@@ -44,7 +50,7 @@ export default function LandingFooter() {
             aria-label="Footer Navigation"
           >
             {LINKS.map(({ label, href }) => (
-              <Link key={href} href={href} className="transition-colors hover:text-white">
+              <Link key={href} href={href} prefetch={false} className="transition-colors hover:text-white">
                 {label}
               </Link>
             ))}

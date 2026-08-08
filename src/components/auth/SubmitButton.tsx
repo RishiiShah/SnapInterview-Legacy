@@ -1,6 +1,8 @@
 "use client";
 
+import { motion, useReducedMotion } from "framer-motion";
 import { SendActionButton } from "@/components/ui/SendActionButton";
+import { AUTH_EASE } from "./AuthShell";
 
 interface SubmitButtonProps {
   loading: boolean;
@@ -19,6 +21,7 @@ export function SubmitButton({
   disabled = false,
   onClick,
 }: SubmitButtonProps) {
+  const reducedMotion = useReducedMotion() ?? false;
   const activeLabel =
     sentText ??
     (text === "Log in"
@@ -28,16 +31,23 @@ export function SubmitButton({
         : "Processing...");
 
   return (
-    <SendActionButton
-      type={onClick ? "button" : "submit"}
-      onClick={onClick}
-      label={text}
-      loadingLabel={activeLabel}
-      sentLabel={activeLabel}
-      loading={loading}
-      success={success}
-      disabled={loading || disabled}
-      fullWidth
-    />
+    <motion.div
+      whileHover={reducedMotion || loading || disabled ? undefined : { scale: 1.012 }}
+      whileTap={reducedMotion || loading || disabled ? undefined : { scale: 0.988 }}
+      transition={{ duration: 0.2, ease: AUTH_EASE }}
+      className="w-full"
+    >
+      <SendActionButton
+        type={onClick ? "button" : "submit"}
+        onClick={onClick}
+        label={text}
+        loadingLabel={activeLabel}
+        sentLabel={activeLabel}
+        loading={loading}
+        success={success}
+        disabled={loading || disabled}
+        fullWidth
+      />
+    </motion.div>
   );
 }

@@ -109,7 +109,9 @@ export function AdminHeader({ user }: { user: AdminUser }) {
         <AvatarDropdown
           open={avatarOpen}
           onClose={() => setAvatarOpen(false)}
-          onSignedOut={() => router.push("/")}
+          onSignedOut={() => {
+            window.location.href = "/";
+          }}
           userName={userName}
           userEmail={userEmail}
         />

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Notification } from "@/data/types";
 import {
   AnimatedBellIcon,
@@ -36,7 +36,7 @@ function NotificationPanel({
 
   return (
     <div
-      className="absolute right-0 top-12 w-80 rounded-xl border border-white/[0.08] bg-[#0C0F1A] shadow-xl"
+      className="absolute right-0 top-11 z-50 w-80 rounded-xl border border-white/[0.08] bg-[#0C0F1A] shadow-xl"
       style={{ animation: "fadeSlideIn 0.15s ease-out" }}
     >
       <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3">
@@ -58,31 +58,52 @@ function NotificationPanel({
               <div key={i} className="px-4 py-3">
                 <div className="h-3.5 w-32 animate-pulse rounded bg-white/[0.06]" />
                 <div className="mt-1.5 h-3 w-48 animate-pulse rounded bg-white/[0.06]" />
-                <div className="mt-1.5 h-2.5 w-16 animate-pulse rounded bg-white/[0.04]" />
               </div>
             ))}
           </div>
         ) : notifications.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-[#B8C0CE]">No notifications yet</p>
+          <div className="px-4 py-6 text-center text-xs text-[#A8B0C2]">
+            No notifications right now.
+          </div>
         ) : (
           notifications.map((n) => (
             <div
               key={n.id}
-              className={`px-4 py-3 transition-colors hover:bg-white/[0.04] ${!n.read ? "bg-blue-500/[0.08]" : ""}`}
+              className={`px-4 py-3 transition-colors ${
+                !n.read ? "bg-blue-500/[0.06]" : ""
+              }`}
             >
               <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-medium text-[#CBD5E1]">{n.title}</p>
-                {!n.read && (
-                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
-                )}
+                <p className="text-xs font-semibold text-[#F2F4F8]">{n.title}</p>
+                <span className="shrink-0 text-[10px] text-[#7D889B]">{n.time}</span>
               </div>
-              <p className="mt-0.5 text-xs leading-relaxed text-[#B4C0D0]">{n.message}</p>
-              <p className="mt-1 text-[10px] text-[#B0B8C8]">{n.time}</p>
+              <p className="mt-0.5 text-xs text-[#A8B0C2]">{n.description}</p>
             </div>
           ))
         )}
       </div>
     </div>
+  );
+}
+
+function HeaderSearchButton({ onSearchOpen }: { onSearchOpen: () => void }) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={onSearchOpen}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="hidden h-8 cursor-pointer items-center gap-2.5 rounded-lg border border-white/[0.1] bg-white/[0.03] px-3 text-[#A8B0C2] transition-colors hover:border-white/[0.16] hover:bg-white/[0.08] hover:text-[#E8ECF4] sm:flex"
+      aria-label="Search"
+    >
+      <AnimatedSearchIcon className="icon-crisp h-[18px] w-[18px]" strokeWidth={2.25} isHovered={isHovered} />
+      <span className="text-xs font-medium">Search...</span>
+      <kbd className="pointer-events-none rounded border border-white/[0.12] bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-mono text-[#A8B0C2]">
+        ⌘K
+      </kbd>
+    </button>
   );
 }
 
@@ -94,49 +115,28 @@ function HeaderNotifButton({
   unreadCount: number;
 }) {
   const [isHovered, setIsHovered] = useState(false);
+
   return (
     <button
       type="button"
       onClick={handleNotifOpen}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="relative cursor-pointer rounded-xl p-2 text-[#B4C0D0] transition-colors hover:bg-white/[0.06] hover:text-[#CBD5E1]"
+      className="relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-white/[0.1] bg-white/[0.03] text-[#A8B0C2] transition-colors hover:border-white/[0.16] hover:bg-white/[0.08] hover:text-[#E8ECF4]"
       aria-label="Notifications"
     >
-      <AnimatedBellIcon className="icon-crisp h-5 w-5" strokeWidth={2.25} isHovered={isHovered} />
+      <AnimatedBellIcon className="icon-crisp h-[18px] w-[18px]" strokeWidth={2.25} isHovered={isHovered} />
       {unreadCount > 0 && (
-        <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">
-          {unreadCount > 9 ? "9+" : unreadCount}
-        </span>
+        <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-blue-500 ring-2 ring-[#0C0E14]" />
       )}
     </button>
   );
 }
 
-function HeaderSearchButton({ onSearchOpen }: { onSearchOpen: () => void }) {
-  const [isHovered, setIsHovered] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={onSearchOpen}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className="hidden cursor-pointer items-center gap-2 rounded-md border border-white/[0.1] bg-white/[0.02] px-2.5 py-1.5 text-sm text-[#A8B0C2] transition-colors hover:border-white/[0.16] hover:bg-white/[0.04] hover:text-[#C5CBD8] sm:flex"
-    >
-      <AnimatedSearchIcon className="icon-crisp h-[18px] w-[18px]" strokeWidth={2.25} isHovered={isHovered} />
-      <span>Search…</span>
-      <kbd className="ml-4 rounded border border-white/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-[#B8C0CE]">
-        ⌘K
-      </kbd>
-    </button>
-  );
-}
-
 function HeaderUserButton() {
-  const { data: session } = useSession();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { data: session } = useSession();
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -158,7 +158,7 @@ function HeaderUserButton() {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex cursor-pointer items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.03] py-1 pl-1 pr-2.5 transition-colors hover:border-white/[0.18] hover:bg-white/[0.08]"
+        className="flex h-8 cursor-pointer items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.03] pl-1 pr-2.5 transition-colors hover:border-white/[0.18] hover:bg-white/[0.08]"
         aria-label="User profile menu"
       >
         {userImage ? (
@@ -178,7 +178,7 @@ function HeaderUserButton() {
 
       {open && (
         <div
-          className="absolute right-0 top-10 z-50 w-56 rounded-xl border border-white/[0.08] bg-[#0C0F1A] p-1.5 shadow-xl"
+          className="absolute right-0 top-11 z-50 w-56 rounded-xl border border-white/[0.08] bg-[#0C0F1A] p-1.5 shadow-xl"
           style={{ animation: "fadeSlideIn 0.15s ease-out" }}
         >
           <div className="border-b border-white/[0.08] px-3 py-2.5">
@@ -214,7 +214,7 @@ function HeaderUserButton() {
                 signOut({
                   fetchOptions: {
                     onSuccess: () => {
-                      router.push("/");
+                      window.location.href = "/";
                     },
                   },
                 })
@@ -298,7 +298,7 @@ export function Header({
         (pathname.startsWith("/settings") ? "Settings" : "Workspace"));
 
   return (
-    <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center justify-between gap-3 border-b border-white/[0.06] bg-[#0C0E14]/55 px-4 backdrop-blur-md sm:px-6 lg:px-10 xl:px-14 2xl:px-20">
+    <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center justify-between gap-3 border-b border-white/[0.06] bg-[#0C0E14] px-4 sm:px-5 lg:px-6">
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         {onSidebarToggle ? (
           <button
@@ -310,7 +310,7 @@ export function Header({
             <IconMenu className="h-5 w-5" strokeWidth={2.15} />
           </button>
         ) : null}
-        <h2 className="truncate text-sm font-medium tracking-tight text-[#C5CBD8]">{pageTitle}</h2>
+        <h2 className="flex h-8 items-center truncate text-sm font-medium tracking-tight text-[#C5CBD8]">{pageTitle}</h2>
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2">

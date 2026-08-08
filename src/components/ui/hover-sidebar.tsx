@@ -141,7 +141,7 @@ export function DesktopHoverSidebar({
   return (
     <motion.aside
       className={cn(
-        "relative hidden h-full shrink-0 flex-col overflow-hidden border-r border-white/[0.06] bg-[#101218] md:flex",
+        "relative hidden h-full shrink-0 flex-col overflow-hidden bg-[#0C0E14] md:flex",
         "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         className,
       )}
@@ -161,16 +161,7 @@ export function DesktopHoverSidebar({
         if (!pinned) setOpen(false);
       }}
     >
-      {/* Quiet auth-style glow */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        aria-hidden="true"
-        style={{
-          background:
-            "radial-gradient(ellipse 90% 50% at 0% 0%, rgba(37,99,235,0.12) 0%, transparent 55%)",
-        }}
-      />
-      <div className="relative flex h-full flex-col px-2.5 py-4">{children}</div>
+      <div className="relative flex h-full flex-col p-0">{children}</div>
     </motion.aside>
   );
 }
@@ -234,30 +225,25 @@ export function SidebarLabel({
   children: React.ReactNode;
   className?: string;
 }) {
-  const { expanded, animate } = useHoverSidebar();
+  const { expanded } = useHoverSidebar();
   const reducedMotion = useReducedMotion() ?? false;
+
+  if (!expanded) return null;
 
   return (
     <motion.span
-      initial={false}
-      animate={{
-        opacity: !animate || expanded ? 1 : 0,
-        x: !animate || expanded ? 0 : -6,
-      }}
+      initial={{ opacity: 0, x: -4 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -4 }}
       transition={
-        reducedMotion || !animate
+        reducedMotion
           ? { duration: 0 }
           : {
-              duration: 0.38,
-              delay: expanded ? 0.12 : 0,
+              duration: 0.22,
               ease: SIDEBAR_EASE,
             }
       }
-      className={cn(
-        "whitespace-nowrap text-sm",
-        !expanded && animate ? "pointer-events-none w-0 overflow-hidden" : "",
-        className,
-      )}
+      className={cn("whitespace-nowrap text-sm", className)}
     >
       {children}
     </motion.span>
@@ -279,28 +265,31 @@ export function HoverSidebarLink({
   onClick?: () => void;
   active?: boolean;
 }) {
+  const { expanded } = useHoverSidebar();
+
   return (
     <Link
       href={link.href}
       onClick={onClick}
       className={cn(
-        "group/sidebar relative flex h-10 cursor-pointer items-center gap-3 rounded-xl px-2.5 text-sm outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-400/45",
+        "group/sidebar relative flex h-9 cursor-pointer items-center rounded-lg text-xs font-medium outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-400/45",
+        expanded ? "px-2.5 gap-3" : "w-9 h-9 justify-center mx-auto",
         active
-          ? "bg-blue-500/[0.12] text-[#E8ECF4]"
-          : "text-[#CBD5E1] hover:bg-white/[0.04] hover:text-[#F2F4F8]",
+          ? "bg-white/[0.08] text-white"
+          : "text-[#9EA8B6] hover:bg-white/[0.04] hover:text-[#F2F4F8]",
         className,
       )}
     >
-      {active ? (
-        <span
-          className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-blue-400"
-          aria-hidden="true"
-        />
-      ) : null}
       <span className="flex h-5 w-5 shrink-0 items-center justify-center text-current [&_svg]:block [&_svg]:text-current">
         {link.icon}
       </span>
       <SidebarLabel>{link.label}</SidebarLabel>
+
+      {!expanded ? (
+        <div className="pointer-events-none absolute left-full ml-3 hidden rounded-md border border-white/[0.12] bg-[#161822] px-2.5 py-1 text-xs font-medium text-white shadow-xl group-hover/sidebar:block z-50 whitespace-nowrap">
+          {link.label}
+        </div>
+      ) : null}
     </Link>
   );
 }

@@ -43,7 +43,18 @@ The production site is [snapinterview.app](https://snapinterview.app).
    npx prisma migrate deploy
    ```
 
-4. Start the app.
+   Use a Postgres database with the **pgvector** extension (Supabase includes it; migrations enable `vector` in the `extensions` schema). On Supabase, set `DIRECT_URL` to the direct connection string for `migrate deploy` and corpus scripts; the pooler URL alone is not reliable for migrations.
+
+4. Seed the interview question corpus (RAG retrieval for live interviews).
+
+   ```bash
+   npm run corpus:ingest
+   npm run corpus:verify
+   ```
+
+   Ingest is idempotent (safe to re-run after corpus file changes). Interviews still work if the table is empty, but retrieved grounding questions will be skipped until ingest succeeds.
+
+5. Start the app.
 
    ```bash
    npm run dev
@@ -64,12 +75,16 @@ The production site is [snapinterview.app](https://snapinterview.app).
 | `npm run test:watch` | Run Vitest in watch mode. |
 | `npm run test:e2e` | Run the Playwright suite. |
 | `npm run backfill:video-keys` | Backfill video keys for maintenance. |
+| `npm run corpus:prepare-hr` | Regenerate `src/data/corpus/hr-questions.json` from source data. |
+| `npm run corpus:ingest` | Embed and upsert corpus rows into `QuestionCorpus`. |
+| `npm run corpus:verify` | Smoke-test row counts, embeddings, and pgvector retrieval. |
+| `npm run corpus:preview` | Preview retrieval for a synthetic session (no Groq). |
 | `npm run cleanup:evaluations:preview` | Preview invalid-evaluation cleanup. |
 | `npm run cleanup:evaluations` | Remove invalid evaluations. |
 
 ## What the application includes
 
-- Eight hiring-loop interview types, adjustable difficulty, persona, question count, resume and job-description context, and streamed AI follow-ups.
+- Eight hiring-loop interview types, adjustable difficulty, persona, question count, resume and job-description context, streamed AI follow-ups, and optional RAG grounding from an embedded question corpus.
 - Browser voice interaction: Web Speech API recognition and local Kokoro synthesis when enabled; server-side ElevenLabs synthesis is the fallback.
 - Screen/video recording with direct multipart S3 uploads, session replay, transcripts, evaluations, sharing, and soft deletion.
 - Behavioral, technical, system-design, and leadership Q&A practice, plus a separate conceptual coding catalog with read-only JavaScript previews and public sample cases.
@@ -93,7 +108,7 @@ The tracked product and design references are `docs/PRODUCT.md` and `docs/DESIGN
 
 | Area | Variables |
 | --- | --- |
-| Database | `DATABASE_URL`, `DIRECT_URL` |
+| Database | `DATABASE_URL`, `DIRECT_URL` (direct connection for Prisma CLI / migrations on pooler hosts) |
 | Auth and URLs | `AUTH_SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, `APP_URL`, Google client credentials |
 | AI and voice | `GROQ_API_KEY`, `NEXT_PUBLIC_LOCAL_TTS_ENABLED`, ElevenLabs credentials and optional persona voice IDs |
 | Storage | `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME` |
@@ -112,11 +127,21 @@ Only enable `ENABLE_TEST_AUTH=1` for test environments. Do not set it in product
 
 ## Testing and CI
 
-Tests live next to their source when practical; Playwright covers browser flows. The GitHub Actions workflow for `main` runs dependency installation, `npm audit`, Prisma generation, linting, type-checking, Vitest, a production build, Chromium installation, and Playwright smoke tests on Node 24.
+Tests live next to their source when practical; Playwright covers browser flows. The GitHub Actions workflow for `main` runs dependency installation, `npm audit`, Prisma generation, linting, type-checking, Vitest, a production build, Chromium installation, and Playwright smoke tests on Node 24. A parallel **database** job applies all migrations against Postgres with pgvector, then runs `corpus:ingest` and `corpus:verify` so migration SQL and retrieval stay valid.
 
 ## Deployment
 
 Deploy the Next.js app to Vercel and configure the variables from `.env.example`. Production origin variables must use the deployed HTTPS origin. Keep the S3 bucket private; browser uploads use short-lived signed requests.
+
+After deploying schema changes (or provisioning a new environment), run against production from a trusted machine or CI job:
+
+```bash
+npx prisma migrate deploy
+npm run corpus:ingest
+npm run corpus:verify   # optional smoke check
+```
+
+Vercel build runs `prisma generate` via `postinstall` only; it does **not** apply migrations or ingest the corpus. Run those steps explicitly whenever migrations or corpus files change.
 
 `vercel.json` schedules these protected cron endpoints:
 

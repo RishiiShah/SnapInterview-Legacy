@@ -5,7 +5,7 @@
  * confirms the vectors survived the round trip into pgvector and that the `<=>`
  * operator ranks them sensibly through Supabase.
  *
- * Usage:
+ * Usage (requires migrate deploy + corpus:ingest):
  *   npx tsx scripts/verify-corpus.ts
  */
 import { prisma } from "../src/lib/prisma";

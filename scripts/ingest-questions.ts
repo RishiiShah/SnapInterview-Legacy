@@ -4,7 +4,7 @@
  *
  * Idempotent: rows are keyed on `contentHash`, so re-running updates in place.
  *
- * Usage:
+ * Usage (requires `npx prisma migrate deploy` first):
  *   npx tsx scripts/ingest-questions.ts                       # both sources
  *   npx tsx scripts/ingest-questions.ts --source=software
  *   npx tsx scripts/ingest-questions.ts --software-csv=/path/to/questions.csv

@@ -1,22 +1,23 @@
 import { logger } from "@/utils/logger";
 
 /**
- * Append-only trace of every retrieval, for tuning and debugging.
+ * A log of every search, for tuning and debugging.
  *
- * Written as JSONL (one JSON object per line) rather than a single JSON array:
- * turns append concurrently, and rewriting a whole array on each write would
- * both race and grow expensive. Every line is independently parseable, so
- * `jq` works line by line and a partial write can never corrupt earlier records.
+ * One JSON object per line, rather than one big JSON array. Turns are written as
+ * they happen, and rewriting a whole array each time would be slow and could
+ * lose records when two turns overlap. Each line stands alone, so tools like
+ * `jq` can read them one at a time and a half-written line cannot damage the
+ * rest.
  */
 
 export interface RagTraceCandidate {
   question: string;
   category: string;
-  /** Similarity including the role boost, exactly as ranked. */
+  /** Score used for ranking, including the role bonus. */
   similarity: number;
   roleMatched: boolean;
-  /** Why a candidate did not make the final set, or null if it did. */
-  rejectedBy: "similarity_floor" | "already_asked" | "mmr_redundant" | "not_selected" | null;
+  /** Why this question was not used, or null if it was. */
+  rejectedBy: "similarity_floor" | "already_retrieved" | "mmr_redundant" | "not_selected" | null;
 }
 
 export interface RagTraceRecord {
@@ -31,28 +32,30 @@ export interface RagTraceRecord {
     questionCount: number;
   };
   query: {
-    /** Full text per source -- untruncated, unlike the terminal log. */
+    /** The full text of each piece of context, not shortened. */
     parts: { source: string; weight: number; effectiveWeight: number; text: string }[];
     omitted: string[];
   };
   resume: {
     chunksConsidered: number;
-    /** Every chunk with its score against the role vector, best first. */
+    /** Every resume slice with its score, best first. */
     chunkScores: { score: number; selected: boolean; text: string }[];
   } | null;
   exclusion: {
-    alreadyAskedCount: number;
-    alreadyAsked: string[];
+    /** Questions this candidate has already been shown. */
+    excludedIdCount: number;
+    /** How many already-shown questions were reused because none were left. */
+    backfilledFromSeen: number;
   };
   candidates: {
     fromDatabase: number;
     survived: number;
-    /** Every candidate the database returned, with its fate. */
+    /** Every question the database returned, and what happened to it. */
     all: RagTraceCandidate[];
   };
   returned: { question: string; category: string; similarity: number; hasReferenceAnswer: boolean }[];
   timings: { embedMs: number; queryMs: number; totalMs: number };
-  /** The tuning constants in force for this run, so old traces stay interpretable. */
+  /** The settings used for this run, so older logs still make sense. */
   config: Record<string, number>;
 }
 
@@ -63,14 +66,13 @@ export function ragTracePath(): string | null {
   if (explicit) {
     return explicit;
   }
-  // RAG_DEBUG alone turns on tracing at the default path.
+  // RAG_DEBUG on its own writes to the default file.
   const debug = process.env.RAG_DEBUG;
   return debug === "true" || debug === "1" ? DEFAULT_TRACE_PATH : null;
 }
 
 /**
- * Best-effort, like retrieval itself: tracing must never break an interview.
- * Failures are logged once and swallowed.
+ * Never breaks an interview. A failure to write is logged and ignored.
  */
 export async function writeRagTrace(record: RagTraceRecord): Promise<void> {
   const path = ragTracePath();
@@ -79,8 +81,8 @@ export async function writeRagTrace(record: RagTraceRecord): Promise<void> {
   }
 
   try {
-    // Imported lazily so nothing filesystem-related is pulled into bundles that
-    // never trace, and so this stays inert on runtimes without fs.
+    // Loaded on demand, so builds that never log this do not include it, and
+    // so it stays harmless where writing files is not possible.
     const { appendFile } = await import("fs/promises");
     await appendFile(path, `${JSON.stringify(record)}\n`, "utf8");
   } catch (error) {

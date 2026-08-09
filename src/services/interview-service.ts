@@ -10,7 +10,7 @@ import {
   type StartInterviewSessionInput,
 } from "@/lib/interview/domain";
 import { buildSystemInstruction } from "@/lib/interview/prompts";
-import { sanitizeChatMessages } from "@/lib/interview/chat-messages";
+import { extractLatestAnsweredPair, sanitizeChatMessages } from "@/lib/interview/chat-messages";
 import { saveLatestTranscriptEntry } from "@/lib/interview/transcript-service";
 import { groqClient } from "@/lib/ai/groq";
 import { prisma } from "@/lib/prisma";
@@ -230,9 +230,21 @@ export async function runInterviewChat(params: {
     };
   }
 
-  // userId is threaded through so retrieval can exclude questions this user was
-  // already asked in earlier sessions. The "chat" view does not select it.
-  const promptInterviewSession = normalizePromptInterviewSession({ ...interviewSession, userId });
+  // The answer just given is read from `messages`, not from the transcript
+  // fetched above. That transcript is saved at the same time as this runs, so it
+  // is always one turn behind, and both the prompt and the question search would
+  // otherwise work from the previous answer. `messages` already has it.
+  //
+  // userId is passed along so the search can skip questions this user saw in
+  // earlier interviews; the chat query does not return it.
+  const latestAnsweredPair = extractLatestAnsweredPair(messages);
+  const promptInterviewSession = normalizePromptInterviewSession({
+    ...interviewSession,
+    userId,
+    transcript: latestAnsweredPair
+      ? [{ ...latestAnsweredPair, order: Math.max(currentQuestion - 1, 0) }]
+      : interviewSession.transcript,
+  });
   if (!promptInterviewSession) {
     logger.error("Interview session contains invalid domain values", { interviewId });
     return { type: "error", message: "Interview session is invalid. Please start a new session." };

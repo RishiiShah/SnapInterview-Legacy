@@ -1,5 +1,7 @@
 import Link from "next/link";
 import QuestionDetailPageClient from "@/components/questions/QuestionDetailPageClient";
+import { prisma } from "@/lib/prisma";
+import { getServerAuthSession } from "@/lib/server-auth";
 import { getPracticeQuestionRuntimeDataBySlug } from "@/repositories/question-repo";
 
 export default async function QuestionDetailPage({
@@ -8,6 +10,8 @@ export default async function QuestionDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const session = await getServerAuthSession();
+  const userId = session?.user?.id ?? session?.session?.userId;
   const runtimeData = await getPracticeQuestionRuntimeDataBySlug(slug);
 
   if (!runtimeData) {
@@ -29,6 +33,12 @@ export default async function QuestionDetailPage({
 
   const allQuestions = runtimeData.allQuestions;
   const currentIndex = allQuestions.findIndex((question) => question.slug === slug);
+  const initialIsSolved = Boolean(
+    userId && await prisma.solvedQuestion.findUnique({
+      where: { userId_questionId: { userId, questionId: runtimeData.question.id } },
+      select: { questionId: true },
+    }),
+  );
 
   return (
     <QuestionDetailPageClient
@@ -37,6 +47,7 @@ export default async function QuestionDetailPage({
       totalQuestions={allQuestions.length}
       prevQuestion={currentIndex > 0 ? allQuestions[currentIndex - 1] : null}
       nextQuestion={currentIndex < allQuestions.length - 1 ? allQuestions[currentIndex + 1] : null}
+      initialIsSolved={initialIsSolved}
       basePath="/questions"
       listLabel="Question Bank"
     />

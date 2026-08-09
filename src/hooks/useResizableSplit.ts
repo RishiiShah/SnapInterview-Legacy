@@ -26,29 +26,45 @@ export function useResizableSplit({
   maxPercent: number;
   storageKey?: string;
 }) {
-  const [percent, setPercent] = useState(() => {
-    if (typeof window === "undefined" || !storageKey) return initialPercent;
-    try {
-      const raw = localStorage.getItem(storageKey);
-      const n = raw ? Number(raw) : NaN;
-      if (Number.isFinite(n) && n >= minPercent && n <= maxPercent) return n;
-    } catch {
-      // ignore
-    }
-    return initialPercent;
-  });
+  // The first client render must match SSR. Restore a persisted size only
+  // after hydration rather than reading localStorage during render.
+  const [percent, setPercent] = useState(initialPercent);
+  const [hasRestoredPersistedPercent, setHasRestoredPersistedPercent] = useState(!storageKey);
+
+  useEffect(() => {
+    if (!storageKey) return;
+
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      try {
+        const raw = localStorage.getItem(storageKey);
+        const n = raw ? Number(raw) : NaN;
+        if (Number.isFinite(n) && n >= minPercent && n <= maxPercent) {
+          setPercent(n);
+        }
+      } catch {
+        // ignore
+      }
+      setHasRestoredPersistedPercent(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [storageKey, minPercent, maxPercent]);
 
   const dragging = useRef(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!storageKey) return;
+    if (!storageKey || !hasRestoredPersistedPercent) return;
     try {
       localStorage.setItem(storageKey, String(percent));
     } catch {
       // ignore
     }
-  }, [percent, storageKey]);
+  }, [percent, storageKey, hasRestoredPersistedPercent]);
 
   const onPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {

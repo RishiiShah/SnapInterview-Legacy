@@ -11,6 +11,11 @@ const toggleSolvedSchema = z.object({
 
 async function getAuthedUserId() {
   const session = await getServerAuthSession();
+  const sessionUserId = session?.user?.id ?? session?.session?.userId;
+  if (sessionUserId) {
+    return sessionUserId;
+  }
+
   const email = session?.user?.email?.toLowerCase();
   if (!email) return null;
 

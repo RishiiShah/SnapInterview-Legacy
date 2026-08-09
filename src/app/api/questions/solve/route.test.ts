@@ -56,6 +56,18 @@ describe("GET /api/questions/solve", () => {
     const body = await res.json();
     expect(body.solvedQuestionIds).toEqual([1, 5, 12]);
   });
+
+  it("uses the authenticated user ID without a second user lookup", async () => {
+    vi.mocked(getServerAuthSession).mockResolvedValue({
+      user: { id: "user-1", email: "user@example.com" },
+    } as never);
+    vi.mocked(prisma.solvedQuestion.findMany).mockResolvedValue([] as never);
+
+    const res = await GET();
+
+    expect(res.status).toBe(200);
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+  });
 });
 
 describe("POST /api/questions/solve", () => {

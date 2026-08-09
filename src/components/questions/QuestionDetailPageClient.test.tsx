@@ -21,7 +21,7 @@ describe("QuestionDetailPageClient", () => {
     vi.unstubAllGlobals();
   });
 
-  it("loads solved state once when Strict Mode replays the mount effect", async () => {
+  it("uses the server-provided solved state without fetching after hydration", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ solvedQuestionIds: [] }), { status: 200 }),
     );
@@ -43,13 +43,13 @@ describe("QuestionDetailPageClient", () => {
           totalQuestions={1}
           prevQuestion={null}
           nextQuestion={null}
+          initialIsSolved={false}
         />
       </StrictMode>,
     );
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(0);
     });
-    expect(fetchMock).toHaveBeenCalledWith("/api/questions/solve", { method: "GET" });
   });
 });

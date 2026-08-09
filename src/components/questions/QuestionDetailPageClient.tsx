@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import type { Question } from "@/data/types";
 import { IconChevronLeft, IconChevronRight } from "@/components/ui/icons";
@@ -15,6 +15,7 @@ type QuestionDetailPageClientProps = {
   totalQuestions: number;
   prevQuestion: Question | null;
   nextQuestion: Question | null;
+  initialIsSolved: boolean;
   basePath?: "/questions" | "/coding";
   listLabel?: string;
 };
@@ -25,6 +26,7 @@ export default function QuestionDetailPageClient({
   totalQuestions,
   prevQuestion,
   nextQuestion,
+  initialIsSolved,
   basePath = "/questions",
   listLabel = "Problem List",
 }: QuestionDetailPageClientProps) {
@@ -38,10 +40,9 @@ export default function QuestionDetailPageClient({
   const [isTimerStarted, setIsTimerStarted] = useState(false);
   const [score, setScore] = useState<{ score: number; feedback: string; state: "evaluating" | "completed" } | null>(null);
   const [rightTab, setRightTab] = useState<RightTab>("answer");
-  const [isSolved, setIsSolved] = useState(false);
+  const [isSolved, setIsSolved] = useState(initialIsSolved);
   const [isSolveUpdating, setIsSolveUpdating] = useState(false);
   const [solveError, setSolveError] = useState<string | null>(null);
-  const solvedStateLoadedForQuestionIdRef = useRef<number | null>(null);
 
   const {
     percent: leftPercent,
@@ -145,39 +146,6 @@ export default function QuestionDetailPageClient({
     }, 1000);
     return () => clearInterval(timer);
   }, [evaluateAnswer, isTimerRunning, timeRemaining]);
-
-  useEffect(() => {
-    if (solvedStateLoadedForQuestionIdRef.current === question.id) {
-      return;
-    }
-    solvedStateLoadedForQuestionIdRef.current = question.id;
-
-    let isCancelled = false;
-
-    const loadSolvedState = async () => {
-      try {
-        const res = await fetch("/api/questions/solve", { method: "GET" });
-        if (!res.ok || isCancelled) return;
-        const data = await res.json();
-        const solvedIds: number[] = Array.isArray(data?.solvedQuestionIds)
-          ? data.solvedQuestionIds.filter((value: unknown): value is number => typeof value === "number")
-          : [];
-        if (!isCancelled) {
-          setIsSolved(solvedIds.includes(question.id));
-        }
-      } catch {
-        if (!isCancelled) {
-          setSolveError("Unable to load solved status.");
-        }
-      }
-    };
-
-    void loadSolvedState();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [question.id]);
 
   const handleStart = useCallback(() => {
     setScore(null);

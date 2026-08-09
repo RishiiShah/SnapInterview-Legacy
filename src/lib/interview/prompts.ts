@@ -1,7 +1,7 @@
 import { promises as fs, existsSync } from "fs";
 import path from "path";
 import { z } from "zod";
-import type { PromptInterviewSession } from "@/lib/interview/domain";
+import { latestTranscriptEntry, type PromptInterviewSession } from "@/lib/interview/domain";
 import { formatRetrievedQuestions, retrieveQuestionsForSession } from "@/lib/rag/retrieve";
 import { logger } from "@/utils/logger";
 
@@ -237,7 +237,7 @@ export async function buildSystemInstruction(interviewSession: PromptInterviewSe
   }
 
   const currentStage = inferInterviewStage(currentQuestion, questionCount);
-  const latestTranscript = Array.isArray(transcript) ? transcript[0] : null;
+  const latestTranscript = latestTranscriptEntry(transcript);
   const latestAnswerSignal = inferAnswerSignal(latestTranscript?.answer);
 
   const personaInstruction =

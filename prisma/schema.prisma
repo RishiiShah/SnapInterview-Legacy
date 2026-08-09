@@ -211,6 +211,7 @@ model InterviewSession {
   transcript         TranscriptEntry[]
   questionFeedback   QuestionFeedback[]
   moderationNotes    InterviewModerationNote[]
+  retrievedQuestions RetrievedQuestion[]
 
   @@index([userId])
   @@index([userId, deletedAt])
@@ -358,31 +359,57 @@ model CodingSolved {
 model QuestionCorpus {
   id          String   @id @default(cuid())
   question    String   @db.Text
-  // Reference answer. Trustworthy for the software corpus (used to ground
-  // grading); absent for the HR corpus, whose supplied answers were unusable.
+  // Model answer, used to help grade the candidate. Present for the technical
+  // questions; the behavioural set shipped without usable ones.
   answer      String?  @db.Text
   category    String
-  // Soft signal only — the HR source labels difficulty at random, so never
-  // filter on this, rerank with it.
+  // A hint, not a filter. The behavioural source labelled difficulty at random,
+  // so use it to order results, never to exclude them.
   difficulty  String?
-  // Interview types this question suits, from INTERVIEW_TYPE_VALUES.
+  // Interview types this question suits.
   types       String[]
-  // Roles this question suits. Empty means role-agnostic (all behavioural
-  // questions), which is a match-anything wildcard, not missing data.
+  // Roles this question suits. Empty means it suits any role, which is true of
+  // every behavioural question. Empty is deliberate, not missing data.
   roleTags    String[]
   keywords    String[]
   source      String
-  // sha256 of the normalized question text — the dedupe key. Near-duplicate
-  // detection is deliberately NOT used: measured on the software corpus, every
-  // lexical near-match was a shared phrasing template between distinct
-  // questions ("What is OAuth..." vs "What is Docker...").
+  // Fingerprint of the question text, used to avoid storing it twice. Only
+  // exact repeats are removed. Questions that merely look similar are kept:
+  // "What is OAuth..." and "What is Docker..." share a phrasing but ask
+  // different things.
   contentHash String   @unique
   embedding   Unsupported("vector(384)")?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  retrievals  RetrievedQuestion[]
+
   @@index([source])
   @@index([category])
   @@index([types], type: Gin)
   @@index([roleTags], type: Gin)
+}
+
+// Records which stored questions were used in which interview, so later turns
+// and later interviews can skip them.
+//
+// An earlier version tried to work this out by comparing the questions the model
+// actually asked against the stored ones. It never matched: the model rewrites a
+// stored question into something much longer and more specific. Recording what
+// was used replaces a guess with a fact.
+model RetrievedQuestion {
+  id                 String   @id @default(cuid())
+  interviewSessionId String
+  questionCorpusId   String
+  // Which turn it was used on.
+  questionOrder      Int
+  createdAt          DateTime @default(now())
+
+  interviewSession InterviewSession @relation(fields: [interviewSessionId], references: [id], onDelete: Cascade)
+  question         QuestionCorpus   @relation(fields: [questionCorpusId], references: [id], onDelete: Cascade)
+
+  // Recorded once per interview, however many turns it appears on.
+  @@unique([interviewSessionId, questionCorpusId])
+  @@index([interviewSessionId])
+  @@index([questionCorpusId])
 }

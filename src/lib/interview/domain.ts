@@ -117,9 +117,11 @@ export type InterviewQuestionCount = z.infer<typeof interviewQuestionCountSchema
 export type PromptInterviewSession = {
   role: string;
   company: string | null;
-  // Optional: used only to exclude questions this user has already been asked
-  // in earlier sessions. Retrieval degrades to session-local exclusion without it.
+  // Optional. Used to skip questions this user saw in earlier interviews.
   userId?: string | null;
+  // Optional. Used to record which questions were used, so later turns skip
+  // them. Without it the search still works, but may repeat questions.
+  id?: string | null;
   type: InterviewType;
   difficulty: Difficulty;
   persona?: InterviewPersona | null;
@@ -137,10 +139,30 @@ export type PromptInterviewSession = {
   }>;
 };
 
+/**
+ * The most recent answered question, found by its `order` value.
+ *
+ * Do not use `transcript[0]` for this. The repository sorts newest-first when
+ * running an interview but oldest-first when grading one, so the first item
+ * means opposite things depending on where it came from. Prompts are built in
+ * both cases, and reading the first item once anchored the grading prompt on
+ * the candidate's opening answer.
+ */
+export function latestTranscriptEntry(
+  transcript: PromptInterviewSession["transcript"]
+): { question: string; answer: string; order: number } | null {
+  if (!Array.isArray(transcript) || transcript.length === 0) {
+    return null;
+  }
+
+  return transcript.reduce((latest, entry) => (entry.order > latest.order ? entry : latest));
+}
+
 export function normalizePromptInterviewSession(session: {
   role: string;
   company: string | null;
   userId?: string | null;
+  id?: string | null;
   type: string;
   difficulty: string;
   persona?: string | null;

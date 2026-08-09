@@ -1,12 +1,11 @@
-import type { PromptInterviewSession } from "@/lib/interview/domain";
+import { latestTranscriptEntry, type PromptInterviewSession } from "@/lib/interview/domain";
 import { normalizeRoleSlug } from "@/lib/rag/taxonomy";
 import { ragTracePath, writeRagTrace } from "@/lib/rag/trace";
 import { logger } from "@/utils/logger";
 
-// Prisma and the embedder are imported lazily, inside the retrieval path only.
-// `prompts.ts` is on every interview turn and is imported by tests that never
-// retrieve anything; pulling the generated Prisma client and the embedding
-// machinery in at module scope would load both for no reason.
+// Loaded on first use, not at import time. `prompts.ts` imports this file on
+// every turn, and unit tests import it without ever retrieving anything --
+// neither should pay to load the database client and the embedding model.
 async function loadDeps() {
   const [{ prisma }, embeddings] = await Promise.all([
     import("@/lib/prisma"),
@@ -16,6 +15,8 @@ async function loadDeps() {
 }
 
 export interface RetrievedQuestion {
+  /** Corpus row id, recorded so the question is not injected again. */
+  id: string;
   question: string;
   answer: string | null;
   category: string;
@@ -25,32 +26,31 @@ export interface RetrievedQuestion {
 
 /** How many questions end up in the prompt. */
 const DEFAULT_LIMIT = 6;
-/** Candidates pulled from Postgres before exclusion and MMR narrow them down. */
+/** Questions fetched from the database before filtering narrows them down. */
 const CANDIDATE_POOL = 32;
-/** Above this cosine, two questions are treated as the same question. */
+/** Two questions this similar are treated as the same question. */
 const REDUNDANCY_THRESHOLD = 0.85;
-/** Weights relevance against novelty in MMR. 1.0 = pure relevance. */
+/** Balances relevance against variety when picking the final set.
+ * 1.0 would pick purely on relevance and allow repetitive sets. */
 const MMR_LAMBDA = 0.75;
 /**
- * Candidates below this similarity are dropped even if it means returning fewer
- * than `limit`. Without a floor, MMR keeps reaching down the ranking for novelty
- * and pads the prompt with off-topic questions -- a React session was pulling in
- * "Define encapsulation" at 0.126. Few good questions beat six padded ones.
- * MiniLM cosine values are compressed, so this reads lower than it looks.
+ * Questions below this score are dropped, even if that means returning fewer
+ * than asked for. Without it, the search for variety reaches far enough down the
+ * list to pad the prompt with unrelated questions. A few good ones are better.
+ *
+ * The number looks low because this model's scores sit in a narrow range.
  */
 const MIN_SIMILARITY = 0.2;
-/** Prior-session questions to consider. Caps the per-turn embedding cost. */
+/** How far back to look for questions this candidate has already seen. */
 const PRIOR_QUESTION_LIMIT = 60;
-/** Retrieval never delays a turn by more than this. */
+/** Longest retrieval may delay a turn before it gives up. */
 const RETRIEVAL_TIMEOUT_MS = 2500;
 
 /**
- * Removes contact details before anything is embedded.
+ * Removes names, emails, phone numbers and links from a resume.
  *
- * Two reasons. Retrieval quality: a candidate's name and email are pure noise as
- * topic terms -- "joy shah" was previously being embedded as a search signal.
- * And privacy: there is no reason to push personal identifiers through the
- * embedding path at all.
+ * They say nothing about what the candidate can build, so they only add noise to
+ * the search. Keeping personal details out of the search is also simply better.
  */
 function stripContactDetails(text: string): string {
   return text
@@ -58,19 +58,18 @@ function stripContactDetails(text: string): string {
     .replace(/\+?\d[\d\s().-]{7,}\d/g, " ")
     .replace(/\bhttps?:\/\/\S+/gi, " ")
     .replace(/\b(?:linkedin|github)\.com\/\S+/gi, " ")
-    // A leading "Firstname Lastname" line, which is how most resumes open.
+    // The name line most resumes open with.
     .replace(/^\s*[A-Z][a-z]+(?:\s+[A-Z][a-z.]+){1,2}\s*[.,\n]/, " ");
 }
 
 /**
- * Prepares free text for embedding.
+ * Trims text down to a size the search can use, keeping whole sentences.
  *
- * Deliberately keeps natural sentences rather than reducing to keywords. The
- * embedding model is a sentence transformer: it was trained on prose, and a bag
- * of keywords is out-of-distribution input for it. The previous keyword approach
- * also had a subtle defect -- resume terms nearly all occur exactly once, so
- * ranking by frequency collapsed to the alphabetical tie-break and the top-N cut
- * kept whichever terms happened to start with early letters.
+ * Sentences matter: the model was trained on ordinary writing and handles it far
+ * better than a list of keywords. An earlier version reduced text to keywords
+ * and ranked them by how often each appeared -- but resume words nearly all
+ * appear once, so it silently fell back to alphabetical order and kept whichever
+ * words started with early letters.
  */
 function condenseForEmbedding(text: string | null | undefined, maxChars: number): string {
   if (!text) {
@@ -82,23 +81,81 @@ function condenseForEmbedding(text: string | null | undefined, maxChars: number)
     return cleaned;
   }
 
-  // Prefer cutting at a sentence boundary so the model sees complete clauses.
+  // Cut at a sentence end where possible, so no sentence is left half-finished.
   const truncated = cleaned.slice(0, maxChars);
   const lastBreak = Math.max(truncated.lastIndexOf(". "), truncated.lastIndexOf("; "));
   return lastBreak > maxChars * 0.6 ? truncated.slice(0, lastBreak + 1) : truncated;
 }
 
+/** Different meaningful words an answer needs before it counts as an answer. */
+const MIN_ANSWER_CONTENT_WORDS = 4;
+
+/** Common words that say nothing about the topic, ignored in the count above. */
+const ANSWER_STOP_WORDS = new Set([
+  "the", "and", "for", "with", "that", "this", "from", "have", "has", "had", "was", "were",
+  "you", "your", "will", "are", "not", "but", "all", "can", "could", "would", "should", "did",
+  "its", "our", "their", "them", "then", "there", "here", "what", "when", "which", "who",
+  "how", "why", "some", "just", "like", "really", "very", "much", "more", "also", "about",
+  "yeah", "yes", "okay", "well", "basically", "actually", "maybe", "think", "guess", "know",
+  "sure", "another", "question", "answer", "ask", "say", "said", "get", "got", "let", "make",
+]);
+
+/** Phrases that mean the candidate skipped the question. */
+const NON_ANSWER_MARKERS = [
+  "dont know", "do not know", "no idea", "dunno", "not sure", "unsure",
+  "no clue", "cant answer", "cannot answer", "skip", "pass on this",
+  "next question", "another question", "repeat the question", "no comment",
+];
+
 /**
- * Relative influence of each source on the query vector.
+ * Returns the answer only if it says enough to guide the search.
  *
- * The three context sources -- job description, resume and the latest answer --
- * carry equal weight, with the role title deliberately weak: it is a generic
- * label the role packs already handle, and leaning on it pulls retrieval towards
- * whatever is broadly tagged for that role rather than towards this candidate.
+ * The answer is a third of what the search runs on, so an empty one pulls the
+ * results off topic. In a real session "test test test test test" made a
+ * question about software testing the top result.
  *
- * Weights are normalized over whichever sources are present, so absent ones do
- * not silently shrink the rest. With no job description, the remaining three
- * renormalize to roughly 43/43/14.
+ * This affects the search only. The interviewer still sees every answer, and
+ * `inferAnswerSignal` in prompts.ts uses a skipped one to decide whether to
+ * follow up or move on.
+ */
+function answerWithTopicSignal(answer: string | null | undefined): string {
+  if (!answer) {
+    return "";
+  }
+
+  const normalized = answer.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return "";
+  }
+
+  // Counted once each, so "test test test test test" counts as one word.
+  const contentWords = new Set(
+    normalized.split(" ").filter((word) => word.length > 2 && !ANSWER_STOP_WORDS.has(word))
+  );
+
+  if (contentWords.size < MIN_ANSWER_CONTENT_WORDS) {
+    return "";
+  }
+
+  // A long enough sentence can still be a skip: "I don't know, could you ask me
+  // a different question instead".
+  if (NON_ANSWER_MARKERS.some((marker) => normalized.includes(marker))) {
+    return "";
+  }
+
+  return answer;
+}
+
+/**
+ * How much each piece of context steers the search.
+ *
+ * The job description, resume and latest answer count equally. The role title
+ * counts for little: it is a generic label the role prompt files already cover,
+ * and leaning on it returns whatever is broadly tagged for that role instead of
+ * something specific to this candidate.
+ *
+ * Missing pieces are not counted, and the rest scale up to fill the gap. With no
+ * job description the other three become roughly 43/43/14.
  */
 const QUERY_WEIGHTS = {
   role: 0.1,
@@ -111,17 +168,19 @@ const MAX_JD_CHARS = 600;
 const MAX_RESUME_CHARS = 600;
 const MAX_ANSWER_CHARS = 600;
 
-/** Added to similarity when a question is tagged for the interview's role. */
+/** Score bonus for a question tagged with this interview's role. */
 const ROLE_MATCH_BOOST = 0.1;
-/** Size of the resume slices scored for relevance. Small enough that selection
- * has genuine choices to make rather than keeping everything. */
+/** Size of each resume slice. Small enough that there is a real choice between
+ * them, rather than the whole resume being kept. */
 const RESUME_CHUNK_CHARS = 160;
-/** Chunks scored per resume. Caps the embedding cost. */
+/** Most slices to score per resume, so the work stays bounded. */
 const MAX_RESUME_CHUNKS = 10;
-/** Chunks kept and averaged into the resume vector. */
-const RESUME_CHUNKS_KEPT = 2;
+/** How many slices end up representing the resume in the search. */
+const RESUME_CHUNKS_KEPT = 3;
+/** Two slices this similar say the same thing, so only one is kept. */
+const RESUME_CHUNK_REDUNDANCY = 0.8;
 
-/** State names and postal codes, used to recognise "City, State" locations. */
+/** Used to spot "City, State" addresses in a resume. */
 const US_STATES = [
   "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA",
   "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
@@ -138,19 +197,18 @@ const US_STATES = [
 ];
 
 /**
- * Removes resume boilerplate that carries no technical signal.
+ * Removes the parts of a resume that say nothing about the candidate's work:
+ * addresses, schools, degrees, dates and grades. Skills, projects and
+ * experience stay.
  *
- * Real traces showed the query embedding "New Brunswick, NJ | | | EDUCATION
- * Rutgers University - New Brunswick, New Jersey, USA September 2025 - May 2027
- * ... GPA 3.8". None of that says anything about what the candidate can build,
- * but it takes up room in the query vector and pulled the education chunk above
- * the skills chunk. Locations, institutions, dates and grades go; skills,
- * projects and experience stay.
+ * Left in, they crowd out the useful text. In one real session the search was
+ * running on "New Brunswick, NJ EDUCATION Rutgers University ... GPA 3.8",
+ * which ranked the education line above the list of frameworks.
  */
 function stripResumeBoilerplate(text: string): string {
   return (
     text
-      // "September 2025 - May 2027", "2021-2024", "Sept 2025 – Present"
+      // Date ranges: "September 2025 - May 2027", "2021-2024", "Sept 2025 - Present"
       .replace(
         /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s*\d{4}\s*[-–—to]+\s*(?:present|current|[a-z]*\.?\s*\d{4})/gi,
         " "
@@ -158,16 +216,27 @@ function stripResumeBoilerplate(text: string): string {
       .replace(/\b(19|20)\d{2}\s*[-–—]\s*((19|20)\d{2}|present)\b/gi, " ")
       // "GPA 3.8", "GPA: 3.8/4.0", "CGPA: 9.5/10.0"
       .replace(/\bc?gpa\s*:?\s*\d+(?:\.\d+)?(?:\s*\/\s*\d+(?:\.\d+)?)?/gi, " ")
-      // Degree titles
+      // "Master of Science", "B.Tech", "MBA"
       .replace(/\b(?:bachelor|master|associate|doctor)(?:'?s)?\s+of\s+[a-z]+(?:\s+[a-z]+)?/gi, " ")
       .replace(/\b(?:b\.?s\.?c?|m\.?s\.?c?|b\.?tech|m\.?tech|ph\.?d|mba)\b\.?/gi, " ")
-      // Institutions
+      // "Rutgers University", "University of Michigan"
       .replace(/\b[A-Z][A-Za-z.'-]*(?:\s+[A-Z][A-Za-z.'-]*)*\s+(?:University|College|Institute|School)\b/g, " ")
       .replace(/\bUniversity\s+of\s+[A-Z][A-Za-z.'-]*(?:\s+[A-Z][A-Za-z.'-]*)*/g, " ")
-      // "New Brunswick, NJ" / "New Brunswick, New Jersey, USA".
-      // Matched against real place names only. A shape-based pattern
-      // ("Word, Word") also matched "Redux, Next" and "Webpack, Jest" and
-      // destroyed comma-separated skill lists -- the most useful part of a resume.
+      // A postcode, and a city written just before it: "New Brunswick 08901".
+      // Only whole five-digit numbers match, so "10K+" and "35%" survive.
+      //
+      // A city written *after* the postcode is left alone on purpose.
+      // "08901 | New Brunswick" looks exactly like "08901 | React", and removing
+      // it deleted "Backend" and "React" from real resumes. A stray city name is
+      // a much smaller problem than losing the candidate's skills.
+      .replace(
+        /(?:^|(?<=[\s,(|]))(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}[\s,]+)?\d{5}(?:-\d{4})?(?=$|[\s,).|])/g,
+        " "
+      )
+      // "New Brunswick, NJ" / "New Brunswick, New Jersey, USA". Matched against
+      // the list of real place names above. Matching on shape instead
+      // ("Word, Word") also matched "Redux, Next" and "Webpack, Jest", wiping
+      // out the skills lists.
       .replace(
         new RegExp(
           String.raw`\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s*(?:${US_STATES.join("|")})\b(?:,\s*(?:USA|U\.S\.A?\.?|US))?`,
@@ -176,15 +245,14 @@ function stripResumeBoilerplate(text: string): string {
         " "
       )
       .replace(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s*(?:India|Canada|UK|United Kingdom|Australia|Germany|Singapore)\b/g, " ")
-      // Degree abbreviations in parentheses, and the empty parens left behind
-      // once a degree title has been removed: "( ) in Computer Science".
+      // "(BE)", and the empty brackets left behind once a degree name is gone.
       .replace(/\(\s*(?:[A-Z]{1,5}\.?){1,3}\s*\)/g, " ")
       .replace(/\(\s*\)/g, " ")
-      // "Bachelor"/"Master" left stranded when the following words did not match
+      // "Bachelor" or "Master" left behind when the words after it did not match
       .replace(/\b(?:bachelors?|masters?)\b(?:\s+of)?/gi, " ")
-      // Standalone section headings
+      // Section headings on their own
       .replace(/\b(?:EDUCATION|COURSEWORK|CERTIFICATIONS?|AWARDS?|INTERESTS?|REFERENCES?)\b:?/g, " ")
-      // Punctuation orphaned by the removals above (", . Coursework: .")
+      // Stray punctuation left by the removals above: ", . Coursework: ."
       .replace(/\s*[,;:]\s*(?=[,;:.])/g, " ")
       .replace(/\s+([,;:.])/g, "$1")
       .replace(/(?:^|\s)[-–—,;:.]+(?=\s|$)/g, " ")
@@ -194,10 +262,10 @@ function stripResumeBoilerplate(text: string): string {
 }
 
 /**
- * Splits a resume into candidate slices for relevance scoring.
+ * Splits a resume into slices, so the most relevant ones can be picked later.
  *
- * A parsed PDF resume opens with contact details, address and education, so
- * taking the leading N characters is close to the worst possible selection.
+ * Slicing beats simply taking the opening text: a resume starts with contact
+ * details, address and education, which is the least useful part of it.
  */
 function chunkResume(text: string): string[] {
   const cleaned = stripResumeBoilerplate(
@@ -206,9 +274,8 @@ function chunkResume(text: string): string[] {
   const chunks: string[] = [];
   let current = "";
 
-  // Accumulate whole words: slicing on a fixed character count split "React
-  // components" into "compone" + "nts", and those fragments are meaningless to
-  // the tokenizer.
+  // Break on spaces, never mid-word. Cutting at a fixed length once split
+  // "React components" into "compone" and "nts", which mean nothing.
   for (const word of cleaned.split(" ")) {
     if (current.length + word.length + 1 > RESUME_CHUNK_CHARS && current.length > 0) {
       chunks.push(current);
@@ -227,14 +294,7 @@ function chunkResume(text: string): string[] {
   return chunks;
 }
 
-/**
- * Builds the retrieval query for this turn.
- *
- * Deliberately not just the role: a role-only query returns the same k questions
- * in every session, which is the repetition problem rather than a fix for it.
- * Because the stage and the candidate's latest answer are part of the query, the
- * vector moves through the interview and retrieval follows the conversation.
- */
+/** The separate pieces of context the search runs on. */
 export interface RetrievalQueryParts {
   role: string;
   type: string;
@@ -245,32 +305,32 @@ export interface RetrievalQueryParts {
 }
 
 /**
- * Exposes each contributing source separately so it is possible to see what the
- * query is actually made of -- in particular whether the resume and job
- * description contributed anything, or were absent/filtered to nothing.
+ * Returns each piece of context separately, so it is possible to see what the
+ * search is actually running on. An empty string means that piece was missing,
+ * or was removed as unusable.
  */
 export function explainRetrievalQuery(session: PromptInterviewSession): RetrievalQueryParts {
-  const latest = Array.isArray(session.transcript) ? session.transcript[0] : null;
+  const latest = latestTranscriptEntry(session.transcript);
   const focusAreas = Array.isArray(session.focusAreas)
     ? session.focusAreas.filter((area): area is string => typeof area === "string").join(", ")
     : "";
 
   return {
-    // Phrased as a sentence rather than bare labels, for the same
-    // sentence-transformer reason as above.
+    // Written as a sentence rather than bare labels, which the model handles
+    // better.
     role: `A ${session.type} interview for a ${session.role} role${focusAreas ? `, focusing on ${focusAreas}` : ""}.`,
     type: session.type,
     focusAreas,
     jobDescription: condenseForEmbedding(session.jobDescription, MAX_JD_CHARS),
-    // Boilerplate-stripped, matching what `chunkResume` actually embeds. Without
-    // this the traces and preview showed raw resume text that differed from the
-    // text the query was really built from.
+    // Cleaned the same way `chunkResume` cleans it. Otherwise the logs would
+    // show resume text the search never actually used.
     resumeText: condenseForEmbedding(
       session.resumeText ? stripResumeBoilerplate(session.resumeText) : null,
       MAX_RESUME_CHARS
     ),
-    // The candidate's own words are the adaptive part of the query.
-    latestAnswer: condenseForEmbedding(latest?.answer, MAX_ANSWER_CHARS),
+    // What the candidate just said is what makes the search follow the
+    // conversation, but only when they actually said something.
+    latestAnswer: condenseForEmbedding(answerWithTopicSignal(latest?.answer), MAX_ANSWER_CHARS),
   };
 }
 
@@ -285,7 +345,7 @@ export function buildWeightedQueryParts(
     .filter((part) => part.text.trim().length > 0);
 }
 
-/** Flattened form, kept for logging and emptiness checks. */
+/** All the context joined into one string, for logging and empty checks. */
 export function buildRetrievalQuery(session: PromptInterviewSession): string {
   return buildWeightedQueryParts(session)
     .map((part) => part.text)
@@ -294,10 +354,10 @@ export function buildRetrievalQuery(session: PromptInterviewSession): string {
 }
 
 /**
- * Embeds each source separately and combines them into one weighted vector.
+ * Blends the separate pieces of context into one, by the weights above.
  *
- * Costs one embedding call for up to four short texts (~10ms, no LLM tokens),
- * and keeps a long resume from dominating the direction of the query.
+ * Blending keeps a long resume from drowning out a short answer, which is what
+ * happens if the pieces are simply joined into one string.
  */
 function combineWeighted(vectors: number[][], weights: number[]): number[] {
   const total = weights.reduce((sum, weight) => sum + weight, 0);
@@ -310,13 +370,14 @@ function combineWeighted(vectors: number[][], weights: number[]): number[] {
     }
   }
 
-  // Re-normalize so the result stays comparable to the L2-normalized corpus
-  // vectors, keeping the dot product a true cosine similarity.
+  // Scale back to unit length, so scores against the stored questions stay
+  // comparable.
   const magnitude = Math.sqrt(combined.reduce((sum, value) => sum + value * value, 0));
   return magnitude === 0 ? combined : combined.map((value) => value / magnitude);
 }
 
 interface CandidateRow {
+  id: string;
   question: string;
   answer: string | null;
   category: string;
@@ -330,39 +391,77 @@ function parseVector(literal: string): number[] {
   return literal.slice(1, -1).split(",").map(Number);
 }
 
-/** Questions this user has already been asked, most recent first. */
-async function loadAskedQuestions(
+/**
+ * Questions this candidate has already been shown, so they are not shown again.
+ *
+ * Covers this interview and their earlier interviews for the same role, since
+ * repeating questions across sessions is the problem this feature exists to
+ * solve. With no session or user, the search still runs, just without skipping
+ * anything.
+ */
+async function loadExcludedQuestionIds(
   session: PromptInterviewSession,
   prisma: Awaited<ReturnType<typeof loadDeps>>["prisma"]
 ): Promise<string[]> {
-  const sessionLocal = (session.transcript ?? []).map((entry) => entry.question).filter(Boolean);
-
-  if (!session.userId) {
-    return sessionLocal;
+  if (!session.id && !session.userId) {
+    return [];
   }
 
-  const prior = await prisma.transcriptEntry.findMany({
-    where: {
-      interviewSession: {
-        userId: session.userId,
-        role: session.role,
-        deletedAt: null,
-      },
-    },
-    select: { question: true },
+  const rows = await prisma.retrievedQuestion.findMany({
+    where: session.userId
+      ? {
+          interviewSession: {
+            userId: session.userId,
+            role: session.role,
+            deletedAt: null,
+          },
+        }
+      : { interviewSessionId: session.id as string },
+    select: { questionCorpusId: true },
     orderBy: { createdAt: "desc" },
     take: PRIOR_QUESTION_LIMIT,
   });
 
-  return [...new Set([...sessionLocal, ...prior.map((entry) => entry.question)])];
+  return [...new Set(rows.map((row) => row.questionCorpusId))];
 }
 
 /**
- * Maximal marginal relevance: greedily pick the most relevant candidate that is
- * not already represented in the selection. Without this, the corpus's own
- * near-duplicates ("What is IaC?" / "What is Infrastructure as Code and its
- * significance?") land in the same prompt and the interview repeats itself
- * inside a single session.
+ * Records what was used, so later turns can skip it. A failure here only costs
+ * a repeated question next turn, which is not worth ending an interview over.
+ */
+async function recordRetrievedQuestions(
+  session: PromptInterviewSession,
+  prisma: Awaited<ReturnType<typeof loadDeps>>["prisma"],
+  questionCorpusIds: string[]
+): Promise<void> {
+  if (!session.id || questionCorpusIds.length === 0) {
+    return;
+  }
+
+  try {
+    await prisma.retrievedQuestion.createMany({
+      data: questionCorpusIds.map((questionCorpusId) => ({
+        interviewSessionId: session.id as string,
+        questionCorpusId,
+        questionOrder: session.currentQuestion,
+      })),
+      skipDuplicates: true,
+    });
+  } catch (error) {
+    logger.warn("Failed to record retrieved questions", {
+      interviewId: session.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/**
+ * Picks the best questions one at a time, skipping any that repeat one already
+ * picked.
+ *
+ * The question bank contains near-duplicates -- "What is IaC?" and "What is
+ * Infrastructure as Code and its significance?" are both in it. Without this
+ * they land in the same prompt and the interview asks the same thing twice.
  */
 function selectWithMmr(
   candidates: { row: CandidateRow; vector: number[] }[],
@@ -415,17 +514,12 @@ async function retrieve(
 
   const startedAt = Date.now();
   const { prisma, localEmbedder, toVectorLiteral, cosineSimilarity } = await loadDeps();
-  const asked = await loadAskedQuestions(session, prisma);
+  const excludedIds = await loadExcludedQuestionIds(session, prisma);
   const parts = explainRetrievalQuery(session);
   const weightedParts = buildWeightedQueryParts(session);
 
-  // One batched call: every query source, plus every already-asked question.
-  // Exclusion has to be by similarity, not string equality -- the model
-  // rephrases corpus questions rather than reading them out, so exact matching
-  // would never fire.
-  // Resume chunks are embedded alongside everything else, then scored against
-  // the role vector so only the genuinely relevant parts of the resume reach
-  // the query.
+  // Resume slices go through the model together with the other context, then
+  // get scored below so only the relevant parts of the resume are used.
   const resumeChunks = session.resumeText ? chunkResume(session.resumeText) : [];
   const nonResumeParts = weightedParts.filter((part) => part.source !== "resumeText");
 
@@ -433,7 +527,6 @@ async function retrieve(
   const vectors = await localEmbedder.embed([
     ...nonResumeParts.map((part) => part.text),
     ...resumeChunks,
-    ...asked,
   ]);
   const embedMs = Date.now() - embedStartedAt;
 
@@ -442,7 +535,6 @@ async function retrieve(
     nonResumeParts.length,
     nonResumeParts.length + resumeChunks.length
   );
-  const askedVectors = vectors.slice(nonResumeParts.length + resumeChunks.length);
 
   const queryTexts = [...nonResumeParts.map((part) => part.text)];
   const queryVectors = [...nonResumeVectors];
@@ -451,22 +543,49 @@ async function retrieve(
   let rankedResumeChunks: { text: string; score: number; selected: boolean }[] = [];
 
   if (resumeChunkVectors.length > 0) {
-    const roleIndex = nonResumeParts.findIndex((part) => part.source === "role");
-    const roleVector = roleIndex >= 0 ? nonResumeVectors[roleIndex] : null;
+    // Score the slices against all the other context -- the role, the job
+    // description, and above all the latest answer.
+    //
+    // Scoring against the role alone had two problems. It favoured slices
+    // written as sentences over lists of skills, so one session picked
+    // "achieving up to 90% reduction in redundant code" over "TypeScript,
+    // MongoDB, Node.js, AWS, Docker". And since the role never changes, it
+    // picked the same slices every turn. Including the answer lets the resume
+    // follow the conversation.
+    const contextVector = combineWeighted(
+      nonResumeVectors,
+      nonResumeParts.map((part) => part.weight)
+    );
 
     const scored = resumeChunkVectors
       .map((vector, index) => ({
         vector,
         text: resumeChunks[index],
-        score: roleVector ? cosineSimilarity(roleVector, vector) : 0,
+        score: cosineSimilarity(contextVector, vector),
       }))
       .sort((a, b) => b.score - a.score);
 
-    const ranked = scored.slice(0, RESUME_CHUNKS_KEPT);
-    rankedResumeChunks = scored.map((chunk, index) => ({
+    // Neighbouring slices from the same job often say much the same thing.
+    // Take the best one, then only slices that add something new, so the
+    // selection covers the resume instead of one job.
+    const ranked: typeof scored = [];
+    for (const chunk of scored) {
+      if (ranked.length >= RESUME_CHUNKS_KEPT) {
+        break;
+      }
+      const redundant = ranked.some(
+        (kept) => cosineSimilarity(kept.vector, chunk.vector) >= RESUME_CHUNK_REDUNDANCY
+      );
+      if (!redundant) {
+        ranked.push(chunk);
+      }
+    }
+
+    const keptTexts = new Set(ranked.map((chunk) => chunk.text));
+    rankedResumeChunks = scored.map((chunk) => ({
       text: chunk.text,
       score: chunk.score,
-      selected: index < RESUME_CHUNKS_KEPT,
+      selected: keptTexts.has(chunk.text),
     }));
 
     queryTexts.push(ranked.map((chunk) => chunk.text).join(" "));
@@ -476,14 +595,14 @@ async function retrieve(
 
   const queryVector = combineWeighted(queryVectors, queryWeights);
 
-  // Role is a boost, not a filter. Filtering would discard the role-agnostic
-  // behavioural questions entirely and, on a corpus this small, throw away
-  // relevant material that simply was not tagged for this role. The boost is
-  // enough to stop a back-end question topping a front-end interview.
+  // A matching role adds to the score rather than filtering the rest out.
+  // Filtering would drop the behavioural questions, which suit any role, along
+  // with anything relevant that simply was not tagged. The bonus is enough to
+  // stop a back-end question topping a front-end interview.
   const roleSlug = normalizeRoleSlug(session.role);
   const queryStartedAt = Date.now();
   const rows = await prisma.$queryRaw<CandidateRow[]>`
-    SELECT "question", "answer", "category", "difficulty", "roleTags",
+    SELECT "id", "question", "answer", "category", "difficulty", "roleTags",
            (1 - ("embedding" <=> ${toVectorLiteral(queryVector)}::vector))
              + CASE WHEN ${roleSlug} = ANY("roleTags")
                     THEN ${ROLE_MATCH_BOOST}::double precision ELSE 0 END
@@ -498,30 +617,45 @@ async function retrieve(
 
   const queryMs = Date.now() - queryStartedAt;
 
-  // Track why each candidate was dropped, so a thin or empty result set can be
-  // attributed to a specific stage rather than guessed at.
-  const rejections = new Map<string, "similarity_floor" | "already_asked">();
-  const candidates: { row: CandidateRow; vector: number[] }[] = [];
+  // Record why each question was dropped, so a short or empty result can be
+  // traced to the step that caused it.
+  const rejections = new Map<string, "similarity_floor" | "already_retrieved">();
+  const excluded = new Set(excludedIds);
+  const fresh: { row: CandidateRow; vector: number[] }[] = [];
+  const seen: { row: CandidateRow; vector: number[] }[] = [];
 
   for (const row of rows) {
     if (row.similarity < MIN_SIMILARITY) {
       rejections.set(row.question, "similarity_floor");
       continue;
     }
-    const vector = parseVector(row.embedding);
-    const wasAsked = askedVectors.some(
-      (askedVector) => cosineSimilarity(vector, askedVector) >= REDUNDANCY_THRESHOLD
-    );
-    if (wasAsked) {
-      rejections.set(row.question, "already_asked");
-      continue;
+    const candidate = { row, vector: parseVector(row.embedding) };
+    if (excluded.has(row.id)) {
+      rejections.set(row.question, "already_retrieved");
+      seen.push(candidate);
+    } else {
+      fresh.push(candidate);
     }
-    candidates.push({ row, vector });
   }
 
-  const survivedCount = candidates.length;
+  const survivedCount = fresh.length;
 
-  const selected = selectWithMmr([...candidates], limit, cosineSimilarity).map((row) => ({
+  // Unseen questions first. Some interview types have very few questions -- the
+  // hiring-manager set has ten -- so once those run out, fall back to ones
+  // already shown. Returning nothing would look exactly like a broken search.
+  const chosen = selectWithMmr([...fresh], limit, cosineSimilarity);
+  let backfilledCount = 0;
+  if (chosen.length < limit && seen.length > 0) {
+    const backfill = selectWithMmr([...seen], limit - chosen.length, cosineSimilarity);
+    backfilledCount = backfill.length;
+    for (const row of backfill) {
+      rejections.delete(row.question);
+      chosen.push(row);
+    }
+  }
+
+  const selected = chosen.map((row) => ({
+    id: row.id,
     question: row.question,
     answer: row.answer,
     category: row.category,
@@ -529,11 +663,13 @@ async function retrieve(
     similarity: row.similarity,
   }));
 
+  await recordRetrievedQuestions(session, prisma, selected.map((entry) => entry.id));
+
   if (ragTracePath()) {
     const selectedQuestions = new Set(selected.map((entry) => entry.question));
     const weightTotal = queryWeights.reduce((sum, weight) => sum + weight, 0);
 
-    // Not awaited: tracing is diagnostic and must not add latency to a turn.
+    // Not waited on: logging must not slow down a turn.
     void writeRagTrace({
       timestamp: new Date().toISOString(),
       session: {
@@ -550,8 +686,8 @@ async function retrieve(
           source:
             index < nonResumeParts.length ? nonResumeParts[index].source : "resumeText(selected)",
           weight: queryWeights[index],
-          // What the weight actually came to once normalized over the sources
-          // that were present -- an absent JD raises everything else.
+          // The weight after scaling up for any missing context: with no job
+          // description, everything else counts for more.
           effectiveWeight: Number((queryWeights[index] / weightTotal).toFixed(4)),
           text,
         })),
@@ -570,7 +706,7 @@ async function retrieve(
               })),
             }
           : null,
-      exclusion: { alreadyAskedCount: asked.length, alreadyAsked: asked },
+      exclusion: { excludedIdCount: excludedIds.length, backfilledFromSeen: backfilledCount },
       candidates: {
         fromDatabase: rows.length,
         survived: survivedCount,
@@ -610,10 +746,8 @@ async function retrieve(
 }
 
 /**
- * Kill switch, and the reason unit tests do not load a 97MB embedding model.
- * Off in tests unless asked for; on everywhere else unless disabled.
- * Reads process.env directly rather than extending `src/lib/env.ts`, which the
- * backend lane owns.
+ * Switch to turn the whole feature off, and the reason unit tests never load the
+ * 97MB model. Off in tests unless asked for, on everywhere else unless disabled.
  */
 export function isQuestionRetrievalEnabled(): boolean {
   const flag = process.env.RAG_RETRIEVAL_ENABLED;
@@ -624,9 +758,9 @@ export function isQuestionRetrievalEnabled(): boolean {
 }
 
 /**
- * Retrieval is best-effort by design. It sits on the per-turn hot path, so a
- * slow or failing corpus query returns nothing and the interview proceeds on the
- * base prompt. A stalled interview is worse than a repetitive one.
+ * Never fails a turn. This runs while the candidate waits, so if the search is
+ * slow or errors, it returns nothing and the interview carries on without it.
+ * A stalled interview is worse than a repetitive one.
  */
 export async function retrieveQuestionsForSession(
   session: PromptInterviewSession,
@@ -653,12 +787,12 @@ export async function retrieveQuestionsForSession(
 }
 
 /**
- * Renders retrieved questions for the system prompt.
+ * Formats the questions for the interviewer's prompt.
  *
- * Framed as calibration rather than a script on purpose. The corpus phrasing is
- * formulaic ("What is a ..." opens 22 of 174 software questions), so quoting it
- * verbatim would both flatten the resume/JD personalisation the prompt already
- * does and reintroduce repetition across different candidates.
+ * They are offered as a guide, not a script. The stored wording is repetitive --
+ * 22 of the 174 technical questions open with "What is a ..." -- so reading them
+ * out would undo the tailoring to this candidate's resume and job description,
+ * and would ask every candidate the same thing.
  */
 export function formatRetrievedQuestions(questions: RetrievedQuestion[]): string {
   if (questions.length === 0) {

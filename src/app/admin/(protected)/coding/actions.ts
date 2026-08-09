@@ -1,11 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { parseCodingQuestionForm } from "@/lib/admin/coding-question";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
+import { CODING_CATALOG_CACHE_TAG } from "@/repositories/coding-question-repo";
 
 function redirectWithError(path: string, message: string): never { redirect(`${path}?error=${encodeURIComponent(message)}`); }
 
@@ -17,6 +18,7 @@ export async function createCodingQuestionAction(formData: FormData) {
   const existing = await prisma.codingQuestion.findUnique({ where: { slug: parsed.data.slug }, select: { id: true } });
   if (existing) redirectWithError("/admin/coding/new", "A coding problem with this slug already exists.");
   await prisma.codingQuestion.create({ data: { ...questionData, testCases: { create: testCases.map((testCase, index) => ({ ...testCase, isHidden: false, ordinal: index + 1 })) } } });
+  revalidateTag(CODING_CATALOG_CACHE_TAG, "max");
   revalidatePath("/admin/coding"); revalidatePath("/coding"); redirect("/admin/coding");
 }
 
@@ -38,5 +40,6 @@ export async function updateCodingQuestionAction(formData: FormData) {
     const firstPublicOrdinal = (hiddenCases._max.ordinal ?? 0) + 1;
     if (testCases.length) await tx.codingTestCase.createMany({ data: testCases.map((testCase, index) => ({ ...testCase, isHidden: false, questionId: id, ordinal: firstPublicOrdinal + index })) });
   });
+  revalidateTag(CODING_CATALOG_CACHE_TAG, "max");
   revalidatePath("/admin/coding"); revalidatePath(`/admin/coding/${id}/edit`); revalidatePath("/coding"); redirect("/admin/coding");
 }

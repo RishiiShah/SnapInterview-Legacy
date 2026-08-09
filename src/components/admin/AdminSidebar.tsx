@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AppLogo } from "@/components/ui/AppLogo";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/utils/helpers";
 import {
@@ -33,7 +33,6 @@ export function AdminSidebar({
   user: AdminUser;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const userName = user.name || "Admin";
   const userImage = user.image;
   const initials = getInitials(userName);

@@ -9,6 +9,7 @@ import {
 const mocks = vi.hoisted(() => ({
   findMany: vi.fn(),
   findUnique: vi.fn(),
+  unstableCache: vi.fn((fn: () => unknown) => fn),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -17,6 +18,10 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/utils/logger", () => ({
   logger: { warn: vi.fn(), error: vi.fn() },
+}));
+
+vi.mock("next/cache", () => ({
+  unstable_cache: mocks.unstableCache,
 }));
 
 const validQuestion = {
@@ -44,6 +49,21 @@ describe("practice question candidate repository", () => {
     await expect(getAllPracticeQuestions()).resolves.toEqual([
       expect.objectContaining({ id: 700, category: "technical" }),
     ]);
+  });
+
+  it("uses a shared, tag-invalidatable practice-question catalog cache", async () => {
+    mocks.findMany.mockResolvedValue([]);
+
+    await getAllPracticeQuestions();
+
+    expect(mocks.unstableCache).toHaveBeenCalledWith(
+      expect.any(Function),
+      ["practice-question-catalog-v1"],
+      {
+        revalidate: 300,
+        tags: ["practice-question-catalog-v1"],
+      },
+    );
   });
 
   it("does not return an invalid legacy slug row as a candidate question", async () => {

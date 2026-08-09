@@ -49,6 +49,7 @@ export async function hardDeleteInterviewAction(formData: FormData) {
 
   revalidatePath("/admin/interviews");
   revalidateTag(ADMIN_OVERVIEW_STATS_TAG, "max");
+  revalidateTag("admin-analytics-v1", "max");
   redirect("/admin/interviews");
 }
 

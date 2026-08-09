@@ -11,7 +11,6 @@ import {
   IconCode,
   IconShield,
   IconUser,
-  IconHelp,
   IconArrowRight,
   IconChartBars,
   IconQuestionBank,

@@ -242,6 +242,7 @@ function SidebarContents() {
 }
 
 export function Sidebar({ session }: { session?: DashboardSession }) {
+  void session;
   return (
     <HoverSidebarBody>
       <SidebarContents />

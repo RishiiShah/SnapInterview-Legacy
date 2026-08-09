@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   useAudioAnalyser: vi.fn(),
   getInterviewBlockReason: vi.fn(),
   finalizeInterviewUpload: vi.fn(),
+  scheduleInterviewFinalize: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -49,6 +50,10 @@ vi.mock("@/lib/interview/browser-block", () => ({
 
 vi.mock("@/lib/video/upload-service", () => ({
   finalizeInterviewUpload: mocks.finalizeInterviewUpload,
+}));
+
+vi.mock("@/lib/video/background-finalize", () => ({
+  scheduleInterviewFinalize: mocks.scheduleInterviewFinalize,
 }));
 
 import { useInterviewPageController } from "./useInterviewPageController";
@@ -98,10 +103,10 @@ function setupHookMocks({
     lastCompletedAiText: "",
     isThinking: false,
   });
-  mocks.useStreamingTTS.mockReturnValue({ isSpeaking: false, warmup: vi.fn() });
+  mocks.useStreamingTTS.mockReturnValue({ isSpeaking: false, warmup: vi.fn(), cancel: vi.fn() });
   mocks.useAudioAnalyser.mockReturnValue({ level: 0 });
   mocks.getInterviewBlockReason.mockResolvedValue(null);
-  mocks.finalizeInterviewUpload.mockResolvedValue({ type: "ok" });
+  mocks.scheduleInterviewFinalize.mockResolvedValue({ type: "ok" });
 
   return {
     startScreenRecording,
@@ -127,6 +132,7 @@ describe("useInterviewPageController", () => {
     mocks.useAudioAnalyser.mockReset();
     mocks.getInterviewBlockReason.mockReset();
     mocks.finalizeInterviewUpload.mockReset();
+    mocks.scheduleInterviewFinalize.mockReset();
   });
 
   afterEach(() => {
@@ -263,7 +269,7 @@ describe("useInterviewPageController", () => {
   });
 
   it("finalizes an answered interview as completed and navigates to recordings", async () => {
-    const { stopRecording, stopStream, stopVideoRecording } = setupHookMocks({
+    const { stopRecording, stopStream } = setupHookMocks({
       chatMessages: [{ role: "user", content: "My answer" }],
     });
     localStorage.setItem("active_interview_id", "interview-3");
@@ -277,11 +283,39 @@ describe("useInterviewPageController", () => {
     expect(localStorage.getItem("active_interview_id")).toBeNull();
     expect(stopRecording).toHaveBeenCalledTimes(1);
     expect(stopStream).toHaveBeenCalledTimes(1);
-    expect(mocks.finalizeInterviewUpload).toHaveBeenCalledWith({
+    expect(mocks.scheduleInterviewFinalize).toHaveBeenCalledWith({
       interviewId: "interview-3",
       status: "COMPLETED",
-      stopVideoRecording,
+      stopVideoRecording: expect.any(Function),
     });
+    expect(mocks.routerPush).toHaveBeenCalledWith("/analytics");
+  });
+
+  it("redirects immediately when the interview completes and finalizes upload in the background", async () => {
+    const stopVideoRecording = vi.fn().mockResolvedValue(null);
+    setupHookMocks({ stopVideoRecording });
+
+    const chatOptions: { setInterviewDone?: (done: boolean) => void } = {};
+    mocks.useChatSession.mockImplementation((options: { setInterviewDone: (done: boolean) => void }) => {
+      chatOptions.setInterviewDone = options.setInterviewDone;
+      return {
+        messages: [],
+        currentStreamedText: "",
+        lastCompletedAiText: "",
+        isThinking: false,
+      };
+    });
+    const cancel = vi.fn();
+    mocks.useStreamingTTS.mockReturnValue({ isSpeaking: false, warmup: vi.fn(), cancel });
+
+    renderHook(() => useInterviewPageController({ interviewId: "interview-done" }));
+
+    await act(async () => {
+      chatOptions.setInterviewDone?.(true);
+    });
+
+    expect(cancel).toHaveBeenCalled();
+    expect(mocks.scheduleInterviewFinalize).toHaveBeenCalled();
     expect(mocks.routerPush).toHaveBeenCalledWith("/analytics");
   });
 });

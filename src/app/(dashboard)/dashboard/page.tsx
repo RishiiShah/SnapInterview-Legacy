@@ -12,7 +12,10 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const userId = session.user.id;
+  const userId = session.user.id ?? session.session?.userId;
+  if (!userId) {
+    redirect("/login");
+  }
   const onboardingUser = session.user.email
     ? await prisma.user.findUnique({
         where: { email: session.user.email.toLowerCase() },

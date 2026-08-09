@@ -1,5 +1,6 @@
 import { CodingQuestionSchema, type CodingWorkspaceQuestion } from "@/lib/coding/contracts";
 import { prisma } from "@/lib/prisma";
+import { unstable_cache } from "next/cache";
 
 type WorkspaceQuestionRecord = {
   id: string;
@@ -30,6 +31,8 @@ export type CodingCatalogQuestion = {
   estimatedTime: string | null;
 };
 
+export const CODING_CATALOG_CACHE_TAG = "coding-catalog-v1";
+
 export function toCodingWorkspaceQuestion(question: WorkspaceQuestionRecord): CodingWorkspaceQuestion | null {
   const parsed = CodingQuestionSchema.safeParse({
     id: question.id,
@@ -50,7 +53,7 @@ export function toCodingWorkspaceQuestion(question: WorkspaceQuestionRecord): Co
   return parsed.success ? parsed.data : null;
 }
 
-export async function getPublishedCodingQuestions(): Promise<CodingCatalogQuestion[]> {
+async function getPublishedCodingQuestionsUncached(): Promise<CodingCatalogQuestion[]> {
   const questions = await prisma.codingQuestion.findMany({
     where: { isPublished: true },
     select: {
@@ -90,6 +93,17 @@ export async function getPublishedCodingQuestions(): Promise<CodingCatalogQuesti
         }]
       : [];
   });
+}
+
+export async function getPublishedCodingQuestions(): Promise<CodingCatalogQuestion[]> {
+  return unstable_cache(
+    getPublishedCodingQuestionsUncached,
+    [CODING_CATALOG_CACHE_TAG],
+    {
+      revalidate: 300,
+      tags: [CODING_CATALOG_CACHE_TAG],
+    },
+  )();
 }
 
 export async function getPublishedCodingWorkspace(slug: string): Promise<CodingWorkspaceQuestion | null> {

@@ -1,17 +1,21 @@
 import { prisma } from "@/lib/prisma";
-import { revalidateTag, unstable_cache } from "next/cache";
+import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import { normalizeTranscriptEvaluation, type TranscriptEvaluationResponse } from "@/lib/interview/evaluation";
 import { interviewTypeSchema, INTERVIEW_TYPE_META, INTERVIEW_TYPE_VALUES, type InterviewType } from "@/lib/interview/domain";
 
 import { env } from "@/lib/env";
+import { formatMonthBucketRange, formatWeekBucketRange } from "@/lib/interview/analytics-display";
+import type { SubScoreDimensionKey } from "@/lib/interview/sub-score-dimensions";
 
 const DASHBOARD_CACHE_TAG = "interview-dashboard-metrics-v1";
-const ANALYTICS_CACHE_TAG = "interview-analytics-metrics-v1";
+const ANALYTICS_CACHE_TAG = "interview-analytics-metrics-v2";
 
 export function invalidateInterviewMetricsCache(userId: string) {
   if (isTestEnv()) return;
   revalidateTag(getDashboardCacheTag(userId), "max");
   revalidateTag(getAnalyticsCacheTag(userId), "max");
+  revalidatePath("/dashboard");
+  revalidatePath("/analytics");
 }
 
 export function invalidateAllInterviewMetricsCaches() {
@@ -141,9 +145,25 @@ export type PeriodComparison = {
   summary: string;
 };
 
+export type AnalyticsTrendPoint = {
+  label: string;
+  /** Average rubric score for the bucket; null when no interviews in the period. */
+  avgScore: number | null;
+  sessionCount: number;
+};
+
+export type SubScoreTrendSets = {
+  daily: WeeklySubScoreTrends;
+  weekly: WeeklySubScoreTrends;
+  monthly: WeeklySubScoreTrends;
+};
+
 export type AnalyticsOverviewData = {
   weeklyScores: DashboardChartPoint[];
-  weeklySubScoreTrends: WeeklySubScoreTrends;
+  dailyTrend: AnalyticsTrendPoint[];
+  weeklyTrend: AnalyticsTrendPoint[];
+  monthlyTrend: AnalyticsTrendPoint[];
+  subScoreTrends: SubScoreTrendSets;
   monthlyComparison: AnalyticsMonthlyComparison[];
   periodComparison: PeriodComparison;
   categoryBreakdown: AnalyticsCategoryScore[];
@@ -273,6 +293,167 @@ const getPreviousMonthRange = (base: Date) => {
   return { start, end };
 };
 
+const startOfWeekMonday = (date: Date): Date => {
+  const day = startOfDay(date);
+  const weekday = day.getDay();
+  const mondayOffset = (weekday + 6) % 7;
+  return addDays(day, -mondayOffset);
+};
+
+function averageSessionScore(items: SessionRecord[]): number | null {
+  if (items.length === 0) return null;
+  return Math.round(items.reduce((acc, session) => acc + getSessionScore(session), 0) / items.length);
+}
+
+function buildDailyTrend(sessions: SessionRecord[], now: Date, days: number): AnalyticsTrendPoint[] {
+  return Array.from({ length: days }, (_, index) => {
+    const day = addDays(startOfDay(now), index - (days - 1));
+    const dayKey = day.toISOString().slice(0, 10);
+    const daySessions = sessions.filter(
+      (session) => startOfDay(session.createdAt).toISOString().slice(0, 10) === dayKey,
+    );
+    const avgScore = averageSessionScore(daySessions);
+    return {
+      label: day.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      avgScore,
+      sessionCount: daySessions.length,
+    };
+  });
+}
+
+function buildWeeklyTrend(sessions: SessionRecord[], now: Date, weeks: number): AnalyticsTrendPoint[] {
+  const currentWeekStart = startOfWeekMonday(now);
+  return Array.from({ length: weeks }, (_, index) => {
+    const weekStart = addDays(currentWeekStart, (index - (weeks - 1)) * 7);
+    const weekEnd = addDays(weekStart, 7);
+    const weekSessions = sessions.filter(
+      (session) => session.createdAt >= weekStart && session.createdAt < weekEnd,
+    );
+    const avgScore = averageSessionScore(weekSessions);
+    return {
+      label: formatWeekBucketRange(weekStart, now),
+      avgScore,
+      sessionCount: weekSessions.length,
+    };
+  });
+}
+
+function buildMonthlyTrend(sessions: SessionRecord[], now: Date, months: number): AnalyticsTrendPoint[] {
+  return Array.from({ length: months }, (_, index) => {
+    const monthOffset = index - (months - 1);
+    const start = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+    const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+    const monthSessions = sessions.filter(
+      (session) => session.createdAt >= start && session.createdAt < end,
+    );
+    const avgScore = averageSessionScore(monthSessions);
+    return {
+      label: formatMonthBucketRange(start),
+      avgScore,
+      sessionCount: monthSessions.length,
+    };
+  });
+}
+
+const SUB_SCORE_KEYS: SubScoreDimensionKey[] = ["communication", "technicalDepth", "clarity"];
+
+function sessionSubScore(session: SessionRecord, key: SubScoreDimensionKey): number | null {
+  const evaluation =
+    session._normalizedEvaluation !== undefined
+      ? session._normalizedEvaluation
+      : normalizeTranscriptEvaluation(session.evaluation);
+  const value = evaluation?.[key];
+  return typeof value === "number" ? value : null;
+}
+
+function averageSubScoreForSessions(sessions: SessionRecord[], key: SubScoreDimensionKey): number | null {
+  const values = sessions
+    .map((session) => sessionSubScore(session, key))
+    .filter((value): value is number => value !== null);
+  if (values.length === 0) return null;
+  return Math.round(values.reduce((acc, value) => acc + value, 0) / values.length);
+}
+
+function emptySubScoreTrends(): WeeklySubScoreTrends {
+  return { communication: [], technicalDepth: [], clarity: [] };
+}
+
+function buildSubScoreDailyTrend(
+  sessions: SessionRecord[],
+  now: Date,
+  days: number,
+  key: SubScoreDimensionKey,
+): DashboardChartPoint[] {
+  return Array.from({ length: days }, (_, index) => {
+    const day = addDays(startOfDay(now), index - (days - 1));
+    const dayKey = day.toISOString().slice(0, 10);
+    const daySessions = sessions.filter(
+      (session) => startOfDay(session.createdAt).toISOString().slice(0, 10) === dayKey,
+    );
+    const avg = averageSubScoreForSessions(daySessions, key);
+    return {
+      label: day.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      value: avg ?? 0,
+    };
+  });
+}
+
+function buildSubScoreWeeklyTrend(
+  sessions: SessionRecord[],
+  now: Date,
+  weeks: number,
+  key: SubScoreDimensionKey,
+): DashboardChartPoint[] {
+  const currentWeekStart = startOfWeekMonday(now);
+  return Array.from({ length: weeks }, (_, index) => {
+    const weekStart = addDays(currentWeekStart, (index - (weeks - 1)) * 7);
+    const weekEnd = addDays(weekStart, 7);
+    const weekSessions = sessions.filter(
+      (session) => session.createdAt >= weekStart && session.createdAt < weekEnd,
+    );
+    const avg = averageSubScoreForSessions(weekSessions, key);
+    return {
+      label: formatWeekBucketRange(weekStart, now),
+      value: avg ?? 0,
+    };
+  });
+}
+
+function buildSubScoreMonthlyTrend(
+  sessions: SessionRecord[],
+  now: Date,
+  months: number,
+  key: SubScoreDimensionKey,
+): DashboardChartPoint[] {
+  return Array.from({ length: months }, (_, index) => {
+    const monthOffset = index - (months - 1);
+    const start = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+    const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+    const monthSessions = sessions.filter(
+      (session) => session.createdAt >= start && session.createdAt < end,
+    );
+    const avg = averageSubScoreForSessions(monthSessions, key);
+    return {
+      label: formatMonthBucketRange(start),
+      value: avg ?? 0,
+    };
+  });
+}
+
+function buildSubScoreTrendSets(sessions: SessionRecord[], now: Date): SubScoreTrendSets {
+  const daily = emptySubScoreTrends();
+  const weekly = emptySubScoreTrends();
+  const monthly = emptySubScoreTrends();
+
+  for (const key of SUB_SCORE_KEYS) {
+    daily[key] = buildSubScoreDailyTrend(sessions, now, 14, key);
+    weekly[key] = buildSubScoreWeeklyTrend(sessions, now, 8, key);
+    monthly[key] = buildSubScoreMonthlyTrend(sessions, now, 6, key);
+  }
+
+  return { daily, weekly, monthly };
+}
+
 function calculateStreak(sessions: SessionRecord[], now: Date): number {
   if (sessions.length === 0) return 0;
 
@@ -332,6 +513,39 @@ async function getUserSessionsByUserId(userId: string): Promise<SessionRecord[]>
     } else {
       _score = deriveSessionScore(session as unknown as SessionRecord); // Cast needed if SessionRecord expects exact Prisma type
     }
+    return { ...session, _normalizedEvaluation, _score };
+  });
+}
+
+async function getCompletedUserSessionsByUserId(userId: string): Promise<SessionRecord[]> {
+  if (!userId) return [];
+
+  const sessions = await prisma.interviewSession.findMany({
+    where: {
+      userId,
+      deletedAt: null,
+      status: "COMPLETED",
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      role: true,
+      company: true,
+      videoKey: true,
+      type: true,
+      difficulty: true,
+      status: true,
+      questionCount: true,
+      currentQuestion: true,
+      evaluation: true,
+      createdAt: true,
+    },
+    take: 300,
+  });
+
+  return sessions.map((session) => {
+    const _normalizedEvaluation = normalizeTranscriptEvaluation(session.evaluation);
+    const _score = _normalizedEvaluation?.score ?? deriveSessionScore(session as SessionRecord);
     return { ...session, _normalizedEvaluation, _score };
   });
 }
@@ -670,15 +884,14 @@ const prettifyCategory = (value: string): string => {
 };
 
 async function getAnalyticsOverviewDataUncached(userId: string): Promise<AnalyticsOverviewData> {
-  const [allSessions, transcripts, feedbackRows] = await Promise.all([
-    getUserSessions(userId),
-    getUserTranscripts(userId),
-    prisma.questionFeedback.findMany({
+  const [sessions, feedbackCounts] = await Promise.all([
+    getCompletedUserSessionsByUserId(userId),
+    prisma.questionFeedback.groupBy({
+      by: ["rating"],
       where: { interviewSession: { userId, deletedAt: null } },
-      select: { rating: true },
+      _count: { _all: true },
     }),
   ]);
-  const sessions = allSessions.filter(s => s.status === "COMPLETED");
   const now = new Date();
 
   const thisMonthRange = getMonthRange(now);
@@ -720,30 +933,17 @@ async function getAnalyticsOverviewDataUncached(userId: string): Promise<Analyti
     };
   });
 
-  const weeklySubScoreTrends: WeeklySubScoreTrends = {
-    communication: [],
-    technicalDepth: [],
-    clarity: [],
-  };
-
-  for (const key of ["communication", "technicalDepth", "clarity"] as const) {
-    weeklySubScoreTrends[key] = Array.from({ length: 7 }, (_, index) => {
-      const day = addDays(startOfDay(now), index - 6);
-      const dayKey = day.toISOString().slice(0, 10);
-      const vals = sessions
-        .filter((s) => startOfDay(s.createdAt).toISOString().slice(0, 10) === dayKey)
-        .map((s) => (s._normalizedEvaluation !== undefined ? s._normalizedEvaluation : normalizeTranscriptEvaluation(s.evaluation))?.[key] ?? null)
-        .filter((v): v is number => v !== null);
-      return {
-        label: day.toLocaleDateString("en-US", { weekday: "short" }),
-        value: vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0,
-      };
-    });
-  }
+  const dailyTrend = buildDailyTrend(sessions, now, 14);
+  const weeklyTrend = buildWeeklyTrend(sessions, now, 8);
+  const monthlyTrend = buildMonthlyTrend(sessions, now, 6);
+  const subScoreTrends = buildSubScoreTrendSets(sessions, now);
 
   const categoryMap = new Map<string, { total: number; count: number }>();
   for (const session of sessions) {
-    const key = prettifyCategory(session.type || "General");
+    const parsedType = interviewTypeSchema.safeParse(session.type);
+    const key = parsedType.success
+      ? INTERVIEW_TYPE_META[parsedType.data].label
+      : prettifyCategory(session.type || "General");
     const existing = categoryMap.get(key);
     const score = getSessionScore(session);
     if (!existing) {
@@ -764,13 +964,23 @@ async function getAnalyticsOverviewDataUncached(userId: string): Promise<Analyti
     .slice(0, 6);
 
   const evaluationInsights = deriveStrengthsAndImprovementsFromEvaluations(sessions);
-  const { strengths, improvements } = evaluationInsights ?? deriveStrengthsAndImprovementsFromTranscripts(transcripts);
+  const transcriptInsights = evaluationInsights
+    ? null
+    : deriveStrengthsAndImprovementsFromTranscripts(await getUserTranscripts(userId));
+  const { strengths, improvements } = evaluationInsights ?? transcriptInsights!;
 
   const subScores = deriveSubScores(sessions);
 
-  const thumbsUp = feedbackRows.filter(r => r.rating === "up").length;
-  const thumbsDown = feedbackRows.filter(r => r.rating === "down").length;
-  const feedbackStats: FeedbackStats = { total: feedbackRows.length, thumbsUp, thumbsDown };
+  const feedbackCountByRating = new Map(
+    feedbackCounts.map((entry) => [entry.rating, entry._count._all]),
+  );
+  const thumbsUp = feedbackCountByRating.get("up") ?? 0;
+  const thumbsDown = feedbackCountByRating.get("down") ?? 0;
+  const feedbackStats: FeedbackStats = {
+    total: Array.from(feedbackCountByRating.values()).reduce((total, count) => total + count, 0),
+    thumbsUp,
+    thumbsDown,
+  };
 
   const thirtyDaysAgo = addDays(now, -30);
   const sixtyDaysAgo = addDays(now, -60);
@@ -816,7 +1026,10 @@ async function getAnalyticsOverviewDataUncached(userId: string): Promise<Analyti
 
   const result: AnalyticsOverviewData = {
     weeklyScores,
-    weeklySubScoreTrends,
+    dailyTrend,
+    weeklyTrend,
+    monthlyTrend,
+    subScoreTrends,
     monthlyComparison: [
       { label: "This Month", ...thisMonth },
       { label: "Last Month", ...previousMonth },
@@ -848,7 +1061,7 @@ export function getAnalyticsOverviewData(userId: string): Promise<AnalyticsOverv
     ? getAnalyticsOverviewDataUncached(userId)
     : unstable_cache(
         () => getAnalyticsOverviewDataUncached(userId),
-        ["analytics-overview-v1", userId],
+        ["analytics-overview-v2", userId],
         { revalidate: 300, tags: [ANALYTICS_CACHE_TAG, getAnalyticsCacheTag(userId)] },
       )();
 }

@@ -14,7 +14,7 @@ vi.mock("@/lib/prisma", () => ({
       findMany: vi.fn(),
     },
     questionFeedback: {
-      findMany: vi.fn().mockResolvedValue([]),
+      groupBy: vi.fn().mockResolvedValue([]),
     },
   },
 }));
@@ -22,7 +22,7 @@ vi.mock("@/lib/prisma", () => ({
 describe("interview metrics scoring", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(prisma.questionFeedback.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.questionFeedback.groupBy).mockResolvedValue([] as never);
   });
 
   it("prefers persisted model evaluation score over derived completion score", async () => {
@@ -204,6 +204,49 @@ describe("interview metrics scoring", () => {
 
     expect(analytics.strengths[0]).toBe("Structured storytelling");
     expect(analytics.improvements[0]).toBe("Technical depth");
+    expect(prisma.transcriptEntry.findMany).not.toHaveBeenCalled();
+  });
+
+  it("uses completed-session and grouped-feedback queries for analytics", async () => {
+    const now = new Date();
+    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([
+      {
+        id: "session-1",
+        role: "Frontend Engineer",
+        company: "Acme",
+        videoKey: null,
+        type: "behavioral",
+        difficulty: "medium",
+        status: "COMPLETED",
+        questionCount: 5,
+        currentQuestion: 5,
+        evaluation: {
+          score: 90,
+          feedback: "Strong interview.",
+          strengths: ["Structured storytelling"],
+          areasForImprovement: ["Stronger quantification"],
+        },
+        createdAt: now,
+      },
+    ] as never);
+    vi.mocked(prisma.questionFeedback.groupBy).mockResolvedValue([
+      { rating: "up", _count: { _all: 4 } },
+      { rating: "down", _count: { _all: 2 } },
+    ] as never);
+
+    const analytics = await getAnalyticsOverviewData("user-1");
+
+    expect(prisma.interviewSession.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: "user-1", deletedAt: null, status: "COMPLETED" },
+      }),
+    );
+    expect(prisma.questionFeedback.groupBy).toHaveBeenCalledWith({
+      by: ["rating"],
+      where: { interviewSession: { userId: "user-1", deletedAt: null } },
+      _count: { _all: true },
+    });
+    expect(analytics.feedbackStats).toEqual({ total: 6, thumbsUp: 4, thumbsDown: 2 });
   });
 
   it("returns empty strengths and improvements for users with no history", async () => {
@@ -221,7 +264,7 @@ describe("deriveSubScores (via getAnalyticsOverviewData)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(prisma.transcriptEntry.findMany).mockResolvedValue([]);
-    vi.mocked(prisma.questionFeedback.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.questionFeedback.groupBy).mockResolvedValue([] as never);
   });
 
   function makeSession(overrides: object) {

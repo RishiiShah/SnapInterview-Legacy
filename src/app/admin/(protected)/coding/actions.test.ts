@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
   redirect: vi.fn(),
   requireAdminSession: vi.fn(),
   codingQuestionFindUnique: vi.fn(),
@@ -14,7 +15,10 @@ const mocks = vi.hoisted(() => ({
   transaction: vi.fn(),
 }));
 
-vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
+vi.mock("next/cache", () => ({
+  revalidatePath: mocks.revalidatePath,
+  revalidateTag: mocks.revalidateTag,
+}));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("@/lib/admin-auth", () => ({ requireAdminSession: mocks.requireAdminSession }));
 vi.mock("@/lib/prisma", () => ({
@@ -82,6 +86,7 @@ describe("coding admin actions", () => {
       }),
     });
     expect(mocks.codingQuestionCreate.mock.calls[0][0].data).not.toHaveProperty("solutionCode");
+    expect(mocks.revalidateTag).toHaveBeenCalledWith("coding-catalog-v1", "max");
   });
 
   it("replaces only public samples after retained hidden ordinals without overwriting solution code", async () => {

@@ -5,6 +5,12 @@ type UseVideoRecordingOptions = {
     onScreenShareEnded?: () => void;
 };
 
+/** S3 multipart parts (except the last) must be ≥ 5 MiB. */
+const MIN_PART_BYTES = 5 * 1024 * 1024;
+/** Target screen-recording bitrate (lower = smaller uploads, still readable for review). */
+const VIDEO_BITS_PER_SECOND = 1_250_000;
+const AUDIO_BITS_PER_SECOND = 96_000;
+
 export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoRecordingOptions) {
     const [isRecordingVideo, setIsRecordingVideo] = useState(false);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -20,6 +26,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
         parts: { PartNumber: number; ETag: string }[];
         buffer: Blob[];
         bufferSize: number;
+        partUploadPromises: Promise<void>[];
         uploadQueue: Promise<void>;
         isAborted: boolean;
         isCompleting: boolean;
@@ -32,6 +39,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
         parts: [],
         buffer: [],
         bufferSize: 0,
+        partUploadPromises: [],
         uploadQueue: Promise.resolve(),
         isAborted: false,
         isCompleting: false,
@@ -59,11 +67,10 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
         };
     }, [interviewId]);
 
-    const flushBuffer = useCallback(async (blobData: Blob) => {
+    const flushBuffer = useCallback(async (blobData: Blob, partNumber: number) => {
         const state = multipartStateRef.current;
         if (state.isAborted || !state.uploadId || !state.key || !state.uploadToken) return;
 
-        const currentPartNumber = state.partNumber++;
         const presignRes = await fetch("/api/s3/multipart/sign-part", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -72,7 +79,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
                 key: state.key,
                 uploadId: state.uploadId,
                 uploadToken: state.uploadToken,
-                partNumber: currentPartNumber,
+                partNumber,
             }),
         });
         
@@ -89,8 +96,20 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
         const eTag = uploadRes.headers.get("ETag");
         if (!eTag) throw new Error("AWS did not return an ETag");
 
-        state.parts.push({ PartNumber: currentPartNumber, ETag: eTag.replace(/"/g, "") });
+        state.parts.push({ PartNumber: partNumber, ETag: eTag.replace(/"/g, "") });
     }, [interviewId]);
+
+    const schedulePartUpload = useCallback((blobData: Blob) => {
+        const state = multipartStateRef.current;
+        if (state.isAborted) return;
+
+        const partNumber = state.partNumber++;
+        const uploadPromise = flushBuffer(blobData, partNumber).catch((err) => {
+            console.error("Multipart upload part failed:", err);
+        });
+        state.partUploadPromises.push(uploadPromise);
+        state.uploadQueue = Promise.all(state.partUploadPromises).then(() => undefined);
+    }, [flushBuffer]);
 
     const handleDataAvailable = useCallback((event: BlobEvent) => {
         if (!event.data || event.data.size === 0) return;
@@ -100,18 +119,13 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
         state.buffer.push(event.data);
         state.bufferSize += event.data.size;
 
-        // AWS requires parts to be at least 5MB
-        if (state.bufferSize >= 5 * 1024 * 1024) {
+        if (state.bufferSize >= MIN_PART_BYTES) {
             const chunk = new Blob(state.buffer, { type: "video/webm" });
             state.buffer = [];
             state.bufferSize = 0;
-
-            // Queue upload to ensure sequential order
-            state.uploadQueue = state.uploadQueue.then(() => flushBuffer(chunk)).catch(err => {
-                console.error("Multipart upload part failed:", err);
-            });
+            schedulePartUpload(chunk);
         }
-    }, [flushBuffer]);
+    }, [schedulePartUpload]);
 
     const startScreenRecording = useCallback(async (micStream?: MediaStream, sessionPromise?: Promise<void>) => {
         try {
@@ -119,7 +133,9 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
             const screenStream = await navigator.mediaDevices.getDisplayMedia({
                 video: {
                     displaySurface: "monitor",
-                    frameRate: { ideal: 15, max: 30 },
+                    frameRate: { ideal: 15, max: 24 },
+                    width: { ideal: 1920, max: 1920 },
+                    height: { ideal: 1080, max: 1080 },
                 },
                 audio: false,
                 // @ts-expect-error - Chrome-specific options
@@ -154,6 +170,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
             multipartStateRef.current.parts = [];
             multipartStateRef.current.buffer = [];
             multipartStateRef.current.bufferSize = 0;
+            multipartStateRef.current.partUploadPromises = [];
             multipartStateRef.current.isAborted = false;
             multipartStateRef.current.isCompleting = false;
             multipartStateRef.current.uploadQueue = Promise.resolve();
@@ -177,7 +194,13 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
                 }
             }
 
-            const mediaRecorder = new MediaRecorder(combinedStream, mimeType ? { mimeType } : undefined);
+            const recorderOptions: MediaRecorderOptions = {
+                ...(mimeType ? { mimeType } : {}),
+                videoBitsPerSecond: VIDEO_BITS_PER_SECOND,
+                audioBitsPerSecond: AUDIO_BITS_PER_SECOND,
+            };
+
+            const mediaRecorder = new MediaRecorder(combinedStream, recorderOptions);
 
             mediaRecorder.ondataavailable = handleDataAvailable;
 
@@ -216,9 +239,11 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
                 return;
             }
 
+            // Mark completing before onstop so a route change/unmount does not abort S3 upload.
+            state.isCompleting = true;
+
             mediaRecorder.onstop = () => {
                 setIsRecordingVideo(false);
-                state.isCompleting = true; // Prevent unmount abort
 
                 // Stop tracks
                 if (screenStreamRef.current) {
@@ -227,14 +252,19 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
                     screenStreamRef.current = null;
                 }
 
-                // Process final buffer
                 const finalBlob = state.buffer.length > 0 ? new Blob(state.buffer, { type: "video/webm" }) : null;
-                
-                state.uploadQueue = state.uploadQueue.then(async () => {
+                state.buffer = [];
+                state.bufferSize = 0;
+
+                const finalize = async () => {
+                    await Promise.all(state.partUploadPromises);
+
                     if (finalBlob && finalBlob.size > 0 && state.uploadId && state.key && state.uploadToken) {
-                        await flushBuffer(finalBlob);
+                        await flushBuffer(finalBlob, state.partNumber++);
                     }
-                    
+
+                    state.parts.sort((a, b) => a.PartNumber - b.PartNumber);
+
                     if (state.uploadId && state.key && state.uploadToken && state.parts.length > 0) {
                         const compRes = await fetch("/api/s3/multipart/complete", {
                             method: "POST",
@@ -258,7 +288,9 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
                         }
                     }
                     resolve(null);
-                }).catch((err) => {
+                };
+
+                void finalize().catch((err) => {
                     console.error("Failed to finish multipart upload", err);
                     resolve(null);
                 });

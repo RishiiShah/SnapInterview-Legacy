@@ -253,15 +253,22 @@ export const auth = betterAuth({
         if (!user) return;
 
         if (!isSuccess) {
-          const failedLoginCount = user.failedLoginCount + 1;
+          const failedLoginAttempt = await prisma.user.update({
+            where: { id: user.id },
+            data: { failedLoginCount: { increment: 1 } },
+            select: { failedLoginCount: true },
+          });
+          const failedLoginCount = failedLoginAttempt.failedLoginCount;
           const lockedUntil =
             failedLoginCount >= MAX_FAILED_LOGIN_ATTEMPTS
               ? new Date(Date.now() + LOGIN_LOCK_MS)
               : null;
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { failedLoginCount, lockedUntil },
-          });
+          if (lockedUntil) {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { lockedUntil },
+            });
+          }
           await recordSecurityEvent({
             type: "LOGIN_FAILED",
             userId: user.id,

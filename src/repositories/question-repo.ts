@@ -3,6 +3,9 @@ import { QUESTIONS } from "@/data/questions";
 import type { Question } from "@/data/types";
 import { QUESTION_CATEGORY_VALUES } from "@/lib/interview/domain";
 import { logger } from "@/utils/logger";
+import { unstable_cache } from "next/cache";
+
+export const PRACTICE_QUESTION_CATALOG_CACHE_TAG = "practice-question-catalog-v1";
 
 function isQuestionCategory(category: string): category is Question["category"] {
   return (QUESTION_CATEGORY_VALUES as readonly string[]).includes(category);
@@ -48,7 +51,7 @@ function logStaticFallback(reason: string, context?: Record<string, unknown>) {
  * Fetches all practice questions from the database, 
  * falling back to static questions if the database is empty or unavailable.
  */
-export async function getAllPracticeQuestions(): Promise<Question[]> {
+async function getAllPracticeQuestionsUncached(): Promise<Question[]> {
   try {
     const dbQuestions = await prisma.practiceQuestion.findMany({
       orderBy: { id: "asc" },
@@ -74,6 +77,17 @@ export async function getAllPracticeQuestions(): Promise<Question[]> {
   }
 
   return QUESTIONS;
+}
+
+export async function getAllPracticeQuestions(): Promise<Question[]> {
+  return unstable_cache(
+    getAllPracticeQuestionsUncached,
+    [PRACTICE_QUESTION_CATALOG_CACHE_TAG],
+    {
+      revalidate: 300,
+      tags: [PRACTICE_QUESTION_CATALOG_CACHE_TAG],
+    },
+  )();
 }
 
 /**

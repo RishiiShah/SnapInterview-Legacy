@@ -7,7 +7,9 @@ import { useChatSession } from "@/hooks/useChatSession";
 import { useStreamingTTS } from "@/hooks/useStreamingTTS";
 import { useAudioAnalyser } from "@/hooks/useAudioAnalyser";
 import { getInterviewBlockReason, type BrowserBlockResult } from "@/lib/interview/browser-block";
-import { finalizeInterviewUpload, type InterviewCompletionStatus } from "@/lib/video/upload-service";
+import { scheduleInterviewFinalize } from "@/lib/video/background-finalize";
+import { addPendingInterviewFinalize } from "@/lib/interview/finalize-pending-client";
+import type { InterviewCompletionStatus } from "@/lib/video/upload-service";
 import { coerceInterviewType, type InterviewType } from "@/lib/interview/domain";
 
 type UseInterviewPageControllerOptions = {
@@ -93,6 +95,17 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
       onScreenShareEndedRef.current();
     },
   });
+  const { startScreenRecording, stopVideoRecording } = videoRecording;
+
+  const autoExitScheduledRef = useRef(false);
+  const pendingVideoStopRef = useRef<ReturnType<typeof stopVideoRecording> | null>(null);
+
+  const stopVideoRecordingForFinalize = useCallback(() => {
+    if (!pendingVideoStopRef.current) {
+      pendingVideoStopRef.current = stopVideoRecording();
+    }
+    return pendingVideoStopRef.current;
+  }, [stopVideoRecording]);
 
   const chat = useChatSession({
     interviewId,
@@ -108,11 +121,12 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     enabled: interviewStarted && !interviewDone,
     persona,
   });
+  const { cancel: cancelTts, warmup: warmupTts } = tts;
 
   const requestPermissions = useCallback(() => {
-    tts.warmup();
+    warmupTts();
     return media.requestPermissions();
-  }, [media, tts]);
+  }, [media, warmupTts]);
 
   const audioLevels = useAudioAnalyser(media.stream, media.isMicEnabled);
 
@@ -163,7 +177,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
       });
     }
 
-    const started = await videoRecording.startScreenRecording(media.stream || undefined, sessionPromise);
+    const started = await startScreenRecording(media.stream || undefined, sessionPromise);
     if (!started) {
       setModal({
         isOpen: true,
@@ -184,13 +198,13 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
         description: "Failed to establish interview session. Please try again.",
         variant: "danger",
       });
-      void videoRecording.stopVideoRecording();
+      void stopVideoRecording();
       return;
     }
 
     setShowPreJoin(false);
     setInterviewStarted(true);
-  }, [media.stream, videoRecording, interviewId]);
+  }, [media.stream, startScreenRecording, stopVideoRecording, interviewId]);
 
   const handleExitInterview = useCallback(
     async ({ skipConfirmation = false }: { skipConfirmation?: boolean } = {}) => {
@@ -216,45 +230,38 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
       localStorage.removeItem("active_interview_id");
 
       speech.stopRecording();
-      media.stopStream();
       setIsUploading(true);
 
       const userAnswerCount = chatMessagesRef.current.filter((m) => m.role === "user").length;
       const interviewStatus: InterviewCompletionStatus =
         interviewDoneRef.current || userAnswerCount > 0 ? "COMPLETED" : "ABORTED";
 
-      // Fire and forget the upload so the user is not blocked
-      finalizeInterviewUpload({
+      addPendingInterviewFinalize(interviewId);
+      void scheduleInterviewFinalize({
         interviewId,
         status: interviewStatus,
-        stopVideoRecording: videoRecording.stopVideoRecording,
+        stopVideoRecording: stopVideoRecordingForFinalize,
       }).catch((error) => {
         console.error("Error finalizing interview upload:", error);
       });
 
-      // Immediately redirect to analytics to make the experience smooth
-      setIsUploading(false);
-      isExitingRef.current = false;
+      media.stopStream();
       router.push("/analytics");
     },
-    [interviewId, media, router, speech, videoRecording.stopVideoRecording, closeModal]
+    [interviewId, media, router, speech, stopVideoRecordingForFinalize, closeModal]
   );
 
   useEffect(() => {
     handleExitInterviewRef.current = handleExitInterview;
   }, [handleExitInterview]);
 
+  // As soon as the interview completes: stop TTS, finalize upload in the background, leave the room.
   useEffect(() => {
-    if (!interviewDone) return;
-
-    const exitTimer = setTimeout(() => {
-      if (!isExitingRef.current && !isUploading) {
-        void handleExitInterview({ skipConfirmation: true });
-      }
-    }, 4000);
-
-    return () => clearTimeout(exitTimer);
-  }, [handleExitInterview, interviewDone, isUploading]);
+    if (!interviewDone || autoExitScheduledRef.current) return;
+    autoExitScheduledRef.current = true;
+    cancelTts();
+    void handleExitInterviewRef.current({ skipConfirmation: true });
+  }, [interviewDone, cancelTts]);
 
   useEffect(() => {
     if (!chatScrollContainerRef.current) return;

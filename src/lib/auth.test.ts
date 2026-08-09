@@ -8,6 +8,13 @@ const betterAuthMock = vi.fn(() => ({
   },
 }));
 
+const prismaMocks = vi.hoisted(() => ({
+  user: {
+    findUnique: vi.fn(),
+    update: vi.fn(),
+  },
+}));
+
 vi.mock("better-auth", () => ({
   betterAuth: betterAuthMock,
 }));
@@ -27,7 +34,7 @@ vi.mock("better-auth/api", () => ({
 }));
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: {},
+  prisma: prismaMocks,
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
@@ -84,5 +91,39 @@ describe("auth configuration", () => {
     expect(config.session.cookieCache.enabled).toBe(true);
     // No version() callback — it defeated the cache; lock/revocation is enforced by the after-hook.
     expect(config.session.cookieCache.version).toBeUndefined();
+  });
+
+  it("increments failed-login attempts atomically before recording the failure", async () => {
+    prismaMocks.user.findUnique.mockResolvedValue({
+      id: "user-1",
+      email: "user@example.com",
+      failedLoginCount: 4,
+      lockedUntil: null,
+    });
+    prismaMocks.user.update
+      .mockResolvedValueOnce({ failedLoginCount: 5 })
+      .mockResolvedValueOnce({ id: "user-1" });
+
+    await import("./auth");
+    const config = (betterAuthMock as unknown as { mock: { calls: unknown[][] } }).mock.calls[0]?.[0] as {
+      hooks: { after: (context: unknown) => Promise<void> };
+    };
+
+    await config.hooks.after({
+      path: "/sign-in/email",
+      body: { email: "USER@example.com" },
+      request: new Request("https://snapinterview.test/api/auth/sign-in/email"),
+      context: { newSession: null },
+    });
+
+    expect(prismaMocks.user.update).toHaveBeenNthCalledWith(1, {
+      where: { id: "user-1" },
+      data: { failedLoginCount: { increment: 1 } },
+      select: { failedLoginCount: true },
+    });
+    expect(prismaMocks.user.update).toHaveBeenNthCalledWith(2, {
+      where: { id: "user-1" },
+      data: { lockedUntil: expect.any(Date) },
+    });
   });
 });

@@ -96,19 +96,27 @@ function scoreTone(score: number | null): string {
 function ScorePath({ points }: { points: { label: string; value: number }[] }) {
   const gradientId = useId();
   const w = 100;
-  const h = 36;
-  const padX = points.length === 1 ? 50 : 4;
-  const padY = 6;
+  const h = 44;
+  const padX = 8;
+  const padY = 8;
 
-  const coords = points.map((p, i) => {
-    const x =
-      points.length === 1
-        ? 50
-        : padX + (i / (points.length - 1)) * (w - padX * 2);
-    const y = padY + (1 - Math.min(100, Math.max(0, p.value)) / 100) * (h - padY * 2);
-    return { x, y, ...p };
-  });
+  const yForScore = (score: number) =>
+    padY + (1 - Math.min(100, Math.max(0, score)) / 100) * (h - padY * 2);
 
+  const coords =
+    points.length === 1
+      ? [
+          { x: padX, y: yForScore(0), label: points[0]!.label, value: 0 },
+          { x: 50, y: yForScore(points[0]!.value), label: points[0]!.label, value: points[0]!.value },
+          { x: w - padX, y: yForScore(points[0]!.value), label: points[0]!.label, value: points[0]!.value },
+        ]
+      : points.map((p, i) => {
+          const x = padX + (i / (points.length - 1)) * (w - padX * 2);
+          const y = yForScore(p.value);
+          return { x, y, label: p.label, value: p.value };
+        });
+
+  const plotCoords = points.length === 1 ? [coords[1]!] : coords;
   const line = coords.map((c) => `${c.x},${c.y}`).join(" ");
   const area = `${coords[0]!.x},${h} ${line} ${coords[coords.length - 1]!.x},${h}`;
 
@@ -120,72 +128,76 @@ function ScorePath({ points }: { points: { label: string; value: number }[] }) {
       </div>
       <svg
         viewBox={`0 0 ${w} ${h}`}
-        className="h-20 w-full overflow-visible lg:h-24"
+        className="h-24 w-full overflow-visible lg:h-28"
         role="img"
-        aria-label={`Score path across ${points.length} sessions`}
+        aria-label={`Score path across ${points.length} session${points.length === 1 ? "" : "s"}`}
       >
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.22" />
+            <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.28" />
             <stop offset="100%" stopColor="#3B82F6" stopOpacity="0" />
           </linearGradient>
         </defs>
         <line
           x1={padX}
           x2={w - padX}
-          y1={padY}
-          y2={padY}
-          stroke="rgba(255,255,255,0.06)"
-          strokeWidth="0.3"
-          strokeDasharray="1.2 1.2"
+          y1={yForScore(0)}
+          y2={yForScore(0)}
+          stroke="rgba(255,255,255,0.05)"
+          strokeWidth="0.35"
         />
         <line
           x1={padX}
           x2={w - padX}
-          y1={h / 2}
-          y2={h / 2}
+          y1={yForScore(50)}
+          y2={yForScore(50)}
           stroke="rgba(255,255,255,0.04)"
-          strokeWidth="0.3"
-          strokeDasharray="1.2 1.2"
+          strokeWidth="0.35"
+          strokeDasharray="1.5 1.5"
         />
         <polygon points={area} fill={`url(#${gradientId})`} />
         <polyline
           points={line}
           fill="none"
           stroke="#60A5FA"
-          strokeWidth="1.1"
+          strokeWidth="1.4"
           strokeLinejoin="round"
           strokeLinecap="round"
           vectorEffect="non-scaling-stroke"
         />
-        {coords.map((c, i) => (
+        {plotCoords.map((c, i) => (
           <g key={`${c.label}-${i}`}>
             <circle
               cx={c.x}
               cy={c.y}
-              r="1.8"
+              r={points.length === 1 ? "2.8" : "2"}
               fill="#0B0C10"
               stroke="#93C5FD"
-              strokeWidth="1"
+              strokeWidth="1.1"
               vectorEffect="non-scaling-stroke"
             />
           </g>
         ))}
       </svg>
-      <div className="mt-1 flex justify-between gap-1">
+      <div
+        className={`mt-1 flex gap-1 ${points.length === 1 ? "justify-center" : "justify-between"}`}
+      >
         {points.map((p, i) => (
           <span
             key={`${p.label}-${i}`}
-            className={`min-w-0 flex-1 truncate text-center font-mono text-xs tabular-nums lg:text-[13px] ${
+            className={`min-w-0 truncate text-center font-mono text-xs tabular-nums lg:text-[13px] ${
               p.value >= 80
                 ? "text-emerald-400"
                 : p.value >= 70
                   ? "text-amber-300"
                   : "text-[#C5CBD8]"
-            }`}
+            } ${points.length === 1 ? "max-w-none" : "flex-1"}`}
             title={`${p.label}: ${p.value}`}
           >
             {p.value}
+            {points.length === 1 ? (
+              <span className="ml-1.5 text-[11px] font-sans text-[#A8B0C2]">{p.label}</span>
+            ) : null}
           </span>
         ))}
       </div>

@@ -68,18 +68,23 @@ export const POST = withCsrfProtection(async (req: Request) => {
 
         // Validate OTP
         if (!verifyOneTimeCode(otp, token.codeHash)) {
-            const attemptCount = token.attemptCount + 1;
+            // Increment in the database so concurrent attempts cannot reuse the
+            // stale count read with the reset token and bypass the lockout.
+            const failedAttempt = await prisma.passwordResetCode.update({
+                where: { id: token.id },
+                data: { attemptCount: { increment: 1 } },
+                select: { attemptCount: true },
+            });
+            const attemptCount = failedAttempt.attemptCount;
             const lockedUntil =
                 attemptCount >= MAX_OTP_ATTEMPTS ? new Date(Date.now() + LOCKOUT_MS) : null;
 
-            await prisma.passwordResetCode.update({
-                where: { id: token.id },
-                data: {
-                    attemptCount,
-                    lockedUntil,
-                    ...(lockedUntil ? { usedAt: new Date() } : {}),
-                },
-            });
+            if (lockedUntil) {
+                await prisma.passwordResetCode.update({
+                    where: { id: token.id },
+                    data: { lockedUntil, usedAt: new Date() },
+                });
+            }
 
             if (lockedUntil) {
                 return badRequestError(GENERIC_RESET_CODE_ERROR);
@@ -116,6 +121,29 @@ export const POST = withCsrfProtection(async (req: Request) => {
 
         // Hash and update password in Account
         const newPasswordHash = await hashCredentialPassword(newPassword);
+
+        // Claim the verified code before changing credentials. The conditional
+        // update prevents concurrent valid requests from both resetting the
+        // password with the same code.
+        const claimTime = new Date();
+        const claimedToken = await prisma.passwordResetCode.updateMany({
+            where: {
+                id: token.id,
+                email: normalizedEmail,
+                usedAt: null,
+                expiresAt: { gt: claimTime },
+                OR: [
+                    { lockedUntil: null },
+                    { lockedUntil: { lte: claimTime } },
+                ],
+            },
+            data: { usedAt: claimTime },
+        });
+
+        if (claimedToken.count !== 1) {
+            return badRequestError(GENERIC_RESET_CODE_ERROR);
+        }
+
         await prisma.account.update({
             where: { id: account.id },
             data: { password: newPasswordHash },

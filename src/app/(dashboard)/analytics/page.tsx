@@ -1,19 +1,20 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
-import PerformanceChart from "@/components/analytics/PerformanceChart";
+import { FadeIn, SlideIn } from "@/components/ui/motion";
+import PerformanceTrendChart from "@/components/analytics/PerformanceTrendChart";
 import CategoryBreakdown from "@/components/analytics/CategoryBreakdown";
-import SubScoreTrendChart from "@/components/analytics/SubScoreTrendChart";
+import DimensionAnalytics from "@/components/analytics/DimensionAnalytics";
 import { getAnalyticsOverviewData } from "@/lib/interview/metrics";
+import { formatMonthOverMonthChange, monthCompareToneClass } from "@/lib/interview/analytics-display";
 import { getServerAuthSession } from "@/lib/server-auth";
+import type { SubScoreTrendSets } from "@/lib/interview/metrics";
 
-function scoreTone(value: number | null): string {
-  if (value == null) return "text-[#A8B0C2]";
-  if (value >= 80) return "text-emerald-400";
-  if (value >= 70) return "text-amber-300";
-  return "text-rose-300";
-}
+const emptySubScoreTrends = (): SubScoreTrendSets => ({
+  daily: { communication: [], technicalDepth: [], clarity: [] },
+  weekly: { communication: [], technicalDepth: [], clarity: [] },
+  monthly: { communication: [], technicalDepth: [], clarity: [] },
+});
 
 export default async function AnalyticsPage() {
   const session = await getServerAuthSession();
@@ -22,13 +23,16 @@ export default async function AnalyticsPage() {
     redirect("/login");
   }
 
-  const userId = session.user.id;
-
-  const emptyWeeklyTrends = { communication: [], technicalDepth: [], clarity: [] };
+  const userId = session.user.id ?? session.session?.userId;
+  if (!userId) {
+    redirect("/login");
+  }
 
   const {
-    weeklyScores,
-    weeklySubScoreTrends,
+    dailyTrend,
+    weeklyTrend,
+    monthlyTrend,
+    subScoreTrends,
     monthlyComparison,
     periodComparison,
     categoryBreakdown,
@@ -40,8 +44,10 @@ export default async function AnalyticsPage() {
   } = userId
     ? await getAnalyticsOverviewData(userId)
     : {
-        weeklyScores: [],
-        weeklySubScoreTrends: emptyWeeklyTrends,
+        dailyTrend: [],
+        weeklyTrend: [],
+        monthlyTrend: [],
+        subScoreTrends: emptySubScoreTrends(),
         monthlyComparison: [
           { label: "This Month", interviews: 0, avgScore: 0, hours: 0 },
           { label: "Last Month", interviews: 0, avgScore: 0, hours: 0 },
@@ -77,7 +83,15 @@ export default async function AnalyticsPage() {
               Analytics
             </h1>
             <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-[#A8B0C2]">
-              Scores, dimensions, and momentum across your practice.
+              Scores, dimensions, and momentum across your practice. Per-interview rubrics, video, and
+              transcript live under{" "}
+              <Link
+                href="/recordings"
+                className="text-[#93C5FD] transition-colors hover:text-[#BFDBFE]"
+              >
+                Recordings
+              </Link>
+              .
             </p>
           </div>
           <Link
@@ -170,8 +184,7 @@ export default async function AnalyticsPage() {
                       suffix: "h",
                     },
                   ].map((stat) => {
-                    const diff = stat.current - stat.prev;
-                    const pct = stat.prev > 0 ? Math.round((diff / stat.prev) * 100) : 0;
+                    const comparison = formatMonthOverMonthChange(stat.current, stat.prev);
                     return (
                       <div key={stat.label}>
                         <dt className="text-[12px] text-[#B8C0CE] lg:text-[13px]">{stat.label}</dt>
@@ -183,10 +196,8 @@ export default async function AnalyticsPage() {
                             </span>
                           ) : null}
                         </dd>
-                        <p
-                          className={`mt-1 text-xs ${diff >= 0 ? "text-emerald-400" : "text-rose-300"}`}
-                        >
-                          {diff >= 0 ? "↑" : "↓"} {Math.abs(pct)}% vs last month
+                        <p className={`mt-1 text-xs ${monthCompareToneClass(comparison.tone)}`}>
+                          {comparison.label}
                         </p>
                       </div>
                     );
@@ -198,103 +209,65 @@ export default async function AnalyticsPage() {
 
           {/* Charts — no card chrome */}
           <div className="grid gap-10 border-t border-white/[0.06] pt-10 lg:grid-cols-2 lg:gap-14">
-            <PerformanceChart weeklyScores={weeklyScores} delay={0.08} />
+            <PerformanceTrendChart
+              dailyTrend={dailyTrend}
+              weeklyTrend={weeklyTrend}
+              monthlyTrend={monthlyTrend}
+              delay={0.08}
+            />
             <CategoryBreakdown categories={categoryBreakdown} delay={0.12} />
           </div>
 
-          {/* Sub-score instruments */}
           <FadeIn triggerOnView={false} delay={0.16} direction="up">
-            <section className="border-t border-white/[0.06] pt-10">
-              <div className="mb-6 flex items-baseline justify-between gap-3">
-                <h2 className="font-display text-xl tracking-tight text-[#F2F4F8] sm:text-2xl">
-                  Score breakdown
-                </h2>
-                <p className="text-xs text-[#B8C0CE]">Across evaluated interviews</p>
-              </div>
-              <FadeInStagger triggerOnView={false}>
-                <dl className="grid gap-x-10 gap-y-6 sm:grid-cols-3">
-                  {[
-                    {
-                      label: "Communication",
-                      value: subScores.communication,
-                      description: "Clarity and articulation",
-                    },
-                    {
-                      label: "Technical depth",
-                      value: subScores.technicalDepth,
-                      description: "Knowledge and reasoning",
-                    },
-                    {
-                      label: "Clarity",
-                      value: subScores.clarity,
-                      description: "Structure and logical flow",
-                    },
-                  ].map(({ label, value, description }) => (
-                    <FadeInStaggerItem key={label}>
-                      <dt className="text-[12px] text-[#B8C0CE] lg:text-[13px]">{label}</dt>
-                      <p className="mt-0.5 text-xs text-[#A8B0C2]">{description}</p>
-                      {value !== null ? (
-                        <>
-                          <dd
-                            className={`mt-2 font-mono text-3xl font-medium tracking-tight ${scoreTone(value)}`}
-                          >
-                            {value}
-                          </dd>
-                          <div className="mt-3 h-px w-full bg-white/[0.06]">
-                            <div
-                              className="h-px bg-[#3B82F6]/80 transition-all duration-500"
-                              style={{ width: `${value}%` }}
-                            />
-                          </div>
-                        </>
-                      ) : (
-                        <dd className="mt-2 text-sm text-[#A8B0C2]">—</dd>
-                      )}
-                    </FadeInStaggerItem>
-                  ))}
-                </dl>
-              </FadeInStagger>
-            </section>
+            <DimensionAnalytics subScores={subScores} subScoreTrends={subScoreTrends} />
           </FadeIn>
-
-          <div className="border-t border-white/[0.06] pt-10">
-            <SubScoreTrendChart trends={weeklySubScoreTrends} delay={0.2} />
-          </div>
 
           {/* Question feedback */}
           <FadeIn triggerOnView={false} delay={0.24} direction="up">
             <section className="border-t border-white/[0.06] pt-10">
-              <div className="mb-6 flex items-baseline justify-between gap-3">
+              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
                 <h2 className="font-display text-xl tracking-tight text-[#F2F4F8] sm:text-2xl">
                   Question feedback
                 </h2>
-                <p className="text-xs text-[#B8C0CE]">From transcript ratings</p>
+                <Link
+                  href="/recordings"
+                  className="cursor-pointer text-sm text-[#A8B0C2] transition-colors hover:text-[#C5CBD8]"
+                >
+                  Open recordings
+                </Link>
               </div>
+              <p className="mb-6 max-w-2xl text-[15px] leading-relaxed text-[#A8B0C2]">
+                When you replay a mock, you can thumbs-up or thumbs-down questions in the transcript.
+                It&apos;s a lightweight way to note what felt solid versus what you&apos;d drill
+                again. We summarize those ratings here. This isn&apos;t part of your interview score.
+              </p>
               {feedbackStats.total === 0 ? (
                 <p className="text-sm text-[#A8B0C2]">
-                  Rate questions in a recording transcript to see insights here.
+                  No ratings yet. Open a recording, skim the transcript, and tap a few thumbs if
+                  something stood out.
                 </p>
               ) : (
                 <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
                   <div>
-                    <p className="text-[12px] text-[#B8C0CE]">Positive</p>
+                    <p className="text-[12px] text-[#B8C0CE]">Felt good</p>
                     <p className="mt-1 font-mono text-3xl font-medium tracking-tight text-[#F2F4F8]">
                       {Math.round((feedbackStats.thumbsUp / feedbackStats.total) * 100)}
                       <span className="text-lg text-[#C5CBD8]">%</span>
                     </p>
                     <p className="mt-1 text-sm text-[#A8B0C2]">
-                      {feedbackStats.total} question{feedbackStats.total !== 1 ? "s" : ""} rated
+                      Based on {feedbackStats.total} rated question
+                      {feedbackStats.total !== 1 ? "s" : ""}
                     </p>
                   </div>
                   <dl className="grid grid-cols-2 gap-x-10">
                     <div>
-                      <dt className="text-[12px] text-[#B8C0CE]">Went well</dt>
+                      <dt className="text-[12px] text-[#B8C0CE]">Thumbs up</dt>
                       <dd className="mt-1 font-mono text-xl font-medium text-emerald-400">
                         {feedbackStats.thumbsUp}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-[12px] text-[#B8C0CE]">Challenging</dt>
+                      <dt className="text-[12px] text-[#B8C0CE]">Thumbs down</dt>
                       <dd className="mt-1 font-mono text-xl font-medium text-rose-300">
                         {feedbackStats.thumbsDown}
                       </dd>
@@ -315,13 +288,16 @@ export default async function AnalyticsPage() {
                 <p className="text-xs text-[#B8C0CE]">From your evaluations</p>
               </div>
               <div className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
-                <div>
-                  <p className="text-[12px] text-[#A8B0C2]">Keep leaning on</p>
+                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+                  <p className="text-[12px] font-medium uppercase tracking-wide text-emerald-400/90">
+                    Keep leaning on
+                  </p>
                   {strengths.length > 0 ? (
-                    <ul className="mt-3 space-y-3">
-                      {strengths.map((skill) => (
-                        <li key={skill} className="text-[15px] leading-snug text-[#E8ECF4]">
-                          {skill}
+                    <ul className="mt-4 space-y-3">
+                      {strengths.map((skill, index) => (
+                        <li key={skill} className="flex gap-3 text-[15px] leading-snug text-[#E8ECF4]">
+                          <span className="font-mono text-xs text-[#6B7280]">{index + 1}</span>
+                          <span>{skill}</span>
                         </li>
                       ))}
                     </ul>
@@ -329,13 +305,16 @@ export default async function AnalyticsPage() {
                     <p className="mt-3 text-sm text-[#A8B0C2]">Complete an interview to get insights</p>
                   )}
                 </div>
-                <div>
-                  <p className="text-[12px] text-[#A8B0C2]">Focus next</p>
+                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+                  <p className="text-[12px] font-medium uppercase tracking-wide text-amber-300/90">
+                    Focus next
+                  </p>
                   {improvements.length > 0 ? (
-                    <ul className="mt-3 space-y-3">
-                      {improvements.map((skill) => (
-                        <li key={skill} className="text-[15px] leading-snug text-[#E8ECF4]">
-                          {skill}
+                    <ul className="mt-4 space-y-3">
+                      {improvements.map((skill, index) => (
+                        <li key={skill} className="flex gap-3 text-[15px] leading-snug text-[#E8ECF4]">
+                          <span className="font-mono text-xs text-[#6B7280]">{index + 1}</span>
+                          <span>{skill}</span>
                         </li>
                       ))}
                     </ul>
@@ -345,7 +324,7 @@ export default async function AnalyticsPage() {
                   {improvements.length > 0 ? (
                     <Link
                       href="/practice"
-                      className="mt-4 inline-flex cursor-pointer text-sm text-[#60A5FA] transition-colors hover:text-[#93C5FD]"
+                      className="mt-5 inline-flex cursor-pointer text-sm text-[#60A5FA] transition-colors hover:text-[#93C5FD]"
                     >
                       Practice this →
                     </Link>

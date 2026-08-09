@@ -11,6 +11,7 @@ import {
   useHoverSidebar,
 } from "@/components/ui/hover-sidebar";
 import { cn } from "@/lib/utils";
+import InterviewFinalizeSync from "@/components/dashboard/InterviewFinalizeSync";
 
 const PROFILE_IMAGE_STORAGE_KEY = "profile-image-override";
 
@@ -99,6 +100,7 @@ function ShellLayout({
               fullscreenWorkspace ? "h-full w-full" : "mx-auto w-full max-w-[88rem]",
             )}
           >
+            {!fullscreenWorkspace ? <InterviewFinalizeSync /> : null}
             {children}
           </div>
         </main>

@@ -152,7 +152,7 @@ describe("POST /api/reset-password", () => {
 
     const { verifyOneTimeCode } = await import("@/lib/security");
     vi.mocked(verifyOneTimeCode).mockReturnValue(false);
-    vi.mocked(prisma.passwordResetCode.update).mockResolvedValue({} as never);
+    vi.mocked(prisma.passwordResetCode.update).mockResolvedValue({ attemptCount: 1 } as never);
 
     const req = new Request("http://localhost/api/reset-password", {
       method: "POST",
@@ -173,9 +173,11 @@ describe("POST /api/reset-password", () => {
       error: "Invalid or expired reset code.",
     });
     expect(prisma.passwordResetCode.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ attemptCount: 1 }),
-      }),
+      {
+        where: { id: "token-1" },
+        data: { attemptCount: { increment: 1 } },
+        select: { attemptCount: true },
+      },
     );
   });
 
@@ -255,6 +257,19 @@ describe("POST /api/reset-password", () => {
 
     const res = await POST(req);
     expect(res.status).toBe(200);
+    expect(prisma.passwordResetCode.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: "token-1",
+        email: "user@example.com",
+        usedAt: null,
+        expiresAt: { gt: expect.any(Date) },
+        OR: [
+          { lockedUntil: null },
+          { lockedUntil: { lte: expect.any(Date) } },
+        ],
+      },
+      data: { usedAt: expect.any(Date) },
+    });
     expect(revokeUserSessions).toHaveBeenCalledWith(
       expect.objectContaining({ userId: "user-1", reason: "password_reset" }),
     );

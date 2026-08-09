@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import type { Question } from "@/data/types";
 import { IconChevronLeft, IconChevronRight } from "@/components/ui/icons";
@@ -41,6 +41,7 @@ export default function QuestionDetailPageClient({
   const [isSolved, setIsSolved] = useState(false);
   const [isSolveUpdating, setIsSolveUpdating] = useState(false);
   const [solveError, setSolveError] = useState<string | null>(null);
+  const solvedStateLoadedForQuestionIdRef = useRef<number | null>(null);
 
   const {
     percent: leftPercent,
@@ -146,6 +147,11 @@ export default function QuestionDetailPageClient({
   }, [evaluateAnswer, isTimerRunning, timeRemaining]);
 
   useEffect(() => {
+    if (solvedStateLoadedForQuestionIdRef.current === question.id) {
+      return;
+    }
+    solvedStateLoadedForQuestionIdRef.current = question.id;
+
     let isCancelled = false;
 
     const loadSolvedState = async () => {

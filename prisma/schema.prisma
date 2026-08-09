@@ -60,6 +60,7 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, expiresAt])
+  @@index([expiresAt])
 }
 
 model Account {
@@ -79,6 +80,7 @@ model Account {
   updatedAt             DateTime  @updatedAt
 
   @@unique([providerId, accountId])
+  @@index([userId])
 }
 
 model Verification {
@@ -212,6 +214,7 @@ model InterviewSession {
 
   @@index([userId])
   @@index([userId, deletedAt])
+  @@index([userId, deletedAt, createdAt(sort: Desc)])
   @@index([userId, status, deletedAt, createdAt(sort: Desc)])
 }
 

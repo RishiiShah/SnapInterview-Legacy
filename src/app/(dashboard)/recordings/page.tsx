@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SlideIn } from "@/components/ui/motion";
 import RecordingsList from "@/components/recordings/RecordingsList";
 import { interviewIdSchema } from "@/lib/interview/domain";
@@ -51,13 +52,23 @@ export default async function RecordingsPage({ searchParams }: RecordingsPagePro
   return (
     <div className="mx-auto max-w-7xl space-y-8 pb-16 pt-2 xl:max-w-[88rem]">
       <SlideIn>
-        <div>
-          <h1 className="font-display text-[2rem] leading-[1.15] tracking-[-0.02em] text-[#F2F4F8] sm:text-[2.35rem]">
-            Recordings
-          </h1>
-          <p className="mt-3 text-[15px] leading-relaxed text-[#A8B0C2]">
-            Review and manage your saved interview sessions.
-          </p>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-display text-[2rem] leading-[1.15] tracking-[-0.02em] text-[#F2F4F8] sm:text-[2.35rem]">
+              Recordings
+            </h1>
+            <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[#A8B0C2]">
+              Per-session video, transcript, rubric, and question ratings. Trends and category averages
+              are on{" "}
+              <Link
+                href="/analytics"
+                className="text-[#93C5FD] transition-colors hover:text-[#BFDBFE]"
+              >
+                Analytics
+              </Link>
+              .
+            </p>
+          </div>
         </div>
       </SlideIn>
 

@@ -2,10 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getPublishedCodingQuestions, toCodingWorkspaceQuestion } from "./coding-question-repo";
 
-const mocks = vi.hoisted(() => ({ findMany: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  findMany: vi.fn(),
+  unstableCache: vi.fn((fn: () => unknown) => fn),
+}));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: { codingQuestion: { findMany: mocks.findMany } },
+}));
+
+vi.mock("next/cache", () => ({
+  unstable_cache: mocks.unstableCache,
 }));
 
 beforeEach(() => {
@@ -130,5 +137,20 @@ describe("getPublishedCodingQuestions", () => {
     const questions = await getPublishedCodingQuestions();
 
     expect(questions.map((question) => question.slug)).toEqual(["valid-first", "valid-second"]);
+  });
+
+  it("uses a shared, tag-invalidatable catalog cache", async () => {
+    mocks.findMany.mockResolvedValue([]);
+
+    await getPublishedCodingQuestions();
+
+    expect(mocks.unstableCache).toHaveBeenCalledWith(
+      expect.any(Function),
+      ["coding-catalog-v1"],
+      {
+        revalidate: 300,
+        tags: ["coding-catalog-v1"],
+      },
+    );
   });
 });

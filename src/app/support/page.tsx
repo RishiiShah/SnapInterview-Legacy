@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AppLogo } from "@/components/ui/AppLogo";
 import { useSession, signOut } from "@/lib/auth-client";
 import {
@@ -41,6 +42,7 @@ const HELP_CATEGORIES = [
 ];
 
 export default function HelpSupportPage() {
+  const router = useRouter();
   const { data: session } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -68,7 +70,7 @@ export default function HelpSupportPage() {
     } catch {
       // Ignore signout errors and redirect
     }
-    window.location.href = "/login?callbackUrl=/support";
+    router.replace("/login?callbackUrl=/support");
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

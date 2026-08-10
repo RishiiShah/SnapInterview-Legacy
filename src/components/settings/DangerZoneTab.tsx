@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/Button";
 
 const DELETE_CONFIRM_PHRASE = "DELETE MY ACCOUNT";
 
 export default function DangerZoneTab() {
+  const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
 
@@ -21,7 +23,7 @@ export default function DangerZoneTab() {
       });
       if (res.ok) {
         await signOut();
-        window.location.href = "/";
+        router.replace("/");
       }
     } catch {
       setDeleteOpen(false);

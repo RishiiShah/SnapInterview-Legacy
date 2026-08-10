@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { getInitials } from "@/utils/helpers";
 import { IconLogout, IconSettings } from "@/components/ui/icons";
@@ -70,6 +70,7 @@ function AvatarDropdown({
 
 export function AdminHeader({ user }: { user: AdminUser }) {
   const pathname = usePathname();
+  const router = useRouter();
   const userName = user.name || "Admin";
   const userEmail = user.email || "";
   const userImage = user.image;
@@ -109,7 +110,7 @@ export function AdminHeader({ user }: { user: AdminUser }) {
           open={avatarOpen}
           onClose={() => setAvatarOpen(false)}
           onSignedOut={() => {
-            window.location.href = "/";
+            router.replace("/");
           }}
           userName={userName}
           userEmail={userEmail}

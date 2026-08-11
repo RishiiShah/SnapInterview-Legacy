@@ -26,11 +26,12 @@ const changePasswordLimiter = createRateLimiter("change-password", 15 * 60 * 100
 export const POST = withCsrfProtection(async (req: Request) => {
     try {
         const session = await getServerAuthSession();
-        if (!session?.user?.email) {
+        const userId = session?.user?.id ?? session?.session?.userId;
+        if (!session?.user?.email || !userId) {
             return unauthorizedError();
         }
 
-        if (await changePasswordLimiter.isLimited(session.user.id)) {
+        if (await changePasswordLimiter.isLimited(userId)) {
             return badRequestError("Too many password change attempts. Please try again later.");
         }
 
@@ -46,17 +47,10 @@ export const POST = withCsrfProtection(async (req: Request) => {
 
         const { currentPassword, newPassword } = result.data;
 
-        const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
-        });
-
-        if (!user) {
-            return unauthorizedError();
-        }
-
         // In Better Auth, passwords are stored in the Account table
         const account = await prisma.account.findFirst({
-            where: { userId: user.id, providerId: "credential" },
+            where: { userId, providerId: "credential" },
+            select: { id: true, password: true },
         });
 
         if (!account?.password) {
@@ -83,31 +77,32 @@ export const POST = withCsrfProtection(async (req: Request) => {
 
         // Hash and save new password in Account
         const newHash = await hashCredentialPassword(newPassword);
-        await prisma.account.update({
-            where: { id: account.id },
-            data: { password: newHash },
-        });
+        await prisma.$transaction(async (tx) => {
+            await tx.account.update({
+                where: { id: account.id },
+                data: { password: newHash },
+            });
 
-        // Update user metadata
-        await prisma.user.update({
-            where: { id: user.id },
-            data: {
-                lastPasswordChangedAt: new Date(),
-                failedLoginCount: 0,
-                lockedUntil: null,
-            },
+            await tx.user.update({
+                where: { id: userId },
+                data: {
+                    lastPasswordChangedAt: new Date(),
+                    failedLoginCount: 0,
+                    lockedUntil: null,
+                },
+            });
         });
 
         const revokedSessions = await revokeUserSessions({
-            userId: user.id,
+            userId,
             excludeSessionToken: currentSession?.token,
             reason: "password_changed",
         });
 
         await recordSecurityEvent({
             type: "PASSWORD_CHANGED",
-            userId: user.id,
-            email: user.email,
+            userId,
+            email: session.user.email,
             metadata: { revokedSessions },
         });
 

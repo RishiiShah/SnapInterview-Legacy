@@ -29,9 +29,7 @@ export async function GET() {
       return unauthorizedError();
     }
 
-    const where = authUser.email
-      ? { email: authUser.email }
-      : { id: authUser.userId };
+    const where = { id: authUser.userId };
 
     const user = await prisma.user.findUnique({
       where,
@@ -82,11 +80,9 @@ export const PUT = withCsrfProtection(async (req: Request) => {
 
     const values = parsed.data;
 
-    const where = authUser.email
-      ? { email: authUser.email }
-      : { id: authUser.userId };
+    const where = { id: authUser.userId };
 
-    await prisma.user
+    const updated = await prisma.user
       .update({
         where,
         data: {
@@ -98,6 +94,7 @@ export const PUT = withCsrfProtection(async (req: Request) => {
           preferredInterviewType: values.preferredInterviewType,
           isFirstLogin: false,
         },
+        select: { id: true },
       })
       .catch((error) => {
         if (error instanceof Error && "code" in error && error.code === "P2025") {
@@ -105,11 +102,6 @@ export const PUT = withCsrfProtection(async (req: Request) => {
         }
         throw error;
       });
-
-    const updated = await prisma.user.findUnique({
-      where,
-      select: { id: true },
-    });
 
     if (!updated) {
       return notFoundError("User not found");

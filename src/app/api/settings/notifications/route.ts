@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { z } from "zod/v4";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
-import { getServerAuthSession } from "@/lib/server-auth";
+import { getSessionUserIdentity } from "@/lib/server-auth";
 import { withCsrfProtection } from "@/lib/route-security";
 import { logger } from "@/utils/logger";
 
@@ -27,20 +27,15 @@ function normalizePrefs(value: unknown): NotificationPrefs {
   return DEFAULT_NOTIFICATION_PREFS;
 }
 
-async function getAuthedEmail() {
-  const session = await getServerAuthSession();
-  return session?.user?.email?.toLowerCase() ?? null;
-}
-
 export async function GET() {
   try {
-    const email = await getAuthedEmail();
-    if (!email) {
+    const authUser = await getSessionUserIdentity();
+    if (!authUser) {
       return unauthorizedError();
     }
 
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { id: authUser.userId },
       select: { notificationPrefs: true },
     });
 
@@ -61,8 +56,8 @@ export async function GET() {
 
 export const PUT = withCsrfProtection(async (req: Request) => {
   try {
-    const email = await getAuthedEmail();
-    if (!email) {
+    const authUser = await getSessionUserIdentity();
+    if (!authUser) {
       return unauthorizedError();
     }
 
@@ -74,7 +69,7 @@ export const PUT = withCsrfProtection(async (req: Request) => {
     }
 
     const updated = await prisma.user.update({
-      where: { email },
+      where: { id: authUser.userId },
       data: {
         notificationPrefs: parsed.data,
       },

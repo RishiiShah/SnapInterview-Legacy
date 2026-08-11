@@ -7,10 +7,19 @@ import { isDisposableEmail } from "@/lib/disposable-emails";
 import { sendOtpEmail } from "@/lib/email";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { extractRequestContext } from "@/lib/security";
+import { hashCredentialPassword } from "@/lib/password";
 
 const { isLimitedMock } = vi.hoisted(() => ({
   isLimitedMock: vi.fn().mockResolvedValue(false),
 }));
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
 
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: vi.fn(() => ({
@@ -238,5 +247,40 @@ describe("POST /api/register", () => {
     });
     expect(prisma.pendingUser.upsert).not.toHaveBeenCalled();
     expect(sendOtpEmail).not.toHaveBeenCalled();
+  });
+
+  it("overlaps the existing-user lookup with constant-time password hashing", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+    vi.mocked(isDisposableEmail).mockResolvedValue({ disposable: false } as never);
+    const existingUser = deferred<null>();
+    const passwordHash = deferred<string>();
+    vi.mocked(prisma.user.findUnique).mockReturnValue(existingUser.promise as never);
+    vi.mocked(hashCredentialPassword).mockReturnValue(passwordHash.promise);
+    vi.mocked(prisma.pendingUser.findUnique).mockResolvedValue(null as never);
+    vi.mocked(prisma.pendingUser.upsert).mockResolvedValue({ id: "pending-1" } as never);
+    vi.mocked(sendOtpEmail).mockResolvedValue(undefined as never);
+
+    const registration = POST(
+      new Request("http://localhost/api/register", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "http://localhost:3000",
+        },
+        body: JSON.stringify({
+          name: "Test User",
+          email: "user@example.com",
+          password: "Password1!",
+        }),
+      }),
+    );
+
+    await vi.waitFor(() => expect(prisma.user.findUnique).toHaveBeenCalledOnce());
+    expect(hashCredentialPassword).toHaveBeenCalledOnce();
+
+    existingUser.resolve(null);
+    passwordHash.resolve("hashed-password");
+
+    await expect(registration).resolves.toHaveProperty("status", 200);
   });
 });

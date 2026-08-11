@@ -21,9 +21,8 @@ vi.mock("@/lib/prisma", () => ({
     },
     solvedQuestion: {
       findMany: vi.fn(),
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      delete: vi.fn(),
+      upsert: vi.fn(),
+      deleteMany: vi.fn(),
     },
   },
 }));
@@ -83,7 +82,7 @@ describe("POST /api/questions/solve", () => {
     const req = new Request("http://localhost/api/questions/solve", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ questionId: 1 }),
+      body: JSON.stringify({ questionId: 1, solved: true }),
     });
 
     const res = await POST(req);
@@ -100,7 +99,7 @@ describe("POST /api/questions/solve", () => {
         "content-type": "application/json",
         origin: "http://localhost:3000",
       },
-      body: JSON.stringify({ questionId: 1 }),
+      body: JSON.stringify({ questionId: 1, solved: true }),
     });
 
     const res = await POST(req);
@@ -120,21 +119,20 @@ describe("POST /api/questions/solve", () => {
         "content-type": "application/json",
         origin: "http://localhost:3000",
       },
-      body: JSON.stringify({ questionId: -1 }),
+      body: JSON.stringify({ questionId: -1, solved: true }),
     });
 
     const res = await POST(req);
     expect(res.status).toBe(400);
   });
 
-  it("marks a question as solved (toggle on)", async () => {
+  it("marks a question as solved with one atomic upsert", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
     vi.mocked(getServerAuthSession).mockResolvedValue({
       user: { email: "user@example.com" },
     } as never);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "user-1" } as never);
-    vi.mocked(prisma.solvedQuestion.findUnique).mockResolvedValue(null as never);
-    vi.mocked(prisma.solvedQuestion.create).mockResolvedValue({} as never);
+    vi.mocked(prisma.solvedQuestion.upsert).mockResolvedValue({} as never);
 
     const req = new Request("http://localhost/api/questions/solve", {
       method: "POST",
@@ -142,25 +140,51 @@ describe("POST /api/questions/solve", () => {
         "content-type": "application/json",
         origin: "http://localhost:3000",
       },
-      body: JSON.stringify({ questionId: 5 }),
+      body: JSON.stringify({ questionId: 5, solved: true }),
     });
 
     const res = await POST(req);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toMatchObject({ solved: true, questionId: 5 });
+    expect(prisma.solvedQuestion.upsert).toHaveBeenCalledWith({
+      where: { userId_questionId: { userId: "user-1", questionId: 5 } },
+      update: {},
+      create: { userId: "user-1", questionId: 5 },
+    });
   });
 
-  it("unmarks a solved question (toggle off)", async () => {
+  it("unmarks a solved question with an idempotent delete", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
     vi.mocked(getServerAuthSession).mockResolvedValue({
       user: { email: "user@example.com" },
     } as never);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "user-1" } as never);
-    vi.mocked(prisma.solvedQuestion.findUnique).mockResolvedValue({
-      id: "sq-1",
+    vi.mocked(prisma.solvedQuestion.deleteMany).mockResolvedValue({ count: 1 } as never);
+
+    const req = new Request("http://localhost/api/questions/solve", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: JSON.stringify({ questionId: 5, solved: false }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({ solved: false, questionId: 5 });
+    expect(prisma.solvedQuestion.deleteMany).toHaveBeenCalledWith({
+      where: { userId: "user-1", questionId: 5 },
+    });
+  });
+
+  it("rejects a request that omits the intended solved state", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+    vi.mocked(getServerAuthSession).mockResolvedValue({
+      user: { id: "user-1" },
     } as never);
-    vi.mocked(prisma.solvedQuestion.delete).mockResolvedValue({} as never);
 
     const req = new Request("http://localhost/api/questions/solve", {
       method: "POST",
@@ -172,8 +196,9 @@ describe("POST /api/questions/solve", () => {
     });
 
     const res = await POST(req);
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body).toMatchObject({ solved: false, questionId: 5 });
+
+    expect(res.status).toBe(400);
+    expect(prisma.solvedQuestion.upsert).not.toHaveBeenCalled();
+    expect(prisma.solvedQuestion.deleteMany).not.toHaveBeenCalled();
   });
 });

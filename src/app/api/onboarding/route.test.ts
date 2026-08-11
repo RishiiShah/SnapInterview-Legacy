@@ -47,6 +47,9 @@ describe("/api/onboarding", () => {
 
     const response = await GET();
 
+    expect(prisma.user.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "user-1" } }),
+    );
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       onboardingCompleted: false,
@@ -62,8 +65,6 @@ describe("/api/onboarding", () => {
     vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(prisma.user.update).mockResolvedValue({ id: "user-1" } as any);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "user-1" } as any);
 
     const request = new Request("http://localhost/api/onboarding", {
       method: "PUT",
@@ -84,7 +85,8 @@ describe("/api/onboarding", () => {
 
     expect(prisma.user.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { email: "user@example.com" },
+        where: { id: "user-1" },
+        select: { id: true },
         data: expect.objectContaining({
           onboardingCompletedAt: expect.any(Date),
           onboardingRole: "Frontend Engineer",
@@ -96,6 +98,7 @@ describe("/api/onboarding", () => {
         }),
       })
     );
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ success: true });
   });

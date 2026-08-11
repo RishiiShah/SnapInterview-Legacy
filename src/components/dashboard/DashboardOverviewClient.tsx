@@ -323,7 +323,7 @@ export default function DashboardOverviewClient({
 
   return (
     <div className="mx-auto max-w-7xl space-y-11 pb-16 pt-2 xl:max-w-[88rem]">
-      <SlideIn>
+      <SlideIn instant>
         <header className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
           <FlipDate size="lg" />
           <div className="min-w-0 sm:max-w-md sm:text-right">
@@ -363,7 +363,7 @@ export default function DashboardOverviewClient({
       </SlideIn>
 
       {hasSessions ? (
-        <FadeIn direction="up">
+        <FadeIn instant direction="up">
           <section className="py-1">
             <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
               <div className="min-w-0">
@@ -424,7 +424,7 @@ export default function DashboardOverviewClient({
       ) : null}
 
       {hasRecommendations ? (
-        <FadeIn delay={0.04} direction="up">
+        <FadeIn instant delay={0.04} direction="up">
           <section>
             <div className="mb-3.5 flex items-baseline justify-between gap-3">
               <h2 className="font-display text-xl tracking-tight text-[#F2F4F8] sm:text-2xl">
@@ -456,7 +456,7 @@ export default function DashboardOverviewClient({
         </FadeIn>
       ) : null}
 
-      <FadeIn delay={0.05} direction="up">
+      <FadeIn instant delay={0.05} direction="up">
         <section>
           <div className="mb-3.5 flex items-baseline justify-between gap-3">
             <h2 className="font-display text-xl tracking-tight text-[#F2F4F8] sm:text-2xl">
@@ -486,12 +486,12 @@ export default function DashboardOverviewClient({
               </Link>
             </div>
           ) : (
-            <FadeInStagger className="divide-y divide-white/[0.05]">
+            <FadeInStagger instant className="divide-y divide-white/[0.05]">
               {recentSessions.slice(0, 6).map((s) => {
                 const kind = typeLabel(s.type);
                 const level = difficultyLabel(s.difficulty);
                 return (
-                  <FadeInStaggerItem key={s.id}>
+                  <FadeInStaggerItem instant key={s.id}>
                     <button
                       type="button"
                       onClick={() => openSession(s)}

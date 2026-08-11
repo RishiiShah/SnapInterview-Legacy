@@ -14,18 +14,41 @@ import { coerceInterviewType, type InterviewType } from "@/lib/interview/domain"
 
 type UseInterviewPageControllerOptions = {
   interviewId: string;
+  initialSessionMeta?: InterviewSessionMeta;
 };
 
-export function useInterviewPageController({ interviewId }: UseInterviewPageControllerOptions) {
+export type InterviewSessionMeta = {
+  id: string;
+  questionCount: number;
+  persona: string | null;
+  type: string;
+};
+
+export function useInterviewPageController({
+  interviewId,
+  initialSessionMeta,
+}: UseInterviewPageControllerOptions) {
   const router = useRouter();
+  const initialSessionMetaId = initialSessionMeta?.id;
+  const initialQuestionCount = initialSessionMeta?.questionCount;
+  const initialPersona = initialSessionMeta?.persona;
+  const initialInterviewType = initialSessionMeta?.type;
 
   const [showPreJoin, setShowPreJoin] = useState(true);
   const [interviewStarted, setInterviewStarted] = useState(false);
   const [interviewDone, setInterviewDone] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [totalQuestions, setTotalQuestions] = useState(10);
-  const [persona, setPersona] = useState<string | null>(null);
-  const [interviewType, setInterviewType] = useState<InterviewType | null>(null);
+  const [totalQuestions, setTotalQuestions] = useState(
+    initialSessionMetaId === interviewId && typeof initialQuestionCount === "number" && initialQuestionCount > 0
+      ? initialQuestionCount
+      : 10,
+  );
+  const [persona, setPersona] = useState<string | null>(
+    initialSessionMetaId === interviewId ? initialPersona ?? null : null,
+  );
+  const [interviewType, setInterviewType] = useState<InterviewType | null>(
+    initialSessionMetaId === interviewId ? coerceInterviewType(initialInterviewType) : null,
+  );
   const [joinBlockedReason, setJoinBlockedReason] = useState<BrowserBlockResult>(null);
 
   const [modal, setModal] = useState<{
@@ -271,24 +294,43 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   useEffect(() => {
     let isCancelled = false;
 
+    const applySessionMeta = (data: {
+      questionCount?: unknown;
+      persona?: unknown;
+      type?: unknown;
+    }) => {
+      if (typeof data.questionCount === "number" && data.questionCount > 0) {
+        setTotalQuestions(data.questionCount);
+      }
+      if (typeof data.persona === "string") {
+        setPersona(data.persona);
+      }
+      setInterviewType(coerceInterviewType(data.type));
+    };
+
     const loadSessionMeta = async () => {
       const pendingRaw = sessionStorage.getItem(`pending_interview_${interviewId}`);
       if (pendingRaw) {
         try {
           const data = JSON.parse(pendingRaw);
-          if (!isCancelled && typeof data?.questionCount === "number" && data.questionCount > 0) {
-            setTotalQuestions(data.questionCount);
-          }
-          if (!isCancelled && typeof data?.persona === "string") {
-            setPersona(data.persona);
-          }
           if (!isCancelled) {
-            setInterviewType(coerceInterviewType(data?.type));
+            applySessionMeta(data);
           }
           return;
         } catch {
           sessionStorage.removeItem(`pending_interview_${interviewId}`);
         }
+      }
+
+      if (initialSessionMetaId === interviewId) {
+        if (!isCancelled) {
+          applySessionMeta({
+            questionCount: initialQuestionCount,
+            persona: initialPersona,
+            type: initialInterviewType,
+          });
+        }
+        return;
       }
 
       try {
@@ -298,14 +340,8 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
         }
 
         const data = await res.json();
-        if (!isCancelled && typeof data?.questionCount === "number" && data.questionCount > 0) {
-          setTotalQuestions(data.questionCount);
-        }
-        if (!isCancelled && typeof data?.persona === "string") {
-          setPersona(data.persona);
-        }
         if (!isCancelled) {
-          setInterviewType(coerceInterviewType(data?.type));
+          applySessionMeta(data);
         }
       } catch (error) {
         console.error("Failed to load interview session metadata:", error);
@@ -317,7 +353,13 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     return () => {
       isCancelled = true;
     };
-  }, [interviewId]);
+  }, [
+    initialInterviewType,
+    initialPersona,
+    initialQuestionCount,
+    initialSessionMetaId,
+    interviewId,
+  ]);
 
   useEffect(() => {
     onScreenShareEndedRef.current = () => {

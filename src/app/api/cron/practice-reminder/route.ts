@@ -2,7 +2,10 @@ import { type NextRequest, NextResponse } from "next/server";
 import { findPracticeReminderRecipients } from "@/repositories/user-repo";
 import { sendPracticeReminderEmail } from "@/lib/email";
 import { isAuthorizedCronRequest } from "@/lib/cron-auth";
+import { mapWithConcurrency } from "@/lib/async";
 import { logger } from "@/utils/logger";
+
+const PRACTICE_REMINDER_DELIVERY_CONCURRENCY = 5;
 
 export async function GET(request: NextRequest) {
     if (!isAuthorizedCronRequest(request)) {
@@ -11,25 +14,28 @@ export async function GET(request: NextRequest) {
 
     try {
         const recipients = await findPracticeReminderRecipients();
-        let sent = 0;
-        let failed = 0;
-
-        for (const r of recipients) {
+        const deliveryResults = await mapWithConcurrency(
+          recipients,
+          PRACTICE_REMINDER_DELIVERY_CONCURRENCY,
+          async (r) => {
             try {
                 await sendPracticeReminderEmail({
                     to: r.email,
                     name: r.name,
                     daysSinceLast: r.daysSinceLast,
                 });
-                sent++;
+                return true;
             } catch (err) {
-                failed++;
                 logger.error("Practice reminder email failed", {
                     userId: r.userId,
                     error: err instanceof Error ? err.message : String(err),
                 });
+                return false;
             }
-        }
+          },
+        );
+        const sent = deliveryResults.filter(Boolean).length;
+        const failed = deliveryResults.length - sent;
 
         logger.info("Cron practice-reminder complete", { sent, failed, total: recipients.length });
         return NextResponse.json({ sent, failed, total: recipients.length });

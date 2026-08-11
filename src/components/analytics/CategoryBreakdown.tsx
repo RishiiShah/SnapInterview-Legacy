@@ -20,7 +20,7 @@ function scoreTone(score: number): string {
 
 export default function CategoryBreakdown({ categories, delay = 0.3 }: CategoryBreakdownProps) {
   return (
-    <FadeIn triggerOnView={false} delay={delay} direction="up">
+    <FadeIn instant triggerOnView={false} delay={delay} direction="up">
       <div className="mb-5 flex items-baseline justify-between gap-3">
         <h2 className="font-display text-xl tracking-tight text-[#F2F4F8] sm:text-2xl">
           By category

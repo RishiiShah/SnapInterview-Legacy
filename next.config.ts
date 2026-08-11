@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Local access through 127.0.0.1 must be allowed for Turbopack's chunks and
+  // HMR connection. This is used only by the development server.
+  allowedDevOrigins: ["127.0.0.1"],
   async headers() {
     return [
       {

@@ -514,7 +514,10 @@ async function retrieve(
 
   const startedAt = Date.now();
   const { prisma, localEmbedder, toVectorLiteral, cosineSimilarity } = await loadDeps();
-  const excludedIds = await loadExcludedQuestionIds(session, prisma);
+  // This small database read and the local embedding inference have no data
+  // dependency on one another. Starting both together avoids adding the query
+  // latency to every live-interview turn, especially while the model is cold.
+  const excludedIdsPromise = loadExcludedQuestionIds(session, prisma);
   const parts = explainRetrievalQuery(session);
   const weightedParts = buildWeightedQueryParts(session);
 
@@ -524,11 +527,16 @@ async function retrieve(
   const nonResumeParts = weightedParts.filter((part) => part.source !== "resumeText");
 
   const embedStartedAt = Date.now();
-  const vectors = await localEmbedder.embed([
-    ...nonResumeParts.map((part) => part.text),
-    ...resumeChunks,
+  const embeddingPromise = localEmbedder
+    .embed([
+      ...nonResumeParts.map((part) => part.text),
+      ...resumeChunks,
+    ])
+    .then((vectors) => ({ vectors, elapsedMs: Date.now() - embedStartedAt }));
+  const [{ vectors, elapsedMs: embedMs }, excludedIds] = await Promise.all([
+    embeddingPromise,
+    excludedIdsPromise,
   ]);
-  const embedMs = Date.now() - embedStartedAt;
 
   const nonResumeVectors = vectors.slice(0, nonResumeParts.length);
   const resumeChunkVectors = vectors.slice(
@@ -770,12 +778,13 @@ export async function retrieveQuestionsForSession(
     return [];
   }
 
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
       retrieve(session, limit),
-      new Promise<RetrievedQuestion[]>((resolve) =>
-        setTimeout(() => resolve([]), RETRIEVAL_TIMEOUT_MS)
-      ),
+      new Promise<RetrievedQuestion[]>((resolve) => {
+        timeoutId = setTimeout(() => resolve([]), RETRIEVAL_TIMEOUT_MS);
+      }),
     ]);
   } catch (error) {
     logger.warn("Question retrieval failed; continuing without corpus", {
@@ -783,6 +792,10 @@ export async function retrieveQuestionsForSession(
       error: error instanceof Error ? error.message : String(error),
     });
     return [];
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
   }
 }
 

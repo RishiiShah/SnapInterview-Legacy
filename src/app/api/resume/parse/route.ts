@@ -3,6 +3,7 @@ import { PDFParse } from "pdf-parse";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
+import { withTimeout } from "@/lib/async";
 import { saveUserResume } from "@/repositories/user-repo";
 import { logger } from "@/utils/logger";
 
@@ -19,20 +20,6 @@ function hasPdfHeader(bytes: Uint8Array) {
     bytes[3] === 0x46 &&
     bytes[4] === 0x2d
   );
-}
-
-export async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<never>((_, reject) => {
-        timeout = setTimeout(() => reject(new Error(message)), timeoutMs);
-      }),
-    ]);
-  } finally {
-    if (timeout) clearTimeout(timeout);
-  }
 }
 
 export const POST = withCsrfProtection(async (req: NextRequest) => {

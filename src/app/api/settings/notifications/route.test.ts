@@ -4,14 +4,14 @@ import { GET, PUT } from "./route";
 
 import { prisma } from "@/lib/prisma";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
-import { getServerAuthSession } from "@/lib/server-auth";
+import { getSessionUserIdentity } from "@/lib/server-auth";
 
 vi.mock("@/lib/csrf", () => ({
   csrfRejectIfInvalid: vi.fn(() => null),
 }));
 
 vi.mock("@/lib/server-auth", () => ({
-  getServerAuthSession: vi.fn(),
+  getSessionUserIdentity: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -29,16 +29,14 @@ describe("GET /api/settings/notifications", () => {
   });
 
   it("returns 401 when unauthenticated", async () => {
-    vi.mocked(getServerAuthSession).mockResolvedValue(null as never);
+    vi.mocked(getSessionUserIdentity).mockResolvedValue(null);
 
     const res = await GET();
     expect(res.status).toBe(401);
   });
 
   it("returns 404 when user not found", async () => {
-    vi.mocked(getServerAuthSession).mockResolvedValue({
-      user: { email: "user@example.com" },
-    } as never);
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null as never);
 
     const res = await GET();
@@ -46,9 +44,7 @@ describe("GET /api/settings/notifications", () => {
   });
 
   it("returns notification preferences", async () => {
-    vi.mocked(getServerAuthSession).mockResolvedValue({
-      user: { email: "user@example.com" },
-    } as never);
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
     vi.mocked(prisma.user.findUnique).mockResolvedValue({
       notificationPrefs: {
         emailNotifs: true,
@@ -59,6 +55,9 @@ describe("GET /api/settings/notifications", () => {
     } as never);
 
     const res = await GET();
+    expect(prisma.user.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "user-1" } }),
+    );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.notificationPrefs).toMatchObject({
@@ -90,7 +89,7 @@ describe("PUT /api/settings/notifications", () => {
 
   it("returns 401 when unauthenticated", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
-    vi.mocked(getServerAuthSession).mockResolvedValue(null as never);
+    vi.mocked(getSessionUserIdentity).mockResolvedValue(null);
 
     const req = new Request("http://localhost/api/settings/notifications", {
       method: "PUT",
@@ -112,9 +111,7 @@ describe("PUT /api/settings/notifications", () => {
 
   it("rejects invalid preferences", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
-    vi.mocked(getServerAuthSession).mockResolvedValue({
-      user: { email: "user@example.com" },
-    } as never);
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
 
     const req = new Request("http://localhost/api/settings/notifications", {
       method: "PUT",
@@ -133,9 +130,7 @@ describe("PUT /api/settings/notifications", () => {
 
   it("updates notification preferences", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
-    vi.mocked(getServerAuthSession).mockResolvedValue({
-      user: { email: "user@example.com" },
-    } as never);
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
 
     const newPrefs = {
       emailNotifs: false,
@@ -158,6 +153,9 @@ describe("PUT /api/settings/notifications", () => {
     });
 
     const res = await PUT(req);
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "user-1" } }),
+    );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.notificationPrefs).toMatchObject(newPrefs);

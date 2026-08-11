@@ -198,6 +198,26 @@ describe("useInterviewPageController", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("uses server-provided session metadata without a duplicate client request", async () => {
+    setupHookMocks();
+
+    const { result } = renderHook(() => useInterviewPageController({
+      interviewId: "interview-hydrated",
+      initialSessionMeta: {
+        id: "interview-hydrated",
+        questionCount: 5,
+        persona: "strict",
+        type: "coding-algorithms",
+      },
+    }));
+
+    await waitFor(() => {
+      expect(result.current.totalQuestions).toBe(5);
+      expect(result.current.interviewType).toBe("coding-algorithms");
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("persists pending interview config before entering the interview", async () => {
     const { startScreenRecording } = setupHookMocks();
     sessionStorage.setItem("pending_interview_interview-1", JSON.stringify({

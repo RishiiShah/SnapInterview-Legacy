@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client";
 import { env } from "@/lib/env";
+import { getPrismaPoolMax } from "@/lib/prisma-pool";
 
 const connectionString = env.DATABASE_URL;
 
@@ -17,13 +18,13 @@ const isStale =
     !("practiceQuestion" in globalForPrisma.prisma) ||
     !("codingQuestion" in globalForPrisma.prisma));
 
-// Cap the per-instance pg pool. On serverless each invocation handles ~one request
-// at a time, so a single connection is enough; this stops a burst of warm instances
-// from exhausting the database pooler. Pair with a transaction-mode pooler URL in prod.
+// Permit a small amount of request overlap. A pool of one serializes page renders,
+// auth reads, and API calls behind the same connection; production remains capped
+// at two connections per warm instance unless DATABASE_POOL_MAX overrides it.
 const prisma =
     (globalForPrisma.prisma && !isStale) ?
     globalForPrisma.prisma :
-    new PrismaClient({ adapter: new PrismaPg({ connectionString, max: 1 }) });
+    new PrismaClient({ adapter: new PrismaPg({ connectionString, max: getPrismaPoolMax() }) });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 

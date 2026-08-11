@@ -15,7 +15,7 @@ type PerformanceChartProps = {
 
 export default function PerformanceChart({ weeklyScores, delay = 0.2 }: PerformanceChartProps) {
   return (
-    <FadeIn triggerOnView={false} delay={delay} direction="up" className="flex flex-col">
+    <FadeIn instant triggerOnView={false} delay={delay} direction="up" className="flex flex-col">
       <div className="mb-5 flex items-baseline justify-between gap-3">
         <h2 className="font-display text-xl tracking-tight text-[#F2F4F8] sm:text-2xl">
           Weekly performance

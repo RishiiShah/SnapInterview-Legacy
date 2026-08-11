@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getPublishedCodingQuestions, toCodingWorkspaceQuestion } from "./coding-question-repo";
+import {
+  getPublishedCodingQuestions,
+  getPublishedCodingSearchResults,
+  toCodingWorkspaceQuestion,
+} from "./coding-question-repo";
 
 const mocks = vi.hoisted(() => ({
   findMany: vi.fn(),
@@ -152,5 +156,30 @@ describe("getPublishedCodingQuestions", () => {
         tags: ["coding-catalog-v1"],
       },
     );
+  });
+});
+
+describe("getPublishedCodingSearchResults", () => {
+  it("searches validated cached concepts by their full description", async () => {
+    mocks.findMany.mockResolvedValue([
+      {
+        id: "coding-cache-search",
+        slug: "rate-limit-window",
+        title: "Rate limit window",
+        description: "Implement a sliding window request limiter.",
+        constraints: null,
+        difficulty: "medium",
+        topics: ["queues"],
+        estimatedTime: "20 min",
+        hint: null,
+        starterCode: { javascript: "function allowRequest() {}" },
+        testCases: [{ ordinal: 1, input: "1", expectedOutput: "true", isHidden: false }],
+      },
+    ]);
+
+    const matches = await getPublishedCodingSearchResults("sliding window");
+
+    expect(matches).toEqual([expect.objectContaining({ slug: "rate-limit-window" })]);
+    expect(mocks.unstableCache).toHaveBeenCalledTimes(1);
   });
 });

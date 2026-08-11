@@ -33,11 +33,65 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { importPracticeQuestionsAction } from "./actions";
+import { createPracticeQuestionAction, importPracticeQuestionsAction } from "./actions";
+
+function questionForm(values: Record<string, string> = {}) {
+  const formData = new FormData();
+  const defaults = {
+    slug: "atomic-question",
+    text: "Describe a difficult technical decision.",
+    category: "technical",
+    difficulty: "medium",
+    estimatedTime: "5 min",
+    tags: "architecture",
+  };
+
+  for (const [key, value] of Object.entries({ ...defaults, ...values })) {
+    formData.set(key, value);
+  }
+
+  return formData;
+}
+
+describe("createPracticeQuestionAction", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.redirect.mockImplementation(() => undefined);
+    mocks.requireAdminSession.mockResolvedValue({ user: { email: "admin@example.com" } });
+    mocks.outerCreate.mockResolvedValue({ id: 1 });
+  });
+
+  it("writes directly and relies on the unique slug constraint", async () => {
+    await createPracticeQuestionAction(questionForm());
+
+    expect(mocks.outerFindUnique).not.toHaveBeenCalled();
+    expect(mocks.outerCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({ slug: "atomic-question" }),
+    });
+  });
+
+  it("reports a concurrent slug conflict without repairing the ID sequence", async () => {
+    mocks.outerCreate.mockRejectedValueOnce({
+      code: "P2002",
+      meta: { target: ["slug"] },
+    });
+    mocks.redirect.mockImplementation(() => {
+      throw new Error("redirected");
+    });
+
+    await expect(createPracticeQuestionAction(questionForm())).rejects.toThrow("redirected");
+
+    expect(mocks.outerExecuteRaw).not.toHaveBeenCalled();
+    expect(mocks.redirect).toHaveBeenCalledWith(
+      "/admin/questions/new?error=A%20question%20with%20this%20slug%20already%20exists.",
+    );
+  });
+});
 
 describe("importPracticeQuestionsAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.redirect.mockImplementation(() => undefined);
     mocks.requireAdminSession.mockResolvedValue({ user: { email: "admin@example.com" } });
     mocks.outerFindUnique.mockResolvedValue(null);
     mocks.outerCreate.mockResolvedValue({ id: 1 });

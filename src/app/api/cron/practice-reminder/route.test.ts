@@ -25,6 +25,14 @@ function makeRequest(authHeader?: string) {
   });
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
 describe("GET /api/cron/practice-reminder", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -74,6 +82,32 @@ describe("GET /api/cron/practice-reminder", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toEqual({ sent: 1, failed: 1, total: 2 });
+  });
+
+  it("delivers reminders in bounded concurrent batches", async () => {
+    const recipients = Array.from({ length: 6 }, (_, index) => ({
+      userId: `u${index}`,
+      email: `user${index}@example.com`,
+      name: `User ${index}`,
+      daysSinceLast: index + 3,
+    }));
+    const deliveries = recipients.map(() => deferred<void>());
+    vi.mocked(findPracticeReminderRecipients).mockResolvedValue(recipients);
+    vi.mocked(sendPracticeReminderEmail).mockImplementation((params) => {
+      const recipientIndex = recipients.findIndex((recipient) => recipient.email === params.to);
+      return deliveries[recipientIndex]!.promise;
+    });
+
+    const response = GET(makeRequest("Bearer test-secret") as never);
+
+    await vi.waitFor(() => expect(sendPracticeReminderEmail).toHaveBeenCalledTimes(5));
+    for (const delivery of deliveries.slice(0, 5)) {
+      delivery.resolve();
+    }
+    await vi.waitFor(() => expect(sendPracticeReminderEmail).toHaveBeenCalledTimes(6));
+    deliveries[5]!.resolve();
+
+    await expect(response).resolves.toHaveProperty("status", 200);
   });
 
   it("returns 200 with zero counts when no recipients", async () => {

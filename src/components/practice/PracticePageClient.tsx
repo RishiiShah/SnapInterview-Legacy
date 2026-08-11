@@ -17,15 +17,19 @@ import {
   getDefaultDifficultyForOnboardingLevel,
   normalizeOnboardingFormValues,
 } from "@/lib/onboarding/preferences";
+import type { OnboardingPreferencesFormValues } from "@/lib/onboarding/preferences";
 import type { PracticeRetakeDefaults } from "@/lib/practice/retake-defaults";
 import { extractResumeHighlights } from "@/lib/interview/resume-highlights";
-import { FadeIn, SlideIn } from "@/components/ui/motion";
 import { IconPlay, IconSpinner, IconXMark } from "@/components/ui/icons";
 import { isLocalTtsEnabled } from "@/lib/tts/browser-tts";
 import { getSharedKokoroWorkerClient } from "@/lib/tts/kokoro-worker-client";
 
 type PracticePageClientProps = {
   retakeDefaults?: PracticeRetakeDefaults;
+  initialDefaults?: {
+    onboarding: OnboardingPreferencesFormValues;
+    resumeText: string | null;
+  };
 };
 
 const DIFFICULTY_OPTIONS: { value: Difficulty; label: string }[] = [
@@ -42,25 +46,35 @@ const LENGTH_OPTIONS: { value: 5 | 10 | 15; label: string }[] = [
 
 export default function PracticePageClient({
   retakeDefaults,
+  initialDefaults,
 }: PracticePageClientProps) {
   const router = useRouter();
   const retakeRole = retakeDefaults?.role ?? "";
   const retakeType = retakeDefaults?.type;
   const retakeDifficulty = retakeDefaults?.difficulty;
-  const [role, setRole] = useState(retakeRole);
-  const [company, setCompany] = useState("");
-  const [type, setType] = useState<InterviewType>(retakeType ?? "behavioral-leadership");
-  const [difficulty, setDifficulty] = useState<Difficulty>(retakeDifficulty ?? "medium");
+  const onboardingDefaults = initialDefaults?.onboarding;
+  const [role, setRole] = useState(retakeRole || onboardingDefaults?.onboardingRole || "");
+  const [company, setCompany] = useState(
+    retakeRole ? "" : onboardingDefaults?.onboardingCompany || "",
+  );
+  const [type, setType] = useState<InterviewType>(
+    retakeType ?? onboardingDefaults?.preferredInterviewType ?? "behavioral-leadership",
+  );
+  const [difficulty, setDifficulty] = useState<Difficulty>(
+    retakeDifficulty ?? getDefaultDifficultyForOnboardingLevel(onboardingDefaults?.onboardingLevel),
+  );
   const [persona, setPersona] = useState<InterviewPersona>("balanced");
   const [interviewLength, setInterviewLength] = useState<5 | 10 | 15>(10);
   const [jobDescription, setJobDescription] = useState("");
-  const [resumeName, setResumeName] = useState("");
-  const [resumeText, setResumeText] = useState("");
+  const [resumeName, setResumeName] = useState(initialDefaults?.resumeText ? "Saved resume" : "");
+  const [resumeText, setResumeText] = useState(initialDefaults?.resumeText ?? "");
   const [resumeUploading, setResumeUploading] = useState(false);
   const [resumeError, setResumeError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [step, setStep] = useState(1);
+  // Skip the first entrance animation so real content replaces the route skeleton in place.
+  const [animateStepTransitions, setAnimateStepTransitions] = useState(false);
 
   const resumeHighlights = useMemo(() => extractResumeHighlights(resumeText), [resumeText]);
   const selectedKind = INTERVIEW_KINDS.find((kind) => kind.value === type);
@@ -136,12 +150,14 @@ export default function PracticePageClient({
       }
     };
 
-    void loadDefaults();
+    if (!initialDefaults) {
+      void loadDefaults();
+    }
 
     return () => {
       cancelled = true;
     };
-  }, [retakeDifficulty, retakeRole, retakeType]);
+  }, [initialDefaults, retakeDifficulty, retakeRole, retakeType]);
 
   async function handleResumeUpload(file: File) {
     setResumeName(file.name);
@@ -202,11 +218,17 @@ export default function PracticePageClient({
 
   function goNext() {
     if (step === 1 && !trimmedRole) return;
-    if (step < 2) setStep(2);
+    if (step < 2) {
+      setAnimateStepTransitions(true);
+      setStep(2);
+    }
   }
 
   function goBack() {
-    if (step > 1) setStep(1);
+    if (step > 1) {
+      setAnimateStepTransitions(true);
+      setStep(1);
+    }
   }
 
   // Enter advances setup when not interacting with a selector menu
@@ -220,6 +242,7 @@ export default function PracticePageClient({
       if (target.closest("[data-practice-selector]")) return;
       if (!role.trim()) return;
       e.preventDefault();
+      setAnimateStepTransitions(true);
       setStep(2);
     }
     window.addEventListener("keydown", onKeyDown);
@@ -249,7 +272,7 @@ export default function PracticePageClient({
       <AnimatePresence mode="wait">
         <motion.div
           key={step}
-          initial={{ opacity: 0, y: 12 }}
+          initial={animateStepTransitions ? { opacity: 0, y: 12 } : false}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.28, ease: "easeOut" }}
@@ -257,16 +280,16 @@ export default function PracticePageClient({
           {/* ─── Step 1: Setup ─── */}
           {step === 1 ? (
             <div className="space-y-12">
-              <SlideIn>
+              <div>
                 <h1 className="font-display text-[2.15rem] leading-[1.15] tracking-[-0.03em] text-[#F2F4F8] sm:text-[2.6rem] xl:text-[2.85rem]">
                   Set up your interview
                 </h1>
                 <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-[#B4BBC9] xl:text-base">
                   Role and loop shape first. Context comes next.
                 </p>
-              </SlideIn>
+              </div>
 
-              <FadeIn direction="up" className="space-y-8">
+              <div className="space-y-8">
                 <SearchableDropdown
                   label="Role"
                   value={role}
@@ -328,14 +351,14 @@ export default function PracticePageClient({
                     tone="dark"
                   />
                 </div>
-              </FadeIn>
+              </div>
             </div>
           ) : null}
 
           {/* ─── Step 2: Context + start ─── */}
           {step === 2 ? (
             <div className="space-y-12 pb-16">
-              <SlideIn>
+              <div>
                 <h1 className="font-display text-[2.15rem] leading-[1.15] tracking-[-0.03em] text-[#F2F4F8] sm:text-[2.6rem] xl:text-[2.85rem]">
                   Ready when you are
                 </h1>
@@ -347,9 +370,9 @@ export default function PracticePageClient({
                     {sessionBrief}
                   </p>
                 ) : null}
-              </SlideIn>
+              </div>
 
-              <FadeIn direction="up" className="space-y-8">
+              <div className="space-y-8">
                 <div>
                   <SelectDropdown
                     label="Persona"
@@ -462,7 +485,7 @@ export default function PracticePageClient({
                     className="w-full resize-none border-b border-white/[0.12] bg-transparent py-2.5 text-[15px] leading-relaxed text-[#F2F4F8] placeholder-[#6B7385] outline-none transition-colors focus:border-[#3B82F6]"
                   />
                 </div>
-              </FadeIn>
+              </div>
             </div>
           ) : null}
         </motion.div>

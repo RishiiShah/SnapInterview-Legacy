@@ -1,6 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { buildSystemInstruction } from "./prompts";
 import type { PromptInterviewSession } from "./domain";
+
+vi.mock("@/lib/rag/retrieve", () => ({
+  retrieveQuestionsForSession: vi.fn(async () => [
+    {
+      id: "rag-question-1",
+      question: "RAG_SENTINEL_QUESTION",
+      answer: null,
+      category: "technical",
+      difficulty: "medium",
+      similarity: 0.9,
+    },
+  ]),
+  formatRetrievedQuestions: (questions: Array<{ question: string }>) =>
+    questions.map((question) => question.question).join("\n"),
+}));
 
 function makePromptSession(overrides: Partial<PromptInterviewSession> = {}): PromptInterviewSession {
   return {
@@ -20,6 +35,20 @@ function makePromptSession(overrides: Partial<PromptInterviewSession> = {}): Pro
 }
 
 describe("buildSystemInstruction", () => {
+  it("omits question retrieval from final-evaluation prompts", async () => {
+    const instruction = await buildSystemInstruction(makePromptSession(), {
+      includeQuestionRetrieval: false,
+    });
+
+    expect(instruction).not.toContain("RAG_SENTINEL_QUESTION");
+  });
+
+  it("includes question retrieval for live-interview prompts by default", async () => {
+    const instruction = await buildSystemInstruction(makePromptSession());
+
+    expect(instruction).toContain("RAG_SENTINEL_QUESTION");
+  });
+
   it("includes coding challenge instructions when type is coding", async () => {
     const instruction = await buildSystemInstruction(makePromptSession({
       type: "coding-algorithms",

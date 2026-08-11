@@ -3,6 +3,7 @@ import { PATCH, POST } from "./route";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { verifyMultipartCompletionToken } from "@/lib/s3/multipart-upload-token";
 import { startInterviewSession, updateSessionStatusIfOwned } from "@/services/interview-service";
+import { warmEmbeddingModel } from "@/lib/rag/embeddings";
 
 const { mockRateLimitState } = vi.hoisted(() => ({
   mockRateLimitState: {
@@ -33,6 +34,10 @@ vi.mock("@/services/interview-service", () => ({
   updateSessionStatusIfOwned: vi.fn(),
   ALLOWED_STATUSES: ["COMPLETED", "ABORTED"],
   ALLOWED_QUESTION_COUNTS: [5, 10, 15],
+}));
+
+vi.mock("@/lib/rag/embeddings", () => ({
+  warmEmbeddingModel: vi.fn(),
 }));
 
 describe("POST /api/interview/session", () => {
@@ -102,6 +107,7 @@ describe("POST /api/interview/session", () => {
       resumeText: undefined,
       questionCount: 10,
     });
+    expect(warmEmbeddingModel).toHaveBeenCalledOnce();
     await expect(response.json()).resolves.toEqual({ id: "session-1" });
   });
 

@@ -7,7 +7,7 @@ import { normalizeTranscriptEvaluation } from "@/lib/interview/evaluation";
 import { prisma } from "@/lib/prisma";
 
 const hasEvaluation = { not: "DbNull" } satisfies Prisma.JsonNullableFilter;
-export const ADMIN_ANALYTICS_TAG = "admin-analytics-v1";
+const ADMIN_ANALYTICS_TAG = "admin-analytics-v1";
 
 type AiHealthTone = "default" | "warn" | "danger" | "good";
 

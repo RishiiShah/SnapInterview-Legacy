@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { SEARCH_ITEMS } from "@/data/constants";
 import { IconArrowRight, IconSearch } from "@/components/ui/icons";
@@ -37,29 +37,36 @@ export function SearchModal({ onClose }: { onClose: () => void }) {
     setTimeout(() => inputRef.current?.focus(), 50);
   }, []);
 
-  const fetchResults = useCallback(async (q: string) => {
-    if (q.length < 2) {
-      setResults(null);
+  useEffect(() => {
+    if (debouncedQuery.length < 2) {
       return;
     }
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-      if (res.ok) {
-        const data = (await res.json()) as SearchResults;
-        setResults(data);
-      }
-    } catch {
-      // silently fail — nav items still work
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchResults(debouncedQuery);
-  }, [debouncedQuery, fetchResults]);
+    const controller = new AbortController();
+    let current = true;
+
+    void fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}`, {
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        if (!res.ok) return null;
+        return res.json() as Promise<SearchResults>;
+      })
+      .then((data) => {
+        if (current && data) setResults(data);
+      })
+      .catch(() => {
+        // Abort and network failures leave static navigation results available.
+      })
+      .finally(() => {
+        if (current) setLoading(false);
+      });
+
+    return () => {
+      current = false;
+      controller.abort();
+    };
+  }, [debouncedQuery]);
 
   const filteredNav = SEARCH_ITEMS.filter((i) =>
     i.label.toLowerCase().includes(query.toLowerCase()),
@@ -92,7 +99,15 @@ export function SearchModal({ onClose }: { onClose: () => void }) {
             type="text"
             placeholder="Search interviews, questions, pages…"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const nextQuery = e.target.value;
+              setQuery(nextQuery);
+              const hasSearchQuery = nextQuery.trim().length >= 2;
+              setLoading(hasSearchQuery);
+              if (!hasSearchQuery) {
+                setResults(null);
+              }
+            }}
             className="flex-1 bg-transparent text-sm text-white placeholder:text-[#B8C0CE] outline-none"
           />
           {loading ? (

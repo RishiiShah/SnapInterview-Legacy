@@ -3,7 +3,7 @@ import { apiJson, badRequestError, internalServerError, unauthorizedError } from
 import { QUESTION_CATEGORY_VALUES } from "@/lib/interview/domain";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
-import { toCodingWorkspaceQuestion } from "@/repositories/coding-question-repo";
+import { getPublishedCodingSearchResults } from "@/repositories/coding-question-repo";
 import { logger } from "@/utils/logger";
 
 const searchLimiter = createRateLimiter("search", 60 * 1000, 30);
@@ -85,56 +85,17 @@ export async function GET(req: Request) {
         select: { id: true, slug: true, text: true, category: true, difficulty: true },
         take: 5,
       }),
-      prisma.codingQuestion.findMany({
-        where: {
-          isPublished: true,
-          OR: [
-            { title: { contains: q, mode: "insensitive" } },
-            { description: { contains: q, mode: "insensitive" } },
-            { topics: { has: q.toLowerCase() } },
-          ],
-        },
-        select: {
-          id: true,
-          slug: true,
-          title: true,
-          description: true,
-          constraints: true,
-          difficulty: true,
-          topics: true,
-          estimatedTime: true,
-          hint: true,
-          starterCode: true,
-          testCases: {
-            where: { isHidden: false },
-            select: { ordinal: true, input: true, expectedOutput: true },
-            orderBy: { ordinal: "asc" },
-          },
-        },
-        // Validate legacy JSON-backed rows in application code, then keep the
-        // first five valid concepts below. A small over-fetch prevents invalid
-        // published rows from crowding every usable result out of the demo.
-        take: 20,
-      }),
+      getPublishedCodingSearchResults(q),
     ]);
 
-    const codingSearchResults = codingQuestions.flatMap((question) => {
-      const workspace = toCodingWorkspaceQuestion({
-        ...question,
-        testCases: question.testCases.map((testCase) => ({ ...testCase, isHidden: false })),
-      });
-
-      return workspace
-        ? [{
-            id: workspace.id,
-            slug: workspace.slug,
-            text: workspace.title,
-            category: null,
-            difficulty: workspace.difficulty,
-            type: "coding",
-          }]
-        : [];
-    }).slice(0, 5);
+    const codingSearchResults = codingQuestions.map((question) => ({
+      id: question.id,
+      slug: question.slug,
+      text: question.title,
+      category: null,
+      difficulty: question.difficulty,
+      type: "coding",
+    }));
 
     const result: SearchResults = {
       sessions: sessions.map((s) => ({

@@ -23,17 +23,14 @@ function timeAgo(date: Date): string {
 }
 
 export async function getUserNotifications(userId: string): Promise<(GeneratedNotification & { time: string })[]> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { notificationsLastReadAt: true },
-  });
-
-  const lastReadAt = user?.notificationsLastReadAt ?? null;
-
   const since = new Date();
   since.setDate(since.getDate() - 90);
 
-  const [completedSessions, allCompletedCount] = await Promise.all([
+  const [user, completedSessions, allCompletedCount] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { notificationsLastReadAt: true },
+    }),
     prisma.interviewSession.findMany({
       where: { userId, status: "COMPLETED", deletedAt: null, createdAt: { gte: since } },
       select: { id: true, role: true, company: true, evaluation: true, createdAt: true },
@@ -44,6 +41,8 @@ export async function getUserNotifications(userId: string): Promise<(GeneratedNo
       where: { userId, status: "COMPLETED", deletedAt: null },
     }),
   ]);
+
+  const lastReadAt = user?.notificationsLastReadAt ?? null;
 
   const pending: Omit<GeneratedNotification, "read">[] = [];
 

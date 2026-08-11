@@ -76,13 +76,15 @@ export const POST = withCsrfProtection(async (req: Request) => {
       );
     }
 
-    // Check for existing user
-    const existingUser = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-    });
-
-    // Prevent email enumeration — always hash (constant timing)
-    const passwordHash = await hashCredentialPassword(password);
+    // Both operations are required for every non-disposable address: the hash
+    // keeps existing-account responses constant-time, while the lookup decides
+    // whether a pending registration may be written. They do not depend on one
+    // another, so avoid putting a database round trip in front of the expensive
+    // password hash.
+    const [existingUser, passwordHash] = await Promise.all([
+      prisma.user.findUnique({ where: { email: normalizedEmail } }),
+      hashCredentialPassword(password),
+    ]);
 
     if (existingUser) {
       return apiJson(GENERIC_REGISTER_RESPONSE);

@@ -10,6 +10,7 @@ import QuestionsTable from "@/components/questions/QuestionsTable";
 
 type SortKey = "category" | "difficulty" | "time";
 type SortDir = "asc" | "desc";
+type SolvedStatus = "all" | "solved" | "unsolved";
 
 type QuestionsPageClientProps = {
   initialSolvedIds: number[];
@@ -44,6 +45,7 @@ export default function QuestionsPageClient({
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<QuestionCategory | "all">("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | "all">("all");
+  const [solvedStatus, setSolvedStatus] = useState<SolvedStatus>("all");
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [showFilters, setShowFilters] = useState(false);
@@ -55,18 +57,22 @@ export default function QuestionsPageClient({
   );
 
   const activeFilterCount =
-    (selectedCategory !== "all" ? 1 : 0) + (selectedDifficulty !== "all" ? 1 : 0);
+    (selectedCategory !== "all" ? 1 : 0) +
+    (selectedDifficulty !== "all" ? 1 : 0) +
+    (solvedStatus !== "all" ? 1 : 0);
 
   const filtered = useMemo(() => {
     let result = questions.filter((q) => {
       if (selectedCategory !== "all" && q.category !== selectedCategory) return false;
       if (selectedDifficulty !== "all" && q.difficulty !== selectedDifficulty) return false;
+      if (solvedStatus === "solved" && !solvedIds.has(q.id)) return false;
+      if (solvedStatus === "unsolved" && solvedIds.has(q.id)) return false;
       if (search && !q.text.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
     if (sortKey) result = [...result].sort((a, b) => compareFn(a, b, sortKey, sortDir));
     return result;
-  }, [search, selectedCategory, selectedDifficulty, sortKey, sortDir, questions]);
+  }, [search, selectedCategory, selectedDifficulty, solvedIds, solvedStatus, sortKey, sortDir, questions]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -89,7 +95,7 @@ export default function QuestionsPageClient({
 
   return (
     <div className="space-y-5 pb-8">
-      <SlideIn>
+      <SlideIn instant>
         <section className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#12141A]/90 px-5 py-5 sm:px-6">
           <div
             className="pointer-events-none absolute inset-0"
@@ -121,7 +127,7 @@ export default function QuestionsPageClient({
         </section>
       </SlideIn>
 
-      <FadeIn delay={0.1} direction="up" className="relative z-30">
+      <FadeIn instant delay={0.1} direction="up" className="relative z-30">
         <QuestionsFilterBar
           search={search}
           setSearch={setSearch}
@@ -132,24 +138,27 @@ export default function QuestionsPageClient({
           setSelectedCategory={setSelectedCategory}
           selectedDifficulty={selectedDifficulty}
           setSelectedDifficulty={setSelectedDifficulty}
+          solvedStatus={solvedStatus}
+          setSolvedStatus={setSolvedStatus}
           stats={stats}
         />
       </FadeIn>
 
-      <FadeIn delay={0.25} direction="up" className="relative z-10">
+      <FadeIn instant delay={0.25} direction="up" className="relative z-10">
         <p className="text-xs text-[#A8B0C2]">
           Showing {filtered.length} of {questions.length} question
           {filtered.length !== 1 ? "s" : ""}
         </p>
       </FadeIn>
 
-      <FadeIn delay={0.3} direction="up" className="relative z-0">
+      <FadeIn instant delay={0.3} direction="up" className="relative z-0">
         <QuestionsTable
           filtered={filtered}
           totalQuestions={questions.length}
           setSearch={setSearch}
           setSelectedCategory={setSelectedCategory}
           setSelectedDifficulty={setSelectedDifficulty}
+          setSolvedStatus={setSolvedStatus}
           sortKey={sortKey}
           sortDir={sortDir}
           toggleSort={toggleSort}

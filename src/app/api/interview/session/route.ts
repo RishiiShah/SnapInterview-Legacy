@@ -19,6 +19,7 @@ import {
 import { deleteInterviewSession } from "@/repositories/interview-repo";
 import { withCsrfProtection } from "@/lib/route-security";
 import { verifyMultipartCompletionToken } from "@/lib/s3/multipart-upload-token";
+import { warmEmbeddingModel } from "@/lib/rag/embeddings";
 import { logger } from "@/utils/logger";
 
 const createSessionSchema = z.object({
@@ -109,6 +110,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
             resumeText,
             questionCount,
         });
+        warmEmbeddingModel();
 
         return apiJson({ id: interviewSession.id }, 201);
     } catch (error) {

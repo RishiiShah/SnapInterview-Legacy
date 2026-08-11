@@ -13,8 +13,15 @@ import { buildQuestionEvaluationRoleContext } from "@/lib/questions/evaluation";
 import { groqClient } from "@/lib/ai/groq";
 import { withRetry } from "@/utils/retry";
 import { logger } from "@/utils/logger";
-import { getInterviewSession, updateEvaluation } from "@/repositories/interview-repo";
+import {
+  claimInterviewEvaluation,
+  getInterviewSession,
+  persistClaimedEvaluation,
+  releaseInterviewEvaluationClaim,
+} from "@/repositories/interview-repo";
 import { getPracticeQuestionById } from "@/repositories/question-repo";
+
+const EVALUATION_CLAIM_TTL_MS = 10 * 60 * 1000;
 
 export async function evaluateInterviewTranscript(params: {
   userId: string;
@@ -22,6 +29,7 @@ export async function evaluateInterviewTranscript(params: {
 }): Promise<
   | { type: "not_found" }
   | { type: "no_transcript" }
+  | { type: "in_progress" }
   | { type: "error"; message: string }
   | { type: "ok"; data: TranscriptEvaluationResponse; role: string; fresh: boolean }
 > {
@@ -51,12 +59,28 @@ export async function evaluateInterviewTranscript(params: {
     return { type: "error", message: "Interview session is invalid. Please start a new session." };
   }
 
-  const roleContext = await buildSystemInstruction(promptInterviewSession);
-  const formattedTranscript = transcript
-    .map((entry, index) => `Q${index + 1}: ${entry.question}\nCandidate: ${entry.answer}`)
-    .join("\n\n");
+  const claimedAt = new Date();
+  const claimVersion = await claimInterviewEvaluation({
+    interviewId,
+    userId,
+    expectedClaimVersion: interviewSession.evaluationClaimVersion,
+    claimedAt,
+    staleBefore: new Date(claimedAt.getTime() - EVALUATION_CLAIM_TTL_MS),
+  });
+  if (claimVersion === null) {
+    return { type: "in_progress" };
+  }
 
   try {
+    // Retrieval calibrates the next live question. A completed transcript has no
+    // next question, so avoid its embedding-model/database work while grading.
+    const roleContext = await buildSystemInstruction(promptInterviewSession, {
+      includeQuestionRetrieval: false,
+    });
+    const formattedTranscript = transcript
+      .map((entry, index) => `Q${index + 1}: ${entry.question}\nCandidate: ${entry.answer}`)
+      .join("\n\n");
+
     const chatCompletion = await withRetry(async () => {
       return groqClient.chat.completions.create({
         messages: [
@@ -104,15 +128,31 @@ Based on the transcript, return a JSON object with exactly these seven keys:
 
     const parsedEvaluation = parseTranscriptEvaluationResponse(responseContent);
 
-    await updateEvaluation({
+    const persisted = await persistClaimedEvaluation({
       interviewId: interviewSession.id,
       userId,
+      claimVersion,
       evaluation: parsedEvaluation as unknown as Prisma.InputJsonValue,
     });
+    if (!persisted) {
+      return { type: "error", message: "Evaluation ownership changed. Please try again." };
+    }
     invalidateInterviewMetricsCache(userId);
 
     return { type: "ok", data: parsedEvaluation, role: interviewSession.role, fresh: true };
   } catch (error) {
+    try {
+      await releaseInterviewEvaluationClaim({
+        interviewId: interviewSession.id,
+        userId,
+        claimVersion,
+      });
+    } catch (releaseError) {
+      logger.error("Failed to release interview evaluation claim", {
+        error: releaseError,
+        interviewId,
+      });
+    }
     logger.error("Interview evaluation error", { error, interviewId });
     return { type: "error", message: "Failed to generate interview evaluation" };
   }

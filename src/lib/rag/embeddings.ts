@@ -62,6 +62,20 @@ function getPipeline(): Promise<FeatureExtractionPipeline> {
   return pipelinePromise;
 }
 
+/**
+ * Starts the embedding-model load ahead of the first retrieval without making
+ * an interactive request wait for it. The singleton makes later retrievals
+ * join the same work instead of loading the model twice.
+ */
+export function warmEmbeddingModel(): void {
+  void getPipeline().catch((error) => {
+    logger.warn("Embedding model warmup failed", {
+      model: MODEL_ID,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
+}
+
 export const localEmbedder: Embedder = {
   dimensions: EMBEDDING_DIMENSIONS,
 

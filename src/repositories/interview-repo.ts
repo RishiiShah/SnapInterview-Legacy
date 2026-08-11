@@ -67,6 +67,8 @@ const interviewSessionEvaluationSelect = {
   focusAreas: true,
   sessionPlan: true,
   evaluation: true,
+  evaluationStartedAt: true,
+  evaluationClaimVersion: true,
   transcript: {
     select: {
       question: true,
@@ -186,19 +188,75 @@ export async function updateInterviewSessionStatus(params: {
   });
 }
 
-export async function updateEvaluation(params: {
+/**
+ * Atomically owns an evaluation attempt without holding a database connection
+ * while the model provider is running. A `null` result means a fresher owner
+ * has already claimed the work.
+ */
+export async function claimInterviewEvaluation(params: {
   interviewId: string;
   userId: string;
-  evaluation: Prisma.InputJsonValue;
-}) {
-  const { interviewId, userId, evaluation } = params;
-
-  return prisma.interviewSession.update({
-    where: { id: interviewId, userId },
-    data: { evaluation },
-    select: {
-      id: true,
+  expectedClaimVersion: number;
+  claimedAt: Date;
+  staleBefore: Date;
+}): Promise<number | null> {
+  const { interviewId, userId, expectedClaimVersion, claimedAt, staleBefore } = params;
+  const result = await prisma.interviewSession.updateMany({
+    where: {
+      id: interviewId,
+      userId,
+      evaluationClaimVersion: expectedClaimVersion,
+      OR: [
+        { evaluationStartedAt: null },
+        { evaluationStartedAt: { lt: staleBefore } },
+      ],
     },
+    data: {
+      evaluationStartedAt: claimedAt,
+      evaluationClaimVersion: { increment: 1 },
+    },
+  });
+
+  return result.count === 1 ? expectedClaimVersion + 1 : null;
+}
+
+/** Persists a model result only while this request still owns the claim. */
+export async function persistClaimedEvaluation(params: {
+  interviewId: string;
+  userId: string;
+  claimVersion: number;
+  evaluation: Prisma.InputJsonValue;
+}): Promise<boolean> {
+  const { interviewId, userId, claimVersion, evaluation } = params;
+  const result = await prisma.interviewSession.updateMany({
+    where: {
+      id: interviewId,
+      userId,
+      evaluationClaimVersion: claimVersion,
+    },
+    data: {
+      evaluation,
+      evaluationStartedAt: null,
+    },
+  });
+
+  return result.count === 1;
+}
+
+/** Releases a failed claim only when it still belongs to this request. */
+export async function releaseInterviewEvaluationClaim(params: {
+  interviewId: string;
+  userId: string;
+  claimVersion: number;
+}): Promise<void> {
+  const { interviewId, userId, claimVersion } = params;
+  await prisma.interviewSession.updateMany({
+    where: {
+      id: interviewId,
+      userId,
+      evaluationClaimVersion: claimVersion,
+    },
+    data: { evaluationStartedAt: null },
   });
 }
 
@@ -258,6 +316,11 @@ export type CompletedSessionCard = {
   createdAt: Date;
 };
 
+export type CompletedSessionCursor = {
+  createdAt: Date;
+  id: string;
+};
+
 function mapCompletedSessionCard(s: {
   id: string;
   role: string;
@@ -288,10 +351,15 @@ function mapCompletedSessionCard(s: {
 export async function listCompletedSessionsForUser(params: {
   userId: string;
   limit: number;
-  offset: number;
+  offset?: number;
+  cursor?: CompletedSessionCursor;
   interviewType?: InterviewType;
-}): Promise<{ sessions: CompletedSessionCard[]; hasMore: boolean }> {
-  const { userId, limit, offset, interviewType } = params;
+}): Promise<{
+  sessions: CompletedSessionCard[];
+  hasMore: boolean;
+  nextCursor: CompletedSessionCursor | null;
+}> {
+  const { userId, limit, offset = 0, cursor, interviewType } = params;
 
   const rows = await prisma.interviewSession.findMany({
     where: {
@@ -299,9 +367,17 @@ export async function listCompletedSessionsForUser(params: {
       deletedAt: null,
       status: "COMPLETED",
       ...(interviewType ? { type: { in: TYPE_FILTER_ALIASES[interviewType] } } : {}),
+      ...(cursor
+        ? {
+            OR: [
+              { createdAt: { lt: cursor.createdAt } },
+              { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+            ],
+          }
+        : {}),
     },
-    orderBy: { createdAt: "desc" },
-    skip: offset,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    ...(cursor ? {} : { skip: offset }),
     take: limit + 1,
     select: {
       id: true,
@@ -320,7 +396,14 @@ export async function listCompletedSessionsForUser(params: {
   const hasMore = rows.length > limit;
   const sessions = rows.slice(0, limit).map(mapCompletedSessionCard);
 
-  return { sessions, hasMore };
+  const lastSession = sessions.at(-1);
+  return {
+    sessions,
+    hasMore,
+    nextCursor: hasMore && lastSession
+      ? { createdAt: lastSession.createdAt, id: lastSession.id }
+      : null,
+  };
 }
 
 export async function getCompletedSessionCardForUser(params: {

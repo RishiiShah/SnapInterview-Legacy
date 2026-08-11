@@ -137,6 +137,8 @@ describe("Interview Lifecycle Integration", () => {
         }
       }]
     } as any);
+    vi.mocked(interviewRepo.claimInterviewEvaluation).mockResolvedValue(1);
+    vi.mocked(interviewRepo.persistClaimedEvaluation).mockResolvedValue(true);
 
     const evalResult = await evaluateInterviewTranscript({ userId, interviewId });
 
@@ -144,6 +146,6 @@ describe("Interview Lifecycle Integration", () => {
     if (evalResult.type === "ok") {
       expect(evalResult.data.score).toBe(85);
     }
-    expect(interviewRepo.updateEvaluation).toHaveBeenCalled();
+    expect(interviewRepo.persistClaimedEvaluation).toHaveBeenCalled();
   });
 });

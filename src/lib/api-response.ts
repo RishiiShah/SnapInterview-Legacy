@@ -20,6 +20,10 @@ export function notFoundError(message: string) {
   return apiError(message, 404);
 }
 
+export function conflictError(message: string) {
+  return apiError(message, 409);
+}
+
 export function internalServerError(message = "Something went wrong") {
   return apiError(message, 500);
 }

@@ -163,7 +163,11 @@ async function loadPromptInstruction(filePath: string): Promise<string> {
   }
 }
 
-export async function buildSystemInstruction(interviewSession: PromptInterviewSession): Promise<string> {
+export async function buildSystemInstruction(
+  interviewSession: PromptInterviewSession,
+  options: { includeQuestionRetrieval?: boolean } = {},
+): Promise<string> {
+  const includeQuestionRetrieval = options.includeQuestionRetrieval ?? true;
   const {
     role,
     company,
@@ -198,7 +202,7 @@ export async function buildSystemInstruction(interviewSession: PromptInterviewSe
       loadPromptInstruction(specificRolePath),
       loadPromptInstruction(defaultRolePath),
       // Best-effort: resolves to [] on failure or timeout rather than throwing.
-      retrieveQuestionsForSession(interviewSession),
+      includeQuestionRetrieval ? retrieveQuestionsForSession(interviewSession) : Promise.resolve([]),
     ]);
 
   if (coreInstruction) {

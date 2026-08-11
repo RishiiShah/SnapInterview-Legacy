@@ -31,6 +31,10 @@ export type CodingCatalogQuestion = {
   estimatedTime: string | null;
 };
 
+type CachedCodingCatalogQuestion = CodingCatalogQuestion & {
+  description: string;
+};
+
 export const CODING_CATALOG_CACHE_TAG = "coding-catalog-v1";
 
 export function toCodingWorkspaceQuestion(question: WorkspaceQuestionRecord): CodingWorkspaceQuestion | null {
@@ -53,7 +57,7 @@ export function toCodingWorkspaceQuestion(question: WorkspaceQuestionRecord): Co
   return parsed.success ? parsed.data : null;
 }
 
-async function getPublishedCodingQuestionsUncached(): Promise<CodingCatalogQuestion[]> {
+async function getPublishedCodingQuestionsUncached(): Promise<CachedCodingCatalogQuestion[]> {
   const questions = await prisma.codingQuestion.findMany({
     where: { isPublished: true },
     select: {
@@ -87,6 +91,7 @@ async function getPublishedCodingQuestionsUncached(): Promise<CodingCatalogQuest
           id: workspace.id,
           slug: workspace.slug,
           title: workspace.title,
+          description: workspace.description,
           difficulty: workspace.difficulty,
           topics: workspace.topics,
           estimatedTime: workspace.estimatedTime,
@@ -95,7 +100,7 @@ async function getPublishedCodingQuestionsUncached(): Promise<CodingCatalogQuest
   });
 }
 
-export async function getPublishedCodingQuestions(): Promise<CodingCatalogQuestion[]> {
+async function getCachedPublishedCodingQuestions(): Promise<CachedCodingCatalogQuestion[]> {
   return unstable_cache(
     getPublishedCodingQuestionsUncached,
     [CODING_CATALOG_CACHE_TAG],
@@ -104,6 +109,37 @@ export async function getPublishedCodingQuestions(): Promise<CodingCatalogQuesti
       tags: [CODING_CATALOG_CACHE_TAG],
     },
   )();
+}
+
+function toCatalogQuestion(question: CachedCodingCatalogQuestion): CodingCatalogQuestion {
+  return {
+    id: question.id,
+    slug: question.slug,
+    title: question.title,
+    difficulty: question.difficulty,
+    topics: question.topics,
+    estimatedTime: question.estimatedTime,
+  };
+}
+
+export async function getPublishedCodingQuestions(): Promise<CodingCatalogQuestion[]> {
+  const questions = await getCachedPublishedCodingQuestions();
+  return questions.map(toCatalogQuestion);
+}
+
+export async function getPublishedCodingSearchResults(query: string): Promise<CodingCatalogQuestion[]> {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) return [];
+
+  const questions = await getCachedPublishedCodingQuestions();
+  return questions
+    .filter((question) =>
+      question.title.toLowerCase().includes(normalizedQuery)
+      || question.description.toLowerCase().includes(normalizedQuery)
+      || question.topics.some((topic) => topic.toLowerCase() === normalizedQuery),
+    )
+    .slice(0, 5)
+    .map(toCatalogQuestion);
 }
 
 export async function getPublishedCodingWorkspace(slug: string): Promise<CodingWorkspaceQuestion | null> {

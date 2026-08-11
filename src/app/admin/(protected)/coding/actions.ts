@@ -10,14 +10,41 @@ import { CODING_CATALOG_CACHE_TAG } from "@/repositories/coding-question-repo";
 
 function redirectWithError(path: string, message: string): never { redirect(`${path}?error=${encodeURIComponent(message)}`); }
 
+function isCodingSlugConflict(error: unknown) {
+  const knownError = error as { code?: unknown; meta?: { target?: unknown } } | null;
+  if (knownError?.code !== "P2002") return false;
+
+  const target = knownError.meta?.target;
+  const fields = Array.isArray(target) ? target : [target];
+  return fields.some(
+    (field) => typeof field === "string" && field.toLowerCase().includes("slug"),
+  );
+}
+
 export async function createCodingQuestionAction(formData: FormData) {
   await requireAdminSession();
   const parsed = parseCodingQuestionForm(formData);
   if (!parsed.success) redirectWithError("/admin/coding/new", parsed.error);
   const { testCases, ...questionData } = parsed.data;
-  const existing = await prisma.codingQuestion.findUnique({ where: { slug: parsed.data.slug }, select: { id: true } });
-  if (existing) redirectWithError("/admin/coding/new", "A coding problem with this slug already exists.");
-  await prisma.codingQuestion.create({ data: { ...questionData, testCases: { create: testCases.map((testCase, index) => ({ ...testCase, isHidden: false, ordinal: index + 1 })) } } });
+  try {
+    await prisma.codingQuestion.create({
+      data: {
+        ...questionData,
+        testCases: {
+          create: testCases.map((testCase, index) => ({
+            ...testCase,
+            isHidden: false,
+            ordinal: index + 1,
+          })),
+        },
+      },
+    });
+  } catch (error) {
+    if (isCodingSlugConflict(error)) {
+      redirectWithError("/admin/coding/new", "A coding problem with this slug already exists.");
+    }
+    throw error;
+  }
   revalidateTag(CODING_CATALOG_CACHE_TAG, "max");
   revalidatePath("/admin/coding"); revalidatePath("/coding"); redirect("/admin/coding");
 }

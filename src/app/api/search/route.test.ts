@@ -3,8 +3,9 @@ import { GET } from "./route";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 
-const { isLimitedMock } = vi.hoisted(() => ({
+const { isLimitedMock, getPublishedCodingSearchResultsMock } = vi.hoisted(() => ({
   isLimitedMock: vi.fn().mockResolvedValue(false),
+  getPublishedCodingSearchResultsMock: vi.fn(),
 }));
 
 vi.mock("@/lib/server-auth", () => ({
@@ -21,6 +22,10 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: vi.fn(() => ({ isLimited: isLimitedMock })),
+}));
+
+vi.mock("@/repositories/coding-question-repo", () => ({
+  getPublishedCodingSearchResults: getPublishedCodingSearchResultsMock,
 }));
 
 vi.mock("@/utils/logger", () => ({
@@ -54,14 +59,9 @@ const mockCodingQuestions = [
     id: "coding-1",
     slug: "reverse-linked-list",
     title: "Reverse a linked list",
-    description: "Reverse a singly linked list.",
-    constraints: null,
     difficulty: "easy",
     topics: ["linked-lists"],
     estimatedTime: "15 min",
-    hint: null,
-    starterCode: { javascript: "function reverse(head) {}" },
-    testCases: [{ ordinal: 1, input: "1 -> 2", expectedOutput: "2 -> 1" }],
   },
 ];
 
@@ -72,7 +72,7 @@ describe("GET /api/search", () => {
     isLimitedMock.mockResolvedValue(false);
     vi.mocked(prisma.interviewSession.findMany).mockResolvedValue(mockSessions as never);
     vi.mocked(prisma.practiceQuestion.findMany).mockResolvedValue(mockQuestions as never);
-    vi.mocked(prisma.codingQuestion.findMany).mockResolvedValue(mockCodingQuestions as never);
+    getPublishedCodingSearchResultsMock.mockResolvedValue(mockCodingQuestions);
   });
 
   it("returns 401 when unauthenticated", async () => {
@@ -146,54 +146,17 @@ describe("GET /api/search", () => {
     );
   });
 
-  it("omits malformed published coding concepts from search results", async () => {
-    vi.mocked(prisma.codingQuestion.findMany).mockResolvedValue([
-      ...mockCodingQuestions,
-      {
-        ...mockCodingQuestions[0],
-        id: "coding-invalid",
-        slug: "invalid-preview",
-        starterCode: { javascript: "" },
-      },
-    ] as never);
+  it("reuses the published coding catalog instead of querying full workspaces per search", async () => {
+    await GET(makeRequest("linked"));
 
-    const res = await GET(makeRequest("linked"));
-    const body = await res.json();
-
-    expect(body.questions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ slug: "reverse-linked-list", type: "coding" }),
-    ]));
-    expect(body.questions).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ slug: "invalid-preview" })]),
-    );
-  });
-
-  it("does not let malformed coding rows crowd a valid concept out of search", async () => {
-    vi.mocked(prisma.codingQuestion.findMany).mockResolvedValue([
-      ...Array.from({ length: 5 }, (_, index) => ({
-        ...mockCodingQuestions[0],
-        id: `coding-invalid-${index}`,
-        slug: `invalid-preview-${index}`,
-        starterCode: { javascript: "" },
-      })),
-      ...mockCodingQuestions,
-    ] as never);
-
-    const res = await GET(makeRequest("linked"));
-    const body = await res.json();
-
-    expect(prisma.codingQuestion.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ take: 20 }),
-    );
-    expect(body.questions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ slug: "reverse-linked-list", type: "coding" }),
-    ]));
+    expect(getPublishedCodingSearchResultsMock).toHaveBeenCalledWith("linked");
+    expect(prisma.codingQuestion.findMany).not.toHaveBeenCalled();
   });
 
   it("returns empty arrays when no matches found", async () => {
     vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([]);
     vi.mocked(prisma.practiceQuestion.findMany).mockResolvedValue([]);
-    vi.mocked(prisma.codingQuestion.findMany).mockResolvedValue([]);
+    getPublishedCodingSearchResultsMock.mockResolvedValue([]);
 
     const res = await GET(makeRequest("zzz"));
     expect(res.status).toBe(200);

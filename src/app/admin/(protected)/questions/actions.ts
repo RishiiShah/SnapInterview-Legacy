@@ -33,6 +33,20 @@ async function ensurePracticeQuestionIdSequence() {
   `;
 }
 
+function isUniqueConstraintError(error: unknown) {
+  return (error as { code?: unknown } | null)?.code === "P2002";
+}
+
+function isPracticeQuestionSlugConflict(error: unknown) {
+  if (!isUniqueConstraintError(error)) return false;
+
+  const target = (error as { meta?: { target?: unknown } } | null)?.meta?.target;
+  const fields = Array.isArray(target) ? target : [target];
+  return fields.some(
+    (field) => typeof field === "string" && field.toLowerCase().includes("slug"),
+  );
+}
+
 // Record-aware CSV tokenizer: walks the whole text so newlines inside quoted fields
 // (e.g. multi-paragraph sample answers from our own CSV export) stay within the field
 // instead of being split into bogus rows.
@@ -127,27 +141,28 @@ export async function createPracticeQuestionAction(formData: FormData) {
     redirectWithError("/admin/questions/new", parsed.error);
   }
 
-  const existing = await prisma.practiceQuestion.findUnique({
-    where: { slug: parsed.data.slug },
-  });
-  if (existing) {
-    redirectWithError("/admin/questions/new", "A question with this slug already exists.");
-  }
-
   try {
     await prisma.practiceQuestion.create({ data: parsed.data });
   } catch (err) {
+    if (isPracticeQuestionSlugConflict(err)) {
+      redirectWithError("/admin/questions/new", "A question with this slug already exists.");
+    }
+
     // If the DB sequence for PracticeQuestion.id is out of sync (common after manual inserts),
     // repair it and retry once.
-    const maybeKnown = err as { code?: string; meta?: unknown } | null;
-    const isUniqueViolation = maybeKnown?.code === "P2002";
-
-    if (!isUniqueViolation) {
+    if (!isUniqueConstraintError(err)) {
       throw err;
     }
 
     await ensurePracticeQuestionIdSequence();
-    await prisma.practiceQuestion.create({ data: parsed.data });
+    try {
+      await prisma.practiceQuestion.create({ data: parsed.data });
+    } catch (retryError) {
+      if (isPracticeQuestionSlugConflict(retryError)) {
+        redirectWithError("/admin/questions/new", "A question with this slug already exists.");
+      }
+      throw retryError;
+    }
   }
 
   revalidatePath("/admin/questions");

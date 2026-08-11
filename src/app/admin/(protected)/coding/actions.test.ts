@@ -54,6 +54,7 @@ function codingForm(values: Record<string, string> = {}) {
 describe("coding admin actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.redirect.mockImplementation(() => undefined);
     mocks.requireAdminSession.mockResolvedValue({ user: { email: "admin@example.com" } });
     mocks.codingQuestionFindUnique.mockResolvedValue(null);
     mocks.codingQuestionFindFirst.mockResolvedValue(null);
@@ -86,7 +87,24 @@ describe("coding admin actions", () => {
       }),
     });
     expect(mocks.codingQuestionCreate.mock.calls[0][0].data).not.toHaveProperty("solutionCode");
+    expect(mocks.codingQuestionFindUnique).not.toHaveBeenCalled();
     expect(mocks.revalidateTag).toHaveBeenCalledWith("coding-catalog-v1", "max");
+  });
+
+  it("reports a concurrent create conflict through the unique slug constraint", async () => {
+    mocks.codingQuestionCreate.mockRejectedValueOnce({
+      code: "P2002",
+      meta: { target: ["slug"] },
+    });
+    mocks.redirect.mockImplementation(() => {
+      throw new Error("redirected");
+    });
+
+    await expect(createCodingQuestionAction(codingForm())).rejects.toThrow("redirected");
+
+    expect(mocks.redirect).toHaveBeenCalledWith(
+      "/admin/coding/new?error=A%20coding%20problem%20with%20this%20slug%20already%20exists.",
+    );
   });
 
   it("replaces only public samples after retained hidden ordinals without overwriting solution code", async () => {

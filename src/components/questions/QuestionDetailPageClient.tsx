@@ -20,6 +20,41 @@ type QuestionDetailPageClientProps = {
   listLabel?: string;
 };
 
+type QuestionAnswerDraft = {
+  answerText: string;
+  timeRemaining: number;
+};
+
+const ANSWER_DRAFT_STORAGE_PREFIX = "snap-question-answer-draft-v1";
+
+function getAnswerDraftStorageKey(basePath: QuestionDetailPageClientProps["basePath"], questionId: number) {
+  return `${ANSWER_DRAFT_STORAGE_PREFIX}:${(basePath ?? "/questions").slice(1)}:${questionId}`;
+}
+
+function parseAnswerDraft(value: string | null): QuestionAnswerDraft | null {
+  if (!value) return null;
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      typeof (parsed as QuestionAnswerDraft).answerText !== "string" ||
+      typeof (parsed as QuestionAnswerDraft).timeRemaining !== "number" ||
+      !Number.isFinite((parsed as QuestionAnswerDraft).timeRemaining)
+    ) {
+      return null;
+    }
+
+    return {
+      answerText: (parsed as QuestionAnswerDraft).answerText,
+      timeRemaining: Math.max(0, (parsed as QuestionAnswerDraft).timeRemaining),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function QuestionDetailPageClient({
   question,
   currentIndex,
@@ -43,6 +78,9 @@ export default function QuestionDetailPageClient({
   const [isSolved, setIsSolved] = useState(initialIsSolved);
   const [isSolveUpdating, setIsSolveUpdating] = useState(false);
   const [solveError, setSolveError] = useState<string | null>(null);
+  const [restoredDraftKey, setRestoredDraftKey] = useState<string | null>(null);
+  const [isDraftSubmitted, setIsDraftSubmitted] = useState(false);
+  const answerDraftStorageKey = getAnswerDraftStorageKey(basePath, question.id);
 
   const {
     percent: leftPercent,
@@ -60,6 +98,65 @@ export default function QuestionDetailPageClient({
     const match = value.match(/(\d+)/);
     return match ? parseInt(match[1], 10) : 0;
   };
+
+  const removeSavedDraft = useCallback(() => {
+    try {
+      window.localStorage.removeItem(answerDraftStorageKey);
+    } catch {
+      // Private browsing or a storage quota error should not interrupt practice.
+    }
+  }, [answerDraftStorageKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+
+      try {
+        const draft = parseAnswerDraft(window.localStorage.getItem(answerDraftStorageKey));
+        if (draft?.answerText.trim()) {
+          setAnswerText(draft.answerText);
+          setTimeRemaining(draft.timeRemaining);
+          setIsTimerStarted(true);
+          setIsTimerRunning(false);
+          setRightTab("answer");
+          setScore(null);
+          setIsDraftSubmitted(false);
+        }
+      } catch {
+        // Storage is best-effort. Continue with a fresh answer if it is unavailable.
+      } finally {
+        if (!cancelled) setRestoredDraftKey(answerDraftStorageKey);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [answerDraftStorageKey]);
+
+  useEffect(() => {
+    if (restoredDraftKey !== answerDraftStorageKey) return;
+
+    if (isDraftSubmitted || !isTimerStarted || !answerText.trim()) {
+      removeSavedDraft();
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(
+          answerDraftStorageKey,
+          JSON.stringify({ answerText, timeRemaining }),
+        );
+      } catch {
+        // Storage is best-effort. Never block answer entry if it is unavailable.
+      }
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [answerDraftStorageKey, answerText, isDraftSubmitted, isTimerStarted, removeSavedDraft, restoredDraftKey, timeRemaining]);
 
   const evaluateAnswer = useCallback(async () => {
     setIsTimerRunning(false);
@@ -88,6 +185,8 @@ export default function QuestionDetailPageClient({
       }
 
       const data = await res.json();
+      setIsDraftSubmitted(true);
+      removeSavedDraft();
       setScore({
         score: typeof data?.score === "number" ? data.score : 0,
         feedback:
@@ -103,7 +202,7 @@ export default function QuestionDetailPageClient({
         feedback: "Evaluation failed due to a network error. Please try again.",
       });
     }
-  }, [answerText, question.id]);
+  }, [answerText, question.id, removeSavedDraft]);
 
   const handleToggleSolved = useCallback(async () => {
     if (isSolveUpdating) return;
@@ -115,7 +214,7 @@ export default function QuestionDetailPageClient({
       const res = await fetch("/api/questions/solve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questionId: question.id }),
+        body: JSON.stringify({ questionId: question.id, solved: !isSolved }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -130,7 +229,7 @@ export default function QuestionDetailPageClient({
     } finally {
       setIsSolveUpdating(false);
     }
-  }, [isSolveUpdating, question.id]);
+  }, [isSolved, isSolveUpdating, question.id]);
 
   useEffect(() => {
     if (!isTimerRunning || timeRemaining <= 0) return;
@@ -148,6 +247,7 @@ export default function QuestionDetailPageClient({
   }, [evaluateAnswer, isTimerRunning, timeRemaining]);
 
   const handleStart = useCallback(() => {
+    removeSavedDraft();
     setScore(null);
     setAnswerText("");
     setShowSample(false);
@@ -155,7 +255,8 @@ export default function QuestionDetailPageClient({
     setTimeRemaining(getMinutes(question.estimatedTime) * 60);
     setIsTimerRunning(true);
     setIsTimerStarted(true);
-  }, [question.estimatedTime]);
+    setIsDraftSubmitted(false);
+  }, [question.estimatedTime, removeSavedDraft]);
 
   const handleSubmit = () => {
     void evaluateAnswer();

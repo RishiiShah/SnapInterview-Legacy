@@ -16,30 +16,19 @@ export default async function DashboardPage() {
   if (!userId) {
     redirect("/login");
   }
-  const onboardingUser = session.user.email
-    ? await prisma.user.findUnique({
-        where: { email: session.user.email.toLowerCase() },
-        select: { onboardingCompletedAt: true },
-      })
-    : await prisma.user.findUnique({
-        where: { id: userId },
-        select: { onboardingCompletedAt: true },
-      });
+  const [onboardingUser, overview] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { onboardingCompletedAt: true },
+    }),
+    getDashboardOverviewData(userId),
+  ]);
 
   if (!onboardingUser?.onboardingCompletedAt) {
     redirect("/onboarding");
   }
   const firstName = session?.user?.name?.split(" ")[0] || "there";
   const isFirstLogin = session?.user?.isFirstLogin ?? false;
-
-  const overview = userId
-    ? await getDashboardOverviewData(userId)
-    : {
-        stats: [],
-        recentSessions: [],
-        topStrength: null,
-        topFocus: null,
-      };
 
   return (
     <>

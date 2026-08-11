@@ -79,24 +79,36 @@ type SessionCard = {
   createdAt: string;
 };
 
+type SessionCursor = Pick<SessionCard, "id" | "createdAt">;
+
+type SessionsResponse = {
+  sessions: SessionCard[];
+  hasMore: boolean;
+  nextCursor: SessionCursor | null;
+};
+
 type RecordingsListProps = {
   initialSessions: SessionCard[];
   initialHasMore: boolean;
+  initialNextCursor?: SessionCursor | null;
   initialOpenInterviewId?: string | null;
 };
 
 export default function RecordingsList({
   initialSessions,
   initialHasMore,
+  initialNextCursor = null,
   initialOpenInterviewId = null,
 }: RecordingsListProps) {
   const [sessions, setSessions] = useState<SessionCard[]>(initialSessions);
   const [hasMore, setHasMore] = useState(initialHasMore);
+  const [nextCursor, setNextCursor] = useState<SessionCursor | null>(initialNextCursor);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isReloading, setIsReloading] = useState(false);
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [sortBy, setSortBy] = useState<SortBy>("date");
   const isFirstRender = useRef(true);
+  const sessionsRequestVersion = useRef(0);
   const autoOpenedInterviewId = useRef<string | null>(null);
   const [isOpening, setIsOpening] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -117,8 +129,12 @@ export default function RecordingsList({
     description: "",
   });
 
-  function buildSessionsUrl(offset: number, type: FilterType) {
-    const params = new URLSearchParams({ offset: String(offset), limit: "12" });
+  function buildSessionsUrl(type: FilterType, cursor: SessionCursor | null = null) {
+    const params = new URLSearchParams({ limit: "12" });
+    if (cursor) {
+      params.set("cursorCreatedAt", cursor.createdAt);
+      params.set("cursorId", cursor.id);
+    }
     if (type !== "all") params.set("type", type);
     return `/api/interview/sessions?${params.toString()}`;
   }
@@ -128,14 +144,16 @@ export default function RecordingsList({
       isFirstRender.current = false;
       return;
     }
+    const requestVersion = ++sessionsRequestVersion.current;
     let cancelled = false;
     setIsReloading(true);
-    fetch(buildSessionsUrl(0, filterType))
-      .then((res) => res.json() as Promise<{ sessions: SessionCard[]; hasMore: boolean }>)
+    fetch(buildSessionsUrl(filterType))
+      .then((res) => res.json() as Promise<SessionsResponse>)
       .then((data) => {
-        if (!cancelled) {
+        if (!cancelled && requestVersion === sessionsRequestVersion.current) {
           setSessions(data.sessions);
           setHasMore(data.hasMore);
+          setNextCursor(data.nextCursor);
         }
       })
       .catch(() => {
@@ -147,7 +165,7 @@ export default function RecordingsList({
           });
       })
       .finally(() => {
-        if (!cancelled) setIsReloading(false);
+        if (!cancelled && requestVersion === sessionsRequestVersion.current) setIsReloading(false);
       });
     return () => {
       cancelled = true;
@@ -161,14 +179,20 @@ export default function RecordingsList({
   );
 
   const loadMore = async () => {
-    if (isLoadingMore || !hasMore) return;
+    if (isLoadingMore || !hasMore || !nextCursor) return;
+    const requestVersion = sessionsRequestVersion.current;
     setIsLoadingMore(true);
     try {
-      const res = await fetch(buildSessionsUrl(sessions.length, filterType));
+      const res = await fetch(buildSessionsUrl(filterType, nextCursor));
       if (!res.ok) throw new Error("Failed to load more sessions");
-      const data = (await res.json()) as { sessions: SessionCard[]; hasMore: boolean };
-      setSessions((prev) => [...prev, ...data.sessions]);
+      const data = (await res.json()) as SessionsResponse;
+      if (requestVersion !== sessionsRequestVersion.current) return;
+      setSessions((prev) => {
+        const sessionIds = new Set(prev.map((session) => session.id));
+        return [...prev, ...data.sessions.filter((session) => !sessionIds.has(session.id))];
+      });
       setHasMore(data.hasMore);
+      setNextCursor(data.nextCursor);
     } catch {
       setErrorModal({
         isOpen: true,
@@ -378,6 +402,7 @@ export default function RecordingsList({
 
             return (
               <FadeIn
+                instant
                 key={session.id}
                 delay={idx * 0.03}
                 direction="up"

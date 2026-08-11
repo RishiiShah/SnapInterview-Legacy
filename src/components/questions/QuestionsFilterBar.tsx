@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { DIFFICULTIES } from "@/data/constants";
 import type { Difficulty, QuestionCategory } from "@/data/types";
 
+type SolvedStatus = "all" | "solved" | "unsolved";
+
 type CategoryStat = {
   value: QuestionCategory;
   label: string;
@@ -21,6 +23,8 @@ type QuestionsFilterBarProps = {
   setSelectedCategory: (value: QuestionCategory | "all") => void;
   selectedDifficulty: Difficulty | "all";
   setSelectedDifficulty: (value: Difficulty | "all") => void;
+  solvedStatus: SolvedStatus;
+  setSolvedStatus: (value: SolvedStatus) => void;
   stats: CategoryStat[];
 };
 
@@ -38,6 +42,8 @@ export default function QuestionsFilterBar({
   setSelectedCategory,
   selectedDifficulty,
   setSelectedDifficulty,
+  solvedStatus,
+  setSolvedStatus,
   stats,
 }: QuestionsFilterBarProps) {
   const filterRef = useRef<HTMLDivElement>(null);
@@ -160,6 +166,30 @@ export default function QuestionsFilterBar({
                 </div>
               </div>
 
+              <div className="my-4 border-t border-white/[0.06]" />
+
+              <div>
+                <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-[#A8B0C2]">Progress</h3>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    ["all", "All"],
+                    ["unsolved", "Unsolved"],
+                    ["solved", "Solved"],
+                  ] as const).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setSolvedStatus(value)}
+                      className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                        solvedStatus === value ? CHIP_ACTIVE : CHIP_IDLE
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {activeFilterCount > 0 && (
                 <>
                   <div className="my-4 border-t border-white/[0.06]" />
@@ -168,6 +198,7 @@ export default function QuestionsFilterBar({
                     onClick={() => {
                       setSelectedCategory("all");
                       setSelectedDifficulty("all");
+                      setSolvedStatus("all");
                     }}
                     className="w-full cursor-pointer rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-xs font-medium text-[#C5CBD8] transition-all hover:bg-white/[0.05] hover:text-[#E8ECF4]"
                   >

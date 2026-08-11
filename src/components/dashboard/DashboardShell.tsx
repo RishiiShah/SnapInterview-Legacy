@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useSyncExternalStore, ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { useSession } from "@/lib/auth-client";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { SearchModal } from "./SearchModal";
@@ -36,18 +35,20 @@ function subscribeToProfileImageOverride(onChange: () => void) {
   };
 }
 
+export type DashboardShellSession = {
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  } | null;
+} | null;
+
 function ShellLayout({
   children,
   session,
 }: {
   children: ReactNode;
-  session: {
-    user?: {
-      name?: string | null;
-      email?: string | null;
-      image?: string | null;
-    } | null;
-  } | null;
+  session: DashboardShellSession;
 }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
@@ -85,6 +86,7 @@ function ShellLayout({
         <Header
           onSearchOpen={() => setSearchOpen(true)}
           onSidebarToggle={() => setMobileOpen(true)}
+          user={session?.user ?? null}
         />
         <main
           ref={mainRef}
@@ -111,9 +113,13 @@ function ShellLayout({
   );
 }
 
-export default function DashboardShell({ children }: { children: ReactNode }) {
-  const { data: session } = useSession();
-
+export default function DashboardShell({
+  children,
+  session,
+}: {
+  children: ReactNode;
+  session: DashboardShellSession;
+}) {
   const sessionImageOverride = useSyncExternalStore(
     subscribeToProfileImageOverride,
     getProfileImageOverride,

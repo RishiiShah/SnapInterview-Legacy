@@ -69,12 +69,12 @@ export default function DimensionAnalytics({
         </div>
       </div>
 
-      <FadeInStagger triggerOnView={false}>
+      <FadeInStagger instant triggerOnView={false}>
         <dl className="grid gap-4 sm:grid-cols-3 sm:gap-5">
           {SUB_SCORE_DIMENSIONS.map(({ key, label, summary, barClass }) => {
             const value = subScores[key];
             return (
-              <FadeInStaggerItem key={key}>
+              <FadeInStaggerItem instant key={key}>
                 <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
                   <dt className="text-sm font-medium text-[#E8ECF4]">{label}</dt>
                   <p className="mt-1 text-xs leading-relaxed text-[#A8B0C2]">{summary}</p>

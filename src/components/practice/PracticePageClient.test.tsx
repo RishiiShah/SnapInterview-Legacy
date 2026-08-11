@@ -119,4 +119,26 @@ describe("PracticePageClient", () => {
     expect(preloadKokoro.mock.invocationCallOrder[0]).toBeLessThan(routerPush.mock.invocationCallOrder[0]!);
     expect(routerPush).toHaveBeenCalledWith("/interview/interview-1");
   });
+
+  it("uses server-provided onboarding and resume defaults without duplicate browser requests", () => {
+    render(
+      <PracticePageClient
+        initialDefaults={{
+          onboarding: {
+            onboardingRole: "Platform Engineer",
+            onboardingCompany: "OpenAI",
+            onboardingLevel: "senior",
+            onboardingGoal: "switch-companies",
+            preferredInterviewType: "system-design",
+          },
+          resumeText: "Built reliable distributed systems.",
+        }}
+      />,
+    );
+
+    expect((screen.getByPlaceholderText("e.g. Frontend Engineer") as HTMLInputElement).value)
+      .toBe("Platform Engineer");
+    expect((screen.getByPlaceholderText("Optional") as HTMLInputElement).value).toBe("OpenAI");
+    expect(fetch).not.toHaveBeenCalled();
+  });
 });

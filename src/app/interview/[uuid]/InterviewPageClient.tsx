@@ -4,10 +4,17 @@ import { useParams, useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import PreJoinScreen from "@/components/interview/PreJoinScreen";
 import ActiveInterviewScreen from "@/components/interview/ActiveInterviewScreen";
-import { useInterviewPageController } from "@/hooks/useInterviewPageController";
+import {
+  useInterviewPageController,
+  type InterviewSessionMeta,
+} from "@/hooks/useInterviewPageController";
 import Modal from "@/components/ui/Modal";
 
-export default function InterviewPageClient() {
+export default function InterviewPageClient({
+  initialSessionMeta,
+}: {
+  initialSessionMeta?: InterviewSessionMeta;
+}) {
   const params = useParams();
   const router = useRouter();
   const interviewId = params.uuid as string;
@@ -36,7 +43,7 @@ export default function InterviewPageClient() {
     codingChallenge,
     modal,
     closeModal,
-  } = useInterviewPageController({ interviewId });
+  } = useInterviewPageController({ interviewId, initialSessionMeta });
 
   return (
     <>

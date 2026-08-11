@@ -8,7 +8,7 @@ import {
   AnimatedBellIcon,
   AnimatedSearchIcon,
 } from "@/components/ui/animated-icons";
-import { useSession, signOut } from "@/lib/auth-client";
+import { signOut } from "@/lib/auth-client";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { getInitials } from "@/utils/helpers";
 import {
@@ -133,11 +133,16 @@ function HeaderNotifButton({
   );
 }
 
-function HeaderUserButton() {
+export type HeaderUser = {
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+} | null;
+
+function HeaderUserButton({ user }: { user: HeaderUser }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { data: session } = useSession();
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -149,9 +154,9 @@ function HeaderUserButton() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const userName = session?.user?.name || "Profile";
-  const userEmail = session?.user?.email || "";
-  const userImage = session?.user?.image;
+  const userName = user?.name || "Profile";
+  const userEmail = user?.email || "";
+  const userImage = user?.image;
   const initials = getInitials(userName);
 
   return (
@@ -235,9 +240,11 @@ function HeaderUserButton() {
 export function Header({
   onSearchOpen,
   onSidebarToggle,
+  user = null,
 }: {
   onSearchOpen: () => void;
   onSidebarToggle?: () => void;
+  user?: HeaderUser;
 }) {
   const pathname = usePathname();
   const [notifOpen, setNotifOpen] = useState(false);
@@ -245,22 +252,32 @@ export function Header({
   const [notifLoading, setNotifLoading] = useState(false);
   const [notifFetched, setNotifFetched] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const notificationRequestRef = useRef<Promise<void> | null>(null);
 
-  const fetchNotifications = useCallback(async () => {
-    if (notifFetched) return;
-    setNotifLoading(true);
-    try {
-      const res = await fetch("/api/notifications");
-      if (res.ok) {
-        const data = (await res.json()) as { notifications: Notification[] };
-        setNotifications(data.notifications);
-        setNotifFetched(true);
-      }
-    } catch {
-      // empty
-    } finally {
-      setNotifLoading(false);
+  const fetchNotifications = useCallback(() => {
+    if (notifFetched || notificationRequestRef.current) {
+      return notificationRequestRef.current;
     }
+
+    const request = (async () => {
+      setNotifLoading(true);
+      try {
+        const res = await fetch("/api/notifications");
+        if (res.ok) {
+          const data = (await res.json()) as { notifications: Notification[] };
+          setNotifications(data.notifications);
+          setNotifFetched(true);
+        }
+      } catch {
+        // empty
+      } finally {
+        setNotifLoading(false);
+        notificationRequestRef.current = null;
+      }
+    })();
+
+    notificationRequestRef.current = request;
+    return request;
   }, [notifFetched]);
 
   const handleMarkAllRead = useCallback(async () => {
@@ -336,7 +353,7 @@ export function Header({
           />
         </div>
 
-        <HeaderUserButton />
+        <HeaderUserButton user={user} />
       </div>
     </header>
   );

@@ -18,7 +18,7 @@ export default async function RecordingsPage({ searchParams }: RecordingsPagePro
   if (!session?.user?.email) {
     return (
       <div className="mx-auto max-w-7xl space-y-8 pb-16 pt-2 xl:max-w-[88rem]">
-        <SlideIn>
+        <SlideIn instant>
           <div>
             <h1 className="font-display text-[2rem] leading-[1.15] tracking-[-0.02em] text-[#F2F4F8] sm:text-[2.35rem]">
               Recordings
@@ -51,7 +51,7 @@ export default async function RecordingsPage({ searchParams }: RecordingsPagePro
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 pb-16 pt-2 xl:max-w-[88rem]">
-      <SlideIn>
+      <SlideIn instant>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="font-display text-[2rem] leading-[1.15] tracking-[-0.02em] text-[#F2F4F8] sm:text-[2.35rem]">
@@ -75,6 +75,10 @@ export default async function RecordingsPage({ searchParams }: RecordingsPagePro
       <RecordingsList
         initialSessions={initialSessions}
         initialHasMore={sessionList.hasMore}
+        initialNextCursor={sessionList.nextCursor ? {
+          id: sessionList.nextCursor.id,
+          createdAt: sessionList.nextCursor.createdAt.toISOString(),
+        } : null}
         initialOpenInterviewId={deepLinkedSession?.id ?? null}
       />
     </div>

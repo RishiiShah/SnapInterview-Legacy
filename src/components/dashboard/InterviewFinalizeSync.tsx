@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -15,38 +15,55 @@ type SessionStatusResponse = {
 export default function InterviewFinalizeSync() {
   const router = useRouter();
   const [banner, setBanner] = useState<string | null>(null);
+  const syncInFlightRef = useRef(false);
+  const isMountedRef = useRef(false);
 
   useEffect(() => {
+    isMountedRef.current = true;
+
     const sync = async () => {
+      if (syncInFlightRef.current) return;
+
       const pendingIds = getPendingInterviewFinalizeIds();
       if (pendingIds.length === 0) {
-        setBanner(null);
+        if (isMountedRef.current) setBanner(null);
         return;
       }
 
-      setBanner("Saving your recording and updating analytics…");
+      syncInFlightRef.current = true;
+      if (isMountedRef.current) setBanner("Saving your recording and updating analytics…");
 
-      let shouldRefresh = false;
-      for (const interviewId of pendingIds) {
-        try {
+      try {
+        const completedIds = (await Promise.all(pendingIds.map(async (interviewId) => {
+          try {
           const response = await fetch(`/api/interview/session?interviewId=${encodeURIComponent(interviewId)}`);
-          if (!response.ok) continue;
+            if (!response.ok) return null;
           const payload = (await response.json()) as SessionStatusResponse;
           if (payload.status === "COMPLETED" || payload.status === "ABORTED") {
-            clearPendingInterviewFinalize(interviewId);
-            shouldRefresh = true;
+              return interviewId;
           }
-        } catch {
-          // Keep polling until finalize completes or user leaves.
-        }
-      }
+            return null;
+          } catch {
+            // Keep polling until finalize completes or user leaves.
+            return null;
+          }
+        }))).filter((interviewId): interviewId is string => interviewId !== null);
 
-      const remaining = getPendingInterviewFinalizeIds();
-      if (remaining.length === 0) {
-        setBanner(null);
-        if (shouldRefresh) {
-          router.refresh();
+        if (!isMountedRef.current) return;
+
+        for (const interviewId of completedIds) {
+          clearPendingInterviewFinalize(interviewId);
         }
+
+        const remaining = getPendingInterviewFinalizeIds();
+        if (remaining.length === 0) {
+          setBanner(null);
+          if (completedIds.length > 0) {
+            router.refresh();
+          }
+        }
+      } finally {
+        syncInFlightRef.current = false;
       }
     };
 
@@ -55,7 +72,10 @@ export default function InterviewFinalizeSync() {
       void sync();
     }, 2000);
 
-    return () => window.clearInterval(interval);
+    return () => {
+      isMountedRef.current = false;
+      window.clearInterval(interval);
+    };
   }, [router]);
 
   if (!banner) return null;

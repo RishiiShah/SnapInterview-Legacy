@@ -53,7 +53,7 @@ export default function PerformanceTrendChart({
   const meta = RANGE_META[range];
 
   return (
-    <FadeIn triggerOnView={false} delay={delay} direction="up" className="flex flex-col">
+    <FadeIn instant triggerOnView={false} delay={delay} direction="up" className="flex flex-col">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="font-display text-xl tracking-tight text-[#F2F4F8] sm:text-2xl">{meta.title}</h2>

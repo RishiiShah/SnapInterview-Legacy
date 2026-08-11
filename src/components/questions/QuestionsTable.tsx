@@ -6,6 +6,7 @@ import type { Difficulty, QuestionCategory, Question } from "@/data/types";
 
 type SortKey = "category" | "difficulty" | "time";
 type SortDir = "asc" | "desc";
+type SolvedStatus = "all" | "solved" | "unsolved";
 
 function renderSortIcon(col: SortKey, sortKey: SortKey | null, sortDir: SortDir) {
   if (sortKey !== col) {
@@ -32,6 +33,7 @@ type QuestionsTableProps = {
   setSearch: (value: string) => void;
   setSelectedCategory: (value: QuestionCategory | "all") => void;
   setSelectedDifficulty: (value: Difficulty | "all") => void;
+  setSolvedStatus: (value: SolvedStatus) => void;
   sortKey: SortKey | null;
   sortDir: SortDir;
   toggleSort: (key: SortKey) => void;
@@ -43,6 +45,7 @@ export default function QuestionsTable({
   setSearch,
   setSelectedCategory,
   setSelectedDifficulty,
+  setSolvedStatus,
   sortKey,
   sortDir,
   toggleSort,
@@ -126,6 +129,7 @@ export default function QuestionsTable({
               setSearch("");
               setSelectedCategory("all");
               setSelectedDifficulty("all");
+              setSolvedStatus("all");
             }}
             className="mt-2 text-sm font-medium text-[#93C5FD] hover:text-[#BFDBFE]"
           >

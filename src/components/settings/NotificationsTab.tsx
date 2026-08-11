@@ -11,14 +11,17 @@ export type NotificationPrefs = {
 
 type NotificationsTabProps = {
   initialPrefs: NotificationPrefs;
+  isLoaded?: boolean;
 };
 
-export default function NotificationsTab({ initialPrefs }: NotificationsTabProps) {
+export default function NotificationsTab({ initialPrefs, isLoaded = true }: NotificationsTabProps) {
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>(initialPrefs);
   const [isSavingKey, setIsSavingKey] = useState<keyof NotificationPrefs | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const updatePreference = async (key: keyof NotificationPrefs, value: boolean) => {
+    if (!isLoaded || isSavingKey) return;
+
     const previous = notificationPrefs;
     const next = { ...notificationPrefs, [key]: value };
 
@@ -80,6 +83,7 @@ export default function NotificationsTab({ initialPrefs }: NotificationsTabProps
       <div>
         <h2 className="font-display text-xl tracking-tight text-[#F2F4F8]">Notifications</h2>
         <p className="mt-1.5 text-sm text-[#A8B0C2]">Choose what notifications you want to receive.</p>
+        {!isLoaded && <p className="mt-2 text-xs text-[#8B93A7]">Loading saved preferences…</p>}
       </div>
 
       <div className="divide-y divide-white/[0.06]">
@@ -97,7 +101,7 @@ export default function NotificationsTab({ initialPrefs }: NotificationsTabProps
               onClick={() => {
                 void updatePreference(pref.key, !pref.value);
               }}
-              disabled={isSavingKey === pref.key}
+              disabled={!isLoaded || isSavingKey === pref.key}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
                 pref.value ? "bg-[#3B82F6]" : "bg-white/[0.12]"
               }`}

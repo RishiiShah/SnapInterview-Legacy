@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import PasswordTab from "@/components/settings/PasswordTab";
 import { describeUserAgent } from "@/lib/describe-user-agent";
@@ -63,36 +63,49 @@ export default function SecurityTab() {
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [busyDeviceKey, setBusyDeviceKey] = useState<string | null>(null);
+  const securityRequestRef = useRef<Promise<void> | null>(null);
 
-  const loadSecurityData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadSecurityData = useCallback(() => {
+    if (securityRequestRef.current) return securityRequestRef.current;
 
-    try {
-      const response = await fetch("/api/settings/security", { method: "GET" });
-      const payload = await response.json().catch(() => ({}));
+    const request = (async () => {
+      setLoading(true);
+      setError(null);
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          router.replace("/login");
+      try {
+        const response = await fetch("/api/settings/security", { method: "GET" });
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            router.replace("/login");
+            return;
+          }
+          setError(
+            typeof payload?.error === "string" ? payload.error : "Failed to load security settings.",
+          );
           return;
         }
-        setError(
-          typeof payload?.error === "string" ? payload.error : "Failed to load security settings.",
-        );
-        return;
-      }
 
-      setData(payload as SecurityResponse);
-    } catch {
-      setError("Failed to load security settings.");
-    } finally {
-      setLoading(false);
-    }
+        setData(payload as SecurityResponse);
+      } catch {
+        setError("Failed to load security settings.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    securityRequestRef.current = request;
+    void request.finally(() => {
+      if (securityRequestRef.current === request) {
+        securityRequestRef.current = null;
+      }
+    });
+
+    return request;
   }, [router]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadSecurityData();
   }, [loadSecurityData]);
 

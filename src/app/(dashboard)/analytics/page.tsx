@@ -76,7 +76,7 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-11 pb-16 pt-2 xl:max-w-[88rem]">
-      <SlideIn>
+      <SlideIn instant>
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="font-display text-[2rem] leading-[1.15] tracking-[-0.02em] text-[#F2F4F8] sm:text-[2.35rem]">
@@ -104,7 +104,7 @@ export default async function AnalyticsPage() {
       </SlideIn>
 
       {!hasData ? (
-        <FadeIn triggerOnView={false} direction="up">
+        <FadeIn instant triggerOnView={false} direction="up">
           <section className="py-16 text-center">
             <p className="font-display text-xl tracking-tight text-[#E8ECF4]">No interview data yet</p>
             <p className="mx-auto mt-2 max-w-sm text-sm text-[#A8B0C2]">
@@ -121,7 +121,7 @@ export default async function AnalyticsPage() {
       ) : (
         <>
           {/* Hero signal + instruments */}
-          <FadeIn triggerOnView={false} direction="up">
+          <FadeIn instant triggerOnView={false} direction="up">
             <section className="py-1">
               <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
                 <div className="min-w-0">
@@ -218,12 +218,12 @@ export default async function AnalyticsPage() {
             <CategoryBreakdown categories={categoryBreakdown} delay={0.12} />
           </div>
 
-          <FadeIn triggerOnView={false} delay={0.16} direction="up">
+          <FadeIn instant triggerOnView={false} delay={0.16} direction="up">
             <DimensionAnalytics subScores={subScores} subScoreTrends={subScoreTrends} />
           </FadeIn>
 
           {/* Question feedback */}
-          <FadeIn triggerOnView={false} delay={0.24} direction="up">
+          <FadeIn instant triggerOnView={false} delay={0.24} direction="up">
             <section className="border-t border-white/[0.06] pt-10">
               <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
                 <h2 className="font-display text-xl tracking-tight text-[#F2F4F8] sm:text-2xl">
@@ -279,7 +279,7 @@ export default async function AnalyticsPage() {
           </FadeIn>
 
           {/* Strengths & focus — quiet recommendations style */}
-          <FadeIn triggerOnView={false} delay={0.28} direction="up">
+          <FadeIn instant triggerOnView={false} delay={0.28} direction="up">
             <section className="border-t border-white/[0.06] pt-10">
               <div className="mb-6 flex items-baseline justify-between gap-3">
                 <h2 className="font-display text-xl tracking-tight text-[#F2F4F8] sm:text-2xl">

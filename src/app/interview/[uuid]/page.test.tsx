@@ -3,6 +3,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getServerAuthSession: vi.fn(),
+  getInterviewSessionState: vi.fn(),
   redirect: vi.fn(),
   routerPush: vi.fn(),
   useInterviewPageController: vi.fn(),
@@ -10,6 +11,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/server-auth", () => ({
   getServerAuthSession: mocks.getServerAuthSession,
+}));
+
+vi.mock("@/services/interview-service", () => ({
+  getInterviewSessionState: mocks.getInterviewSessionState,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -39,6 +44,10 @@ vi.mock("@/hooks/useInterviewPageController", () => ({
 }));
 
 import InterviewPage from "./page";
+
+const pageProps = {
+  params: Promise.resolve({ uuid: "interview-1" }),
+};
 
 function mockControllerState() {
   mocks.useInterviewPageController.mockReturnValue({
@@ -115,6 +124,7 @@ function mockControllerState() {
 describe("InterviewPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getInterviewSessionState.mockResolvedValue(null);
     mockControllerState();
   });
 
@@ -125,7 +135,7 @@ describe("InterviewPage", () => {
       throw redirectError;
     });
 
-    await expect(Promise.resolve().then(() => InterviewPage())).rejects.toBe(redirectError);
+    await expect(Promise.resolve().then(() => InterviewPage(pageProps))).rejects.toBe(redirectError);
 
     expect(mocks.getServerAuthSession).toHaveBeenCalledOnce();
     expect(mocks.redirect).toHaveBeenCalledWith("/login");
@@ -135,11 +145,27 @@ describe("InterviewPage", () => {
     mocks.getServerAuthSession.mockResolvedValue({
       session: { userId: "user-1" },
     });
+    mocks.getInterviewSessionState.mockResolvedValue({
+      id: "interview-1",
+      questionCount: 5,
+      persona: "strict",
+      type: "coding-algorithms",
+    });
 
-    const result = await InterviewPage();
+    const result = await InterviewPage(pageProps);
 
     expect(mocks.getServerAuthSession).toHaveBeenCalledOnce();
+    expect(mocks.getInterviewSessionState).toHaveBeenCalledWith({
+      interviewId: "interview-1",
+      userId: "user-1",
+    });
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(React.isValidElement(result)).toBe(true);
+    expect((result as React.ReactElement<{ initialSessionMeta?: unknown }>).props.initialSessionMeta).toEqual({
+      id: "interview-1",
+      questionCount: 5,
+      persona: "strict",
+      type: "coding-algorithms",
+    });
   });
 });

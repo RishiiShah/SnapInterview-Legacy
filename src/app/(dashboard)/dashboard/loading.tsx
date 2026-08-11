@@ -1,9 +1,7 @@
-import { FadeIn, SlideIn } from "@/components/ui/motion";
-
 export default function DashboardLoading() {
   return (
     <div className="mx-auto max-w-7xl space-y-11 pb-16 pt-2 xl:max-w-[88rem]">
-      <SlideIn>
+      <div>
         <header className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex items-end gap-3.5">
             <div className="h-[4.5rem] w-[3.15rem] animate-pulse rounded-md bg-white/[0.06] sm:h-[5.25rem] sm:w-[3.6rem]" />
@@ -22,9 +20,9 @@ export default function DashboardLoading() {
             </div>
           </div>
         </header>
-      </SlideIn>
+      </div>
 
-      <FadeIn direction="up">
+      <div>
         <section className="py-1">
           <div className="flex flex-col gap-7 lg:flex-row lg:justify-between">
             <div className="space-y-2">
@@ -42,9 +40,9 @@ export default function DashboardLoading() {
             </div>
           </div>
         </section>
-      </FadeIn>
+      </div>
 
-      <FadeIn delay={0.06} direction="up">
+      <div>
         <div className="space-y-3.5">
           <div className="h-7 w-40 animate-pulse rounded bg-white/[0.07]" />
           <div className="divide-y divide-white/[0.05]">
@@ -56,7 +54,7 @@ export default function DashboardLoading() {
             ))}
           </div>
         </div>
-      </FadeIn>
+      </div>
     </div>
   );
 }

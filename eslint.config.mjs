@@ -47,7 +47,7 @@ const eslintConfig = defineConfig([
       "src/app/login/page.tsx",
       "src/app/signup/page.tsx",
       "src/app/providers.tsx",
-      "src/app/(dashboard)/settings/page.tsx",
+      "src/app/(dashboard)/settings/SettingsPageClient.tsx",
       "src/app/(dashboard)/questions/[slug]/page.tsx",
       "src/app/interview/[uuid]/page.tsx",
     ],

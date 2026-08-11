@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -10,12 +10,20 @@ type ProfileTabProps = {
   userEmail: string;
   userImage?: string | null;
   initials: string;
+  /** `undefined` retains standalone client-fetch behavior; `null` means the server loaded no resume. */
+  initialResumeText?: string | null;
 };
 
 const darkInput =
   "w-full border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-[15px] text-[#F2F4F8] outline-none placeholder:text-[#6B7385] transition-colors focus:border-[#3B82F6] disabled:cursor-not-allowed disabled:text-[#A8B0C2]";
 
-export default function ProfileTab({ userName, userEmail, userImage, initials }: ProfileTabProps) {
+export default function ProfileTab({
+  userName,
+  userEmail,
+  userImage,
+  initials,
+  initialResumeText,
+}: ProfileTabProps) {
   const router = useRouter();
   const [name, setName] = useState(userName);
   const [savedName, setSavedName] = useState(userName);
@@ -23,24 +31,40 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
   const [profileSaved, setProfileSaved] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  const [resumeText, setResumeText] = useState<string | null>(null);
+  const [resumeText, setResumeText] = useState<string | null>(initialResumeText ?? null);
   const [resumeExpanded, setResumeExpanded] = useState(false);
-  const [resumeLoading, setResumeLoading] = useState(true);
+  const [resumeLoading, setResumeLoading] = useState(initialResumeText === undefined);
   const [resumeUploading, setResumeUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [confirmingClear, setConfirmingClear] = useState(false);
   const [resumeClearing, setResumeClearing] = useState(false);
   const [resumeError, setResumeError] = useState<string | null>(null);
+  const resumeRequestRef = useRef<Promise<{ resumeText: string | null } | null> | null>(null);
 
   useEffect(() => {
+    if (initialResumeText !== undefined) {
+      return;
+    }
+
     let cancelled = false;
-    fetch("/api/resume")
-      .then((res) => (res.ok ? (res.json() as Promise<{ resumeText: string | null }>) : null))
+    const request =
+      resumeRequestRef.current ??
+      fetch("/api/resume")
+        .then((res) =>
+          res.ok ? (res.json() as Promise<{ resumeText: string | null }>) : null,
+        )
+        .catch(() => null);
+
+    resumeRequestRef.current = request;
+    void request.finally(() => {
+      if (resumeRequestRef.current === request) {
+        resumeRequestRef.current = null;
+      }
+    });
+
+    void request
       .then((data) => {
         if (!cancelled) setResumeText(data?.resumeText ?? null);
-      })
-      .catch(() => {
-        if (!cancelled) setResumeText(null);
       })
       .finally(() => {
         if (!cancelled) setResumeLoading(false);
@@ -48,7 +72,7 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialResumeText]);
 
   async function handleSaveProfile() {
     const trimmedName = name.trim();

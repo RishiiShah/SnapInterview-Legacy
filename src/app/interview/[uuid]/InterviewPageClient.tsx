@@ -1,20 +1,21 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { AnimatePresence } from "framer-motion";
 import PreJoinScreen from "@/components/interview/PreJoinScreen";
-import ActiveInterviewScreen from "@/components/interview/ActiveInterviewScreen";
-import {
-  useInterviewPageController,
-  type InterviewSessionMeta,
-} from "@/hooks/useInterviewPageController";
+import { useInterviewPageController } from "@/hooks/useInterviewPageController";
 import Modal from "@/components/ui/Modal";
 
-export default function InterviewPageClient({
-  initialSessionMeta,
-}: {
-  initialSessionMeta?: InterviewSessionMeta;
-}) {
+const ActiveInterviewScreen = dynamic(
+  () => import("@/components/interview/ActiveInterviewScreen"),
+  {
+    ssr: false,
+    loading: () => <div className="min-h-screen bg-[#090d14]" aria-label="Loading interview" />,
+  },
+);
+
+export default function InterviewPageClient() {
   const params = useParams();
   const router = useRouter();
   const interviewId = params.uuid as string;
@@ -43,7 +44,7 @@ export default function InterviewPageClient({
     codingChallenge,
     modal,
     closeModal,
-  } = useInterviewPageController({ interviewId, initialSessionMeta });
+  } = useInterviewPageController({ interviewId });
 
   return (
     <>

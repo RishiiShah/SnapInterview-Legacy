@@ -14,41 +14,20 @@ import { coerceInterviewType, type InterviewType } from "@/lib/interview/domain"
 
 type UseInterviewPageControllerOptions = {
   interviewId: string;
-  initialSessionMeta?: InterviewSessionMeta;
-};
-
-export type InterviewSessionMeta = {
-  id: string;
-  questionCount: number;
-  persona: string | null;
-  type: string;
 };
 
 export function useInterviewPageController({
   interviewId,
-  initialSessionMeta,
 }: UseInterviewPageControllerOptions) {
   const router = useRouter();
-  const initialSessionMetaId = initialSessionMeta?.id;
-  const initialQuestionCount = initialSessionMeta?.questionCount;
-  const initialPersona = initialSessionMeta?.persona;
-  const initialInterviewType = initialSessionMeta?.type;
 
   const [showPreJoin, setShowPreJoin] = useState(true);
   const [interviewStarted, setInterviewStarted] = useState(false);
   const [interviewDone, setInterviewDone] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [totalQuestions, setTotalQuestions] = useState(
-    initialSessionMetaId === interviewId && typeof initialQuestionCount === "number" && initialQuestionCount > 0
-      ? initialQuestionCount
-      : 10,
-  );
-  const [persona, setPersona] = useState<string | null>(
-    initialSessionMetaId === interviewId ? initialPersona ?? null : null,
-  );
-  const [interviewType, setInterviewType] = useState<InterviewType | null>(
-    initialSessionMetaId === interviewId ? coerceInterviewType(initialInterviewType) : null,
-  );
+  const [totalQuestions, setTotalQuestions] = useState(10);
+  const [persona, setPersona] = useState<string | null>(null);
+  const [interviewType, setInterviewType] = useState<InterviewType | null>(null);
   const [joinBlockedReason, setJoinBlockedReason] = useState<BrowserBlockResult>(null);
 
   const [modal, setModal] = useState<{
@@ -145,6 +124,12 @@ export function useInterviewPageController({
     persona,
   });
   const { cancel: cancelTts, warmup: warmupTts } = tts;
+
+  // Preload TTS alongside local STT while the user is still on PreJoin. This
+  // keeps the first spoken response from competing with interview startup.
+  useEffect(() => {
+    warmupTts();
+  }, [warmupTts]);
 
   const requestPermissions = useCallback(() => {
     warmupTts();
@@ -322,17 +307,6 @@ export function useInterviewPageController({
         }
       }
 
-      if (initialSessionMetaId === interviewId) {
-        if (!isCancelled) {
-          applySessionMeta({
-            questionCount: initialQuestionCount,
-            persona: initialPersona,
-            type: initialInterviewType,
-          });
-        }
-        return;
-      }
-
       try {
         const res = await fetch(`/api/interview/session?interviewId=${encodeURIComponent(interviewId)}`);
         if (!res.ok) {
@@ -353,13 +327,7 @@ export function useInterviewPageController({
     return () => {
       isCancelled = true;
     };
-  }, [
-    initialInterviewType,
-    initialPersona,
-    initialQuestionCount,
-    initialSessionMetaId,
-    interviewId,
-  ]);
+  }, [interviewId]);
 
   useEffect(() => {
     onScreenShareEndedRef.current = () => {

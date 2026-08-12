@@ -156,20 +156,22 @@ describe("useInterviewPageController", () => {
     expect(mocks.routerPush).toHaveBeenCalledWith("/interview/other-interview");
   });
 
-  it("warms the voice engine in the same user action as requesting media permission", async () => {
+  it("warms the voice engine as soon as pre-join mounts and again with the permission action", async () => {
     const { requestPermissions } = setupHookMocks();
     const warmup = vi.fn();
     mocks.useStreamingTTS.mockReturnValue({ isSpeaking: false, warmup });
 
     const { result } = renderHook(() => useInterviewPageController({ interviewId: "interview-voice" }));
 
+    await waitFor(() => expect(warmup).toHaveBeenCalledTimes(1));
+
     await act(async () => {
       await result.current.requestPermissions();
     });
 
-    expect(warmup).toHaveBeenCalledTimes(1);
+    expect(warmup).toHaveBeenCalledTimes(2);
     expect(requestPermissions).toHaveBeenCalledTimes(1);
-    expect(warmup.mock.invocationCallOrder[0]).toBeLessThan(requestPermissions.mock.invocationCallOrder[0]!);
+    expect(warmup.mock.invocationCallOrder[1]).toBeLessThan(requestPermissions.mock.invocationCallOrder[0]!);
   });
 
   it("uses pending session metadata without requesting a session that does not exist yet", async () => {
@@ -198,24 +200,21 @@ describe("useInterviewPageController", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("uses server-provided session metadata without a duplicate client request", async () => {
+  it("loads metadata for an existing interview after pre-join has rendered", async () => {
     setupHookMocks();
-
-    const { result } = renderHook(() => useInterviewPageController({
-      interviewId: "interview-hydrated",
-      initialSessionMeta: {
-        id: "interview-hydrated",
-        questionCount: 5,
-        persona: "strict",
-        type: "coding-algorithms",
-      },
+    vi.mocked(fetch).mockResolvedValue(okJson({
+      questionCount: 5,
+      persona: "strict",
+      type: "coding-algorithms",
     }));
+
+    const { result } = renderHook(() => useInterviewPageController({ interviewId: "interview-hydrated" }));
 
     await waitFor(() => {
       expect(result.current.totalQuestions).toBe(5);
       expect(result.current.interviewType).toBe("coding-algorithms");
     });
-    expect(fetch).not.toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledWith("/api/interview/session?interviewId=interview-hydrated");
   });
 
   it("persists pending interview config before entering the interview", async () => {

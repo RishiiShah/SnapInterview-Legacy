@@ -3,7 +3,6 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getServerAuthSession: vi.fn(),
-  getInterviewSessionState: vi.fn(),
   redirect: vi.fn(),
   routerPush: vi.fn(),
   useInterviewPageController: vi.fn(),
@@ -11,10 +10,6 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/server-auth", () => ({
   getServerAuthSession: mocks.getServerAuthSession,
-}));
-
-vi.mock("@/services/interview-service", () => ({
-  getInterviewSessionState: mocks.getInterviewSessionState,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -124,7 +119,6 @@ function mockControllerState() {
 describe("InterviewPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getInterviewSessionState.mockResolvedValue(null);
     mockControllerState();
   });
 
@@ -141,31 +135,16 @@ describe("InterviewPage", () => {
     expect(mocks.redirect).toHaveBeenCalledWith("/login");
   });
 
-  it("checks the server auth session before rendering the interview experience", async () => {
+  it("renders a new interview after the server auth guard without querying session state", async () => {
     mocks.getServerAuthSession.mockResolvedValue({
       session: { userId: "user-1" },
-    });
-    mocks.getInterviewSessionState.mockResolvedValue({
-      id: "interview-1",
-      questionCount: 5,
-      persona: "strict",
-      type: "coding-algorithms",
     });
 
     const result = await InterviewPage(pageProps);
 
     expect(mocks.getServerAuthSession).toHaveBeenCalledOnce();
-    expect(mocks.getInterviewSessionState).toHaveBeenCalledWith({
-      interviewId: "interview-1",
-      userId: "user-1",
-    });
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(React.isValidElement(result)).toBe(true);
-    expect((result as React.ReactElement<{ initialSessionMeta?: unknown }>).props.initialSessionMeta).toEqual({
-      id: "interview-1",
-      questionCount: 5,
-      persona: "strict",
-      type: "coding-algorithms",
-    });
+    expect((result as React.ReactElement).props).toEqual({});
   });
 });

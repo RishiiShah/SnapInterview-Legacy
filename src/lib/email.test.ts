@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { sendEvaluationEmail, sendPracticeReminderEmail, sendWeeklyReportEmail } from "./email";
+import { publicAppUrl, sendEvaluationEmail, sendPracticeReminderEmail, sendWeeklyReportEmail } from "./email";
 
 const { sendMailMock } = vi.hoisted(() => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -60,5 +60,29 @@ describe("email templates", () => {
     expect(weeklyHtml).toContain("Hey &lt;Admin&gt;");
     expect(weeklyHtml).toContain("<strong>Backend &amp; &quot;API&quot;</strong>");
     expect(reminderHtml).toContain("Hey &lt;Admin&gt;");
+  });
+
+  it("uses the public app URL and identifies automated notification emails", async () => {
+    await sendWeeklyReportEmail({
+      to: "user@example.com",
+      name: "User",
+      sessionsCount: 1,
+      avgScore: 70,
+      bestRole: "Frontend Engineer",
+      bestScore: 70,
+    });
+
+    const message = sendMailMock.mock.calls[0]?.[0];
+    const html = message?.html as string;
+
+    expect(message?.subject).toBe("Your SnapInterview weekly progress report");
+    expect(html).toContain("https://snapinterview.app/analytics");
+    expect(html).not.toContain("localhost");
+    expect(html).toContain("This is an automated email. Please do not reply.");
+  });
+
+  it("does not use an IPv6 loopback app URL in notification links", async () => {
+    expect(publicAppUrl("http://[::1]:3000")).toBe("https://snapinterview.app");
+    expect(publicAppUrl("http://localhost.:3000")).toBe("https://snapinterview.app");
   });
 });

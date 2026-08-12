@@ -75,4 +75,11 @@ describe("retrieveQuestionsForSession", () => {
     exclusions.resolve([]);
     await expect(retrieval).resolves.toEqual([]);
   });
+
+  it("casts query embeddings through the extensions schema after pgvector is relocated", async () => {
+    await retrieveQuestionsForSession(session);
+
+    const [strings] = mocks.queryRaw.mock.calls[0] as [TemplateStringsArray];
+    expect(strings.join("?")).toContain("::extensions.vector");
+  });
 });

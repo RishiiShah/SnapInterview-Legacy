@@ -611,7 +611,7 @@ async function retrieve(
   const queryStartedAt = Date.now();
   const rows = await prisma.$queryRaw<CandidateRow[]>`
     SELECT "id", "question", "answer", "category", "difficulty", "roleTags",
-           (1 - ("embedding" <=> ${toVectorLiteral(queryVector)}::vector))
+           (1 - ("embedding" <=> ${toVectorLiteral(queryVector)}::extensions.vector))
              + CASE WHEN ${roleSlug} = ANY("roleTags")
                     THEN ${ROLE_MATCH_BOOST}::double precision ELSE 0 END
              AS similarity,

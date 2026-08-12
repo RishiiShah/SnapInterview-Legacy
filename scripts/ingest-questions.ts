@@ -208,7 +208,7 @@ async function upsert(record: CorpusRecord, embedding: number[]): Promise<void> 
       ${randomUUID()}, ${record.question}, ${record.answer}, ${record.category}, ${record.difficulty},
       ${record.types}::text[], ${record.roleTags}::text[], ${record.keywords}::text[],
       ${record.source}, ${record.contentHash},
-      ${toVectorLiteral(embedding)}::vector, NOW(), NOW()
+      ${toVectorLiteral(embedding)}::extensions.vector, NOW(), NOW()
     )
     ON CONFLICT ("contentHash") DO UPDATE SET
       "question"   = EXCLUDED."question",

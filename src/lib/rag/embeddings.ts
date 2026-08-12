@@ -102,7 +102,7 @@ export const localEmbedder: Embedder = {
 
 /**
  * Formats a vector as a pgvector literal. Prisma cannot bind the `vector` type,
- * so raw SQL takes it as a string and casts: `$1::vector`.
+ * so raw SQL takes it as a string and casts: `$1::extensions.vector`.
  */
 export function toVectorLiteral(vector: number[]): string {
   return `[${vector.join(",")}]`;

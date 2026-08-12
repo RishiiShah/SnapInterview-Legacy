@@ -156,6 +156,7 @@ describe("PracticePageClient", () => {
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
 
     expect(getByTestId("practice-step-two-actions").className).not.toContain("fixed");
+    expect(getByTestId("practice-step-two-actions").className).not.toContain("border-t");
     expect(screen.queryByTestId("practice-step-two-footer")).toBeNull();
     expect(screen.getByRole("button", { name: /^start interview$/i })).not.toBeNull();
   });

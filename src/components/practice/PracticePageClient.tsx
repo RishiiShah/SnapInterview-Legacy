@@ -532,7 +532,7 @@ export default function PracticePageClient({
       ) : (
         <div
           data-testid="practice-step-two-actions"
-          className="mt-8 flex items-center justify-between gap-3 border-t border-white/[0.08] pt-5"
+          className="mt-8 flex items-center justify-between gap-3 pt-5"
         >
           <button
             type="button"

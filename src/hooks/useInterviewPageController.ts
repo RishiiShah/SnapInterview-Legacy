@@ -14,17 +14,12 @@ import { coerceInterviewType, type InterviewType } from "@/lib/interview/domain"
 
 type UseInterviewPageControllerOptions = {
   interviewId: string;
-  initialSessionMeta?: InterviewSessionMeta;
 };
 
 export function useInterviewPageController({
   interviewId,
 }: UseInterviewPageControllerOptions) {
   const router = useRouter();
-  const initialSessionMetaId = initialSessionMeta?.id;
-  const initialQuestionCount = initialSessionMeta?.questionCount;
-  const initialPersona = initialSessionMeta?.persona;
-  const initialInterviewType = initialSessionMeta?.type;
 
   const [showPreJoin, setShowPreJoin] = useState(true);
   const [interviewStarted, setInterviewStarted] = useState(false);

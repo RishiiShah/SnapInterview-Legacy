@@ -76,10 +76,12 @@ describe("retrieveQuestionsForSession", () => {
     await expect(retrieval).resolves.toEqual([]);
   });
 
-  it("casts query embeddings through the extensions schema after pgvector is relocated", async () => {
+  it("qualifies pgvector types and cosine operators after relocation", async () => {
     await retrieveQuestionsForSession(session);
 
     const [strings] = mocks.queryRaw.mock.calls[0] as [TemplateStringsArray];
-    expect(strings.join("?")).toContain("::extensions.vector");
+    const sql = strings.join("?");
+    expect(sql).toContain("::extensions.vector");
+    expect(sql).toContain("OPERATOR(extensions.<=>)");
   });
 });

@@ -102,11 +102,11 @@ async function main() {
 
     const matches = await prisma.$queryRaw<MatchRow[]>`
       SELECT "question", "category", "source",
-             1 - ("embedding" <=> ${literal}::extensions.vector) AS similarity
+             1 - ("embedding" OPERATOR(extensions.<=>) ${literal}::extensions.vector) AS similarity
       FROM "QuestionCorpus"
       WHERE "embedding" IS NOT NULL
         AND "types" && ${probe.types}::text[]
-      ORDER BY "embedding" <=> ${literal}::extensions.vector
+      ORDER BY "embedding" OPERATOR(extensions.<=>) ${literal}::extensions.vector
       LIMIT 5
     `;
 
@@ -133,14 +133,14 @@ async function main() {
   const unfiltered = await prisma.$queryRaw<MatchRow[]>`
     SELECT "question" FROM "QuestionCorpus"
     WHERE "embedding" IS NOT NULL
-    ORDER BY "embedding" <=> ${literal}::extensions.vector
+    ORDER BY "embedding" OPERATOR(extensions.<=>) ${literal}::extensions.vector
     LIMIT 1
   `;
   const excluded = await prisma.$queryRaw<MatchRow[]>`
     SELECT "question" FROM "QuestionCorpus"
     WHERE "embedding" IS NOT NULL
       AND "question" <> ALL(${unfiltered.map((r) => r.question)}::text[])
-    ORDER BY "embedding" <=> ${literal}::extensions.vector
+    ORDER BY "embedding" OPERATOR(extensions.<=>) ${literal}::extensions.vector
     LIMIT 1
   `;
 

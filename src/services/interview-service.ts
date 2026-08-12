@@ -1,5 +1,6 @@
 import { Prisma, type InterviewStatus } from "@/generated/prisma/client";
 import { INTERVIEW_DONE_MESSAGE } from "@/lib/interview/constants";
+import { INTERVIEW_RESUME_WINDOW_MS } from "@/lib/interview/resume-expiry";
 import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 import {
   normalizePromptInterviewSession,
@@ -19,12 +20,14 @@ import { logger } from "@/utils/logger";
 import {
   advanceInterviewCurrentQuestion,
   createInterviewSession,
+  expireInterviewSessionIfStale,
   getInterviewSession,
   updateInterviewSessionStatus,
 } from "@/repositories/interview-repo";
 
 export const ALLOWED_STATUSES = ["COMPLETED", "ABORTED"] as const;
 export const ALLOWED_QUESTION_COUNTS = [5, 10, 15] as const satisfies readonly InterviewQuestionCount[];
+export { INTERVIEW_RESUME_WINDOW_MS } from "@/lib/interview/resume-expiry";
 
 function deriveAdaptiveFocusAreas(params: {
   type: InterviewType;
@@ -88,6 +91,28 @@ function buildAdaptiveSessionPlan(params: {
 
 export async function getInterviewSessionState(params: { userId: string; interviewId: string }) {
   return getInterviewSession({ ...params, view: "state" });
+}
+
+export async function getResumableInterviewSessionState(params: {
+  userId: string;
+  interviewId: string;
+  now?: Date;
+}) {
+  const { userId, interviewId, now = new Date() } = params;
+  const cutoff = new Date(now.getTime() - INTERVIEW_RESUME_WINDOW_MS);
+  const expired = await expireInterviewSessionIfStale({ interviewId, userId, cutoff });
+
+  if (expired) {
+    invalidateInterviewMetricsCache(userId);
+    return { type: "expired" as const };
+  }
+
+  const session = await getInterviewSession({ interviewId, userId, view: "state" });
+  if (!session || session.status !== "IN_PROGRESS") {
+    return { type: "not_found" as const };
+  }
+
+  return { type: "ok" as const, data: session };
 }
 
 export async function startInterviewSession(params: StartInterviewSessionInput) {
@@ -198,6 +223,7 @@ export async function runInterviewChat(params: {
   abortSignal?: AbortSignal;
 }): Promise<
   | { type: "not_found" }
+  | { type: "expired" }
   | { type: "error"; message: string }
   | { type: "conflict"; message: string; currentQuestion: number }
   | { type: "done"; data: { done: true; currentQuestion: number; doneMessage: string } }
@@ -205,9 +231,15 @@ export async function runInterviewChat(params: {
 > {
   const { userId, interviewId, rawMessages, expectedCurrentQuestion, abortSignal } = params;
   const messages = sanitizeChatMessages(rawMessages);
+  const cutoff = new Date(Date.now() - INTERVIEW_RESUME_WINDOW_MS);
+
+  if (await expireInterviewSessionIfStale({ interviewId, userId, cutoff })) {
+    invalidateInterviewMetricsCache(userId);
+    return { type: "expired" };
+  }
 
   const interviewSession = await getInterviewSession({ interviewId, userId, view: "chat" });
-  if (!interviewSession) {
+  if (!interviewSession || interviewSession.status !== "IN_PROGRESS") {
     return { type: "not_found" };
   }
 

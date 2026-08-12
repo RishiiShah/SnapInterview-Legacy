@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getServerAuthSession } from "@/lib/server-auth";
-import { getInterviewSessionState } from "@/services/interview-service";
 import InterviewPageClient from "./InterviewPageClient";
 
 export default async function InterviewPage({
@@ -8,7 +7,7 @@ export default async function InterviewPage({
 }: {
   params: Promise<{ uuid: string }>;
 }) {
-  const [session, { uuid: interviewId }] = await Promise.all([
+  const [session] = await Promise.all([
     getServerAuthSession(),
     params,
   ]);
@@ -18,15 +17,7 @@ export default async function InterviewPage({
     redirect("/login");
   }
 
-  const interview = await getInterviewSessionState({ interviewId, userId });
-  const initialSessionMeta = interview
-    ? {
-        id: interview.id,
-        questionCount: interview.questionCount,
-        persona: interview.persona,
-        type: interview.type,
-      }
-    : undefined;
-
-  return <InterviewPageClient initialSessionMeta={initialSessionMeta} />;
+  // A newly-created UUID has no persisted session until the user joins from
+  // PreJoin. Avoid holding that screen behind a guaranteed empty DB lookup.
+  return <InterviewPageClient />;
 }

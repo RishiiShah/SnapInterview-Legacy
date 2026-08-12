@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PATCH, POST } from "./route";
+import { GET, PATCH, POST } from "./route";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { verifyMultipartCompletionToken } from "@/lib/s3/multipart-upload-token";
-import { startInterviewSession, updateSessionStatusIfOwned } from "@/services/interview-service";
+import { getResumableInterviewSessionState, startInterviewSession, updateSessionStatusIfOwned } from "@/services/interview-service";
 import { warmEmbeddingModel } from "@/lib/rag/embeddings";
 
 const { mockRateLimitState } = vi.hoisted(() => ({
@@ -31,10 +31,25 @@ vi.mock("@/lib/rate-limit", () => ({
 
 vi.mock("@/services/interview-service", () => ({
   startInterviewSession: vi.fn(),
+  getResumableInterviewSessionState: vi.fn(),
   updateSessionStatusIfOwned: vi.fn(),
   ALLOWED_STATUSES: ["COMPLETED", "ABORTED"],
   ALLOWED_QUESTION_COUNTS: [5, 10, 15],
 }));
+
+describe("GET /api/interview/session", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns 410 when the interview expired", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
+    vi.mocked(getResumableInterviewSessionState).mockResolvedValue({ type: "expired" });
+
+    const response = await GET(new Request("http://localhost/api/interview/session?interviewId=11111111-1111-4111-8111-111111111111"));
+
+    expect(response.status).toBe(410);
+    await expect(response.json()).resolves.toEqual({ error: "This interview expired after 24 hours." });
+  });
+});
 
 vi.mock("@/lib/rag/embeddings", () => ({
   warmEmbeddingModel: vi.fn(),

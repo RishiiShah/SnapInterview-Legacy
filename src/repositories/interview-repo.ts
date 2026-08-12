@@ -27,6 +27,7 @@ const interviewSessionStateSelect = {
 
 const interviewSessionChatSelect = {
   id: true,
+  status: true,
   role: true,
   company: true,
   type: true,
@@ -186,6 +187,58 @@ export async function updateInterviewSessionStatus(params: {
       status: true,
     },
   });
+}
+
+export async function expireInterviewSessionIfStale(params: {
+  interviewId: string;
+  userId: string;
+  cutoff: Date;
+}): Promise<boolean> {
+  const { interviewId, userId, cutoff } = params;
+  const result = await prisma.interviewSession.updateMany({
+    where: {
+      id: interviewId,
+      userId,
+      status: "IN_PROGRESS",
+      deletedAt: null,
+      createdAt: { lte: cutoff },
+    },
+    data: { status: "COMPLETED" },
+  });
+
+  return result.count === 1;
+}
+
+export async function completeExpiredInterviewSessions(params: {
+  cutoff: Date;
+  limit: number;
+}): Promise<number> {
+  const { cutoff, limit } = params;
+  const staleSessions = await prisma.interviewSession.findMany({
+    where: {
+      status: "IN_PROGRESS",
+      deletedAt: null,
+      createdAt: { lte: cutoff },
+    },
+    select: { id: true },
+    orderBy: { createdAt: "asc" },
+    take: limit,
+  });
+
+  const ids = staleSessions.map((session) => session.id);
+  if (ids.length === 0) return 0;
+
+  const result = await prisma.interviewSession.updateMany({
+    where: {
+      id: { in: ids },
+      status: "IN_PROGRESS",
+      deletedAt: null,
+      createdAt: { lte: cutoff },
+    },
+    data: { status: "COMPLETED" },
+  });
+
+  return result.count;
 }
 
 /**

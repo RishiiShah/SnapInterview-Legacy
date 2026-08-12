@@ -198,24 +198,74 @@ describe("useInterviewPageController", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("uses server-provided session metadata without a duplicate client request", async () => {
+  it("loads metadata for an existing interview after pre-join has rendered", async () => {
     setupHookMocks();
-
-    const { result } = renderHook(() => useInterviewPageController({
-      interviewId: "interview-hydrated",
-      initialSessionMeta: {
-        id: "interview-hydrated",
-        questionCount: 5,
-        persona: "strict",
-        type: "coding-algorithms",
-      },
+    vi.mocked(fetch).mockResolvedValue(okJson({
+      questionCount: 5,
+      persona: "strict",
+      type: "coding-algorithms",
     }));
+
+    const { result } = renderHook(() => useInterviewPageController({ interviewId: "interview-hydrated" }));
 
     await waitFor(() => {
       expect(result.current.totalQuestions).toBe(5);
       expect(result.current.interviewType).toBe("coding-algorithms");
     });
-    expect(fetch).not.toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledWith("/api/interview/session?interviewId=interview-hydrated");
+  });
+
+  it("blocks an expired interview and clears only its matching active hint", async () => {
+    setupHookMocks();
+    localStorage.setItem("active_interview_id", "interview-expired");
+    vi.mocked(fetch).mockResolvedValue(new Response(
+      JSON.stringify({ error: "This interview expired after 24 hours." }),
+      { status: 410, headers: { "Content-Type": "application/json" } },
+    ));
+
+    const { result } = renderHook(() => useInterviewPageController({ interviewId: "interview-expired" }));
+
+    await waitFor(() => expect(result.current.resumeExpired).toBe(true));
+    expect(localStorage.getItem("active_interview_id")).toBeNull();
+
+    await act(async () => {
+      await result.current.handlePermissionsGranted();
+    });
+    expect(result.current.interviewStarted).toBe(false);
+  });
+
+  it("waits for existing-session metadata after screen-share begins before entering the interview", async () => {
+    let resolveMetadata: ((response: Response) => void) | undefined;
+    const metadata = new Promise<Response>((resolve) => {
+      resolveMetadata = resolve;
+    });
+    const startScreenRecording = vi.fn(async (_stream: MediaStream | undefined, sessionPromise?: Promise<void>) => {
+      await sessionPromise;
+      return true;
+    });
+    setupHookMocks({ startScreenRecording });
+    vi.mocked(fetch).mockReturnValue(metadata);
+
+    const { result } = renderHook(() => useInterviewPageController({ interviewId: "interview-existing" }));
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/interview/session?interviewId=interview-existing"));
+
+    void result.current.handlePermissionsGranted();
+
+    await waitFor(() => expect(startScreenRecording).toHaveBeenCalledOnce());
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(result.current.interviewStarted).toBe(false);
+
+    resolveMetadata?.(okJson({ questionCount: 5, persona: "strict", type: "coding-algorithms" }));
+
+    await waitFor(() => {
+      expect(result.current.interviewStarted).toBe(true);
+      expect(result.current.totalQuestions).toBe(5);
+      expect(result.current.interviewType).toBe("coding-algorithms");
+    });
   });
 
   it("persists pending interview config before entering the interview", async () => {
@@ -308,6 +358,34 @@ describe("useInterviewPageController", () => {
       status: "COMPLETED",
       stopVideoRecording: expect.any(Function),
     });
+    expect(mocks.routerPush).toHaveBeenCalledWith("/analytics");
+  });
+
+  it("redirects immediately when the interview completes and finalizes upload in the background", async () => {
+    const stopVideoRecording = vi.fn().mockResolvedValue(null);
+    setupHookMocks({ stopVideoRecording });
+
+    const chatOptions: { setInterviewDone?: (done: boolean) => void } = {};
+    mocks.useChatSession.mockImplementation((options: { setInterviewDone: (done: boolean) => void }) => {
+      chatOptions.setInterviewDone = options.setInterviewDone;
+      return {
+        messages: [],
+        currentStreamedText: "",
+        lastCompletedAiText: "",
+        isThinking: false,
+      };
+    });
+    const cancel = vi.fn();
+    mocks.useStreamingTTS.mockReturnValue({ isSpeaking: false, warmup: vi.fn(), cancel });
+
+    renderHook(() => useInterviewPageController({ interviewId: "interview-done" }));
+
+    await act(async () => {
+      chatOptions.setInterviewDone?.(true);
+    });
+
+    expect(cancel).toHaveBeenCalled();
+    expect(mocks.scheduleInterviewFinalize).toHaveBeenCalled();
     expect(mocks.routerPush).toHaveBeenCalledWith("/analytics");
   });
 

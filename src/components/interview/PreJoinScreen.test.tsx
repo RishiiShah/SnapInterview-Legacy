@@ -36,6 +36,7 @@ vi.mock("@/components/interview/PermissionRequest", () => ({
 function createProps(
   ttsStatus: "idle" | "loading" | "ready" | "fallback" | "error",
   sttStatus?: "idle" | "loading" | "ready" | "error",
+  resumeExpired = false,
 ): PreJoinScreenProps {
   return {
     onBack: vi.fn(),
@@ -48,6 +49,7 @@ function createProps(
     joinBlockedReason: null,
     ttsStatus,
     sttStatus,
+    resumeExpired,
   };
 }
 
@@ -75,5 +77,12 @@ describe("PreJoinScreen", () => {
     render(<PreJoinScreen {...createProps("ready", "error")} />);
 
     expect(screen.getByText(/type your answers/i)).toBeTruthy();
+  });
+
+  it("blocks Join now when the interview has expired", () => {
+    render(<PreJoinScreen {...createProps("ready", undefined, true)} />);
+
+    expect(screen.getByText("This interview expired after 24 hours. Start a new interview to continue.")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: /join now/i }).at(-1)?.hasAttribute("disabled")).toBe(true);
   });
 });

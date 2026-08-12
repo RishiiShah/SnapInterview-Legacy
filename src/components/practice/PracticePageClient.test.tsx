@@ -141,4 +141,23 @@ describe("PracticePageClient", () => {
     expect((screen.getByPlaceholderText("Optional") as HTMLInputElement).value).toBe("OpenAI");
     expect(fetch).not.toHaveBeenCalled();
   });
+
+  it("uses an inline step-two action row instead of a fixed footer", () => {
+    const { getByTestId } = render(
+      <PracticePageClient
+        retakeDefaults={{
+          role: "Frontend Developer",
+          type: "behavioral-leadership",
+          difficulty: "medium",
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+
+    expect(getByTestId("practice-step-two-actions").className).not.toContain("fixed");
+    expect(getByTestId("practice-step-two-actions").className).not.toContain("border-t");
+    expect(screen.queryByTestId("practice-step-two-footer")).toBeNull();
+    expect(screen.getByRole("button", { name: /^start interview$/i })).not.toBeNull();
+  });
 });

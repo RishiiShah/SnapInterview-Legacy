@@ -4,6 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import {
+  MAX_RESUME_PDF_LABEL,
+  parseResumeUploadResponse,
+  validateResumeFile,
+} from "@/lib/resume-upload";
 
 type ProfileTabProps = {
   userName: string;
@@ -112,18 +117,19 @@ export default function ProfileTab({
   }
 
   async function handleResumeUpload(file: File) {
+    const fileError = validateResumeFile(file);
+    if (fileError) {
+      setUploadError(fileError);
+      return;
+    }
+
     setResumeUploading(true);
     setUploadError(null);
     const formData = new FormData();
     formData.append("resume", file);
     try {
       const res = await fetch("/api/resume/parse", { method: "POST", body: formData });
-      if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
-        throw new Error(data.error ?? "Failed to process resume");
-      }
-      const data = (await res.json()) as { resumeText: string };
-      setResumeText(data.resumeText);
+      setResumeText(await parseResumeUploadResponse(res));
       setResumeExpanded(false);
       setConfirmingClear(false);
     } catch (err) {
@@ -211,7 +217,7 @@ export default function ProfileTab({
           <div>
             <h3 className="text-[15px] font-medium text-[#F2F4F8]">Saved resume</h3>
             <p className="mt-1 text-xs text-[#A8B0C2]">
-              Used to personalize AI interview questions. PDF only, max 5 MB.
+              Used to personalize AI interview questions. PDF only, max {MAX_RESUME_PDF_LABEL}.
             </p>
           </div>
           {!resumeLoading && !resumeUploading && resumeText && (
@@ -313,7 +319,7 @@ export default function ProfileTab({
                   <p className="text-[15px] text-[#E8ECF4] transition-colors group-hover:text-[#F2F4F8]">
                     Upload resume
                   </p>
-                  <p className="mt-0.5 text-[12px] text-[#A8B0C2]">PDF only · max 5 MB</p>
+                  <p className="mt-0.5 text-[12px] text-[#A8B0C2]">PDF only · max {MAX_RESUME_PDF_LABEL}</p>
                 </div>
                 <span className="text-sm text-[#60A5FA] transition-colors group-hover:text-[#93C5FD]">
                   Browse

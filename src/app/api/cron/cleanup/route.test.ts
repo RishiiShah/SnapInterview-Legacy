@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "./route";
 
-const { cleanupExpiredRateLimitBuckets } = vi.hoisted(() => ({
+const { cleanupExpiredRateLimitBuckets, completeExpiredInterviewSessions } = vi.hoisted(() => ({
   cleanupExpiredRateLimitBuckets: vi.fn().mockResolvedValue(0),
+  completeExpiredInterviewSessions: vi.fn().mockResolvedValue(0),
 }));
 
 vi.mock("@/lib/env", () => ({
@@ -14,6 +15,7 @@ vi.mock("@/utils/logger", () => ({
 }));
 
 vi.mock("@/lib/rate-limit", () => ({ cleanupExpiredRateLimitBuckets }));
+vi.mock("@/repositories/interview-repo", () => ({ completeExpiredInterviewSessions }));
 
 function makeRequest(authHeader?: string) {
   return new Request("http://localhost/api/cron/cleanup", {
@@ -36,13 +38,15 @@ describe("GET /api/cron/cleanup", () => {
     expect(res.status).toBe(401);
   });
 
-  it("removes one bounded batch of expired rate-limit buckets", async () => {
+  it("removes one bounded batch of expired rate-limit buckets and completes stale interviews", async () => {
     cleanupExpiredRateLimitBuckets.mockResolvedValueOnce(23);
+    completeExpiredInterviewSessions.mockResolvedValueOnce(17);
 
     const res = await GET(makeRequest("Bearer test-secret") as never);
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toEqual({ deleted: 23 });
+    expect(body).toEqual({ deleted: 23, completedInterviews: 17 });
     expect(cleanupExpiredRateLimitBuckets).toHaveBeenCalledWith(5_000);
+    expect(completeExpiredInterviewSessions).toHaveBeenCalledWith(expect.objectContaining({ limit: 500 }));
   });
 });

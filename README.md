@@ -147,6 +147,6 @@ Vercel build runs `prisma generate` via `postinstall` only; it does **not** appl
 
 | Endpoint | Schedule (UTC) | Purpose |
 | --- | --- | --- |
-| `/api/cron/cleanup` | Daily at 02:00 | Remove a bounded batch of expired rate-limit buckets. |
+| `/api/cron/cleanup` | Daily at 02:00 | Remove expired rate-limit buckets and complete a bounded batch of interviews older than 24 hours. |
 | `/api/cron/practice-reminder` | Daily at 09:00 | Send practice reminders. |
 | `/api/cron/weekly-report` | Monday at 08:00 | Send weekly progress reports. |

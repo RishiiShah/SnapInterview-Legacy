@@ -13,6 +13,7 @@ export type PreJoinScreenProps = {
   onPermissionsGranted: () => void;
   ttsStatus: BrowserTtsStatus;
   sttStatus?: SttWorkerStatus;
+  resumeExpired: boolean;
 } & Omit<PermissionRequestProps, "isOpen" | "onPermissionsGranted">;
 
 export default function PreJoinScreen({
@@ -20,6 +21,7 @@ export default function PreJoinScreen({
   onPermissionsGranted,
   ttsStatus,
   sttStatus,
+  resumeExpired,
   hasPermission,
   isLoading,
   error,
@@ -42,9 +44,10 @@ export default function PreJoinScreen({
   stream,
 }: PreJoinScreenProps) {
   const [showCompatibilityPopup, setShowCompatibilityPopup] = useState(false);
-  const canJoin = hasPermission === true;
+  const canJoin = hasPermission === true && !resumeExpired;
 
   function handleJoin() {
+    if (resumeExpired) return;
     if (joinBlockedReason?.severity === "block") {
       setShowCompatibilityPopup(true);
       return;
@@ -143,6 +146,12 @@ export default function PreJoinScreen({
           </div>
         ) : null}
 
+        {resumeExpired ? (
+          <div className="mb-6 border-b border-amber-500/30 pb-3 text-sm text-amber-200/90" role="status">
+            This interview expired after 24 hours. Start a new interview to continue.
+          </div>
+        ) : null}
+
         <PermissionRequest
           isOpen={true}
           onPermissionsGranted={onPermissionsGranted}
@@ -181,7 +190,9 @@ export default function PreJoinScreen({
               ? isCameraEnabled
                 ? "Mic and camera ready"
                 : "Mic ready · camera optional"
-              : "Allow the microphone to continue"}
+              : resumeExpired
+                ? "This interview can no longer be resumed"
+                : "Allow the microphone to continue"}
           </p>
           <button
             type="button"

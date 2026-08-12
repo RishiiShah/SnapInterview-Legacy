@@ -61,6 +61,7 @@ describe("Interview Lifecycle Integration", () => {
     // 2. Run Chat (one turn)
     vi.mocked(interviewRepo.getInterviewSession).mockResolvedValue({
       id: interviewId,
+      status: "IN_PROGRESS",
       questionCount: 5,
       currentQuestion: 0,
       role: "Software Engineer",

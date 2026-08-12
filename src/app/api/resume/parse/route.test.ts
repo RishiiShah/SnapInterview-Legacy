@@ -5,10 +5,13 @@ import { getSessionUserIdentity } from "@/lib/server-auth";
 import { saveUserResume } from "@/repositories/user-repo";
 import { logger } from "@/utils/logger";
 
-const { pdfGetText, pdfDestroy } = vi.hoisted(() => ({
+const { pdfGetText, pdfDestroy, pdfParseConstructor } = vi.hoisted(() => ({
   pdfGetText: vi.fn(),
   pdfDestroy: vi.fn().mockResolvedValue(undefined),
+  pdfParseConstructor: vi.fn(),
 }));
+
+const canvasFactory = vi.hoisted(() => ({ name: "ServerCanvasFactory" }));
 
 const { mockRateLimitState } = vi.hoisted(() => ({
   mockRateLimitState: {
@@ -20,8 +23,14 @@ vi.mock("pdf-parse", () => ({
   PDFParse: class MockPDFParse {
     getText = pdfGetText;
     destroy = pdfDestroy;
-    constructor() {}
+    constructor(options: unknown) {
+      pdfParseConstructor(options);
+    }
   },
+}));
+
+vi.mock("pdf-parse/worker", () => ({
+  CanvasFactory: canvasFactory,
 }));
 
 vi.mock("@/lib/csrf", () => ({
@@ -134,6 +143,17 @@ describe("POST /api/resume/parse", () => {
     expect(body.resumeText).toBe("John Doe\n\nSoftware Engineer");
     expect(saveUserResume).toHaveBeenCalledWith("u1", "John Doe\n\nSoftware Engineer");
     expect(pdfDestroy).toHaveBeenCalled();
+  });
+
+  it("initializes the parser with the server canvas factory", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "u1", email: "a@b.com" });
+    pdfGetText.mockResolvedValue({ text: "Resume content" });
+
+    await POST(makeRequest() as never);
+
+    expect(pdfParseConstructor).toHaveBeenCalledWith(
+      expect.objectContaining({ CanvasFactory: canvasFactory })
+    );
   });
 
   it("caps resume text at 8000 characters", async () => {

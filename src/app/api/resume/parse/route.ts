@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { CanvasFactory } from "pdf-parse/worker";
 import { PDFParse } from "pdf-parse";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { createRateLimiter } from "@/lib/rate-limit";
@@ -59,7 +60,7 @@ export const POST = withCsrfProtection(async (req: NextRequest) => {
     }
 
     let rawText: string;
-    const parser = new PDFParse({ data: bytes });
+    const parser = new PDFParse({ data: bytes, CanvasFactory });
     try {
       const result = await withTimeout(
         parser.getText(),

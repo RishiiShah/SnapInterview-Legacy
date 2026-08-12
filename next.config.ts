@@ -50,7 +50,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  serverExternalPackages: ["pdf-parse"],
+  // pdf-parse loads its canvas dependency dynamically in Node. Externalizing
+  // both packages ensures Vercel traces the native module into the function.
+  serverExternalPackages: ["pdf-parse", "@napi-rs/canvas"],
 };
 
 export default nextConfig;

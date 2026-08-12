@@ -85,7 +85,7 @@ async function main() {
 
   // ── 2. Stored vectors have the dimensions the column promises ───────────
   const [dims] = await prisma.$queryRaw<{ dims: number }[]>`
-    SELECT vector_dims("embedding") AS dims
+    SELECT extensions.vector_dims("embedding") AS dims
     FROM "QuestionCorpus"
     WHERE "embedding" IS NOT NULL
     LIMIT 1

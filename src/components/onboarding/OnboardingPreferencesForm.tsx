@@ -182,6 +182,7 @@ export default function OnboardingPreferencesForm({
           }
           options={COMPANIES}
           placeholder="Company, or General"
+          allowCustomValue={false}
           tone={tone}
         />
 

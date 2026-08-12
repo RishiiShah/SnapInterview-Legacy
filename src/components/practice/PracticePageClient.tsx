@@ -315,6 +315,7 @@ export default function PracticePageClient({
                   options={COMPANIES}
                   placeholder="Optional"
                   isOptional
+                  allowCustomValue={false}
                   tone="dark"
                 />
 

@@ -1,12 +1,11 @@
 // @vitest-environment jsdom
 
 import { StrictMode } from "react";
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   questionLeftPanel: vi.fn(),
-  questionRightPanel: vi.fn(),
 }));
 
 vi.mock("@/hooks/useResizableSplit", () => ({
@@ -18,12 +17,6 @@ vi.mock("@/components/questions/QuestionLeftPanel", () => ({
     return <div />;
   },
 }));
-vi.mock("@/components/questions/QuestionRightPanel", () => ({
-  QuestionRightPanel: (props: unknown) => {
-    mocks.questionRightPanel(props);
-    return <div />;
-  },
-}));
 
 import QuestionDetailPageClient from "./QuestionDetailPageClient";
 
@@ -31,9 +24,9 @@ describe("QuestionDetailPageClient", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+    vi.useRealTimers();
     localStorage.clear();
     mocks.questionLeftPanel.mockClear();
-    mocks.questionRightPanel.mockClear();
   });
 
   it("uses the server-provided solved state without fetching after hydration", async () => {
@@ -96,16 +89,91 @@ describe("QuestionDetailPageClient", () => {
       />,
     );
 
-    await waitFor(() => {
-      expect(mocks.questionRightPanel).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          answerText: "I would first clarify the trade-off.",
-          isTimerStarted: true,
-          timeRemaining: 245,
-        }),
-      );
-    });
+    await screen.findByDisplayValue("I would first clarify the trade-off.");
+    expect(screen.getByText("4:05")).toBeTruthy();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps counting down while the answer changes", () => {
+    vi.useFakeTimers();
+
+    render(
+      <QuestionDetailPageClient
+        question={{
+          id: 42,
+          slug: "strict-mode-question",
+          text: "Describe an important technical tradeoff.",
+          category: "technical",
+          difficulty: "medium",
+          estimatedTime: "5 min",
+          tags: [],
+        }}
+        currentIndex={0}
+        totalQuestions={1}
+        prevQuestion={null}
+        nextQuestion={null}
+        initialIsSolved={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Start Question" }));
+    const answer = screen.getByPlaceholderText("Type your answer here…");
+    fireEvent.change(answer, { target: { value: "First sentence." } });
+
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    fireEvent.change(answer, { target: { value: "First sentence. Second sentence." } });
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    expect(screen.getByText("4:59")).toBeTruthy();
+  });
+
+  it("submits the answer typed during the timer's final second", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ score: 80, feedback: "Good answer." }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <QuestionDetailPageClient
+        question={{
+          id: 42,
+          slug: "strict-mode-question",
+          text: "Describe an important technical tradeoff.",
+          category: "technical",
+          difficulty: "medium",
+          estimatedTime: "1 min",
+          tags: [],
+        }}
+        currentIndex={0}
+        totalQuestions={1}
+        prevQuestion={null}
+        nextQuestion={null}
+        initialIsSolved={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Start Question" }));
+    act(() => {
+      vi.advanceTimersByTime(59_000);
+    });
+    fireEvent.change(screen.getByPlaceholderText("Type your answer here…"), {
+      target: { value: "A final-second answer." },
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/questions/evaluate",
+      expect.objectContaining({
+        body: JSON.stringify({ questionId: 42, answer: "A final-second answer." }),
+      }),
+    );
   });
 
   it("sends the intended solved state instead of relying on a server-side toggle", async () => {

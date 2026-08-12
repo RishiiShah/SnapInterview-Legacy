@@ -15,6 +15,7 @@ import { extractLatestAnsweredPair, sanitizeChatMessages } from "@/lib/interview
 import { saveLatestTranscriptEntry } from "@/lib/interview/transcript-service";
 import { groqClient } from "@/lib/ai/groq";
 import { prisma } from "@/lib/prisma";
+import { isCuratedCompany } from "@/lib/company-options";
 import { withRetry } from "@/utils/retry";
 import { logger } from "@/utils/logger";
 import {
@@ -129,7 +130,10 @@ export async function startInterviewSession(params: StartInterviewSessionInput) 
   const questionCount: InterviewQuestionCount = params.questionCount ?? 10;
   const persona: InterviewPersona = params.persona ?? "balanced";
   const role = params.role || user?.onboardingRole || "Generalist";
-  const company = params.company ?? user?.onboardingCompany ?? null;
+  const onboardingCompany = user?.onboardingCompany;
+  const company = params.company ?? (
+    onboardingCompany && isCuratedCompany(onboardingCompany) ? onboardingCompany : null
+  );
 
   const focusAreas = deriveAdaptiveFocusAreas({
     type: params.type,

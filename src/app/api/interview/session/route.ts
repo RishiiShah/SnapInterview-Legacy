@@ -21,11 +21,15 @@ import { withCsrfProtection } from "@/lib/route-security";
 import { verifyMultipartCompletionToken } from "@/lib/s3/multipart-upload-token";
 import { warmEmbeddingModel } from "@/lib/rag/embeddings";
 import { logger } from "@/utils/logger";
+import { isCuratedCompany } from "@/lib/company-options";
 
 const createSessionSchema = z.object({
     id: interviewIdSchema.optional(),
     role: z.string().trim().min(1, "Role is required").max(200),
-    company: z.string().trim().max(200).optional().default(""),
+    company: z.string().trim().max(200).refine(
+        (value) => value === "" || isCuratedCompany(value),
+        "Choose a company from the curated list",
+    ).optional().default(""),
     type: interviewTypeSchema,
     difficulty: interviewDifficultySchema,
     persona: interviewPersonaSchema.optional(),

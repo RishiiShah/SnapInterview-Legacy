@@ -7,9 +7,10 @@ interface SearchableDropdownProps {
     label: string;
     value: string;
     onChange: (value: string) => void;
-    options: string[];
+    options: readonly string[];
     placeholder?: string;
     isOptional?: boolean;
+    allowCustomValue?: boolean;
     /** Dashboard pages use dark; onboarding keeps light. */
     tone?: "light" | "dark";
 }
@@ -21,17 +22,19 @@ export default function SearchableDropdown({
     options,
     placeholder = "Search or type...",
     isOptional = false,
+    allowCustomValue = true,
     tone = "light",
 }: SearchableDropdownProps) {
     const [open, setOpen] = useState(false);
     const [hoveredIndex, setHoveredIndex] = useState(-1);
+    const [searchTerm, setSearchTerm] = useState(value);
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
     const dark = tone === "dark";
 
     const filteredOptions = options.filter((option) =>
-        option.toLowerCase().includes(value.toLowerCase())
+        option.toLowerCase().includes((allowCustomValue ? value : searchTerm).toLowerCase())
     );
 
     useEffect(() => {
@@ -88,6 +91,7 @@ export default function SearchableDropdown({
 
     const selectOption = (option: string) => {
         onChange(option);
+        setSearchTerm(option);
         setOpen(false);
         setHoveredIndex(-1);
     };
@@ -127,13 +131,20 @@ export default function SearchableDropdown({
                     <input
                         ref={inputRef}
                         type="text"
-                        value={value}
+                        value={allowCustomValue || !open ? value : searchTerm}
                         onChange={(e) => {
-                            onChange(e.target.value);
+                            if (allowCustomValue) {
+                                onChange(e.target.value);
+                            } else {
+                                setSearchTerm(e.target.value);
+                            }
                             setHoveredIndex(-1);
                             if (!open) setOpen(true);
                         }}
-                        onFocus={() => setOpen(true)}
+                        onFocus={() => {
+                            if (!allowCustomValue) setSearchTerm("");
+                            setOpen(true);
+                        }}
                         onKeyDown={handleKeyDown}
                         placeholder={placeholder}
                         className={`w-full bg-transparent outline-none ${

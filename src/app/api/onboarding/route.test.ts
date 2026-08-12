@@ -128,6 +128,30 @@ describe("/api/onboarding", () => {
     await expect(response.json()).resolves.toEqual({ error: "Target role is required" });
   });
 
+  it("PUT rejects companies outside the curated list", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
+
+    const request = new Request("http://localhost/api/onboarding", {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: JSON.stringify({
+        onboardingRole: "Frontend Engineer",
+        onboardingLevel: "mid-level",
+        onboardingCompany: "Pornhub",
+        onboardingGoal: "switch-companies",
+        preferredInterviewType: "technical",
+      }),
+    });
+
+    const response = await PUT(request);
+
+    expect(prisma.user.update).not.toHaveBeenCalled();
+    expect(response.status).toBe(400);
+  });
+
   it("PUT rejects oversized onboarding text fields", async () => {
     vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
 

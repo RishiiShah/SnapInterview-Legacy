@@ -23,6 +23,11 @@ import { extractResumeHighlights } from "@/lib/interview/resume-highlights";
 import { IconPlay, IconSpinner, IconXMark } from "@/components/ui/icons";
 import { isLocalTtsEnabled } from "@/lib/tts/browser-tts";
 import { getSharedKokoroWorkerClient } from "@/lib/tts/kokoro-worker-client";
+import {
+  MAX_RESUME_PDF_LABEL,
+  parseResumeUploadResponse,
+  validateResumeFile,
+} from "@/lib/resume-upload";
 
 type PracticePageClientProps = {
   retakeDefaults?: PracticeRetakeDefaults;
@@ -160,6 +165,13 @@ export default function PracticePageClient({
   }, [initialDefaults, retakeDifficulty, retakeRole, retakeType]);
 
   async function handleResumeUpload(file: File) {
+    const fileError = validateResumeFile(file);
+    if (fileError) {
+      setResumeError(fileError);
+      setResumeName("");
+      return;
+    }
+
     setResumeName(file.name);
     setResumeUploading(true);
     setResumeError(null);
@@ -170,12 +182,7 @@ export default function PracticePageClient({
 
     try {
       const res = await fetch("/api/resume/parse", { method: "POST", body: formData });
-      if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
-        throw new Error(data.error ?? "Failed to process resume");
-      }
-      const data = (await res.json()) as { resumeText: string };
-      setResumeText(data.resumeText);
+      setResumeText(await parseResumeUploadResponse(res));
     } catch (err) {
       setResumeError(err instanceof Error ? err.message : "Failed to process resume");
       setResumeName("");
@@ -450,7 +457,7 @@ export default function PracticePageClient({
                     <label className="flex cursor-pointer items-center justify-between gap-3 border-b border-dashed border-white/[0.14] py-2.5 transition-colors hover:border-[#3B82F6]/55">
                       <span>
                         <span className="block text-[15px] text-[#E8ECF4]">Upload PDF resume</span>
-                        <span className="mt-0.5 block text-[12px] text-[#6B7385]">max 5 MB</span>
+                        <span className="mt-0.5 block text-[12px] text-[#6B7385]">max {MAX_RESUME_PDF_LABEL}</span>
                       </span>
                       <span className="shrink-0 text-[12px] text-[#8B93A7]">Recommended</span>
                       <input

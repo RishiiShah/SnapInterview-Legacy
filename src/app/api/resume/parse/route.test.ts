@@ -46,7 +46,7 @@ vi.mock("@/utils/logger", () => ({
   logger: { error: vi.fn() },
 }));
 
-const MAX_SIZE = 5 * 1024 * 1024;
+const MAX_SIZE = 4 * 1024 * 1024;
 
 function makePdfFile(sizeBytes = 1024, name = "resume.pdf") {
   const bytes = new Uint8Array(sizeBytes);
@@ -115,7 +115,7 @@ describe("POST /api/resume/parse", () => {
     expect(pdfGetText).not.toHaveBeenCalled();
   });
 
-  it("returns 400 when file exceeds 5 MB", async () => {
+  it("returns 400 when file exceeds 4 MB", async () => {
     vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "u1", email: "a@b.com" });
     const oversized = makePdfFile(MAX_SIZE + 1);
     const res = await POST(makeRequest(oversized) as never);
@@ -180,5 +180,20 @@ describe("POST /api/resume/parse", () => {
 
     await POST(makeRequest() as never);
     expect(pdfDestroy).toHaveBeenCalledOnce();
+  });
+
+  it("returns a JSON error when saving the parsed resume fails", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "u1", email: "a@b.com" });
+    pdfGetText.mockResolvedValue({ text: "Resume content" });
+    vi.mocked(saveUserResume).mockRejectedValueOnce(new Error("Database unavailable"));
+
+    const res = await POST(makeRequest() as never);
+
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: "Failed to process resume. Please try again." });
+    expect(logger.error).toHaveBeenCalledWith("Resume processing error", expect.objectContaining({
+      error: "Database unavailable",
+      userId: "u1",
+    }));
   });
 });

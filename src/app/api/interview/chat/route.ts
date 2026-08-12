@@ -13,16 +13,17 @@ import { withCsrfProtection } from "@/lib/route-security";
 import { interviewIdSchema } from "@/lib/interview/domain";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
+import { MAX_MESSAGE_LENGTH, MAX_MESSAGES } from "@/lib/interview/chat-messages";
 
 const chatSchema = z.object({
   interviewId: interviewIdSchema,
   expectedCurrentQuestion: z.number().int().min(0),
   messages: z.array(
     z.object({
-      role: z.string().min(1),
-      content: z.string(),
+      role: z.enum(["user", "assistant"]),
+      content: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
     })
-  ),
+  ).max(MAX_MESSAGES),
 });
 
 const interviewChatLimiter = createRateLimiter("interview-chat", 60 * 1000, 30);

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getServerAuthSession } from "@/lib/server-auth";
+import { getInterviewSessionState } from "@/services/interview-service";
 import InterviewPageClient from "./InterviewPageClient";
 
 export default async function InterviewPage({

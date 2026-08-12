@@ -45,7 +45,7 @@ export default function InterviewPageClient() {
     codingChallenge,
     modal,
     closeModal,
-  } = useInterviewPageController({ interviewId });
+  } = useInterviewPageController({ interviewId, initialSessionMeta });
 
   return (
     <>

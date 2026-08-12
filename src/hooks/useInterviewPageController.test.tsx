@@ -388,4 +388,32 @@ describe("useInterviewPageController", () => {
     expect(mocks.scheduleInterviewFinalize).toHaveBeenCalled();
     expect(mocks.routerPush).toHaveBeenCalledWith("/analytics");
   });
+
+  it("redirects immediately when the interview completes and finalizes upload in the background", async () => {
+    const stopVideoRecording = vi.fn().mockResolvedValue(null);
+    setupHookMocks({ stopVideoRecording });
+
+    const chatOptions: { setInterviewDone?: (done: boolean) => void } = {};
+    mocks.useChatSession.mockImplementation((options: { setInterviewDone: (done: boolean) => void }) => {
+      chatOptions.setInterviewDone = options.setInterviewDone;
+      return {
+        messages: [],
+        currentStreamedText: "",
+        lastCompletedAiText: "",
+        isThinking: false,
+      };
+    });
+    const cancel = vi.fn();
+    mocks.useStreamingTTS.mockReturnValue({ isSpeaking: false, warmup: vi.fn(), cancel });
+
+    renderHook(() => useInterviewPageController({ interviewId: "interview-done" }));
+
+    await act(async () => {
+      chatOptions.setInterviewDone?.(true);
+    });
+
+    expect(cancel).toHaveBeenCalled();
+    expect(mocks.scheduleInterviewFinalize).toHaveBeenCalled();
+    expect(mocks.routerPush).toHaveBeenCalledWith("/analytics");
+  });
 });

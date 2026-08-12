@@ -257,9 +257,12 @@ export default function PracticePageClient({
   }, [step, role]);
 
   return (
-    <div className="mx-auto w-full max-w-4xl pb-20 pt-6 xl:max-w-5xl">
+    <div
+      data-testid="practice-page"
+      className={`mx-auto w-full max-w-4xl xl:max-w-5xl ${step === 2 ? "pb-0 pt-4" : "pb-20 pt-6"}`}
+    >
       {/* Soft progress */}
-      <div className="mb-10 flex items-center gap-3">
+      <div className={`${step === 2 ? "mb-6" : "mb-10"} flex items-center gap-3`}>
         <div className="flex items-baseline gap-2">
           <p className="font-mono text-[11px] tabular-nums text-[#6B7385]">
             {step}/2
@@ -364,7 +367,7 @@ export default function PracticePageClient({
 
           {/* ─── Step 2: Context + start ─── */}
           {step === 2 ? (
-            <div className="space-y-12 pb-16">
+            <div data-testid="practice-step-two" className="space-y-8 pb-0">
               <div>
                 <h1 className="font-display text-[2.15rem] leading-[1.15] tracking-[-0.03em] text-[#F2F4F8] sm:text-[2.6rem] xl:text-[2.85rem]">
                   Ready when you are
@@ -379,7 +382,7 @@ export default function PracticePageClient({
                 ) : null}
               </div>
 
-              <div className="space-y-8">
+              <div className="space-y-6">
                 <div>
                   <SelectDropdown
                     label="Persona"
@@ -527,45 +530,35 @@ export default function PracticePageClient({
           </button>
         </div>
       ) : (
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-4 pb-5 pt-12 sm:px-6 lg:px-10 xl:px-14 2xl:px-20">
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#0C0E14] via-[#0C0E14]/92 to-transparent"
-            aria-hidden
-          />
-          <div className="pointer-events-auto relative mx-auto flex w-full max-w-4xl items-center justify-between gap-3 xl:max-w-5xl">
-            <button
-              type="button"
-              onClick={goBack}
-              className="cursor-pointer text-sm text-[#A8B0C2] transition-colors hover:text-[#E8ECF4]"
-            >
-              Back
-            </button>
-            <div className="flex min-w-0 items-center gap-3">
-              {sessionBrief ? (
-                <p className="hidden max-w-[14rem] truncate font-mono text-[11px] text-[#6B7385] sm:block lg:max-w-xs">
-                  {sessionBrief}
-                </p>
-              ) : null}
-              <button
-                type="button"
-                onClick={handleStart}
-                disabled={!trimmedRole || started}
-                className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-[#3B82F6] px-5 text-sm font-medium text-white transition-colors hover:bg-[#4B8FF7] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {started ? (
-                  <>
-                    <IconSpinner className="h-4 w-4 animate-spin" />
-                    Starting…
-                  </>
-                ) : (
-                  <>
-                    <IconPlay className="h-4 w-4 fill-current" />
-                    Start Interview
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
+        <div
+          data-testid="practice-step-two-actions"
+          className="mt-8 flex items-center justify-between gap-3 border-t border-white/[0.08] pt-5"
+        >
+          <button
+            type="button"
+            onClick={goBack}
+            className="cursor-pointer text-sm text-[#A8B0C2] transition-colors hover:text-[#E8ECF4]"
+          >
+            Back
+          </button>
+          <button
+            type="button"
+            onClick={handleStart}
+            disabled={!trimmedRole || started}
+            className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-[#3B82F6] px-5 text-sm font-medium text-white transition-colors hover:bg-[#4B8FF7] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {started ? (
+              <>
+                <IconSpinner className="h-4 w-4 animate-spin" />
+                Starting…
+              </>
+            ) : (
+              <>
+                <IconPlay className="h-4 w-4 fill-current" />
+                Start Interview
+              </>
+            )}
+          </button>
         </div>
       )}
     </div>

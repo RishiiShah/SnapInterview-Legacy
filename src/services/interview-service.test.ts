@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { INTERVIEW_DONE_MESSAGE } from "@/lib/interview/constants";
 import { Prisma } from "@/generated/prisma/client";
-import { runInterviewChat, startInterviewSession, updateSessionStatusIfOwned } from "./interview-service";
-import { advanceInterviewCurrentQuestion, createInterviewSession, getInterviewSession, updateInterviewSessionStatus } from "@/repositories/interview-repo";
+import { getResumableInterviewSessionState, runInterviewChat, startInterviewSession, updateSessionStatusIfOwned } from "./interview-service";
+import { advanceInterviewCurrentQuestion, createInterviewSession, expireInterviewSessionIfStale, getInterviewSession, updateInterviewSessionStatus } from "@/repositories/interview-repo";
 import { saveLatestTranscriptEntry } from "@/lib/interview/transcript-service";
 import { prisma } from "@/lib/prisma";
 
@@ -11,6 +11,7 @@ vi.mock("@/repositories/interview-repo", () => ({
   createInterviewSession: vi.fn(),
   advanceInterviewCurrentQuestion: vi.fn(),
   updateInterviewSessionStatus: vi.fn(),
+  expireInterviewSessionIfStale: vi.fn(),
 }));
 
 vi.mock("@/lib/interview/transcript-service", () => ({
@@ -41,8 +42,10 @@ describe("runInterviewChat", () => {
   });
 
   it("saves the latest transcript entry before returning done", async () => {
+    vi.mocked(expireInterviewSessionIfStale).mockResolvedValue(false);
     vi.mocked(getInterviewSession).mockResolvedValue({
       id: "int-1",
+      status: "IN_PROGRESS",
       role: "Frontend Engineer",
       company: null,
       type: "behavioral-leadership",
@@ -87,8 +90,10 @@ describe("runInterviewChat", () => {
   });
 
   it("returns a conflict when the client question index is stale", async () => {
+    vi.mocked(expireInterviewSessionIfStale).mockResolvedValue(false);
     vi.mocked(getInterviewSession).mockResolvedValue({
       id: "int-2",
+      status: "IN_PROGRESS",
       role: "Frontend Engineer",
       company: null,
       type: "behavioral-leadership",
@@ -116,6 +121,45 @@ describe("runInterviewChat", () => {
       type: "conflict",
       message: "Interview state changed. Please wait for the current question to finish loading and try again.",
       currentQuestion: 1,
+    });
+  });
+
+  it("rejects an expired interview before transcript or model work", async () => {
+    vi.mocked(expireInterviewSessionIfStale).mockResolvedValue(true);
+
+    const result = await runInterviewChat({
+      userId: "user-1",
+      interviewId: "int-expired",
+      rawMessages: [{ role: "user", content: "answer" }],
+      expectedCurrentQuestion: 0,
+    });
+
+    expect(result).toEqual({ type: "expired" });
+    expect(getInterviewSession).not.toHaveBeenCalled();
+    expect(saveLatestTranscriptEntry).not.toHaveBeenCalled();
+  });
+});
+
+describe("getResumableInterviewSessionState", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("expires an in-progress session at the exact 24-hour cutoff", async () => {
+    const now = new Date("2026-08-12T12:00:00.000Z");
+    vi.mocked(expireInterviewSessionIfStale).mockResolvedValue(true);
+
+    const result = await getResumableInterviewSessionState({
+      userId: "user-1",
+      interviewId: "int-expired",
+      now,
+    });
+
+    expect(result).toEqual({ type: "expired" });
+    expect(expireInterviewSessionIfStale).toHaveBeenCalledWith({
+      userId: "user-1",
+      interviewId: "int-expired",
+      cutoff: new Date("2026-08-11T12:00:00.000Z"),
     });
   });
 });

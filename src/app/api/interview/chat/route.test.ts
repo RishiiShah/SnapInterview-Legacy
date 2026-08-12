@@ -104,4 +104,17 @@ describe("POST /api/interview/chat", () => {
       currentQuestion: 1,
     });
   });
+
+  it("returns 410 when the interview expired", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "u@example.com" });
+    vi.mocked(runInterviewChat).mockResolvedValue({ type: "expired" });
+
+    const response = await POST(new Request("http://localhost/api/interview/chat", {
+      method: "POST",
+      body: JSON.stringify({ interviewId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", expectedCurrentQuestion: 0, messages: [] }),
+    }));
+
+    expect(response.status).toBe(410);
+    await expect(response.json()).resolves.toEqual({ error: "This interview expired after 24 hours." });
+  });
 });

@@ -27,6 +27,7 @@ const interviewSessionStateSelect = {
 
 const interviewSessionChatSelect = {
   id: true,
+  status: true,
   role: true,
   company: true,
   type: true,

@@ -12,7 +12,7 @@ import { createRateLimiter } from "@/lib/rate-limit";
 import { z } from "zod/v4";
 import {
     ALLOWED_STATUSES,
-    getInterviewSessionState,
+    getResumableInterviewSessionState,
     startInterviewSession,
     updateSessionStatusIfOwned,
 } from "@/services/interview-service";
@@ -57,16 +57,20 @@ export async function GET(req: Request) {
         }
         const interviewId = parsedId.data;
 
-        const interviewSession = await getInterviewSessionState({
+        const result = await getResumableInterviewSessionState({
             interviewId,
             userId: authUser.userId,
         });
 
-        if (!interviewSession) {
+        if (result.type === "expired") {
+            return apiError("This interview expired after 24 hours.", 410);
+        }
+
+        if (result.type === "not_found") {
             return notFoundError("Interview session not found");
         }
 
-        return apiJson(interviewSession);
+        return apiJson(result.data);
     } catch (error) {
         logger.error("Get interview session error", {
             error: error instanceof Error ? error.message : String(error),

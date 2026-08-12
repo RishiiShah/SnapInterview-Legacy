@@ -1,5 +1,6 @@
 import {
   apiJson,
+  apiError,
   badRequestError,
   internalServerError,
   notFoundError,
@@ -57,6 +58,10 @@ export const POST = withCsrfProtection(async (req: Request) => {
 
     if (result.type === "not_found") {
       return notFoundError("Interview session not found");
+    }
+
+    if (result.type === "expired") {
+      return apiError("This interview expired after 24 hours.", 410);
     }
 
     if (result.type === "error") {

@@ -27,6 +27,7 @@ export default function InterviewPageClient() {
     totalQuestions,
     interviewType,
     joinBlockedReason,
+    resumeExpired,
     answeredQuestions,
     questionProgressPercent,
     chatScrollContainerRef,
@@ -78,6 +79,7 @@ export default function InterviewPageClient() {
           toggleMic={media.toggleMic}
           toggleCamera={media.toggleCamera}
           joinBlockedReason={joinBlockedReason}
+          resumeExpired={resumeExpired}
           stream={media.stream}
         />
       )}

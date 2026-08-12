@@ -215,6 +215,25 @@ describe("useInterviewPageController", () => {
     expect(fetch).toHaveBeenCalledWith("/api/interview/session?interviewId=interview-hydrated");
   });
 
+  it("blocks an expired interview and clears only its matching active hint", async () => {
+    setupHookMocks();
+    localStorage.setItem("active_interview_id", "interview-expired");
+    vi.mocked(fetch).mockResolvedValue(new Response(
+      JSON.stringify({ error: "This interview expired after 24 hours." }),
+      { status: 410, headers: { "Content-Type": "application/json" } },
+    ));
+
+    const { result } = renderHook(() => useInterviewPageController({ interviewId: "interview-expired" }));
+
+    await waitFor(() => expect(result.current.resumeExpired).toBe(true));
+    expect(localStorage.getItem("active_interview_id")).toBeNull();
+
+    await act(async () => {
+      await result.current.handlePermissionsGranted();
+    });
+    expect(result.current.interviewStarted).toBe(false);
+  });
+
   it("waits for existing-session metadata after screen-share begins before entering the interview", async () => {
     let resolveMetadata: ((response: Response) => void) | undefined;
     const metadata = new Promise<Response>((resolve) => {

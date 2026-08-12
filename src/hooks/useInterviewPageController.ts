@@ -29,6 +29,7 @@ export function useInterviewPageController({
   const [persona, setPersona] = useState<string | null>(null);
   const [interviewType, setInterviewType] = useState<InterviewType | null>(null);
   const [joinBlockedReason, setJoinBlockedReason] = useState<BrowserBlockResult>(null);
+  const [resumeExpired, setResumeExpired] = useState(false);
 
   const [modal, setModal] = useState<{
     isOpen: boolean;
@@ -50,6 +51,7 @@ export function useInterviewPageController({
   const isExitingRef = useRef(false);
   const hasCheckedResumeRef = useRef(false);
   const isMountedRef = useRef(true);
+  const resumeExpiredRef = useRef(false);
   const sessionMetaPromiseRef = useRef<Promise<void> | null>(null);
   const chatMessagesRef = useRef<typeof chat.messages>([]);
   const handleExitInterviewRef = useRef<(opts?: { skipConfirmation?: boolean }) => Promise<void>>(async () => {});
@@ -164,6 +166,16 @@ export function useInterviewPageController({
       }
 
       const res = await fetch(`/api/interview/session?interviewId=${encodeURIComponent(interviewId)}`);
+      if (res.status === 410) {
+        resumeExpiredRef.current = true;
+        if (isMountedRef.current) {
+          setResumeExpired(true);
+        }
+        if (localStorage.getItem("active_interview_id") === interviewId) {
+          localStorage.removeItem("active_interview_id");
+        }
+        return;
+      }
       if (!res.ok) {
         throw new Error(`Failed to load interview session metadata (${res.status})`);
       }
@@ -217,6 +229,8 @@ export function useInterviewPageController({
     // We must call startScreenRecording synchronously here to preserve the user gesture 
     // context required by Safari for getDisplayMedia.
 
+    if (resumeExpiredRef.current) return;
+
     const pendingRaw = sessionStorage.getItem(`pending_interview_${interviewId}`);
     let sessionPromise: Promise<void>;
     
@@ -242,6 +256,7 @@ export function useInterviewPageController({
 
     const started = await startScreenRecording(media.stream || undefined, sessionPromise);
     if (!started) {
+      if (resumeExpiredRef.current) return;
       setModal({
         isOpen: true,
         title: "Screen Recording Required",
@@ -378,6 +393,7 @@ export function useInterviewPageController({
     totalQuestions,
     interviewType,
     joinBlockedReason,
+    resumeExpired,
     answeredQuestions,
     questionProgressPercent,
     chatScrollContainerRef,

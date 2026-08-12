@@ -45,7 +45,7 @@ describe("runInterviewChat", () => {
       id: "int-1",
       role: "Frontend Engineer",
       company: null,
-      type: "behavioral",
+      type: "behavioral-leadership",
       difficulty: "medium",
       persona: null,
       jobDescription: null,
@@ -91,7 +91,7 @@ describe("runInterviewChat", () => {
       id: "int-2",
       role: "Frontend Engineer",
       company: null,
-      type: "behavioral",
+      type: "behavioral-leadership",
       difficulty: "medium",
       persona: null,
       jobDescription: null,
@@ -179,7 +179,7 @@ describe("startInterviewSession", () => {
       userId: "user-2",
       role: "Frontend Engineer",
       company: "Acme",
-      type: "behavioral",
+      type: "behavioral-leadership",
       difficulty: "medium",
     });
 
@@ -190,7 +190,7 @@ describe("startInterviewSession", () => {
         persona: "balanced",
         questionCount: 10,
         focusAreas: [
-          "behavioral fundamentals",
+          "behavioral-leadership fundamentals",
           "structured communication",
         ],
         sessionPlan: {
@@ -215,6 +215,7 @@ describe("updateSessionStatusIfOwned", () => {
     vi.mocked(getInterviewSession).mockResolvedValue({
       id: "int-4",
       status: "IN_PROGRESS",
+      type: "coding-algorithms",
       persona: null,
       videoUrl: null,
       videoKey: null,

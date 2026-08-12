@@ -15,8 +15,8 @@ export default async function DashboardLayout({
     }
 
     return (
-        <DashboardShell>
-            {children}
+        <DashboardShell session={session}>
+          {children}
         </DashboardShell>
     );
 }

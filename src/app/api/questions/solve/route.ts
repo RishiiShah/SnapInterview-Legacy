@@ -7,10 +7,16 @@ import { logger } from "@/utils/logger";
 
 const toggleSolvedSchema = z.object({
   questionId: z.number().int().positive(),
+  solved: z.boolean(),
 });
 
 async function getAuthedUserId() {
   const session = await getServerAuthSession();
+  const sessionUserId = session?.user?.id ?? session?.session?.userId;
+  if (sessionUserId) {
+    return sessionUserId;
+  }
+
   const email = session?.user?.email?.toLowerCase();
   if (!email) return null;
 
@@ -59,31 +65,21 @@ export const POST = withCsrfProtection(async (req: Request) => {
       return badRequestError(message);
     }
 
-    const { questionId } = parsed.data;
+    const { questionId, solved } = parsed.data;
 
-    const existing = await prisma.solvedQuestion.findUnique({
-      where: {
-        userId_questionId: {
-          userId,
-          questionId,
-        },
-      },
-      select: { id: true },
-    });
-
-    if (existing) {
-      await prisma.solvedQuestion.delete({ where: { id: existing.id } });
-      return apiJson({ solved: false, questionId });
+    if (solved) {
+      await prisma.solvedQuestion.upsert({
+        where: { userId_questionId: { userId, questionId } },
+        update: {},
+        create: { userId, questionId },
+      });
+    } else {
+      await prisma.solvedQuestion.deleteMany({
+        where: { userId, questionId },
+      });
     }
 
-    await prisma.solvedQuestion.create({
-      data: {
-        userId,
-        questionId,
-      },
-    });
-
-    return apiJson({ solved: true, questionId });
+    return apiJson({ solved, questionId });
   } catch (error) {
     logger.error("Toggle solved question error:", {
       error: error instanceof Error ? error.message : String(error),

@@ -12,6 +12,7 @@ import {
 import { headers } from "next/headers";
 import { withCsrfProtection } from "@/lib/route-security";
 import { logger } from "@/utils/logger";
+import { mapWithConcurrency } from "@/lib/async";
 
 const securityActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("revoke"), sessionId: z.string().min(1) }),
@@ -23,6 +24,7 @@ const securityActionSchema = z.discriminatedUnion("action", [
 ]);
 
 const ACTIVITY_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
+const SESSION_REVOCATION_CONCURRENCY = 5;
 
 async function revokeSessionsByIds(params: {
   sessionIds: string[];
@@ -41,12 +43,12 @@ async function revokeSessionsByIds(params: {
     select: { id: true, token: true },
   });
 
-  for (const target of targets) {
-    await auth.api.revokeSession({
+  await mapWithConcurrency(targets, SESSION_REVOCATION_CONCURRENCY, (target) =>
+    auth.api.revokeSession({
       headers: requestHeaders,
       body: { token: target.token },
-    });
-  }
+    }),
+  );
 
   return targets.length;
 }

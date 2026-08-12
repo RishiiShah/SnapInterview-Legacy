@@ -1,62 +1,51 @@
-import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
-
 export default function AnalyticsLoading() {
   return (
-    <div className="w-full space-y-7">
-      <SlideIn>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="space-y-3">
-            <div className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-700">
-              Reading Your Interview Patterns
-            </div>
-            <p className="max-w-xl text-sm text-zinc-500">
-              Building a quick view of your strongest responses, repeated misses, and momentum over time.
-            </p>
-          </div>
-          <div className="h-10 w-40 animate-pulse rounded-xl bg-zinc-100" />
+    <div className="mx-auto max-w-7xl space-y-11 pb-16 pt-2 xl:max-w-[88rem]">
+      <div>
+        <div className="space-y-3">
+          <div className="h-9 w-44 animate-pulse rounded bg-white/[0.06]" />
+          <div className="h-4 w-72 max-w-full animate-pulse rounded bg-white/[0.04]" />
         </div>
-      </SlideIn>
-
-      <FadeInStagger triggerOnView={false} className="grid gap-3.5 sm:grid-cols-3">
-        {[...Array(3)].map((_, i) => (
-          <FadeInStaggerItem key={i} className="rounded-2xl border border-zinc-200 bg-white p-4.5">
-            <div className="mb-3 h-4 w-24 animate-pulse rounded bg-zinc-100" />
-            <div className="mb-2 h-8 w-16 animate-pulse rounded-lg bg-zinc-200" />
-            <div className="h-3 w-32 animate-pulse rounded bg-zinc-50" />
-          </FadeInStaggerItem>
-        ))}
-      </FadeInStagger>
-
-      <div className="grid gap-4.5 lg:grid-cols-2">
-        <FadeIn delay={0.08} direction="up" className="rounded-xl border border-zinc-200 bg-white p-6">
-          <div className="mb-6 h-5 w-40 animate-pulse rounded bg-zinc-200" />
-          <div className="h-48 w-full animate-pulse rounded bg-sky-50" />
-        </FadeIn>
-        <FadeIn delay={0.12} direction="up" className="rounded-xl border border-zinc-200 bg-white p-6">
-          <div className="mb-6 h-5 w-40 animate-pulse rounded bg-zinc-200" />
-          <div className="h-48 w-full animate-pulse rounded bg-sky-50" />
-        </FadeIn>
       </div>
 
-      <div className="grid gap-6 pb-8 lg:grid-cols-2">
-        <FadeIn delay={0.16} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
-          <div className="mb-2 h-5 w-32 animate-pulse rounded bg-zinc-200" />
-          <div className="mb-5 h-3 w-48 animate-pulse rounded bg-zinc-100" />
-          <div className="space-y-2.5">
-            {[...Array(3)].map((_, j) => (
-              <div key={`s-${j}`} className="h-12 w-full animate-pulse rounded-lg bg-zinc-50" />
+      <div>
+        <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="mb-2 h-3 w-24 animate-pulse rounded bg-white/[0.05]" />
+            <div className="h-14 w-28 animate-pulse rounded bg-white/[0.08]" />
+          </div>
+          <div>
+            <dl className="grid grid-cols-3 gap-x-8 gap-y-5">
+              {[0, 1, 2].map((key) => (
+                <div key={key}>
+                  <div className="mb-2 h-3 w-16 animate-pulse rounded bg-white/[0.05]" />
+                  <div className="h-7 w-12 animate-pulse rounded bg-white/[0.07]" />
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-10 border-t border-white/[0.06] pt-10 lg:grid-cols-2">
+        <div>
+          <div className="mb-5 h-6 w-40 animate-pulse rounded bg-white/[0.06]" />
+          <div className="h-40 w-full animate-pulse rounded bg-white/[0.03]" />
+        </div>
+        <div>
+          <div className="mb-5 h-6 w-32 animate-pulse rounded bg-white/[0.06]" />
+          <div className="space-y-5">
+            {[...Array(4)].map((_, j) => (
+              <div key={j}>
+                <div className="mb-2 flex justify-between">
+                  <div className="h-3.5 w-24 animate-pulse rounded bg-white/[0.05]" />
+                  <div className="h-3.5 w-8 animate-pulse rounded bg-white/[0.05]" />
+                </div>
+                <div className="h-px w-full bg-white/[0.06]" />
+              </div>
             ))}
           </div>
-        </FadeIn>
-        <FadeIn delay={0.2} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-6">
-          <div className="mb-2 h-5 w-32 animate-pulse rounded bg-zinc-200" />
-          <div className="mb-5 h-3 w-48 animate-pulse rounded bg-zinc-100" />
-          <div className="space-y-2.5">
-            {[...Array(3)].map((_, j) => (
-              <div key={`w-${j}`} className="h-12 w-full animate-pulse rounded-lg bg-zinc-50" />
-            ))}
-          </div>
-        </FadeIn>
+        </div>
       </div>
     </div>
   );

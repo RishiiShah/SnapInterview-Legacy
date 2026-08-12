@@ -1,4 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { unstable_cache } from "next/cache";
 
 import AdminAnalyticsDashboard from "@/components/admin/AdminAnalyticsDashboard";
 import { getAdminDailySignupCounts } from "@/lib/admin/analytics-queries";
@@ -6,6 +7,7 @@ import { normalizeTranscriptEvaluation } from "@/lib/interview/evaluation";
 import { prisma } from "@/lib/prisma";
 
 const hasEvaluation = { not: "DbNull" } satisfies Prisma.JsonNullableFilter;
+const ADMIN_ANALYTICS_TAG = "admin-analytics-v1";
 
 type AiHealthTone = "default" | "warn" | "danger" | "good";
 
@@ -21,7 +23,7 @@ function addDays(date: Date, days: number) {
   return d;
 }
 
-export default async function AdminAnalyticsPage() {
+async function loadAdminAnalyticsData() {
   const now = new Date();
   const today = startOfDay(now);
   const last14Start = addDays(today, -13);
@@ -209,18 +211,27 @@ export default async function AdminAnalyticsPage() {
     },
   ];
 
-  return (
-    <AdminAnalyticsDashboard
-      userBase={userBase}
-      funnel={funnel}
-      retention={retention}
-      aiHealthCards={aiHealthCards}
-      averageScore={averageScore}
-      subScores={{
-        communication: getSubScoreAvg("communication"),
-        technicalDepth: getSubScoreAvg("technicalDepth"),
-        clarity: getSubScoreAvg("clarity"),
-      }}
-    />
-  );
+  return {
+    userBase,
+    funnel,
+    retention,
+    aiHealthCards,
+    averageScore,
+    subScores: {
+      communication: getSubScoreAvg("communication"),
+      technicalDepth: getSubScoreAvg("technicalDepth"),
+      clarity: getSubScoreAvg("clarity"),
+    },
+  };
+}
+
+const getAdminAnalyticsData = unstable_cache(
+  loadAdminAnalyticsData,
+  [ADMIN_ANALYTICS_TAG],
+  { revalidate: 60, tags: [ADMIN_ANALYTICS_TAG] },
+);
+
+export default async function AdminAnalyticsPage() {
+  const analytics = await getAdminAnalyticsData();
+  return <AdminAnalyticsDashboard {...analytics} />;
 }

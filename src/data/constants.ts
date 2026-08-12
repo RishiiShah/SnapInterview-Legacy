@@ -1,10 +1,12 @@
-import { NavItem, SearchItem, Difficulty, InterviewType, InterviewPersona } from "./types";
+import { NavItem, SearchItem, Difficulty, InterviewType, InterviewPersona, QuestionCategory } from "./types";
+import { INTERVIEW_TYPE_META, INTERVIEW_TYPE_VALUES } from "@/lib/interview/domain";
 
 /* ─────────────── Navigation Items ─────────────── */
 export const NAV_ITEMS: NavItem[] = [
     { label: "Dashboard", href: "/dashboard", icon: null },
     { label: "Practice", href: "/practice", icon: null },
     { label: "Question Bank", href: "/questions", icon: null },
+    { label: "Coding", href: "/coding", icon: null },
     { label: "Analytics", href: "/analytics", icon: null },
     { label: "Recordings", href: "/recordings", icon: null },
     { label: "Settings", href: "/settings", icon: null },
@@ -16,6 +18,7 @@ export const SEARCH_ITEMS: SearchItem[] = [
     { label: "Dashboard", href: "/dashboard", category: "Pages" },
     { label: "Practice Interview", href: "/practice", category: "Pages" },
     { label: "Question Bank", href: "/questions", category: "Pages" },
+    { label: "Coding", href: "/coding", category: "Pages" },
     { label: "Analytics", href: "/analytics", category: "Pages" },
     { label: "Recordings", href: "/recordings", category: "Pages" },
     { label: "Settings", href: "/settings", category: "Pages" },
@@ -26,12 +29,26 @@ export const SEARCH_ITEMS: SearchItem[] = [
 ];
 
 /* ─────────────── Categories & Difficulty ─────────────── */
-export const CATEGORIES: { value: InterviewType; label: string; color: string }[] = [
+/** Question-bank filter categories (prompts), not live interview kinds. */
+export const CATEGORIES: { value: QuestionCategory; label: string; color: string }[] = [
     { value: "behavioral", label: "Behavioral", color: "bg-blue-100 text-blue-700" },
-    { value: "technical", label: "Technical", color: "bg-purple-100 text-purple-700" },
+    { value: "technical", label: "Technical", color: "bg-violet-100 text-violet-700" },
     { value: "system-design", label: "System Design", color: "bg-amber-100 text-amber-700" },
     { value: "leadership", label: "Leadership", color: "bg-emerald-100 text-emerald-700" },
 ];
+
+/** Live mock interview kinds — real hiring-loop shapes. */
+export const INTERVIEW_KINDS: {
+    value: InterviewType;
+    label: string;
+    shortLabel: string;
+    description: string;
+}[] = INTERVIEW_TYPE_VALUES.map((value) => ({
+    value,
+    label: INTERVIEW_TYPE_META[value].label,
+    shortLabel: INTERVIEW_TYPE_META[value].shortLabel,
+    description: INTERVIEW_TYPE_META[value].description,
+}));
 
 export const DIFFICULTIES: { value: Difficulty; label: string; color: string }[] = [
     { value: "easy", label: "Easy", color: "bg-green-100 text-green-700" },
@@ -92,6 +109,7 @@ export const ROLES: string[] = [
 
 /* ─────────────── Companies ─────────────── */
 export const COMPANIES: string[] = [
+    "General",
     "Google",
     "Meta",
     "Amazon",
@@ -136,4 +154,3 @@ export const COMPANIES: string[] = [
     "Datadog",
     "Elastic",
 ];
-

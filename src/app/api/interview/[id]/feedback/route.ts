@@ -5,6 +5,7 @@ import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { upsertQuestionFeedback } from "@/repositories/interview-repo";
 import { getInterviewSession } from "@/repositories/interview-repo";
 import { interviewIdSchema } from "@/lib/interview/domain";
+import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 import { logger } from "@/utils/logger";
 
 const feedbackBodySchema = z.object({
@@ -45,6 +46,7 @@ export async function POST(
       questionOrder: parsed.data.questionOrder,
       rating: parsed.data.rating,
     });
+    invalidateInterviewMetricsCache(authUser.userId);
 
     return apiJson({ success: true });
   } catch (error) {

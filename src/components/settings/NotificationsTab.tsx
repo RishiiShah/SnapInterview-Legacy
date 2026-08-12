@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { IconBell, IconChartBars, IconClock, IconEnvelope } from "@/components/ui/icons";
 
 export type NotificationPrefs = {
   emailNotifs: boolean;
@@ -12,14 +11,17 @@ export type NotificationPrefs = {
 
 type NotificationsTabProps = {
   initialPrefs: NotificationPrefs;
+  isLoaded?: boolean;
 };
 
-export default function NotificationsTab({ initialPrefs }: NotificationsTabProps) {
+export default function NotificationsTab({ initialPrefs, isLoaded = true }: NotificationsTabProps) {
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>(initialPrefs);
   const [isSavingKey, setIsSavingKey] = useState<keyof NotificationPrefs | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const updatePreference = async (key: keyof NotificationPrefs, value: boolean) => {
+    if (!isLoaded || isSavingKey) return;
+
     const previous = notificationPrefs;
     const next = { ...notificationPrefs, [key]: value };
 
@@ -36,7 +38,9 @@ export default function NotificationsTab({ initialPrefs }: NotificationsTabProps
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setSaveError(typeof data?.error === "string" ? data.error : "Failed to update preferences.");
+        setSaveError(
+          typeof data?.error === "string" ? data.error : "Failed to update preferences.",
+        );
         setNotificationPrefs(previous);
       }
     } catch {
@@ -53,63 +57,65 @@ export default function NotificationsTab({ initialPrefs }: NotificationsTabProps
       desc: "Receive updates about your account via email",
       key: "emailNotifs" as const,
       value: notificationPrefs.emailNotifs,
-      icon: <IconEnvelope className="h-5 w-5" />,
     },
     {
       label: "Practice reminders",
       desc: "Get daily reminders to keep practicing",
       key: "practiceReminders" as const,
       value: notificationPrefs.practiceReminders,
-      icon: <IconClock className="h-5 w-5" />,
     },
     {
       label: "Weekly report",
       desc: "Receive a weekly summary of your progress",
       key: "weeklyReport" as const,
       value: notificationPrefs.weeklyReport,
-      icon: <IconChartBars className="h-5 w-5" />,
     },
     {
       label: "Score alerts",
       desc: "Get notified when you hit a new personal best",
       key: "scoreAlerts" as const,
       value: notificationPrefs.scoreAlerts,
-      icon: <IconBell className="h-5 w-5" />,
     },
   ];
 
   return (
-    <div>
-      <div className="border-b border-zinc-100 px-8 py-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Notification Preferences</h2>
-        <p className="mt-1 text-sm text-zinc-500">Choose what notifications you want to receive.</p>
+    <div className="space-y-8">
+      <div>
+        <h2 className="font-display text-xl tracking-tight text-[#F2F4F8]">Notifications</h2>
+        <p className="mt-1.5 text-sm text-[#A8B0C2]">Choose what notifications you want to receive.</p>
+        {!isLoaded && <p className="mt-2 text-xs text-[#8B93A7]">Loading saved preferences…</p>}
       </div>
 
-      <div className="px-8 py-6">
-        <div className="space-y-2">
-          {preferenceItems.map((pref) => (
-            <div key={pref.label} className="flex items-center justify-between rounded-xl border border-zinc-100 px-5 py-4 transition-all hover:border-zinc-200 hover:shadow-sm">
-              <div className="flex items-center gap-4">
-                <span className={`shrink-0 ${pref.value ? "text-zinc-700" : "text-zinc-300"} transition-colors`}>{pref.icon}</span>
-                <div>
-                  <p className="text-sm font-medium text-zinc-900">{pref.label}</p>
-                  <p className="text-xs text-zinc-400">{pref.desc}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  void updatePreference(pref.key, !pref.value);
-                }}
-                disabled={isSavingKey === pref.key}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${pref.value ? "bg-zinc-900" : "bg-zinc-200"}`}
-              >
-                <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${pref.value ? "translate-x-5" : "translate-x-0"}`} />
-              </button>
+      <div className="divide-y divide-white/[0.06]">
+        {preferenceItems.map((pref) => (
+          <div
+            key={pref.label}
+            className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-[#E8ECF4]">{pref.label}</p>
+              <p className="mt-0.5 text-xs text-[#A8B0C2]">{pref.desc}</p>
             </div>
-          ))}
-        </div>
-        {saveError && <p className="mt-3 text-sm text-red-600">{saveError}</p>}
+            <button
+              type="button"
+              onClick={() => {
+                void updatePreference(pref.key, !pref.value);
+              }}
+              disabled={!isLoaded || isSavingKey === pref.key}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                pref.value ? "bg-[#3B82F6]" : "bg-white/[0.12]"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                  pref.value ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+        ))}
       </div>
+      {saveError && <p className="text-sm text-rose-400">{saveError}</p>}
     </div>
   );
 }

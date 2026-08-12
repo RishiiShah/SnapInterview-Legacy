@@ -12,8 +12,8 @@ const BETTER_AUTH_COOKIE_NAMES = [
 ] as const;
 const SESSION_VALIDATION_CACHE_MS = 5 * 60 * 1000;
 const MAX_SESSION_VALIDATION_CACHE_ENTRIES = 1000;
-const PROTECTED_PATH_PREFIXES = ["/dashboard", "/practice", "/questions", "/analytics", "/recordings", "/settings", "/onboarding", "/interview", "/admin"] as const;
-const SERVER_GUARDED_PROTECTED_PATH_PREFIXES = ["/dashboard", "/practice", "/questions", "/analytics", "/recordings", "/settings", "/onboarding", "/interview", "/admin"] as const;
+const PROTECTED_PATH_PREFIXES = ["/dashboard", "/practice", "/questions", "/coding", "/analytics", "/recordings", "/settings", "/onboarding", "/interview", "/admin"] as const;
+const SERVER_GUARDED_PROTECTED_PATH_PREFIXES = ["/dashboard", "/practice", "/questions", "/coding", "/analytics", "/recordings", "/settings", "/onboarding", "/interview", "/admin"] as const;
 
 type ProxySessionData = {
     user?: {
@@ -63,19 +63,24 @@ function createNonce() {
 function createContentSecurityPolicy(nonce: string, isDev: boolean) {
     // style-src is split so injected <style>/stylesheets are forbidden (style-src-elem),
     // while inline style="" attributes from React/Framer Motion still work (style-src-attr).
+    // cdn.jsdelivr.net: Monaco Editor loads CSS and source maps from this CDN at runtime.
+    // worker-src blob: Monaco and code-runner Web Workers use blob: URLs.
+    // style-src-elem: dev uses 'unsafe-inline' because Next.js/React dev overlay injects
+    // inline <style> tags without nonces, and 'unsafe-inline' is ignored when a nonce is present.
     return `
         default-src 'self';
-        script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://va.vercel-scripts.com ${isDev ? "'unsafe-eval'" : ""};
-        style-src 'self';
-        style-src-elem 'self' 'nonce-${nonce}';
+        script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://va.vercel-scripts.com 'wasm-unsafe-eval' ${isDev ? "'unsafe-eval'" : ""};
+        worker-src 'self' blob:;
+        style-src 'self' https://cdn.jsdelivr.net;
+        style-src-elem 'self' ${isDev ? "'unsafe-inline'" : `'nonce-${nonce}'`} https://cdn.jsdelivr.net;
         style-src-attr 'unsafe-inline';
-        img-src 'self' https://*.googleusercontent.com data: blob:;
+        img-src 'self' https://*.googleusercontent.com https://cdn.simpleicons.org data: blob:;
         font-src 'self' data:;
         object-src 'none';
         base-uri 'self';
         form-action 'self';
         frame-ancestors 'none';
-        connect-src 'self' https://accounts.google.com https://www.googleapis.com https://*.amazonaws.com;
+        connect-src 'self' https://accounts.google.com https://www.googleapis.com https://*.amazonaws.com https://huggingface.co https://cdn-lfs.huggingface.co https://cdn-lfs.hf.co https://cdn.jsdelivr.net;
         media-src 'self' https://*.amazonaws.com data: blob:;
         upgrade-insecure-requests;
     `.replace(/\s{2,}/g, " ").trim();
@@ -223,8 +228,7 @@ export async function proxy(request: NextRequest) {
                     ? await getSession(request, token)
                     : { status: "invalid" as const };
             if (validation.status === "valid" && validation.session.user) {
-                const hasOnboarding = !!validation.session.user.onboardingCompletedAt;
-                const response = NextResponse.redirect(new URL(hasOnboarding ? "/dashboard" : "/onboarding", request.url));
+                const response = NextResponse.redirect(new URL("/dashboard", request.url));
                 applySecurityHeaders(response, cspHeader);
                 return response;
             }

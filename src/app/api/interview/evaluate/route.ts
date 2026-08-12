@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 import { getSessionUserIdentity } from "@/lib/server-auth";
-import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
+import { apiJson, badRequestError, conflictError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { evaluateInterviewTranscript } from "@/services/evaluation-service";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
@@ -47,6 +47,10 @@ export const POST = withCsrfProtection(async (req: Request) => {
 
         if (result.type === "no_transcript") {
             return badRequestError("No transcript found for this interview");
+        }
+
+        if (result.type === "in_progress") {
+            return conflictError("Evaluation is already in progress. Please retry shortly.");
         }
 
         if (result.type === "error") {

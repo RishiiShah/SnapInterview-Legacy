@@ -1,13 +1,15 @@
 import { headers } from "next/headers";
 import LandingNavbar from "@/components/landing/LandingNavbar";
+import LandingAtmosphere from "@/components/landing/LandingAtmosphere";
 import HeroSection from "@/components/landing/HeroSection";
+import HeroWorkspace from "@/components/landing/HeroWorkspace";
 import FeaturesSection from "@/components/landing/FeaturesSection";
-import HowItWorksSection from "@/components/landing/HowItWorksSection";
+import SocialProofSection from "@/components/landing/HowItWorksSection";
 import CTASection from "@/components/landing/CTASection";
 import LandingFooter from "@/components/landing/LandingFooter";
+import LandingScrollToTop from "@/components/landing/LandingScrollToTop";
 
 export default async function LandingPage() {
-  // Nonce-based CSP requires dynamic rendering so Next can stamp per-request script nonces.
   const nonce = (await headers()).get("x-nonce") ?? undefined;
   const jsonLd = {
     "@context": "https://schema.org",
@@ -16,7 +18,8 @@ export default async function LandingPage() {
     applicationCategory: "EducationalApplication",
     operatingSystem: "All",
     url: "https://snapinterview.app",
-    description: "Practice mock interviews with AI, get instant feedback, and land your dream job with confidence.",
+    description:
+      "Practice realistic AI mock interviews with video recording, adaptive follow-ups, transcripts, and automated scoring.",
     offers: {
       "@type": "Offer",
       price: "0",
@@ -30,25 +33,31 @@ export default async function LandingPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#f4f9ff_0%,#fcfeff_18%,#ffffff_42%,#f7fbff_100%)] text-zinc-900 font-(family-name:--font-geist-sans)">
+    <div className="landing-page relative min-h-screen overflow-x-hidden bg-[#090A0F] font-sans text-[#F5F7FF] selection:bg-blue-600 selection:text-white">
+      <LandingScrollToTop />
+      <LandingAtmosphere />
+
       <script
         nonce={nonce}
         suppressHydrationWarning
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(circle_at_top,#6fd4ff1f_0,#6fd4ff08_30%,transparent_70%)]" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-full bg-[linear-gradient(90deg,transparent_0,transparent_47%,rgba(115,198,255,0.045)_50%,transparent_53%,transparent_100%)] opacity-60" />
+
       <LandingNavbar />
-      
-      <HeroSection />
+      <main className="relative z-10 w-full">
+        {/* Untouched Hero Section */}
+        <HeroSection />
 
-      <FeaturesSection />
+        {/* Product Strengths & Live Demo Sections */}
+        <section id="studio" className="landing-section pb-24 pt-20 md:pt-28 bg-[#090A0F]">
+          <HeroWorkspace />
+        </section>
 
-      <HowItWorksSection />
-
-      <CTASection />
-
+        <FeaturesSection />
+        <SocialProofSection />
+        <CTASection />
+      </main>
       <LandingFooter />
     </div>
   );

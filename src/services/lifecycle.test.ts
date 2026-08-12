@@ -51,7 +51,7 @@ describe("Interview Lifecycle Integration", () => {
     const session = await startInterviewSession({
       userId,
       role: "Software Engineer",
-      type: "technical",
+      type: "coding-algorithms",
       difficulty: "medium",
     });
 
@@ -64,7 +64,7 @@ describe("Interview Lifecycle Integration", () => {
       questionCount: 5,
       currentQuestion: 0,
       role: "Software Engineer",
-      type: "technical",
+      type: "coding-algorithms",
       difficulty: "medium",
       transcript: [],
     } as any);
@@ -108,7 +108,7 @@ describe("Interview Lifecycle Integration", () => {
     vi.mocked(interviewRepo.getInterviewSession).mockResolvedValue({
       id: interviewId,
       status: "COMPLETED",
-      type: "technical",
+      type: "coding-algorithms",
       company: null,
       transcript: [
         { question: "Tell me about React.", answer: "It's a library." }
@@ -137,6 +137,8 @@ describe("Interview Lifecycle Integration", () => {
         }
       }]
     } as any);
+    vi.mocked(interviewRepo.claimInterviewEvaluation).mockResolvedValue(1);
+    vi.mocked(interviewRepo.persistClaimedEvaluation).mockResolvedValue(true);
 
     const evalResult = await evaluateInterviewTranscript({ userId, interviewId });
 
@@ -144,6 +146,6 @@ describe("Interview Lifecycle Integration", () => {
     if (evalResult.type === "ok") {
       expect(evalResult.data.score).toBe(85);
     }
-    expect(interviewRepo.updateEvaluation).toHaveBeenCalled();
+    expect(interviewRepo.persistClaimedEvaluation).toHaveBeenCalled();
   });
 });

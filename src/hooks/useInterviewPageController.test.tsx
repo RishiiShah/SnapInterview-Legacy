@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   useAudioAnalyser: vi.fn(),
   getInterviewBlockReason: vi.fn(),
   finalizeInterviewUpload: vi.fn(),
+  scheduleInterviewFinalize: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -51,6 +52,10 @@ vi.mock("@/lib/video/upload-service", () => ({
   finalizeInterviewUpload: mocks.finalizeInterviewUpload,
 }));
 
+vi.mock("@/lib/video/background-finalize", () => ({
+  scheduleInterviewFinalize: mocks.scheduleInterviewFinalize,
+}));
+
 import { useInterviewPageController } from "./useInterviewPageController";
 
 function okJson(body: Record<string, unknown> = {}) {
@@ -72,10 +77,12 @@ function setupHookMocks({
   const stopRecording = vi.fn();
   const stopStream = vi.fn();
   const mountVideoNode = vi.fn();
+  const requestPermissions = vi.fn().mockResolvedValue(undefined);
   const stream = { id: "mock-stream" } as MediaStream;
 
   mocks.useMediaPermissions.mockReturnValue({
     stream,
+    requestPermissions,
     isMicEnabled: true,
     stopStream,
     mountVideoNode,
@@ -96,10 +103,10 @@ function setupHookMocks({
     lastCompletedAiText: "",
     isThinking: false,
   });
-  mocks.useStreamingTTS.mockReturnValue({ isSpeaking: false });
+  mocks.useStreamingTTS.mockReturnValue({ isSpeaking: false, warmup: vi.fn(), cancel: vi.fn() });
   mocks.useAudioAnalyser.mockReturnValue({ level: 0 });
   mocks.getInterviewBlockReason.mockResolvedValue(null);
-  mocks.finalizeInterviewUpload.mockResolvedValue({ type: "ok" });
+  mocks.scheduleInterviewFinalize.mockResolvedValue({ type: "ok" });
 
   return {
     startScreenRecording,
@@ -107,6 +114,7 @@ function setupHookMocks({
     stopRecording,
     stopStream,
     stream,
+    requestPermissions,
   };
 }
 
@@ -124,6 +132,7 @@ describe("useInterviewPageController", () => {
     mocks.useAudioAnalyser.mockReset();
     mocks.getInterviewBlockReason.mockReset();
     mocks.finalizeInterviewUpload.mockReset();
+    mocks.scheduleInterviewFinalize.mockReset();
   });
 
   afterEach(() => {
@@ -145,6 +154,68 @@ describe("useInterviewPageController", () => {
     });
 
     expect(mocks.routerPush).toHaveBeenCalledWith("/interview/other-interview");
+  });
+
+  it("warms the voice engine in the same user action as requesting media permission", async () => {
+    const { requestPermissions } = setupHookMocks();
+    const warmup = vi.fn();
+    mocks.useStreamingTTS.mockReturnValue({ isSpeaking: false, warmup });
+
+    const { result } = renderHook(() => useInterviewPageController({ interviewId: "interview-voice" }));
+
+    await act(async () => {
+      await result.current.requestPermissions();
+    });
+
+    expect(warmup).toHaveBeenCalledTimes(1);
+    expect(requestPermissions).toHaveBeenCalledTimes(1);
+    expect(warmup.mock.invocationCallOrder[0]).toBeLessThan(requestPermissions.mock.invocationCallOrder[0]!);
+  });
+
+  it("uses pending session metadata without requesting a session that does not exist yet", async () => {
+    setupHookMocks();
+    sessionStorage.setItem("pending_interview_interview-pending", JSON.stringify({
+      questionCount: 5,
+      persona: "strict",
+    }));
+
+    const { result } = renderHook(() => useInterviewPageController({ interviewId: "interview-pending" }));
+
+    await waitFor(() => expect(result.current.totalQuestions).toBe(5));
+    expect(result.current.tts).toBeDefined();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("sets the coding interview type from pending metadata before the challenge streams", async () => {
+    setupHookMocks();
+    sessionStorage.setItem("pending_interview_interview-coding", JSON.stringify({
+      type: "coding-algorithms",
+    }));
+
+    const { result } = renderHook(() => useInterviewPageController({ interviewId: "interview-coding" }));
+
+    await waitFor(() => expect(result.current.interviewType).toBe("coding-algorithms"));
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("uses server-provided session metadata without a duplicate client request", async () => {
+    setupHookMocks();
+
+    const { result } = renderHook(() => useInterviewPageController({
+      interviewId: "interview-hydrated",
+      initialSessionMeta: {
+        id: "interview-hydrated",
+        questionCount: 5,
+        persona: "strict",
+        type: "coding-algorithms",
+      },
+    }));
+
+    await waitFor(() => {
+      expect(result.current.totalQuestions).toBe(5);
+      expect(result.current.interviewType).toBe("coding-algorithms");
+    });
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("persists pending interview config before entering the interview", async () => {
@@ -218,7 +289,7 @@ describe("useInterviewPageController", () => {
   });
 
   it("finalizes an answered interview as completed and navigates to recordings", async () => {
-    const { stopRecording, stopStream, stopVideoRecording } = setupHookMocks({
+    const { stopRecording, stopStream } = setupHookMocks({
       chatMessages: [{ role: "user", content: "My answer" }],
     });
     localStorage.setItem("active_interview_id", "interview-3");
@@ -232,11 +303,39 @@ describe("useInterviewPageController", () => {
     expect(localStorage.getItem("active_interview_id")).toBeNull();
     expect(stopRecording).toHaveBeenCalledTimes(1);
     expect(stopStream).toHaveBeenCalledTimes(1);
-    expect(mocks.finalizeInterviewUpload).toHaveBeenCalledWith({
+    expect(mocks.scheduleInterviewFinalize).toHaveBeenCalledWith({
       interviewId: "interview-3",
       status: "COMPLETED",
-      stopVideoRecording,
+      stopVideoRecording: expect.any(Function),
     });
+    expect(mocks.routerPush).toHaveBeenCalledWith("/analytics");
+  });
+
+  it("redirects immediately when the interview completes and finalizes upload in the background", async () => {
+    const stopVideoRecording = vi.fn().mockResolvedValue(null);
+    setupHookMocks({ stopVideoRecording });
+
+    const chatOptions: { setInterviewDone?: (done: boolean) => void } = {};
+    mocks.useChatSession.mockImplementation((options: { setInterviewDone: (done: boolean) => void }) => {
+      chatOptions.setInterviewDone = options.setInterviewDone;
+      return {
+        messages: [],
+        currentStreamedText: "",
+        lastCompletedAiText: "",
+        isThinking: false,
+      };
+    });
+    const cancel = vi.fn();
+    mocks.useStreamingTTS.mockReturnValue({ isSpeaking: false, warmup: vi.fn(), cancel });
+
+    renderHook(() => useInterviewPageController({ interviewId: "interview-done" }));
+
+    await act(async () => {
+      chatOptions.setInterviewDone?.(true);
+    });
+
+    expect(cancel).toHaveBeenCalled();
+    expect(mocks.scheduleInterviewFinalize).toHaveBeenCalled();
     expect(mocks.routerPush).toHaveBeenCalledWith("/analytics");
   });
 });

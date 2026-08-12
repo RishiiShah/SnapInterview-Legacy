@@ -5,6 +5,7 @@ import { useRef, useState, useTransition } from "react";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/utils/helpers";
+import { adminInputOverrideClass } from "./admin-styles";
 
 type ConfirmActionFormProps = {
   action: (formData: FormData) => void | Promise<void>;
@@ -84,7 +85,7 @@ export function ConfirmActionForm({
         extraContent={
           reasonRequired ? (
             <div className="space-y-2">
-              <label htmlFor="admin-action-reason" className="block text-xs font-medium text-zinc-600">
+              <label htmlFor="admin-action-reason" className="block text-xs font-medium text-[#A8B0C2]">
                 {reasonPrompt ?? "Reason"}
               </label>
               <Input
@@ -95,9 +96,9 @@ export function ConfirmActionForm({
                   if (reasonError) setReasonError("");
                 }}
                 placeholder="Enter reason"
-                className="bg-white"
+                className={adminInputOverrideClass}
               />
-              {reasonError ? <p className="text-xs text-red-600">{reasonError}</p> : null}
+              {reasonError ? <p className="text-xs text-red-300">{reasonError}</p> : null}
             </div>
           ) : null
         }

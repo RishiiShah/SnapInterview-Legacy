@@ -13,22 +13,19 @@ export default async function QuestionsPage() {
 
   const userId = session.user.id;
 
-  let initialSolvedIds: number[] = [];
+  const [solvedQuestions, questions] = await Promise.all([
+    prisma.solvedQuestion.findMany({
+      where: { userId },
+      select: { questionId: true },
+    }),
+    getAllPracticeQuestions(),
+  ]);
+  const initialSolvedIds = solvedQuestions.map((item) => item.questionId);
 
-  if (userId) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        solvedQuestions: {
-          select: { questionId: true },
-        },
-      },
-    });
-
-    initialSolvedIds = user?.solvedQuestions.map((item) => item.questionId) ?? [];
-  }
-
-  const questions = await getAllPracticeQuestions();
-
-  return <QuestionsPageClient initialSolvedIds={initialSolvedIds} questions={questions} />;
+  return (
+    <QuestionsPageClient
+      initialSolvedIds={initialSolvedIds}
+      questions={questions}
+    />
+  );
 }

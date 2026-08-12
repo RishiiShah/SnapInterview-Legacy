@@ -13,11 +13,20 @@ import { AdminOrphanedRecordings } from "./AdminOrphanedRecordings";
 import { AdminInterviewTranscript } from "./AdminInterviewTranscript";
 import { CopyableField } from "./CopyableField";
 import { IntegrityBadge } from "./IntegrityBadge";
-import { adminActionButtonClass, adminDangerButtonClass } from "./admin-styles";
+import {
+  adminActionButtonClass,
+  adminDangerButtonClass,
+  adminFieldClass,
+  adminHeadingClass,
+  adminLabelClass,
+  adminMutedClass,
+  adminPanelClass,
+  adminPanelInsetClass,
+  adminPrimaryButtonClass,
+  adminTableHeadClass,
+  adminTableRowClass,
+} from "./admin-styles";
 import { ConfirmActionForm } from "./ConfirmActionForm";
-
-const textareaClass =
-  "w-full min-h-[96px] resize-y rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none transition-all focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100";
 
 function formatDateTime(iso: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -36,16 +45,16 @@ function ratingLabel(rating: string) {
 }
 
 function ratingClass(rating: string) {
-  if (rating === "up") return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  if (rating === "down") return "border-red-200 bg-red-50 text-red-700";
-  return "border-zinc-200 bg-zinc-50 text-zinc-700";
+  if (rating === "up") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
+  if (rating === "down") return "border-red-500/30 bg-red-500/10 text-red-300";
+  return "border-white/[0.1] bg-white/[0.03] text-[#C5CBD8]";
 }
 
 function MetaItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">{label}</p>
-      <p className="mt-1 text-sm text-zinc-900">{value}</p>
+      <p className="text-xs font-medium uppercase tracking-wide text-[#A8B0C2]">{label}</p>
+      <p className="mt-1 text-sm text-[#F2F4F8]">{value}</p>
     </div>
   );
 }
@@ -61,20 +70,18 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
         <div>
           <Link
             href="/admin/interviews"
-            className="cursor-pointer text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-900"
+            className="cursor-pointer text-sm font-medium text-[#A8B0C2] transition-colors hover:text-[#E8ECF4]"
           >
             ← Back to interviews
           </Link>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900">
-            Interview detail
-          </h2>
-          <p className="mt-1 text-sm text-zinc-500">
+          <h2 className={`mt-2 ${adminHeadingClass}`}>Interview detail</h2>
+          <p className={`mt-1 ${adminMutedClass}`}>
             {interview.user.name ?? "Unknown"} · {interview.user.email ?? "—"}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <IntegrityBadge integrity={interview.recordingIntegrity} />
-          <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-700">
+          <span className="rounded-full border border-white/[0.1] bg-white/[0.03] px-2.5 py-1 text-xs font-medium text-[#C5CBD8]">
             {interview.status}
           </span>
           <ConfirmActionForm
@@ -89,9 +96,9 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
         </div>
       </div>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-zinc-900">Recording integrity</h3>
-        <p className="mt-1 text-sm text-zinc-500">{interview.recordingIntegrity.description}</p>
+      <section className={`${adminPanelClass} p-5`}>
+        <h3 className="text-sm font-semibold text-[#F2F4F8]">Recording integrity</h3>
+        <p className={`mt-1 ${adminMutedClass}`}>{interview.recordingIntegrity.description}</p>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           {interview.videoKey ? (
             <CopyableField label="Video key" value={interview.videoKey} />
@@ -119,7 +126,7 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
               href={interview.signedPlaybackUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm font-medium text-blue-600 hover:text-blue-800"
+              className="text-sm font-medium text-[#3B82F6] hover:text-[#4B8FF7]"
             >
               Open verified recording (signed URL, 1h)
             </a>
@@ -130,8 +137,8 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
         </Suspense>
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-zinc-900">Session overview</h3>
+      <section className={`${adminPanelClass} p-5`}>
+        <h3 className="text-sm font-semibold text-[#F2F4F8]">Session overview</h3>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <MetaItem label="Role" value={interview.role} />
           <MetaItem label="Type" value={interview.type} />
@@ -156,39 +163,37 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
         </div>
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-zinc-900">Evaluation summary</h3>
+      <section className={`${adminPanelClass} p-5`}>
+        <h3 className="text-sm font-semibold text-[#F2F4F8]">Evaluation summary</h3>
         {interview.evaluationNormalized ? (
           <div className="mt-4">
             <RecordingEvaluation evaluation={interview.evaluationNormalized} />
           </div>
         ) : (
-          <p className="mt-3 text-sm text-zinc-500">No evaluation generated for this session yet.</p>
+          <p className={`mt-3 ${adminMutedClass}`}>No evaluation generated for this session yet.</p>
         )}
 
         <details className="mt-6 group">
-          <summary className="cursor-pointer text-sm font-medium text-zinc-600 hover:text-zinc-900">
+          <summary className="cursor-pointer text-sm font-medium text-[#A8B0C2] hover:text-[#E8ECF4]">
             Raw evaluation payload
           </summary>
-          <pre className="mt-3 max-h-80 overflow-auto rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-xs text-zinc-700">
-            {interview.evaluation
-              ? JSON.stringify(interview.evaluation, null, 2)
-              : "null"}
+          <pre className="mt-3 max-h-80 overflow-auto rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-xs text-[#C5CBD8]">
+            {interview.evaluation ? JSON.stringify(interview.evaluation, null, 2) : "null"}
           </pre>
         </details>
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-zinc-900">Question feedback</h3>
-        <p className="mt-1 text-sm text-zinc-500">
+      <section className={`${adminPanelClass} p-5`}>
+        <h3 className="text-sm font-semibold text-[#F2F4F8]">Question feedback</h3>
+        <p className={`mt-1 ${adminMutedClass}`}>
           Per-question thumbs up/down from the candidate after the interview.
         </p>
         {interview.questionFeedback.length === 0 ? (
-          <p className="mt-4 text-sm text-zinc-500">No question feedback recorded.</p>
+          <p className={`mt-4 ${adminMutedClass}`}>No question feedback recorded.</p>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-500">
+              <thead className={adminTableHeadClass}>
                 <tr>
                   <th className="px-3 py-2">Question #</th>
                   <th className="px-3 py-2">Rating</th>
@@ -197,8 +202,8 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
               </thead>
               <tbody>
                 {interview.questionFeedback.map((entry) => (
-                  <tr key={entry.id} className="border-b border-zinc-100 last:border-b-0">
-                    <td className="px-3 py-2 text-zinc-700">Q{entry.questionOrder + 1}</td>
+                  <tr key={entry.id} className={adminTableRowClass}>
+                    <td className="px-3 py-2 text-[#C5CBD8]">Q{entry.questionOrder + 1}</td>
                     <td className="px-3 py-2">
                       <span
                         className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${ratingClass(entry.rating)}`}
@@ -206,7 +211,7 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
                         {ratingLabel(entry.rating)}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-zinc-600">
+                    <td className="px-3 py-2 text-[#A8B0C2]">
                       {formatDateTime(entry.createdAtIso)}
                     </td>
                   </tr>
@@ -217,9 +222,9 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
         )}
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-zinc-900">Transcript</h3>
-        <p className="mt-1 text-sm text-zinc-500">{interview.transcript.length} entries</p>
+      <section className={`${adminPanelClass} p-5`}>
+        <h3 className="text-sm font-semibold text-[#F2F4F8]">Transcript</h3>
+        <p className={`mt-1 ${adminMutedClass}`}>{interview.transcript.length} entries</p>
         {interview.transcript.length > 0 && interview.questionFeedback.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
             {interview.transcript.map((entry, idx) => {
@@ -241,39 +246,36 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
         </div>
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-zinc-900">Moderation notes</h3>
-        <p className="mt-1 text-sm text-zinc-500">
+      <section className={`${adminPanelClass} p-5`}>
+        <h3 className="text-sm font-semibold text-[#F2F4F8]">Moderation notes</h3>
+        <p className={`mt-1 ${adminMutedClass}`}>
           Internal notes for support and quality review. Visible only to admins.
         </p>
 
         <form action={addInterviewModerationNoteAction} className="mt-4 space-y-3">
           <input type="hidden" name="interviewId" value={interview.id} />
           <label className="block">
-            <span className="text-sm font-medium text-zinc-700">Add note</span>
+            <span className={adminLabelClass}>Add note</span>
             <textarea
               name="note"
               required
               placeholder="Document investigation findings, quality issues, or follow-up actions…"
-              className={`${textareaClass} mt-1.5`}
+              className={`${adminFieldClass} mt-1.5 min-h-[96px] resize-y`}
             />
           </label>
-          <Button type="submit" size="md">
+          <Button type="submit" size="md" className={adminPrimaryButtonClass}>
             Save note
           </Button>
         </form>
 
         {interview.moderationNotes.length === 0 ? (
-          <p className="mt-6 text-sm text-zinc-500">No moderation notes yet.</p>
+          <p className={`mt-6 ${adminMutedClass}`}>No moderation notes yet.</p>
         ) : (
           <ul className="mt-6 space-y-3">
             {interview.moderationNotes.map((note) => (
-              <li
-                key={note.id}
-                className="rounded-xl border border-zinc-200 bg-zinc-50 p-4"
-              >
-                <p className="whitespace-pre-wrap text-sm text-zinc-800">{note.note}</p>
-                <p className="mt-2 text-xs text-zinc-500">
+              <li key={note.id} className={`${adminPanelInsetClass} p-4`}>
+                <p className="whitespace-pre-wrap text-sm text-[#E8ECF4]">{note.note}</p>
+                <p className="mt-2 text-xs text-[#A8B0C2]">
                   {note.authorEmail} · {formatDateTime(note.createdAtIso)}
                 </p>
               </li>
@@ -283,25 +285,25 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
       </section>
 
       {(interview.focusAreas != null || interview.sessionPlan != null) && (
-        <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-zinc-900">Session metadata</h3>
+        <section className={`${adminPanelClass} p-5`}>
+          <h3 className="text-sm font-semibold text-[#F2F4F8]">Session metadata</h3>
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             {interview.focusAreas != null && (
               <details>
-                <summary className="cursor-pointer text-sm font-medium text-zinc-600">
+                <summary className="cursor-pointer text-sm font-medium text-[#A8B0C2]">
                   Focus areas
                 </summary>
-                <pre className="mt-2 max-h-48 overflow-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs">
+                <pre className="mt-2 max-h-48 overflow-auto rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 text-xs text-[#C5CBD8]">
                   {JSON.stringify(interview.focusAreas, null, 2)}
                 </pre>
               </details>
             )}
             {interview.sessionPlan != null && (
               <details>
-                <summary className="cursor-pointer text-sm font-medium text-zinc-600">
+                <summary className="cursor-pointer text-sm font-medium text-[#A8B0C2]">
                   Session plan
                 </summary>
-                <pre className="mt-2 max-h-48 overflow-auto rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs">
+                <pre className="mt-2 max-h-48 overflow-auto rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 text-xs text-[#C5CBD8]">
                   {JSON.stringify(interview.sessionPlan, null, 2)}
                 </pre>
               </details>

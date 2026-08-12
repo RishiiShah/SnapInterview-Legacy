@@ -40,14 +40,17 @@ describe("DashboardLayout auth boundary", () => {
   });
 
   it("renders dashboard routes for authenticated users", async () => {
-    getServerAuthSessionMock.mockResolvedValue({
+    const session = {
+      user: { name: "Candidate", email: "candidate@example.com", image: null },
       session: { userId: "user_123" },
-    });
+    };
+    getServerAuthSessionMock.mockResolvedValue(session);
 
     const element = await DashboardLayout({ children: <div>Private</div> });
 
     expect(getServerAuthSessionMock).toHaveBeenCalledOnce();
     expect(redirectMock).not.toHaveBeenCalled();
+    expect((element as React.ReactElement<{ session: unknown }>).props.session).toBe(session);
     expect(element.props.children.props.children).toBe("Private");
   });
 });

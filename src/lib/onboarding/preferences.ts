@@ -27,11 +27,12 @@ export const DEFAULT_ONBOARDING_FORM_VALUES: OnboardingPreferencesFormValues = {
   onboardingLevel: "mid-level",
   onboardingCompany: "",
   onboardingGoal: "switch-companies",
-  preferredInterviewType: "behavioral",
+  preferredInterviewType: "behavioral-leadership",
 };
 
-function isInterviewType(value: string | null | undefined): value is InterviewType {
-  return interviewTypeSchema.safeParse(value).success;
+function resolvePreferredType(value: string | null | undefined): InterviewType {
+  const parsed = interviewTypeSchema.safeParse(value);
+  return parsed.success ? parsed.data : DEFAULT_ONBOARDING_FORM_VALUES.preferredInterviewType;
 }
 
 export function normalizeOnboardingFormValues(
@@ -42,9 +43,7 @@ export function normalizeOnboardingFormValues(
     onboardingLevel: value?.onboardingLevel ?? DEFAULT_ONBOARDING_FORM_VALUES.onboardingLevel,
     onboardingCompany: value?.onboardingCompany ?? DEFAULT_ONBOARDING_FORM_VALUES.onboardingCompany,
     onboardingGoal: value?.onboardingGoal ?? DEFAULT_ONBOARDING_FORM_VALUES.onboardingGoal,
-    preferredInterviewType: isInterviewType(value?.preferredInterviewType)
-      ? value.preferredInterviewType
-      : DEFAULT_ONBOARDING_FORM_VALUES.preferredInterviewType,
+    preferredInterviewType: resolvePreferredType(value?.preferredInterviewType),
   };
 }
 

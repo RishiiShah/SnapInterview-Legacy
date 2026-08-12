@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { POST, withTimeout } from "./route";
+import { POST } from "./route";
+import { withTimeout } from "@/lib/async";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { saveUserResume } from "@/repositories/user-repo";
 import { logger } from "@/utils/logger";

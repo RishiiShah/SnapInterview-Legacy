@@ -12,45 +12,42 @@ type CategoryBreakdownProps = {
   delay?: number;
 };
 
+function scoreTone(score: number): string {
+  if (score >= 80) return "text-emerald-400";
+  if (score >= 70) return "text-amber-300";
+  return "text-[#C5CBD8]";
+}
+
 export default function CategoryBreakdown({ categories, delay = 0.3 }: CategoryBreakdownProps) {
   return (
-    <FadeIn triggerOnView={false} delay={delay} direction="up" className="rounded-2xl border border-zinc-200 bg-white p-[18px]">
-      <h3 className="mb-1 text-sm font-semibold text-zinc-900">Category Breakdown</h3>
-      <p className="mb-3.5 text-xs text-zinc-400">Performance by interview dimension</p>
-      <div className="space-y-3">
-        {categories.map((cat) => (
-          <div key={cat.category} className="rounded-xl border border-zinc-100 p-3">
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-sm font-medium text-zinc-700">{cat.category}</span>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-zinc-900">{cat.score}%</span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                    cat.score >= 80
-                      ? "bg-emerald-100 text-emerald-700"
-                      : cat.score >= 70
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-amber-100 text-amber-700"
-                  }`}
-                >
-                  {cat.score >= 80 ? "Strong" : cat.score >= 70 ? "Steady" : "Improve"}
+    <FadeIn instant triggerOnView={false} delay={delay} direction="up">
+      <div className="mb-5 flex items-baseline justify-between gap-3">
+        <h2 className="font-display text-xl tracking-tight text-[#F2F4F8] sm:text-2xl">
+          By category
+        </h2>
+        <p className="text-xs text-[#B8C0CE]">Interview dimensions</p>
+      </div>
+      <div className="space-y-5">
+        {categories.length === 0 ? (
+          <p className="text-sm text-[#A8B0C2]">No category data yet</p>
+        ) : (
+          categories.map((cat) => (
+            <div key={cat.category}>
+              <div className="mb-2 flex items-baseline justify-between gap-3">
+                <span className="text-sm text-[#E8ECF4]">{cat.category}</span>
+                <span className={`font-mono text-sm tabular-nums ${scoreTone(cat.score)}`}>
+                  {cat.score}
                 </span>
               </div>
+              <div className="h-px w-full bg-white/[0.06]">
+                <div
+                  className="h-px bg-[#3B82F6]/75 transition-all duration-500"
+                  style={{ width: `${cat.score}%` }}
+                />
+              </div>
             </div>
-            <div className="h-2 w-full rounded-full bg-zinc-100">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  cat.score >= 80
-                    ? "bg-emerald-500"
-                    : cat.score >= 70
-                      ? "bg-blue-500"
-                      : "bg-amber-500"
-                }`}
-                style={{ width: `${cat.score}%` }}
-              />
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </FadeIn>
   );

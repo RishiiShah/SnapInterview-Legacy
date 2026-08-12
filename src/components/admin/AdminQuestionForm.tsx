@@ -1,11 +1,23 @@
+"use client";
+
 import Link from "next/link";
 
-import { adminSecondaryLinkClass } from "@/components/admin/admin-styles";
+import {
+  adminFieldClass,
+  adminHeadingClass,
+  adminInputOverrideClass,
+  adminLabelClass,
+  adminMutedClass,
+  adminPanelClass,
+  adminPrimaryButtonClass,
+  adminSecondaryButtonClass,
+  adminSecondaryLinkClass,
+} from "@/components/admin/admin-styles";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import {
   INTERVIEW_DIFFICULTY_VALUES,
-  INTERVIEW_TYPE_VALUES,
+  QUESTION_CATEGORY_VALUES,
 } from "@/lib/interview/domain";
 
 export type AdminQuestionFormValues = {
@@ -30,9 +42,6 @@ const defaultValues: AdminQuestionFormValues = {
   sampleAnswer: "",
 };
 
-const fieldClass =
-  "w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition-all focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100";
-
 type AdminQuestionFormProps = {
   mode: "create" | "edit";
   action: (formData: FormData) => void | Promise<void>;
@@ -55,34 +64,30 @@ export function AdminQuestionForm({
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">{title}</h2>
-          <p className="mt-1 text-sm text-zinc-500">
+          <h2 className={adminHeadingClass}>{title}</h2>
+          <p className={`mt-1 ${adminMutedClass}`}>
             {mode === "create"
               ? "Create a new practice question in the question bank."
               : "Update question content and metadata."}
           </p>
         </div>
-        <Link
-          href="/admin/questions"
-          className={adminSecondaryLinkClass}
-        >
+        <Link href="/admin/questions" className={adminSecondaryLinkClass}>
           Back to list
         </Link>
       </div>
 
       {error ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {error}
         </div>
       ) : null}
 
-      <form action={action} className="space-y-5 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <form action={action} className={`space-y-5 ${adminPanelClass} p-6`}>
         {mode === "edit" && questionId != null ? (
           <input type="hidden" name="questionId" value={questionId} />
         ) : null}
-
         <div>
-          <label htmlFor="text" className="mb-1.5 block text-sm font-medium text-zinc-700">
+          <label htmlFor="text" className={`mb-1.5 block ${adminLabelClass}`}>
             Question text
           </label>
           <textarea
@@ -91,14 +96,14 @@ export function AdminQuestionForm({
             required
             rows={4}
             defaultValue={values.text}
-            className={fieldClass}
+            className={adminFieldClass}
             placeholder="Tell me about a time you..."
           />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="slug" className="mb-1.5 block text-sm font-medium text-zinc-700">
+            <label htmlFor="slug" className={`mb-1.5 block ${adminLabelClass}`}>
               Slug
             </label>
             <Input
@@ -106,24 +111,38 @@ export function AdminQuestionForm({
               name="slug"
               defaultValue={values.slug}
               placeholder="auto-generated-from-text-if-empty"
+              className={adminInputOverrideClass}
             />
-            <p className="mt-1 text-xs text-zinc-500">Leave empty to auto-generate from question text.</p>
+            <p className="mt-1 text-xs text-[#A8B0C2]">
+              Leave empty to auto-generate from question text.
+            </p>
           </div>
           <div>
-            <label htmlFor="estimatedTime" className="mb-1.5 block text-sm font-medium text-zinc-700">
+            <label htmlFor="estimatedTime" className={`mb-1.5 block ${adminLabelClass}`}>
               Estimated time
             </label>
-            <Input id="estimatedTime" name="estimatedTime" defaultValue={values.estimatedTime} placeholder="5 min" />
+            <Input
+              id="estimatedTime"
+              name="estimatedTime"
+              defaultValue={values.estimatedTime}
+              placeholder="5 min"
+              className={adminInputOverrideClass}
+            />
           </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="category" className="mb-1.5 block text-sm font-medium text-zinc-700">
+            <label htmlFor="category" className={`mb-1.5 block ${adminLabelClass}`}>
               Category
             </label>
-            <select id="category" name="category" defaultValue={values.category} className={fieldClass}>
-              {INTERVIEW_TYPE_VALUES.map((value) => (
+            <select
+              id="category"
+              name="category"
+              defaultValue={values.category}
+              className={adminFieldClass}
+            >
+              {QUESTION_CATEGORY_VALUES.map((value) => (
                 <option key={value} value={value}>
                   {value}
                 </option>
@@ -131,10 +150,15 @@ export function AdminQuestionForm({
             </select>
           </div>
           <div>
-            <label htmlFor="difficulty" className="mb-1.5 block text-sm font-medium text-zinc-700">
+            <label htmlFor="difficulty" className={`mb-1.5 block ${adminLabelClass}`}>
               Difficulty
             </label>
-            <select id="difficulty" name="difficulty" defaultValue={values.difficulty} className={fieldClass}>
+            <select
+              id="difficulty"
+              name="difficulty"
+              defaultValue={values.difficulty}
+              className={adminFieldClass}
+            >
               {INTERVIEW_DIFFICULTY_VALUES.map((value) => (
                 <option key={value} value={value}>
                   {value}
@@ -145,7 +169,7 @@ export function AdminQuestionForm({
         </div>
 
         <div>
-          <label htmlFor="tags" className="mb-1.5 block text-sm font-medium text-zinc-700">
+          <label htmlFor="tags" className={`mb-1.5 block ${adminLabelClass}`}>
             Tags
           </label>
           <Input
@@ -153,19 +177,26 @@ export function AdminQuestionForm({
             name="tags"
             defaultValue={values.tags}
             placeholder="Teamwork, Communication, Leadership"
+            className={adminInputOverrideClass}
           />
-          <p className="mt-1 text-xs text-zinc-500">Comma-separated.</p>
+          <p className="mt-1 text-xs text-[#A8B0C2]">Comma-separated.</p>
         </div>
 
         <div>
-          <label htmlFor="hint" className="mb-1.5 block text-sm font-medium text-zinc-700">
+          <label htmlFor="hint" className={`mb-1.5 block ${adminLabelClass}`}>
             Hint (optional)
           </label>
-          <textarea id="hint" name="hint" rows={3} defaultValue={values.hint} className={fieldClass} />
+          <textarea
+            id="hint"
+            name="hint"
+            rows={3}
+            defaultValue={values.hint}
+            className={adminFieldClass}
+          />
         </div>
 
         <div>
-          <label htmlFor="sampleAnswer" className="mb-1.5 block text-sm font-medium text-zinc-700">
+          <label htmlFor="sampleAnswer" className={`mb-1.5 block ${adminLabelClass}`}>
             Sample answer (optional)
           </label>
           <textarea
@@ -173,14 +204,16 @@ export function AdminQuestionForm({
             name="sampleAnswer"
             rows={5}
             defaultValue={values.sampleAnswer}
-            className={fieldClass}
+            className={adminFieldClass}
           />
         </div>
 
         <div className="flex flex-wrap gap-3 pt-2">
-          <Button type="submit">{mode === "create" ? "Create question" : "Save changes"}</Button>
+          <Button type="submit" className={adminPrimaryButtonClass}>
+            {mode === "create" ? "Create question" : "Save changes"}
+          </Button>
           <Link href="/admin/questions">
-            <Button type="button" variant="secondary">
+            <Button type="button" variant="secondary" className={adminSecondaryButtonClass}>
               Cancel
             </Button>
           </Link>

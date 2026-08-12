@@ -34,13 +34,18 @@ export default function AdminShell({
   }, [pathname]);
 
   return (
-    <div className={cn("flex h-screen overflow-hidden bg-zinc-50 font-sans", adminInteractiveClass)}>
+    <div
+      className={cn(
+        "internal-app-shell flex h-screen overflow-hidden bg-[#0B0C10] font-sans text-[#E8ECF4] [color-scheme:dark]",
+        adminInteractiveClass,
+      )}
+    >
       <AdminSidebar collapsed={collapsed} setCollapsed={setCollapsed} user={user} />
       <div
         className={`${collapsed ? "ml-16" : "ml-64"} flex h-screen flex-1 flex-col overflow-hidden transition-all duration-300 ease-in-out`}
       >
         <AdminHeader user={user} />
-        <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto p-6 pb-2">
+        <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto bg-[#0C0E14] p-6 pb-2">
           {children}
         </main>
       </div>

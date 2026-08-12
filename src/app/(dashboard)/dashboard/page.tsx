@@ -12,11 +12,17 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const userId = session.user.id;
-  const onboardingUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { onboardingCompletedAt: true },
-  });
+  const userId = session.user.id ?? session.session?.userId;
+  if (!userId) {
+    redirect("/login");
+  }
+  const [onboardingUser, overview] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { onboardingCompletedAt: true },
+    }),
+    getDashboardOverviewData(userId),
+  ]);
 
   if (!onboardingUser?.onboardingCompletedAt) {
     redirect("/onboarding");
@@ -24,19 +30,16 @@ export default async function DashboardPage() {
   const firstName = session?.user?.name?.split(" ")[0] || "there";
   const isFirstLogin = session?.user?.isFirstLogin ?? false;
 
-  const { stats, recentSessions, chartData } = userId
-    ? await getDashboardOverviewData(userId)
-    : { stats: [], recentSessions: [], chartData: [] };
-
   return (
     <>
       <DashboardOverviewClient
         userId={userId}
         firstName={firstName}
         isFirstLogin={isFirstLogin}
-        stats={stats}
-        recentSessions={recentSessions}
-        chartData={chartData}
+        stats={overview.stats}
+        recentSessions={overview.recentSessions}
+        topStrength={overview.topStrength}
+        topFocus={overview.topFocus}
       />
     </>
   );

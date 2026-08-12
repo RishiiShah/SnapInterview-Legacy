@@ -10,7 +10,7 @@ import {
   type StartInterviewSessionInput,
 } from "@/lib/interview/domain";
 import { buildSystemInstruction } from "@/lib/interview/prompts";
-import { sanitizeChatMessages } from "@/lib/interview/chat-messages";
+import { extractLatestAnsweredPair, sanitizeChatMessages } from "@/lib/interview/chat-messages";
 import { saveLatestTranscriptEntry } from "@/lib/interview/transcript-service";
 import { groqClient } from "@/lib/ai/groq";
 import { prisma } from "@/lib/prisma";
@@ -230,18 +230,33 @@ export async function runInterviewChat(params: {
     };
   }
 
-  const promptInterviewSession = normalizePromptInterviewSession(interviewSession);
+  // The answer just given is read from `messages`, not from the transcript
+  // fetched above. That transcript is saved at the same time as this runs, so it
+  // is always one turn behind, and both the prompt and the question search would
+  // otherwise work from the previous answer. `messages` already has it.
+  //
+  // userId is passed along so the search can skip questions this user saw in
+  // earlier interviews; the chat query does not return it.
+  const latestAnsweredPair = extractLatestAnsweredPair(messages);
+  const promptInterviewSession = normalizePromptInterviewSession({
+    ...interviewSession,
+    userId,
+    transcript: latestAnsweredPair
+      ? [{ ...latestAnsweredPair, order: Math.max(currentQuestion - 1, 0) }]
+      : interviewSession.transcript,
+  });
   if (!promptInterviewSession) {
     logger.error("Interview session contains invalid domain values", { interviewId });
     return { type: "error", message: "Interview session is invalid. Please start a new session." };
   }
 
-  const systemInstructionPromise = buildSystemInstruction(promptInterviewSession);
-
-  const [, systemInstruction] = await Promise.all([
-    saveLatestTranscriptEntry({ interviewId, currentQuestion, messages }),
-    systemInstructionPromise,
-  ]);
+  void Promise.resolve(saveLatestTranscriptEntry({ interviewId, currentQuestion, messages })).catch((error) => {
+    logger.error("Unable to save interview transcript entry", {
+      interviewId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
+  const systemInstruction = await buildSystemInstruction(promptInterviewSession);
   const formattedMessages = [
     { role: "system" as const, content: systemInstruction },
     ...messages.map((message) => ({ role: message.role, content: message.content })),

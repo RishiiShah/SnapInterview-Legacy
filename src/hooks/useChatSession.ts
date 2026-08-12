@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { parseCodingChallenge, type CodingChallenge } from "@/lib/interview/coding-challenge";
 
 function sanitizeAiText(text: string): string {
   return text
@@ -51,6 +52,7 @@ export function useChatSession({
   const [lastCompletedAiText, setLastCompletedAiText] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [internalInterviewDone, setInternalInterviewDone] = useState(false);
+  const [codingChallenge, setCodingChallenge] = useState<CodingChallenge | null>(null);
 
   const interviewDone = externalInterviewDone || internalInterviewDone;
 
@@ -184,9 +186,17 @@ export function useChatSession({
 
         if (signal.aborted) throw new Error("AbortError");
 
-        setMessages((previous) => [...previous, { role: "ai", text: aiResponseText }]);
+        let displayText = aiResponseText;
+        if (!codingChallenge) {
+          const parsed = parseCodingChallenge(aiResponseText);
+          if (parsed) {
+            setCodingChallenge(parsed.challenge);
+            displayText = parsed.displayText;
+          }
+        }
+        setMessages((previous) => [...previous, { role: "ai", text: displayText }]);
         setCurrentStreamedText("");
-        setLastCompletedAiText(aiResponseText);
+        setLastCompletedAiText(displayText);
       } catch (error: unknown) {
         if (error instanceof Error && (error.name === "AbortError" || error.message === "AbortError")) {
           return;
@@ -201,7 +211,7 @@ export function useChatSession({
         setIsThinking(false);
       }
     },
-    [interviewId, interviewDone, setInterviewDone]
+    [interviewId, interviewDone, setInterviewDone, codingChallenge]
   );
 
   useEffect(() => {
@@ -268,5 +278,6 @@ export function useChatSession({
     isThinking,
     sendMessage,
     interviewDone,
+    codingChallenge,
   };
 }

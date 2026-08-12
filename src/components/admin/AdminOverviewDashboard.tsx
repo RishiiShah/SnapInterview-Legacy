@@ -3,6 +3,12 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
+import {
+  adminHeadingClass,
+  adminMutedClass,
+  adminPanelClass,
+  adminSecondaryLinkClass,
+} from "./admin-styles";
 
 type StatCard = {
   label: string;
@@ -38,7 +44,9 @@ type AdminOverviewDashboardProps = {
 };
 
 function barColor(metric: "interviews" | "users") {
-  return metric === "interviews" ? "bg-zinc-900 group-hover:bg-zinc-700" : "bg-blue-500 group-hover:bg-blue-600";
+  return metric === "interviews"
+    ? "bg-[#3B82F6] group-hover:bg-[#4B8FF7]"
+    : "bg-sky-400/80 group-hover:bg-sky-400";
 }
 
 export default function AdminOverviewDashboard({
@@ -57,37 +65,47 @@ export default function AdminOverviewDashboard({
   return (
     <div className="space-y-6 pb-8">
       <section>
-        <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">Overview</h2>
-        <p className="mt-1 text-sm text-zinc-500">Operational health, growth trends, and recent interview activity.</p>
+        <h2 className={adminHeadingClass}>Overview</h2>
+        <p className={`mt-1 ${adminMutedClass}`}>
+          Operational health, growth trends, and recent interview activity.
+        </p>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {cards.map((card) => (
-          <div key={card.label} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
-            <p className="text-xs uppercase tracking-wide text-zinc-500">{card.label}</p>
-            <p className="mt-2 text-2xl font-semibold text-zinc-900">{card.value}</p>
-            <p className="mt-1 text-xs text-zinc-400">{card.hint}</p>
+          <div key={card.label} className={`${adminPanelClass} p-4`}>
+            <p className="text-xs uppercase tracking-wide text-[#A8B0C2]">{card.label}</p>
+            <p className="mt-2 text-2xl font-semibold text-[#F2F4F8]">{card.value}</p>
+            <p className="mt-1 text-xs text-[#A8B0C2]">{card.hint}</p>
           </div>
         ))}
       </section>
 
       <section className="grid gap-4 lg:grid-cols-5">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 lg:col-span-3">
-          <div className="flex items-center justify-between">
+        <div className={`${adminPanelClass} p-5 lg:col-span-3`}>
+          <div className="flex items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-zinc-900">7-Day Trend</h3>
-              <p className="text-xs text-zinc-400">Switch metric to inspect usage patterns</p>
+              <h3 className="text-sm font-semibold text-[#F2F4F8]">7-Day Trend</h3>
+              <p className="text-xs text-[#A8B0C2]">Switch metric to inspect usage patterns</p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setMetric("interviews")}
-                className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium ${metric === "interviews" ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}
+                className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  metric === "interviews"
+                    ? "bg-[#3B82F6] text-white"
+                    : "bg-white/[0.04] text-[#A8B0C2] hover:bg-white/[0.06] hover:text-[#E8ECF4]"
+                }`}
               >
                 Interviews
               </button>
               <button
                 onClick={() => setMetric("users")}
-                className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium ${metric === "users" ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}
+                className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  metric === "users"
+                    ? "bg-[#3B82F6] text-white"
+                    : "bg-white/[0.04] text-[#A8B0C2] hover:bg-white/[0.06] hover:text-[#E8ECF4]"
+                }`}
               >
                 New Users
               </button>
@@ -107,21 +125,21 @@ export default function AdminOverviewDashboard({
                       animate={{ height: `${height}%` }}
                       transition={{ duration: 0.4, delay: idx * 0.04 }}
                     >
-                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[11px] font-medium text-zinc-500 opacity-0 transition-opacity group-hover:opacity-100">
+                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[11px] font-medium text-[#C5CBD8] opacity-0 transition-opacity group-hover:opacity-100">
                         {value}
                       </span>
                     </motion.div>
                   </div>
-                  <span className="text-[11px] text-zinc-400">{point.label}</span>
+                  <span className="text-[11px] text-[#A8B0C2]">{point.label}</span>
                 </div>
               );
             })}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 lg:col-span-2">
-          <h3 className="text-sm font-semibold text-zinc-900">Interview Status Mix</h3>
-          <p className="text-xs text-zinc-400">Active records only</p>
+        <div className={`${adminPanelClass} p-5 lg:col-span-2`}>
+          <h3 className="text-sm font-semibold text-[#F2F4F8]">Interview Status Mix</h3>
+          <p className="text-xs text-[#A8B0C2]">Active records only</p>
           <div className="mt-4 space-y-3">
             {statusBreakdown.map((item) => {
               const total = statusBreakdown.reduce((sum, entry) => sum + entry.count, 0) || 1;
@@ -129,11 +147,11 @@ export default function AdminOverviewDashboard({
               return (
                 <div key={item.status}>
                   <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="font-medium text-zinc-700">{item.status}</span>
-                    <span className="text-zinc-500">{item.count}</span>
+                    <span className="font-medium text-[#C5CBD8]">{item.status}</span>
+                    <span className="text-[#A8B0C2]">{item.count}</span>
                   </div>
-                  <div className="h-2 rounded-full bg-zinc-100">
-                    <div className="h-full rounded-full bg-zinc-700" style={{ width: `${width}%` }} />
+                  <div className="h-2 rounded-full bg-white/[0.06]">
+                    <div className="h-full rounded-full bg-[#3B82F6]" style={{ width: `${width}%` }} />
                   </div>
                 </div>
               );
@@ -142,26 +160,31 @@ export default function AdminOverviewDashboard({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white">
-        <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
-          <h3 className="text-sm font-semibold text-zinc-900">Recent Interview Activity</h3>
-          <Link href="/admin/interviews" className="cursor-pointer text-xs font-medium text-zinc-500 hover:text-zinc-900">
+      <section className={adminPanelClass}>
+        <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
+          <h3 className="text-sm font-semibold text-[#F2F4F8]">Recent Interview Activity</h3>
+          <Link
+            href="/admin/interviews"
+            className="cursor-pointer text-xs font-medium text-[#A8B0C2] hover:text-[#E8ECF4]"
+          >
             View all
           </Link>
         </div>
         {recentActivity.length === 0 ? (
-          <p className="px-5 py-8 text-sm text-zinc-500">No recent interview activity.</p>
+          <p className="px-5 py-8 text-sm text-[#A8B0C2]">No recent interview activity.</p>
         ) : (
-          <div className="divide-y divide-zinc-100">
+          <div className="divide-y divide-white/[0.05]">
             {recentActivity.map((item) => (
               <div key={item.id} className="flex items-center justify-between gap-4 px-5 py-3">
                 <div>
-                  <p className="text-sm font-medium text-zinc-900">{item.candidateName}</p>
-                  <p className="text-xs text-zinc-500">{item.candidateEmail} · {item.role}</p>
+                  <p className="text-sm font-medium text-[#F2F4F8]">{item.candidateName}</p>
+                  <p className="text-xs text-[#A8B0C2]">
+                    {item.candidateEmail} · {item.role}
+                  </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-medium text-zinc-700">{item.status}</p>
-                  <p className="text-xs text-zinc-400">{item.createdAt}</p>
+                  <p className="text-xs font-medium text-[#C5CBD8]">{item.status}</p>
+                  <p className="text-xs text-[#A8B0C2]">{item.createdAt}</p>
                 </div>
               </div>
             ))}
@@ -169,16 +192,23 @@ export default function AdminOverviewDashboard({
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-4">
-        <h3 className="text-sm font-semibold text-zinc-900">Quick Admin Access</h3>
+      <section className={`${adminPanelClass} p-4`}>
+        <h3 className="text-sm font-semibold text-[#F2F4F8]">Quick Admin Access</h3>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Link href="/admin/users" className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100">Users</Link>
-          <Link href="/admin/questions" className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100">Questions</Link>
-          <Link href="/admin/interviews" className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100">Interviews</Link>
-          <Link href="/admin/analytics" className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100">Analytics</Link>
+          <Link href="/admin/users" className={adminSecondaryLinkClass}>
+            Users
+          </Link>
+          <Link href="/admin/questions" className={adminSecondaryLinkClass}>
+            Questions
+          </Link>
+          <Link href="/admin/interviews" className={adminSecondaryLinkClass}>
+            Interviews
+          </Link>
+          <Link href="/admin/analytics" className={adminSecondaryLinkClass}>
+            Analytics
+          </Link>
         </div>
       </section>
     </div>
   );
 }
-

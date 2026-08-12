@@ -4,10 +4,17 @@ import { useParams, useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import PreJoinScreen from "@/components/interview/PreJoinScreen";
 import ActiveInterviewScreen from "@/components/interview/ActiveInterviewScreen";
-import { useInterviewPageController } from "@/hooks/useInterviewPageController";
+import {
+  useInterviewPageController,
+  type InterviewSessionMeta,
+} from "@/hooks/useInterviewPageController";
 import Modal from "@/components/ui/Modal";
 
-export default function InterviewPageClient() {
+export default function InterviewPageClient({
+  initialSessionMeta,
+}: {
+  initialSessionMeta?: InterviewSessionMeta;
+}) {
   const params = useParams();
   const router = useRouter();
   const interviewId = params.uuid as string;
@@ -17,6 +24,7 @@ export default function InterviewPageClient() {
     interviewDone,
     isUploading,
     totalQuestions,
+    interviewType,
     joinBlockedReason,
     answeredQuestions,
     questionProgressPercent,
@@ -26,14 +34,16 @@ export default function InterviewPageClient() {
     chat,
     tts,
     media,
+    requestPermissions,
     videoRecording,
     audioLevels,
     handlePermissionsGranted,
     handleExitInterview,
     handleVideoMount,
+    codingChallenge,
     modal,
     closeModal,
-  } = useInterviewPageController({ interviewId });
+  } = useInterviewPageController({ interviewId, initialSessionMeta });
 
   return (
     <>
@@ -45,11 +55,13 @@ export default function InterviewPageClient() {
             media.stopStream();
             router.push("/practice");
           }}
+          ttsStatus={tts.status}
+          sttStatus={speech.sttStatus}
           onPermissionsGranted={handlePermissionsGranted}
           hasPermission={media.hasPermission}
           isLoading={media.isLoading}
           error={media.error}
-          requestPermissions={media.requestPermissions}
+          requestPermissions={requestPermissions}
           videoRef={media.videoRef}
           audioInputs={media.audioInputs}
           audioOutputs={media.audioOutputs}
@@ -104,6 +116,12 @@ export default function InterviewPageClient() {
           onSendTextAnswer={(text) => {
             tts.cancel();
             void chat.sendMessage(text);
+          }}
+          codingChallenge={codingChallenge}
+          codingInterview={interviewType === "coding-algorithms"}
+          onSubmitCode={(message) => {
+            tts.cancel();
+            void chat.sendMessage(message);
           }}
         />
       )}

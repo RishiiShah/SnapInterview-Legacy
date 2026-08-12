@@ -1,7 +1,9 @@
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
+import { QUESTION_CATEGORY_VALUES } from "@/lib/interview/domain";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
+import { getPublishedCodingSearchResults } from "@/repositories/coding-question-repo";
 import { logger } from "@/utils/logger";
 
 const searchLimiter = createRateLimiter("search", 60 * 1000, 30);
@@ -16,11 +18,12 @@ export type SearchSession = {
 };
 
 export type SearchQuestion = {
-  id: number;
+  id: string;
   slug: string;
   text: string;
-  category: string;
+  category: string | null;
   difficulty: string;
+  type: string;
 };
 
 export type SearchResults = {
@@ -50,7 +53,7 @@ export async function GET(req: Request) {
       return badRequestError("Query too long");
     }
 
-    const [sessions, questions] = await Promise.all([
+    const [sessions, practiceQuestions, codingQuestions] = await Promise.all([
       prisma.interviewSession.findMany({
         where: {
           userId: authUser.userId,
@@ -68,23 +71,48 @@ export async function GET(req: Request) {
       }),
       prisma.practiceQuestion.findMany({
         where: {
-          OR: [
-            { text: { contains: q, mode: "insensitive" } },
-            { category: { contains: q, mode: "insensitive" } },
-            { tags: { has: q.toLowerCase() } },
+          AND: [
+            { category: { in: [...QUESTION_CATEGORY_VALUES] } },
+            {
+              OR: [
+                { text: { contains: q, mode: "insensitive" } },
+                { category: { contains: q, mode: "insensitive" } },
+                { tags: { has: q.toLowerCase() } },
+              ],
+            },
           ],
         },
         select: { id: true, slug: true, text: true, category: true, difficulty: true },
         take: 5,
       }),
+      getPublishedCodingSearchResults(q),
     ]);
+
+    const codingSearchResults = codingQuestions.map((question) => ({
+      id: question.id,
+      slug: question.slug,
+      text: question.title,
+      category: null,
+      difficulty: question.difficulty,
+      type: "coding",
+    }));
 
     const result: SearchResults = {
       sessions: sessions.map((s) => ({
         ...s,
         createdAt: s.createdAt.toISOString(),
       })),
-      questions,
+      questions: [
+        ...practiceQuestions.map((question) => ({
+          id: String(question.id),
+          slug: question.slug,
+          text: question.text,
+          category: question.category,
+          difficulty: question.difficulty,
+          type: "question",
+        })),
+        ...codingSearchResults,
+      ],
     };
 
     return apiJson(result);

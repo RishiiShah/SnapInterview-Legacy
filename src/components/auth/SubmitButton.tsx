@@ -1,25 +1,53 @@
-import { IconSpinner } from "@/components/ui/icons";
+"use client";
+
+import { motion, useReducedMotion } from "framer-motion";
+import { SendActionButton } from "@/components/ui/SendActionButton";
+import { AUTH_EASE } from "./AuthShell";
 
 interface SubmitButtonProps {
-    loading: boolean;
-    text: string;
-    disabled?: boolean;
-    onClick?: () => void;
+  loading: boolean;
+  success?: boolean;
+  text: string;
+  sentText?: string;
+  disabled?: boolean;
+  onClick?: () => void;
 }
 
-export function SubmitButton({ loading, text, disabled = false, onClick }: SubmitButtonProps) {
-    return (
-        <button
-            type="submit"
-            onClick={onClick}
-            disabled={loading || disabled}
-            className="flex w-full items-center justify-center rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white shadow-lg shadow-zinc-900/20 transition-all hover:bg-zinc-700 hover:shadow-xl disabled:opacity-50"
-        >
-            {loading ? (
-                <IconSpinner className="h-5 w-5 animate-spin text-white" />
-            ) : (
-                text
-            )}
-        </button>
-    );
+export function SubmitButton({
+  loading,
+  success,
+  text,
+  sentText,
+  disabled = false,
+  onClick,
+}: SubmitButtonProps) {
+  const reducedMotion = useReducedMotion() ?? false;
+  const activeLabel =
+    sentText ??
+    (text === "Log in"
+      ? "Logging in..."
+      : text === "Create account"
+        ? "Creating account..."
+        : "Processing...");
+
+  return (
+    <motion.div
+      whileHover={reducedMotion || loading || disabled ? undefined : { scale: 1.012 }}
+      whileTap={reducedMotion || loading || disabled ? undefined : { scale: 0.988 }}
+      transition={{ duration: 0.2, ease: AUTH_EASE }}
+      className="w-full"
+    >
+      <SendActionButton
+        type={onClick ? "button" : "submit"}
+        onClick={onClick}
+        label={text}
+        loadingLabel={activeLabel}
+        sentLabel={activeLabel}
+        loading={loading}
+        success={success}
+        disabled={loading || disabled}
+        fullWidth
+      />
+    </motion.div>
+  );
 }

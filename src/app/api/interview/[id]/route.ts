@@ -4,7 +4,6 @@ import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { logger } from "@/utils/logger";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
-import { getQuestionFeedbackForSession } from "@/repositories/interview-repo";
 import { hardDeleteInterviewSessionForUser } from "@/lib/interview/hard-delete-session";
 import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 import { interviewIdSchema } from "@/lib/interview/domain";
@@ -56,40 +55,46 @@ export async function GET(
             return badRequestError("Invalid interview ID");
         }
 
-        const [interviewSession, feedback] = await Promise.all([
-            prisma.interviewSession.findFirst({
-                where: {
-                    id: parsedId.data,
-                    userId: authUser.userId,
-                },
-                select: {
-                    id: true,
-                    role: true,
-                    type: true,
-                    difficulty: true,
-                    evaluation: true,
-                    createdAt: true,
-                    transcript: {
-                        select: {
-                            id: true,
-                            question: true,
-                            answer: true,
-                            order: true,
-                            createdAt: true,
-                        },
-                        orderBy: { order: "asc" },
+        const interviewSession = await prisma.interviewSession.findFirst({
+            where: {
+                id: parsedId.data,
+                userId: authUser.userId,
+            },
+            select: {
+                id: true,
+                role: true,
+                type: true,
+                difficulty: true,
+                evaluation: true,
+                createdAt: true,
+                transcript: {
+                    select: {
+                        id: true,
+                        question: true,
+                        answer: true,
+                        order: true,
+                        createdAt: true,
                     },
+                    orderBy: { order: "asc" },
                 },
-            }),
-            getQuestionFeedbackForSession(parsedId.data),
-        ]);
+                questionFeedback: {
+                    select: {
+                        questionOrder: true,
+                        rating: true,
+                    },
+                    orderBy: { questionOrder: "asc" },
+                },
+            },
+        });
 
         if (!interviewSession) {
             return notFoundError("Interview session not found");
         }
 
+        const { questionFeedback: feedback, ...session } = interviewSession;
+
         return apiJson({
-            ...interviewSession,
+            ...session,
             evaluation: normalizeTranscriptEvaluation(interviewSession.evaluation),
             feedback,
         });

@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { parsePracticeQuestionForm, parsePracticeQuestionInput } from "@/lib/admin/practice-question";
 import { prisma } from "@/lib/prisma";
+import { PRACTICE_QUESTION_CATALOG_CACHE_TAG } from "@/repositories/question-repo";
 
 function redirectWithError(path: string, message: string): never {
   redirect(`${path}?error=${encodeURIComponent(message)}`);
@@ -19,6 +20,7 @@ function redirectWithMessage(path: string, message: string): never {
 
 function revalidateQuestionFacets() {
   revalidateTag(ADMIN_QUESTION_FACETS_TAG, "max");
+  revalidateTag(PRACTICE_QUESTION_CATALOG_CACHE_TAG, "max");
 }
 
 async function ensurePracticeQuestionIdSequence() {
@@ -29,6 +31,20 @@ async function ensurePracticeQuestionIdSequence() {
       false
     )
   `;
+}
+
+function isUniqueConstraintError(error: unknown) {
+  return (error as { code?: unknown } | null)?.code === "P2002";
+}
+
+function isPracticeQuestionSlugConflict(error: unknown) {
+  if (!isUniqueConstraintError(error)) return false;
+
+  const target = (error as { meta?: { target?: unknown } } | null)?.meta?.target;
+  const fields = Array.isArray(target) ? target : [target];
+  return fields.some(
+    (field) => typeof field === "string" && field.toLowerCase().includes("slug"),
+  );
 }
 
 // Record-aware CSV tokenizer: walks the whole text so newlines inside quoted fields
@@ -125,27 +141,28 @@ export async function createPracticeQuestionAction(formData: FormData) {
     redirectWithError("/admin/questions/new", parsed.error);
   }
 
-  const existing = await prisma.practiceQuestion.findUnique({
-    where: { slug: parsed.data.slug },
-  });
-  if (existing) {
-    redirectWithError("/admin/questions/new", "A question with this slug already exists.");
-  }
-
   try {
     await prisma.practiceQuestion.create({ data: parsed.data });
   } catch (err) {
+    if (isPracticeQuestionSlugConflict(err)) {
+      redirectWithError("/admin/questions/new", "A question with this slug already exists.");
+    }
+
     // If the DB sequence for PracticeQuestion.id is out of sync (common after manual inserts),
     // repair it and retry once.
-    const maybeKnown = err as { code?: string; meta?: unknown } | null;
-    const isUniqueViolation = maybeKnown?.code === "P2002";
-
-    if (!isUniqueViolation) {
+    if (!isUniqueConstraintError(err)) {
       throw err;
     }
 
     await ensurePracticeQuestionIdSequence();
-    await prisma.practiceQuestion.create({ data: parsed.data });
+    try {
+      await prisma.practiceQuestion.create({ data: parsed.data });
+    } catch (retryError) {
+      if (isPracticeQuestionSlugConflict(retryError)) {
+        redirectWithError("/admin/questions/new", "A question with this slug already exists.");
+      }
+      throw retryError;
+    }
   }
 
   revalidatePath("/admin/questions");
@@ -286,33 +303,44 @@ export async function importPracticeQuestionsAction(formData: FormData) {
     );
   }
 
-  let created = 0;
-  let tagsMerged = 0;
+  const { created, tagsMerged } = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`
+      SELECT setval(
+        pg_get_serial_sequence('"PracticeQuestion"', 'id'),
+        (SELECT COALESCE(MAX(id), 0) + 1 FROM "PracticeQuestion"),
+        false
+      )
+    `;
 
-  await ensurePracticeQuestionIdSequence();
-  for (const item of normalized) {
-    if (!item) continue;
+    let created = 0;
+    let tagsMerged = 0;
 
-    const existing = await prisma.practiceQuestion.findUnique({
-      where: { slug: item.slug },
-      select: { id: true, tags: true },
-    });
+    for (const item of normalized) {
+      if (!item) continue;
 
-    if (existing) {
-      const mergedTags = mergeQuestionTags(existing.tags, item.tags);
-      if (mergedTags.length > existing.tags.length) {
-        await prisma.practiceQuestion.update({
-          where: { id: existing.id },
-          data: { tags: mergedTags },
-        });
-        tagsMerged += 1;
+      const existing = await tx.practiceQuestion.findUnique({
+        where: { slug: item.slug },
+        select: { id: true, tags: true },
+      });
+
+      if (existing) {
+        const mergedTags = mergeQuestionTags(existing.tags, item.tags);
+        if (mergedTags.length > existing.tags.length) {
+          await tx.practiceQuestion.update({
+            where: { id: existing.id },
+            data: { tags: mergedTags },
+          });
+          tagsMerged += 1;
+        }
+        continue;
       }
-      continue;
+
+      await tx.practiceQuestion.create({ data: item });
+      created += 1;
     }
 
-    await prisma.practiceQuestion.create({ data: item });
-    created += 1;
-  }
+    return { created, tagsMerged };
+  });
 
   revalidatePath("/admin/questions");
   revalidateQuestionFacets();

@@ -1,7 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { QUESTIONS } from "@/data/questions";
 import type { Question } from "@/data/types";
+import { QUESTION_CATEGORY_VALUES } from "@/lib/interview/domain";
 import { logger } from "@/utils/logger";
+import { unstable_cache } from "next/cache";
+
+export const PRACTICE_QUESTION_CATALOG_CACHE_TAG = "practice-question-catalog-v1";
+
+function isQuestionCategory(category: string): category is Question["category"] {
+  return (QUESTION_CATEGORY_VALUES as readonly string[]).includes(category);
+}
 
 function mapPracticeQuestion(question: {
   id: number;
@@ -13,12 +21,16 @@ function mapPracticeQuestion(question: {
   tags: string[];
   hint: string | null;
   sampleAnswer: string | null;
-}): Question {
+}): Question | null {
+  if (!isQuestionCategory(question.category)) {
+    return null;
+  }
+
   return {
     id: question.id,
     slug: question.slug,
     text: question.text,
-    category: question.category as Question["category"],
+    category: question.category,
     difficulty: question.difficulty as Question["difficulty"],
     estimatedTime: question.estimatedTime || "5 min",
     tags: question.tags,
@@ -39,14 +51,21 @@ function logStaticFallback(reason: string, context?: Record<string, unknown>) {
  * Fetches all practice questions from the database, 
  * falling back to static questions if the database is empty or unavailable.
  */
-export async function getAllPracticeQuestions(): Promise<Question[]> {
+async function getAllPracticeQuestionsUncached(): Promise<Question[]> {
   try {
     const dbQuestions = await prisma.practiceQuestion.findMany({
       orderBy: { id: "asc" },
     });
 
     if (dbQuestions.length > 0) {
-      return dbQuestions.map(mapPracticeQuestion);
+      const questions = dbQuestions.flatMap((question) => {
+        const mapped = mapPracticeQuestion(question);
+        return mapped ? [mapped] : [];
+      });
+
+      if (questions.length > 0) {
+        return questions;
+      }
     }
 
     logStaticFallback("database-empty");
@@ -60,6 +79,17 @@ export async function getAllPracticeQuestions(): Promise<Question[]> {
   return QUESTIONS;
 }
 
+export async function getAllPracticeQuestions(): Promise<Question[]> {
+  return unstable_cache(
+    getAllPracticeQuestionsUncached,
+    [PRACTICE_QUESTION_CATALOG_CACHE_TAG],
+    {
+      revalidate: 300,
+      tags: [PRACTICE_QUESTION_CATALOG_CACHE_TAG],
+    },
+  )();
+}
+
 /**
  * Fetches a single question by its slug.
  */
@@ -70,7 +100,10 @@ export async function getPracticeQuestionBySlug(slug: string): Promise<Question 
     });
 
     if (q) {
-      return mapPracticeQuestion(q);
+      const mapped = mapPracticeQuestion(q);
+      if (mapped) {
+        return mapped;
+      }
     }
 
     logStaticFallback("database-miss", { slug });
@@ -94,7 +127,10 @@ export async function getPracticeQuestionById(id: number): Promise<Question | un
     });
 
     if (q) {
-      return mapPracticeQuestion(q);
+      const mapped = mapPracticeQuestion(q);
+      if (mapped) {
+        return mapped;
+      }
     }
 
     logStaticFallback("database-miss", { id });
@@ -108,7 +144,9 @@ export async function getPracticeQuestionById(id: number): Promise<Question | un
   return QUESTIONS.find((q) => q.id === id);
 }
 
-export async function getPracticeQuestionRuntimeDataBySlug(slug: string): Promise<{
+export async function getPracticeQuestionRuntimeDataBySlug(
+  slug: string,
+): Promise<{
   question: Question;
   allQuestions: Question[];
   currentIndex: number;

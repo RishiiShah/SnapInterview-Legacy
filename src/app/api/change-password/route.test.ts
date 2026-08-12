@@ -36,12 +36,17 @@ vi.mock("@/lib/prisma", () => ({
       findFirst: vi.fn(),
       update: vi.fn(),
     },
+    $transaction: vi.fn(),
   },
 }));
 
 describe("POST /api/change-password", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback({
+      account: { update: prisma.account.update },
+      user: { update: prisma.user.update },
+    } as never) as never);
   });
 
   it("short-circuits when CSRF validation fails", async () => {
@@ -83,7 +88,7 @@ describe("POST /api/change-password", () => {
   it("rejects weak new password", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
     vi.mocked(getServerAuthSession).mockResolvedValue({
-      user: { email: "user@example.com" },
+      user: { id: "user-1", email: "user@example.com" },
     } as never);
 
     const req = new Request("http://localhost/api/change-password", {
@@ -105,11 +110,7 @@ describe("POST /api/change-password", () => {
   it("rejects incorrect current password", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
     vi.mocked(getServerAuthSession).mockResolvedValue({
-      user: { email: "user@example.com" },
-    } as never);
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      id: "user-1",
-      email: "user@example.com",
+      user: { id: "user-1", email: "user@example.com" },
     } as never);
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
       id: "acct-1",
@@ -141,11 +142,7 @@ describe("POST /api/change-password", () => {
   it("rejects reusing the same password", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
     vi.mocked(getServerAuthSession).mockResolvedValue({
-      user: { email: "user@example.com" },
-    } as never);
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      id: "user-1",
-      email: "user@example.com",
+      user: { id: "user-1", email: "user@example.com" },
     } as never);
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
       id: "acct-1",
@@ -181,14 +178,10 @@ describe("POST /api/change-password", () => {
   it("changes password, revokes other sessions, and records event", async () => {
     vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
     vi.mocked(getServerAuthSession).mockResolvedValue({
-      user: { email: "user@example.com" },
+      user: { id: "user-1", email: "user@example.com" },
     } as never);
     vi.mocked(getCurrentSession).mockResolvedValue({
       token: "current-token",
-    } as never);
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      id: "user-1",
-      email: "user@example.com",
     } as never);
     vi.mocked(prisma.account.findFirst).mockResolvedValue({
       id: "acct-1",
@@ -217,6 +210,11 @@ describe("POST /api/change-password", () => {
 
     const res = await POST(req);
     expect(res.status).toBe(200);
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(prisma.account.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: "user-1", providerId: "credential" } }),
+    );
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
     expect(revokeUserSessions).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: "user-1",

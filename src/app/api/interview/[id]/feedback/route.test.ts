@@ -3,6 +3,7 @@ import { POST } from "./route";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getInterviewSession, upsertQuestionFeedback } from "@/repositories/interview-repo";
+import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 
 vi.mock("@/lib/server-auth", () => ({
   getSessionUserIdentity: vi.fn(),
@@ -15,6 +16,10 @@ vi.mock("@/lib/csrf", () => ({
 vi.mock("@/repositories/interview-repo", () => ({
   getInterviewSession: vi.fn(),
   upsertQuestionFeedback: vi.fn(),
+}));
+
+vi.mock("@/lib/interview/metrics", () => ({
+  invalidateInterviewMetricsCache: vi.fn(),
 }));
 
 vi.mock("@/utils/logger", () => ({
@@ -108,6 +113,7 @@ describe("POST /api/interview/[id]/feedback", () => {
       questionOrder: 2,
       rating: "up",
     });
+    expect(invalidateInterviewMetricsCache).toHaveBeenCalledWith("u1");
   });
 
   it("saves feedback and returns success for 'down' rating", async () => {

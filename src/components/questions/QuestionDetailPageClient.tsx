@@ -6,6 +6,8 @@ import type { Question } from "@/data/types";
 import { IconChevronLeft, IconChevronRight } from "@/components/ui/icons";
 import { QuestionLeftPanel, type LeftTab } from "@/components/questions/QuestionLeftPanel";
 import { QuestionRightPanel, type RightTab } from "@/components/questions/QuestionRightPanel";
+import { useResizableSplit } from "@/hooks/useResizableSplit";
+import { cn } from "@/lib/utils";
 
 type QuestionDetailPageClientProps = {
   question: Question;
@@ -13,7 +15,45 @@ type QuestionDetailPageClientProps = {
   totalQuestions: number;
   prevQuestion: Question | null;
   nextQuestion: Question | null;
+  initialIsSolved: boolean;
+  basePath?: "/questions" | "/coding";
+  listLabel?: string;
 };
+
+type QuestionAnswerDraft = {
+  answerText: string;
+  timeRemaining: number;
+};
+
+const ANSWER_DRAFT_STORAGE_PREFIX = "snap-question-answer-draft-v1";
+
+function getAnswerDraftStorageKey(basePath: QuestionDetailPageClientProps["basePath"], questionId: number) {
+  return `${ANSWER_DRAFT_STORAGE_PREFIX}:${(basePath ?? "/questions").slice(1)}:${questionId}`;
+}
+
+function parseAnswerDraft(value: string | null): QuestionAnswerDraft | null {
+  if (!value) return null;
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      typeof (parsed as QuestionAnswerDraft).answerText !== "string" ||
+      typeof (parsed as QuestionAnswerDraft).timeRemaining !== "number" ||
+      !Number.isFinite((parsed as QuestionAnswerDraft).timeRemaining)
+    ) {
+      return null;
+    }
+
+    return {
+      answerText: (parsed as QuestionAnswerDraft).answerText,
+      timeRemaining: Math.max(0, (parsed as QuestionAnswerDraft).timeRemaining),
+    };
+  } catch {
+    return null;
+  }
+}
 
 export default function QuestionDetailPageClient({
   question,
@@ -21,6 +61,9 @@ export default function QuestionDetailPageClient({
   totalQuestions,
   prevQuestion,
   nextQuestion,
+  initialIsSolved,
+  basePath = "/questions",
+  listLabel = "Problem List",
 }: QuestionDetailPageClientProps) {
   const [leftTab, setLeftTab] = useState<LeftTab>("description");
   const [answerText, setAnswerText] = useState("");
@@ -32,14 +75,88 @@ export default function QuestionDetailPageClient({
   const [isTimerStarted, setIsTimerStarted] = useState(false);
   const [score, setScore] = useState<{ score: number; feedback: string; state: "evaluating" | "completed" } | null>(null);
   const [rightTab, setRightTab] = useState<RightTab>("answer");
-  const [isSolved, setIsSolved] = useState(false);
+  const [isSolved, setIsSolved] = useState(initialIsSolved);
   const [isSolveUpdating, setIsSolveUpdating] = useState(false);
   const [solveError, setSolveError] = useState<string | null>(null);
+  const [restoredDraftKey, setRestoredDraftKey] = useState<string | null>(null);
+  const [isDraftSubmitted, setIsDraftSubmitted] = useState(false);
+  const answerDraftStorageKey = getAnswerDraftStorageKey(basePath, question.id);
+
+  const {
+    percent: leftPercent,
+    containerRef: splitRef,
+    handleProps: splitHandleProps,
+  } = useResizableSplit({
+    orientation: "horizontal",
+    initialPercent: 42,
+    minPercent: 28,
+    maxPercent: 58,
+    storageKey: `snap-${basePath.slice(1)}-split-h`,
+  });
 
   const getMinutes = (value: string) => {
     const match = value.match(/(\d+)/);
     return match ? parseInt(match[1], 10) : 0;
   };
+
+  const removeSavedDraft = useCallback(() => {
+    try {
+      window.localStorage.removeItem(answerDraftStorageKey);
+    } catch {
+      // Private browsing or a storage quota error should not interrupt practice.
+    }
+  }, [answerDraftStorageKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+
+      try {
+        const draft = parseAnswerDraft(window.localStorage.getItem(answerDraftStorageKey));
+        if (draft?.answerText.trim()) {
+          setAnswerText(draft.answerText);
+          setTimeRemaining(draft.timeRemaining);
+          setIsTimerStarted(true);
+          setIsTimerRunning(false);
+          setRightTab("answer");
+          setScore(null);
+          setIsDraftSubmitted(false);
+        }
+      } catch {
+        // Storage is best-effort. Continue with a fresh answer if it is unavailable.
+      } finally {
+        if (!cancelled) setRestoredDraftKey(answerDraftStorageKey);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [answerDraftStorageKey]);
+
+  useEffect(() => {
+    if (restoredDraftKey !== answerDraftStorageKey) return;
+
+    if (isDraftSubmitted || !isTimerStarted || !answerText.trim()) {
+      removeSavedDraft();
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(
+          answerDraftStorageKey,
+          JSON.stringify({ answerText, timeRemaining }),
+        );
+      } catch {
+        // Storage is best-effort. Never block answer entry if it is unavailable.
+      }
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [answerDraftStorageKey, answerText, isDraftSubmitted, isTimerStarted, removeSavedDraft, restoredDraftKey, timeRemaining]);
 
   const evaluateAnswer = useCallback(async () => {
     setIsTimerRunning(false);
@@ -68,6 +185,8 @@ export default function QuestionDetailPageClient({
       }
 
       const data = await res.json();
+      setIsDraftSubmitted(true);
+      removeSavedDraft();
       setScore({
         score: typeof data?.score === "number" ? data.score : 0,
         feedback:
@@ -83,7 +202,7 @@ export default function QuestionDetailPageClient({
         feedback: "Evaluation failed due to a network error. Please try again.",
       });
     }
-  }, [answerText, question.id]);
+  }, [answerText, question.id, removeSavedDraft]);
 
   const handleToggleSolved = useCallback(async () => {
     if (isSolveUpdating) return;
@@ -95,7 +214,7 @@ export default function QuestionDetailPageClient({
       const res = await fetch("/api/questions/solve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questionId: question.id }),
+        body: JSON.stringify({ questionId: question.id, solved: !isSolved }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -110,7 +229,7 @@ export default function QuestionDetailPageClient({
     } finally {
       setIsSolveUpdating(false);
     }
-  }, [isSolveUpdating, question.id]);
+  }, [isSolved, isSolveUpdating, question.id]);
 
   useEffect(() => {
     if (!isTimerRunning || timeRemaining <= 0) return;
@@ -127,35 +246,8 @@ export default function QuestionDetailPageClient({
     return () => clearInterval(timer);
   }, [evaluateAnswer, isTimerRunning, timeRemaining]);
 
-  useEffect(() => {
-    let isCancelled = false;
-
-    const loadSolvedState = async () => {
-      try {
-        const res = await fetch("/api/questions/solve", { method: "GET" });
-        if (!res.ok || isCancelled) return;
-        const data = await res.json();
-        const solvedIds: number[] = Array.isArray(data?.solvedQuestionIds)
-          ? data.solvedQuestionIds.filter((value: unknown): value is number => typeof value === "number")
-          : [];
-        if (!isCancelled) {
-          setIsSolved(solvedIds.includes(question.id));
-        }
-      } catch {
-        if (!isCancelled) {
-          setSolveError("Unable to load solved status.");
-        }
-      }
-    };
-
-    void loadSolvedState();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [question.id]);
-
   const handleStart = useCallback(() => {
+    removeSavedDraft();
     setScore(null);
     setAnswerText("");
     setShowSample(false);
@@ -163,37 +255,57 @@ export default function QuestionDetailPageClient({
     setTimeRemaining(getMinutes(question.estimatedTime) * 60);
     setIsTimerRunning(true);
     setIsTimerStarted(true);
-  }, [question.estimatedTime]);
+    setIsDraftSubmitted(false);
+  }, [question.estimatedTime, removeSavedDraft]);
 
   const handleSubmit = () => {
     void evaluateAnswer();
   };
 
   return (
-    <div className="-m-6 -mb-2 flex h-[calc(100vh-64px)] flex-col bg-zinc-50">
-      <div className="flex h-12 shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-6">
-        <div className="flex items-center gap-4">
-          <Link href="/questions" className="group flex items-center gap-2 text-xs font-semibold text-zinc-500 transition-colors hover:text-zinc-900">
+    <div className="flex h-full min-h-0 flex-col gap-2 bg-transparent p-2">
+      <div className="flex h-11 shrink-0 items-center justify-between rounded-xl border border-white/[0.08] bg-[#12141A]/90 px-4">
+        <div className="flex items-center gap-3">
+          <Link
+            href={basePath}
+            className="group flex items-center gap-1.5 text-xs font-medium text-[#A8B0C2] transition-colors hover:text-[#E8ECF4]"
+          >
             <IconChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-            Problem List
+            {listLabel}
           </Link>
         </div>
-        <div className="flex items-center gap-2">
-          {prevQuestion && (
-            <Link href={`/questions/${prevQuestion.slug}`} className="grid h-8 w-8 place-items-center rounded-lg text-zinc-400 transition-all hover:bg-zinc-100 hover:text-zinc-900">
+        <div className="flex items-center gap-1.5">
+          {prevQuestion ? (
+            <Link
+              href={`${basePath}/${prevQuestion.slug}`}
+              className="grid h-8 w-8 place-items-center rounded-lg text-[#A8B0C2] transition-colors hover:bg-white/[0.05] hover:text-[#E8ECF4]"
+            >
               <IconChevronLeft className="h-4 w-4" />
             </Link>
+          ) : (
+            <span className="grid h-8 w-8 place-items-center text-[#4B5568]">
+              <IconChevronLeft className="h-4 w-4" />
+            </span>
           )}
-          <span className="text-xs font-medium text-zinc-400">{currentIndex + 1} / {totalQuestions}</span>
-          {nextQuestion && (
-            <Link href={`/questions/${nextQuestion.slug}`} className="grid h-8 w-8 place-items-center rounded-lg text-zinc-400 transition-all hover:bg-zinc-100 hover:text-zinc-900">
+          <span className="min-w-[3.5rem] text-center text-xs font-medium tabular-nums text-[#A8B0C2]">
+            {currentIndex + 1} / {totalQuestions}
+          </span>
+          {nextQuestion ? (
+            <Link
+              href={`${basePath}/${nextQuestion.slug}`}
+              className="grid h-8 w-8 place-items-center rounded-lg text-[#A8B0C2] transition-colors hover:bg-white/[0.05] hover:text-[#E8ECF4]"
+            >
               <IconChevronRight className="h-4 w-4" />
             </Link>
+          ) : (
+            <span className="grid h-8 w-8 place-items-center text-[#4B5568]">
+              <IconChevronRight className="h-4 w-4" />
+            </span>
           )}
         </div>
       </div>
 
-      <div className="flex flex-1 min-h-0">
+      <div ref={splitRef} className="relative flex min-h-0 flex-1 overflow-hidden">
         <QuestionLeftPanel
           question={question}
           leftTab={leftTab}
@@ -208,19 +320,36 @@ export default function QuestionDetailPageClient({
           isSolveUpdating={isSolveUpdating}
           solveError={solveError}
           handleToggleSolved={handleToggleSolved}
+          widthPercent={leftPercent}
         />
-        <QuestionRightPanel
-          question={question}
-          answerText={answerText}
-          setAnswerText={setAnswerText}
-          timeRemaining={timeRemaining}
-          isTimerStarted={isTimerStarted}
-          score={score}
-          rightTab={rightTab}
-          setRightTab={setRightTab}
-          handleStart={handleStart}
-          handleSubmit={handleSubmit}
+
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize panels"
+          tabIndex={0}
+          className={cn(
+            "group relative z-10 w-2 shrink-0 cursor-col-resize touch-none",
+            "before:absolute before:inset-y-0 before:left-1/2 before:w-px before:-translate-x-1/2 before:bg-white/[0.08]",
+            "hover:before:bg-[#3B82F6]/50 active:before:bg-[#3B82F6]",
+          )}
+          {...splitHandleProps}
         />
+
+        <div className="min-h-0 min-w-0 flex-1 overflow-hidden rounded-xl border border-white/[0.08] bg-[#12141A]/90">
+          <QuestionRightPanel
+            question={question}
+            answerText={answerText}
+            setAnswerText={setAnswerText}
+            timeRemaining={timeRemaining}
+            isTimerStarted={isTimerStarted}
+            score={score}
+            rightTab={rightTab}
+            setRightTab={setRightTab}
+            handleStart={handleStart}
+            handleSubmit={handleSubmit}
+          />
+        </div>
       </div>
     </div>
   );

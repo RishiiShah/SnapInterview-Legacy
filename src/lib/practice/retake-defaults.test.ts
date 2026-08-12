@@ -9,7 +9,7 @@ describe("parsePracticeRetakeDefaults", () => {
       difficulty: "medium",
     })).toEqual({
       role: "Frontend Developer",
-      type: "behavioral",
+      type: "behavioral-leadership",
       difficulty: "medium",
     });
   });
@@ -21,7 +21,7 @@ describe("parsePracticeRetakeDefaults", () => {
       difficulty: "hard",
     })).toEqual({
       role: "Engineering Manager",
-      type: "leadership",
+      type: "behavioral-leadership",
       difficulty: "hard",
     });
   });
@@ -33,6 +33,16 @@ describe("parsePracticeRetakeDefaults", () => {
       difficulty: ["extreme", "easy"],
     })).toEqual({
       role: "Product Manager",
+    });
+  });
+
+  it("accepts new hiring-loop kinds directly", () => {
+    expect(parsePracticeRetakeDefaults({
+      type: "bar-raiser",
+      difficulty: "hard",
+    })).toEqual({
+      type: "bar-raiser",
+      difficulty: "hard",
     });
   });
 });

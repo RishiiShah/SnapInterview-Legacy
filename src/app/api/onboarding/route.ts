@@ -5,13 +5,21 @@ import { normalizeOnboardingResponse } from "@/lib/onboarding/preferences";
 import { withCsrfProtection } from "@/lib/route-security";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { logger } from "@/utils/logger";
+import { interviewTypeSchema } from "@/lib/interview/domain";
 
 const onboardingSchema = z.object({
   onboardingRole: z.string().trim().min(1, "Target role is required").max(200, "Target role is too long"),
   onboardingLevel: z.string().trim().min(1, "Experience level is required").max(64, "Experience level is too long"),
   onboardingCompany: z.string().trim().max(100).optional().default(""),
   onboardingGoal: z.string().trim().min(1, "Primary goal is required").max(200, "Primary goal is too long"),
-  preferredInterviewType: z.enum(["behavioral", "technical", "system-design", "leadership"]),
+  preferredInterviewType: z.string().transform((value, ctx) => {
+    const parsed = interviewTypeSchema.safeParse(value);
+    if (!parsed.success) {
+      ctx.addIssue({ code: "custom", message: "Invalid interview type" });
+      return z.NEVER;
+    }
+    return parsed.data;
+  }),
 });
 
 export async function GET() {
@@ -21,9 +29,7 @@ export async function GET() {
       return unauthorizedError();
     }
 
-    const where = authUser.email
-      ? { email: authUser.email }
-      : { id: authUser.userId };
+    const where = { id: authUser.userId };
 
     const user = await prisma.user.findUnique({
       where,
@@ -74,11 +80,9 @@ export const PUT = withCsrfProtection(async (req: Request) => {
 
     const values = parsed.data;
 
-    const where = authUser.email
-      ? { email: authUser.email }
-      : { id: authUser.userId };
+    const where = { id: authUser.userId };
 
-    await prisma.user
+    const updated = await prisma.user
       .update({
         where,
         data: {
@@ -90,6 +94,7 @@ export const PUT = withCsrfProtection(async (req: Request) => {
           preferredInterviewType: values.preferredInterviewType,
           isFirstLogin: false,
         },
+        select: { id: true },
       })
       .catch((error) => {
         if (error instanceof Error && "code" in error && error.code === "P2025") {
@@ -97,11 +102,6 @@ export const PUT = withCsrfProtection(async (req: Request) => {
         }
         throw error;
       });
-
-    const updated = await prisma.user.findUnique({
-      where,
-      select: { id: true },
-    });
 
     if (!updated) {
       return notFoundError("User not found");

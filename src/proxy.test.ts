@@ -35,6 +35,8 @@ describe("proxy auth cookie handling", () => {
     "/practice",
     "/questions",
     "/questions/two-sum",
+    "/coding",
+    "/coding/two-sum",
     "/analytics",
     "/recordings",
     "/settings",
@@ -178,8 +180,18 @@ describe("proxy security headers", () => {
     const scriptSrc = getCspDirective(response, "script-src");
 
     expect(scriptSrc).toMatch(
-      /^script-src 'self' 'nonce-[A-Za-z0-9+/]+=*' 'strict-dynamic' https:\/\/va\.vercel-scripts\.com( 'unsafe-eval')?$/,
+      /^script-src 'self' 'nonce-[A-Za-z0-9+/]+=*' 'strict-dynamic' https:\/\/va\.vercel-scripts\.com 'wasm-unsafe-eval'( 'unsafe-eval')?$/,
     );
     expect(scriptSrc).not.toContain("'unsafe-inline'");
+  });
+
+  it("allows the local TTS worker, WASM runtime, and pinned model hosts", async () => {
+    const response = await proxy(new NextRequest("https://snapinterview.app/"));
+
+    expect(getCspDirective(response, "worker-src")).toBe("worker-src 'self' blob:");
+    expect(getCspDirective(response, "script-src")).toContain("'wasm-unsafe-eval'");
+    expect(getCspDirective(response, "connect-src")).toContain("https://huggingface.co");
+    expect(getCspDirective(response, "connect-src")).toContain("https://cdn-lfs.huggingface.co");
+    expect(getCspDirective(response, "connect-src")).toContain("https://cdn-lfs.hf.co");
   });
 });

@@ -1,0 +1,221 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import Editor from "@monaco-editor/react";
+import type { CodingChallenge } from "@/lib/interview/coding-challenge";
+import {
+  runTestCases,
+  SUPPORTED_LANGUAGES,
+  type SupportedLanguage,
+  type RunResult,
+} from "@/lib/code-runner";
+import { TestCasePanel } from "@/components/questions/TestCasePanel";
+import { TestResultPanel } from "@/components/questions/TestResultPanel";
+import {
+  IconCheckCircle,
+  IconPlay,
+  IconSpinner,
+  IconTerminal,
+} from "@/components/ui/icons";
+
+type BottomTab = "testcase" | "result";
+
+type InterviewCodingPanelProps = {
+  challenge: CodingChallenge;
+  onSubmitCode: (message: string) => void;
+};
+
+const MONACO_LANGUAGE_MAP: Record<SupportedLanguage, string> = { javascript: "javascript" };
+
+export function InterviewCodingPanel({ challenge, onSubmitCode }: InterviewCodingPanelProps) {
+  const availableLanguages = SUPPORTED_LANGUAGES.filter(
+    (l) => challenge.starterCode[l.value],
+  );
+  const [language, setLanguage] = useState<SupportedLanguage>(
+    availableLanguages[0]?.value ?? "javascript",
+  );
+
+  const [codeMap, setCodeMap] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    for (const lang of availableLanguages) {
+      initial[lang.value] = challenge.starterCode[lang.value] ?? "";
+    }
+    return initial;
+  });
+
+  const [bottomTab, setBottomTab] = useState<BottomTab>("testcase");
+  const [runResult, setRunResult] = useState<RunResult | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+
+  const currentCode = codeMap[language] ?? "";
+
+  const handleCodeChange = useCallback(
+    (value: string | undefined) => {
+      setCodeMap((prev) => ({ ...prev, [language]: value ?? "" }));
+    },
+    [language],
+  );
+
+  const handleReset = useCallback(() => {
+    setCodeMap((prev) => ({
+      ...prev,
+      [language]: challenge.starterCode[language] ?? "",
+    }));
+    setRunResult(null);
+  }, [language, challenge.starterCode]);
+
+  const handleRun = useCallback(async () => {
+    if (!challenge.testCases || isRunning) return;
+    setIsRunning(true);
+    setBottomTab("result");
+    const result = await runTestCases(currentCode, language, challenge.testCases);
+    setRunResult(result);
+    setIsRunning(false);
+  }, [currentCode, language, challenge.testCases, isRunning]);
+
+  const handleSubmit = useCallback(async () => {
+    if (!challenge.testCases || isRunning || hasSubmitted) return;
+    setIsRunning(true);
+    setBottomTab("result");
+    const result = await runTestCases(currentCode, language, challenge.testCases);
+    setRunResult(result);
+    setIsRunning(false);
+    setHasSubmitted(true);
+
+    const passed = result.results.filter((r) => r.passed).length;
+    const total = result.results.length;
+    const langLabel = availableLanguages.find((l) => l.value === language)?.label ?? language;
+
+    const message = `Here is my solution in ${langLabel}:\n\n\`\`\`${language}\n${currentCode}\n\`\`\`\n\nTest results: ${passed}/${total} passed`;
+    onSubmitCode(message);
+  }, [currentCode, language, challenge.testCases, isRunning, hasSubmitted, onSubmitCode, availableLanguages]);
+
+  return (
+    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-[#12141A]/90">
+      {/* Editor chrome */}
+      <div className="flex h-10 shrink-0 items-center justify-between border-b border-white/[0.06] px-3">
+        <select
+          value={language}
+          onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
+          className="cursor-pointer rounded-md border-0 bg-transparent px-2 py-1 text-xs font-medium text-[#E8ECF4] outline-none hover:bg-white/[0.05]"
+        >
+          {availableLanguages.map((l) => (
+            <option key={l.value} value={l.value} className="bg-[#12141A] text-[#E8ECF4]">
+              {l.label}
+            </option>
+          ))}
+        </select>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleRun}
+            disabled={isRunning || hasSubmitted}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-[#E8ECF4] transition-colors hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {isRunning ? (
+              <IconSpinner className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <IconPlay className="h-3.5 w-3.5" />
+            )}
+            Run
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isRunning || hasSubmitted}
+            className="inline-flex cursor-pointer items-center rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {hasSubmitted ? "Submitted" : "Submit"}
+          </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            disabled={hasSubmitted}
+            className="cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium text-[#A8B0C2] transition-colors hover:bg-white/[0.05] hover:text-[#E8ECF4] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
+      {/* Monaco */}
+      <div className="min-h-0 flex-1">
+        <Editor
+          height="100%"
+          language={MONACO_LANGUAGE_MAP[language] ?? "plaintext"}
+          value={currentCode}
+          onChange={handleCodeChange}
+          theme="vs-dark"
+          options={{
+            minimap: { enabled: false },
+            fontSize: 14,
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+            lineNumbers: "on",
+            scrollBeyondLastLine: false,
+            automaticLayout: true,
+            tabSize: 2,
+            padding: { top: 12, bottom: 12 },
+            readOnly: hasSubmitted,
+            renderLineHighlight: "line",
+            overviewRulerLanes: 0,
+            hideCursorInOverviewRuler: true,
+            scrollbar: {
+              verticalScrollbarSize: 8,
+              horizontalScrollbarSize: 8,
+              useShadows: false,
+            },
+          }}
+        />
+      </div>
+
+      {/* Testcase / result pane */}
+      <div className="flex h-52 shrink-0 flex-col border-t border-white/[0.06]">
+        <div className="flex h-10 shrink-0 items-center border-b border-white/[0.06] px-3">
+          <button
+            type="button"
+            onClick={() => setBottomTab("testcase")}
+            className={`inline-flex cursor-pointer items-center gap-2 px-2 py-1.5 text-[13px] font-medium transition-colors ${
+              bottomTab === "testcase"
+                ? "text-[#F2F4F8]"
+                : "text-[#A8B0C2] hover:text-[#C5CBD8]"
+            }`}
+          >
+            <IconCheckCircle
+              className={`h-4 w-4 ${
+                bottomTab === "testcase" ? "text-emerald-400" : "text-[#6B7385]"
+              }`}
+            />
+            Testcase
+          </button>
+          <span className="mx-1 h-4 w-px bg-white/[0.1]" aria-hidden />
+          <button
+            type="button"
+            onClick={() => setBottomTab("result")}
+            className={`inline-flex cursor-pointer items-center gap-2 px-2 py-1.5 text-[13px] font-medium transition-colors ${
+              bottomTab === "result"
+                ? "text-[#F2F4F8]"
+                : "text-[#A8B0C2] hover:text-[#C5CBD8]"
+            }`}
+          >
+            <IconTerminal
+              className={`h-4 w-4 ${
+                bottomTab === "result" ? "text-[#C5CBD8]" : "text-[#6B7385]"
+              }`}
+            />
+            Test Result
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 [scrollbar-width:thin] [&_button]:!bg-white/[0.04] [&_button]:!text-[#A8B0C2] [&_p]:!text-[#8B93A7] [&_pre]:!bg-white/[0.04] [&_pre]:!text-[#C5CBD8]">
+          {bottomTab === "testcase" ? (
+            <TestCasePanel testCases={challenge.testCases} editable={false} />
+          ) : (
+            <TestResultPanel runResult={runResult} isRunning={isRunning} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

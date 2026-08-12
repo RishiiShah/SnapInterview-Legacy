@@ -5,10 +5,18 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import PracticePageClient from "./PracticePageClient";
 
-const routerPush = vi.hoisted(() => vi.fn());
+const { routerPush, preloadKokoro } = vi.hoisted(() => ({
+  routerPush: vi.fn(),
+  preloadKokoro: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: routerPush }),
+}));
+
+vi.mock("@/lib/tts/browser-tts", () => ({ isLocalTtsEnabled: () => true }));
+vi.mock("@/lib/tts/kokoro-worker-client", () => ({
+  getSharedKokoroWorkerClient: () => ({ preload: preloadKokoro }),
 }));
 
 vi.mock("framer-motion", () => {
@@ -51,6 +59,8 @@ function jsonResponse(body: Record<string, unknown>) {
 describe("PracticePageClient", () => {
   beforeEach(() => {
     routerPush.mockReset();
+    preloadKokoro.mockReset();
+    preloadKokoro.mockResolvedValue(undefined);
     localStorage.clear();
     sessionStorage.clear();
     vi.stubGlobal("fetch", vi.fn(async (url: string | URL | Request) => {
@@ -82,10 +92,9 @@ describe("PracticePageClient", () => {
   it("keeps explicit retake defaults from being overwritten by onboarding defaults", async () => {
     render(
       <PracticePageClient
-        recentPractice={[]}
         retakeDefaults={{
           role: "Frontend Developer",
-          type: "behavioral",
+          type: "behavioral-leadership",
           difficulty: "medium",
         }}
       />,
@@ -94,20 +103,42 @@ describe("PracticePageClient", () => {
     await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/onboarding", { method: "GET" }));
 
     fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    fireEvent.click(screen.getByRole("button", { name: /start interview/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^start interview$/i }));
 
     const payload = JSON.parse(sessionStorage.getItem("pending_interview_interview-1") ?? "{}") as Record<string, unknown>;
 
     expect(payload).toMatchObject({
       role: "Frontend Developer",
-      type: "behavioral",
+      type: "behavioral-leadership",
       difficulty: "medium",
       persona: "balanced",
       questionCount: 10,
     });
     expect(payload.company).toBeUndefined();
+    expect(preloadKokoro).toHaveBeenCalledTimes(1);
+    expect(preloadKokoro.mock.invocationCallOrder[0]).toBeLessThan(routerPush.mock.invocationCallOrder[0]!);
     expect(routerPush).toHaveBeenCalledWith("/interview/interview-1");
+  });
+
+  it("uses server-provided onboarding and resume defaults without duplicate browser requests", () => {
+    render(
+      <PracticePageClient
+        initialDefaults={{
+          onboarding: {
+            onboardingRole: "Platform Engineer",
+            onboardingCompany: "OpenAI",
+            onboardingLevel: "senior",
+            onboardingGoal: "switch-companies",
+            preferredInterviewType: "system-design",
+          },
+          resumeText: "Built reliable distributed systems.",
+        }}
+      />,
+    );
+
+    expect((screen.getByPlaceholderText("e.g. Frontend Engineer") as HTMLInputElement).value)
+      .toBe("Platform Engineer");
+    expect((screen.getByPlaceholderText("Optional") as HTMLInputElement).value).toBe("OpenAI");
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

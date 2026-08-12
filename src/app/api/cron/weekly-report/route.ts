@@ -2,7 +2,11 @@ import { type NextRequest, NextResponse } from "next/server";
 import { findWeeklyReportRecipients } from "@/repositories/user-repo";
 import { sendWeeklyReportEmail } from "@/lib/email";
 import { isAuthorizedCronRequest } from "@/lib/cron-auth";
+import { mapWithConcurrency } from "@/lib/async";
 import { logger } from "@/utils/logger";
+
+// Keep throughput high without creating an unbounded burst against the mail provider.
+const WEEKLY_REPORT_DELIVERY_CONCURRENCY = 5;
 
 export async function GET(request: NextRequest) {
     if (!isAuthorizedCronRequest(request)) {
@@ -11,10 +15,10 @@ export async function GET(request: NextRequest) {
 
     try {
         const recipients = await findWeeklyReportRecipients();
-        let sent = 0;
-        let failed = 0;
-
-        for (const r of recipients) {
+        const deliveryResults = await mapWithConcurrency(
+          recipients,
+          WEEKLY_REPORT_DELIVERY_CONCURRENCY,
+          async (r) => {
             try {
                 await sendWeeklyReportEmail({
                     to: r.email,
@@ -24,15 +28,18 @@ export async function GET(request: NextRequest) {
                     bestRole: r.bestRole,
                     bestScore: r.bestScore,
                 });
-                sent++;
+                return true;
             } catch (err) {
-                failed++;
                 logger.error("Weekly report email failed", {
                     userId: r.userId,
                     error: err instanceof Error ? err.message : String(err),
                 });
+                return false;
             }
-        }
+          },
+        );
+        const sent = deliveryResults.filter(Boolean).length;
+        const failed = deliveryResults.length - sent;
 
         logger.info("Cron weekly-report complete", { sent, failed, total: recipients.length });
         return NextResponse.json({ sent, failed, total: recipients.length });

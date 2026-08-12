@@ -3,8 +3,9 @@ import { GET } from "./route";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 
-const { isLimitedMock } = vi.hoisted(() => ({
+const { isLimitedMock, getPublishedCodingSearchResultsMock } = vi.hoisted(() => ({
   isLimitedMock: vi.fn().mockResolvedValue(false),
+  getPublishedCodingSearchResultsMock: vi.fn(),
 }));
 
 vi.mock("@/lib/server-auth", () => ({
@@ -15,11 +16,16 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     interviewSession: { findMany: vi.fn() },
     practiceQuestion: { findMany: vi.fn() },
+    codingQuestion: { findMany: vi.fn() },
   },
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: vi.fn(() => ({ isLimited: isLimitedMock })),
+}));
+
+vi.mock("@/repositories/coding-question-repo", () => ({
+  getPublishedCodingSearchResults: getPublishedCodingSearchResultsMock,
 }));
 
 vi.mock("@/utils/logger", () => ({
@@ -45,7 +51,18 @@ const mockSessions = [
 ];
 
 const mockQuestions = [
-  { id: 1, slug: "reverse-linked-list", text: "Reverse a linked list", category: "Data Structures", difficulty: "easy" },
+  { id: 1, slug: "behavioral-example", text: "Tell me about a time", category: "behavioral", difficulty: "easy" },
+];
+
+const mockCodingQuestions = [
+  {
+    id: "coding-1",
+    slug: "reverse-linked-list",
+    title: "Reverse a linked list",
+    difficulty: "easy",
+    topics: ["linked-lists"],
+    estimatedTime: "15 min",
+  },
 ];
 
 describe("GET /api/search", () => {
@@ -55,6 +72,7 @@ describe("GET /api/search", () => {
     isLimitedMock.mockResolvedValue(false);
     vi.mocked(prisma.interviewSession.findMany).mockResolvedValue(mockSessions as never);
     vi.mocked(prisma.practiceQuestion.findMany).mockResolvedValue(mockQuestions as never);
+    getPublishedCodingSearchResultsMock.mockResolvedValue(mockCodingQuestions);
   });
 
   it("returns 401 when unauthenticated", async () => {
@@ -97,8 +115,11 @@ describe("GET /api/search", () => {
       company: "Acme",
       createdAt: "2026-01-01T00:00:00.000Z",
     });
-    expect(body.questions).toHaveLength(1);
-    expect(body.questions[0]).toMatchObject({ slug: "reverse-linked-list" });
+    expect(body.questions).toHaveLength(2);
+    expect(body.questions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ slug: "reverse-linked-list", type: "coding" }),
+      expect.objectContaining({ slug: "behavioral-example", type: "question" }),
+    ]));
   });
 
   it("passes userId and query to session search", async () => {
@@ -111,9 +132,31 @@ describe("GET /api/search", () => {
     );
   });
 
+  it("searches only the four Q&A categories", async () => {
+    await GET(makeRequest("frontend"));
+
+    expect(prisma.practiceQuestion.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            { category: { in: ["behavioral", "technical", "system-design", "leadership"] } },
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it("reuses the published coding catalog instead of querying full workspaces per search", async () => {
+    await GET(makeRequest("linked"));
+
+    expect(getPublishedCodingSearchResultsMock).toHaveBeenCalledWith("linked");
+    expect(prisma.codingQuestion.findMany).not.toHaveBeenCalled();
+  });
+
   it("returns empty arrays when no matches found", async () => {
     vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([]);
     vi.mocked(prisma.practiceQuestion.findMany).mockResolvedValue([]);
+    getPublishedCodingSearchResultsMock.mockResolvedValue([]);
 
     const res = await GET(makeRequest("zzz"));
     expect(res.status).toBe(200);

@@ -1,19 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 
 type ProfileTabProps = {
   userName: string;
   userEmail: string;
   userImage?: string | null;
   initials: string;
+  /** `undefined` retains standalone client-fetch behavior; `null` means the server loaded no resume. */
+  initialResumeText?: string | null;
 };
 
-export default function ProfileTab({ userName, userEmail, userImage, initials }: ProfileTabProps) {
+const darkInput =
+  "w-full border-b border-white/[0.12] bg-transparent px-0 py-2.5 text-[15px] text-[#F2F4F8] outline-none placeholder:text-[#6B7385] transition-colors focus:border-[#3B82F6] disabled:cursor-not-allowed disabled:text-[#A8B0C2]";
+
+export default function ProfileTab({
+  userName,
+  userEmail,
+  userImage,
+  initials,
+  initialResumeText,
+}: ProfileTabProps) {
   const router = useRouter();
   const [name, setName] = useState(userName);
   const [savedName, setSavedName] = useState(userName);
@@ -21,30 +31,48 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
   const [profileSaved, setProfileSaved] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  const [resumeText, setResumeText] = useState<string | null>(null);
+  const [resumeText, setResumeText] = useState<string | null>(initialResumeText ?? null);
   const [resumeExpanded, setResumeExpanded] = useState(false);
-  const [resumeLoading, setResumeLoading] = useState(true);
+  const [resumeLoading, setResumeLoading] = useState(initialResumeText === undefined);
   const [resumeUploading, setResumeUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [confirmingClear, setConfirmingClear] = useState(false);
   const [resumeClearing, setResumeClearing] = useState(false);
   const [resumeError, setResumeError] = useState<string | null>(null);
+  const resumeRequestRef = useRef<Promise<{ resumeText: string | null } | null> | null>(null);
 
   useEffect(() => {
+    if (initialResumeText !== undefined) {
+      return;
+    }
+
     let cancelled = false;
-    fetch("/api/resume")
-      .then((res) => (res.ok ? (res.json() as Promise<{ resumeText: string | null }>) : null))
+    const request =
+      resumeRequestRef.current ??
+      fetch("/api/resume")
+        .then((res) =>
+          res.ok ? (res.json() as Promise<{ resumeText: string | null }>) : null,
+        )
+        .catch(() => null);
+
+    resumeRequestRef.current = request;
+    void request.finally(() => {
+      if (resumeRequestRef.current === request) {
+        resumeRequestRef.current = null;
+      }
+    });
+
+    void request
       .then((data) => {
         if (!cancelled) setResumeText(data?.resumeText ?? null);
-      })
-      .catch(() => {
-        if (!cancelled) setResumeText(null);
       })
       .finally(() => {
         if (!cancelled) setResumeLoading(false);
       });
-    return () => { cancelled = true; };
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [initialResumeText]);
 
   async function handleSaveProfile() {
     const trimmedName = name.trim();
@@ -91,10 +119,10 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
     try {
       const res = await fetch("/api/resume/parse", { method: "POST", body: formData });
       if (!res.ok) {
-        const data = await res.json() as { error?: string };
+        const data = (await res.json()) as { error?: string };
         throw new Error(data.error ?? "Failed to process resume");
       }
-      const data = await res.json() as { resumeText: string };
+      const data = (await res.json()) as { resumeText: string };
       setResumeText(data.resumeText);
       setResumeExpanded(false);
       setConfirmingClear(false);
@@ -127,101 +155,94 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
   const wordCount = resumeText ? resumeText.trim().split(/\s+/).filter(Boolean).length : 0;
 
   return (
-    <div>
-      <div className="border-b border-zinc-100 px-8 py-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Profile</h2>
-        <p className="mt-1 text-sm text-zinc-500">Update your personal information and how others see you.</p>
+    <div className="space-y-10">
+      <div>
+        <h2 className="font-display text-xl tracking-tight text-[#F2F4F8]">Profile</h2>
+        <p className="mt-1.5 text-sm text-[#A8B0C2]">
+          Update your personal information and how others see you.
+        </p>
       </div>
 
-      <div className="border-b border-zinc-100 px-8 py-6">
-        <div className="flex items-center gap-5">
-          <div className="relative group">
-            {userImage ? (
-              <UserAvatar src={userImage} alt={savedName} width={72} height={72} className="h-18 w-18 rounded-full object-cover ring-4 ring-zinc-100" />
-            ) : (
-              <div className="grid h-18 w-18 place-items-center rounded-full bg-zinc-900 text-xl font-bold text-white ring-4 ring-zinc-100">{initials}</div>
-            )}
-            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-zinc-900/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-              <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
-              </svg>
-            </div>
-          </div>
-          <div>
-            <p className="text-base font-semibold text-zinc-900">{savedName}</p>
-            <p className="text-sm text-zinc-400">{userEmail}</p>
-            <p className="mt-1.5 text-xs text-zinc-400">Click avatar to upload a new photo</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="border-b border-zinc-100 px-8 py-6 space-y-5">
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-700">Display Name</label>
-            <Input
-              type="text"
-              value={name}
-              onChange={(event) => {
-                setName(event.target.value);
-                if (profileError) setProfileError(null);
-              }}
+      <div className="flex items-center gap-5">
+        <div className="group relative">
+          {userImage ? (
+            <UserAvatar
+              src={userImage}
+              alt={savedName}
+              width={64}
+              height={64}
+              className="h-16 w-16 rounded-full object-cover ring-1 ring-white/[0.08]"
             />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-700">Email</label>
-            <Input type="email" value={userEmail} disabled />
-            <p className="mt-1 text-xs text-zinc-400">Email cannot be changed.</p>
-          </div>
+          ) : (
+            <div className="grid h-16 w-16 place-items-center rounded-full bg-[#3B82F6]/15 text-lg font-medium text-[#93C5FD] ring-1 ring-white/[0.08]">
+              {initials}
+            </div>
+          )}
         </div>
-        {profileError && <p className="text-sm text-red-600">{profileError}</p>}
+        <div>
+          <p className="text-[15px] font-medium text-[#F2F4F8]">{savedName}</p>
+          <p className="text-sm text-[#A8B0C2]">{userEmail}</p>
+        </div>
       </div>
 
-      {/* Resume Section */}
-      <div className="border-b border-zinc-100 px-8 py-6">
+      <div className="grid gap-8 sm:grid-cols-2">
+        <div>
+          <label className="mb-1.5 block text-[12px] font-medium text-[#A8B0C2]">Display name</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(event) => {
+              setName(event.target.value);
+              if (profileError) setProfileError(null);
+            }}
+            className={darkInput}
+          />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-[12px] font-medium text-[#A8B0C2]">Email</label>
+          <input type="email" value={userEmail} disabled className={darkInput} />
+          <p className="mt-1.5 text-xs text-[#6B7385]">Email cannot be changed.</p>
+        </div>
+      </div>
+      {profileError && <p className="text-sm text-rose-400">{profileError}</p>}
+
+      <div className="pt-2">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="text-sm font-medium text-zinc-900">Saved Resume</h3>
-            <p className="mt-0.5 text-xs text-zinc-500">
+            <h3 className="text-[15px] font-medium text-[#F2F4F8]">Saved resume</h3>
+            <p className="mt-1 text-xs text-[#A8B0C2]">
               Used to personalize AI interview questions. PDF only, max 5 MB.
             </p>
           </div>
           {!resumeLoading && !resumeUploading && resumeText && (
             <button
+              type="button"
               onClick={() => setResumeExpanded((v) => !v)}
-              className="shrink-0 text-xs text-zinc-500 hover:text-zinc-700 transition-colors flex items-center gap-1"
+              className="cursor-pointer shrink-0 text-xs text-[#A8B0C2] transition-colors hover:text-[#C5CBD8]"
             >
               {resumeExpanded ? "Collapse" : "View"}
-              <svg
-                className={`h-3.5 w-3.5 transition-transform ${resumeExpanded ? "rotate-180" : ""}`}
-                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
             </button>
           )}
         </div>
 
-        <div className="mt-4">
+        <div className="mt-5">
           {resumeLoading ? (
-            <div className="h-10 flex items-center">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700" />
+            <div className="flex h-10 items-center">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/[0.15] border-t-[#3B82F6]" />
             </div>
           ) : resumeUploading ? (
-            <div className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-300 border-t-blue-600 shrink-0" />
-              <span className="text-sm text-zinc-600">Processing PDF…</span>
+            <div className="flex items-center gap-3 border-b border-white/[0.12] py-2.5">
+              <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[#3B82F6]/30 border-t-[#3B82F6]" />
+              <span className="text-sm text-[#A8B0C2]">Processing PDF…</span>
             </div>
           ) : resumeText ? (
             <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
-                  <svg className="h-4 w-4 text-zinc-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                  </svg>
-                  <span className="text-xs font-medium text-zinc-700">Resume saved</span>
-                  <span className="text-xs text-zinc-400">&middot; {wordCount.toLocaleString()} words</span>
+              <div className="flex items-center justify-between gap-3 border-b border-white/[0.12] pb-2.5">
+                <div>
+                  <p className="text-[15px] text-[#F2F4F8]">Resume saved</p>
+                  <p className="mt-0.5 text-[12px] text-[#93C5FD]">
+                    Parsed · {wordCount.toLocaleString()} words
+                  </p>
                 </div>
               </div>
 
@@ -230,15 +251,15 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
                   readOnly
                   value={resumeText}
                   rows={12}
-                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-xs text-zinc-700 font-mono leading-relaxed resize-none focus:outline-none"
+                  className="w-full resize-none border border-white/[0.08] bg-white/[0.02] px-4 py-3 font-mono text-xs leading-relaxed text-[#C5CBD8] focus:outline-none"
                 />
               )}
 
-              {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
-              {resumeError && <p className="text-xs text-red-600">{resumeError}</p>}
+              {uploadError && <p className="text-xs text-rose-400">{uploadError}</p>}
+              {resumeError && <p className="text-xs text-rose-400">{resumeError}</p>}
 
               <div className="flex items-center gap-4">
-                <label className="cursor-pointer text-xs text-blue-600 hover:text-blue-800 transition-colors">
+                <label className="cursor-pointer text-xs text-[#60A5FA] transition-colors hover:text-[#93C5FD]">
                   Replace PDF
                   <input
                     type="file"
@@ -253,27 +274,30 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
                     }}
                   />
                 </label>
-                <span className="text-zinc-200">|</span>
+                <span className="text-white/[0.12]">|</span>
                 {!confirmingClear ? (
                   <button
+                    type="button"
                     onClick={() => setConfirmingClear(true)}
-                    className="text-xs text-red-500 hover:text-red-700 transition-colors"
+                    className="cursor-pointer text-xs text-rose-400 transition-colors hover:text-rose-300"
                   >
                     Clear saved resume
                   </button>
                 ) : (
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-zinc-600">Remove your saved resume?</span>
+                    <span className="text-xs text-[#A8B0C2]">Remove your saved resume?</span>
                     <button
+                      type="button"
                       onClick={() => setConfirmingClear(false)}
-                      className="text-xs text-zinc-500 hover:text-zinc-700"
+                      className="cursor-pointer text-xs text-[#A8B0C2] hover:text-[#C5CBD8]"
                     >
                       Cancel
                     </button>
                     <button
+                      type="button"
                       onClick={handleClearResume}
                       disabled={resumeClearing}
-                      className="text-xs font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
+                      className="cursor-pointer text-xs font-medium text-rose-400 hover:text-rose-300 disabled:opacity-50"
                     >
                       {resumeClearing ? "Clearing…" : "Yes, clear it"}
                     </button>
@@ -283,20 +307,15 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
             </div>
           ) : (
             <div className="space-y-2">
-              {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
-              <label className="group flex cursor-pointer items-center justify-between rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-4 transition-colors hover:border-blue-400 hover:bg-blue-50/40">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-zinc-200 transition-colors group-hover:bg-blue-50 group-hover:ring-blue-200">
-                    <svg className="h-4 w-4 text-zinc-400 group-hover:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-zinc-700 group-hover:text-blue-700 transition-colors">Upload Resume</p>
-                    <p className="text-xs text-zinc-400">PDF only · max 5 MB</p>
-                  </div>
+              {uploadError && <p className="text-xs text-rose-400">{uploadError}</p>}
+              <label className="group flex cursor-pointer items-center justify-between border-b border-white/[0.12] pb-2.5 transition-colors">
+                <div>
+                  <p className="text-[15px] text-[#E8ECF4] transition-colors group-hover:text-[#F2F4F8]">
+                    Upload resume
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-[#A8B0C2]">PDF only · max 5 MB</p>
                 </div>
-                <span className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors group-hover:border-blue-200 group-hover:bg-blue-50 group-hover:text-blue-700">
+                <span className="text-sm text-[#60A5FA] transition-colors group-hover:text-[#93C5FD]">
                   Browse
                 </span>
                 <input
@@ -317,18 +336,21 @@ export default function ProfileTab({ userName, userEmail, userImage, initials }:
         </div>
       </div>
 
-      <div className="flex items-center gap-3 px-8 py-5">
+      <div className="flex items-center gap-3 pt-4">
         <Button
           onClick={handleSaveProfile}
           disabled={name.trim() === savedName.trim()}
           loading={profileSaving}
+          className="!bg-[#3B82F6] hover:!bg-[#4B8FF7] !shadow-none"
         >
-          {profileSaving ? "Saving…" : "Save Changes"}
+          {profileSaving ? "Saving…" : "Save changes"}
         </Button>
         {profileSaved && (
-          <span className="flex items-center gap-1.5 text-sm text-emerald-600">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-            Saved successfully
+          <span className="flex items-center gap-1.5 text-sm text-emerald-400">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+            Saved
           </span>
         )}
       </div>

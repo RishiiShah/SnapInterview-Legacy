@@ -7,21 +7,48 @@ import { useChatSession } from "@/hooks/useChatSession";
 import { useStreamingTTS } from "@/hooks/useStreamingTTS";
 import { useAudioAnalyser } from "@/hooks/useAudioAnalyser";
 import { getInterviewBlockReason, type BrowserBlockResult } from "@/lib/interview/browser-block";
-import { finalizeInterviewUpload, type InterviewCompletionStatus } from "@/lib/video/upload-service";
+import { scheduleInterviewFinalize } from "@/lib/video/background-finalize";
+import { addPendingInterviewFinalize } from "@/lib/interview/finalize-pending-client";
+import type { InterviewCompletionStatus } from "@/lib/video/upload-service";
+import { coerceInterviewType, type InterviewType } from "@/lib/interview/domain";
 
 type UseInterviewPageControllerOptions = {
   interviewId: string;
+  initialSessionMeta?: InterviewSessionMeta;
 };
 
-export function useInterviewPageController({ interviewId }: UseInterviewPageControllerOptions) {
+export type InterviewSessionMeta = {
+  id: string;
+  questionCount: number;
+  persona: string | null;
+  type: string;
+};
+
+export function useInterviewPageController({
+  interviewId,
+  initialSessionMeta,
+}: UseInterviewPageControllerOptions) {
   const router = useRouter();
+  const initialSessionMetaId = initialSessionMeta?.id;
+  const initialQuestionCount = initialSessionMeta?.questionCount;
+  const initialPersona = initialSessionMeta?.persona;
+  const initialInterviewType = initialSessionMeta?.type;
 
   const [showPreJoin, setShowPreJoin] = useState(true);
   const [interviewStarted, setInterviewStarted] = useState(false);
   const [interviewDone, setInterviewDone] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [totalQuestions, setTotalQuestions] = useState(10);
-  const [persona, setPersona] = useState<string | null>(null);
+  const [totalQuestions, setTotalQuestions] = useState(
+    initialSessionMetaId === interviewId && typeof initialQuestionCount === "number" && initialQuestionCount > 0
+      ? initialQuestionCount
+      : 10,
+  );
+  const [persona, setPersona] = useState<string | null>(
+    initialSessionMetaId === interviewId ? initialPersona ?? null : null,
+  );
+  const [interviewType, setInterviewType] = useState<InterviewType | null>(
+    initialSessionMetaId === interviewId ? coerceInterviewType(initialInterviewType) : null,
+  );
   const [joinBlockedReason, setJoinBlockedReason] = useState<BrowserBlockResult>(null);
 
   const [modal, setModal] = useState<{
@@ -81,9 +108,9 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   const chatScrollContainerRef = useRef<HTMLDivElement | null>(null);
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
 
-  const speech = useSpeechRecognition();
-
   const media = useMediaPermissions();
+
+  const speech = useSpeechRecognition({ audioDeviceId: media.selectedAudioInputId });
 
   const videoRecording = useVideoRecording({
     interviewId,
@@ -91,6 +118,17 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
       onScreenShareEndedRef.current();
     },
   });
+  const { startScreenRecording, stopVideoRecording } = videoRecording;
+
+  const autoExitScheduledRef = useRef(false);
+  const pendingVideoStopRef = useRef<ReturnType<typeof stopVideoRecording> | null>(null);
+
+  const stopVideoRecordingForFinalize = useCallback(() => {
+    if (!pendingVideoStopRef.current) {
+      pendingVideoStopRef.current = stopVideoRecording();
+    }
+    return pendingVideoStopRef.current;
+  }, [stopVideoRecording]);
 
   const chat = useChatSession({
     interviewId,
@@ -106,6 +144,12 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     enabled: interviewStarted && !interviewDone,
     persona,
   });
+  const { cancel: cancelTts, warmup: warmupTts } = tts;
+
+  const requestPermissions = useCallback(() => {
+    warmupTts();
+    return media.requestPermissions();
+  }, [media, warmupTts]);
 
   const audioLevels = useAudioAnalyser(media.stream, media.isMicEnabled);
 
@@ -145,6 +189,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     if (pendingRaw) {
       const payload = JSON.parse(pendingRaw);
       payload.id = interviewId;
+      setInterviewType(coerceInterviewType(payload.type));
       sessionPromise = fetch("/api/interview/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -155,7 +200,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
       });
     }
 
-    const started = await videoRecording.startScreenRecording(media.stream || undefined, sessionPromise);
+    const started = await startScreenRecording(media.stream || undefined, sessionPromise);
     if (!started) {
       setModal({
         isOpen: true,
@@ -176,13 +221,13 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
         description: "Failed to establish interview session. Please try again.",
         variant: "danger",
       });
-      void videoRecording.stopVideoRecording();
+      void stopVideoRecording();
       return;
     }
 
     setShowPreJoin(false);
     setInterviewStarted(true);
-  }, [media.stream, videoRecording, interviewId]);
+  }, [media.stream, startScreenRecording, stopVideoRecording, interviewId]);
 
   const handleExitInterview = useCallback(
     async ({ skipConfirmation = false }: { skipConfirmation?: boolean } = {}) => {
@@ -208,45 +253,38 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
       localStorage.removeItem("active_interview_id");
 
       speech.stopRecording();
-      media.stopStream();
       setIsUploading(true);
 
       const userAnswerCount = chatMessagesRef.current.filter((m) => m.role === "user").length;
       const interviewStatus: InterviewCompletionStatus =
         interviewDoneRef.current || userAnswerCount > 0 ? "COMPLETED" : "ABORTED";
 
-      // Fire and forget the upload so the user is not blocked
-      finalizeInterviewUpload({
+      addPendingInterviewFinalize(interviewId);
+      void scheduleInterviewFinalize({
         interviewId,
         status: interviewStatus,
-        stopVideoRecording: videoRecording.stopVideoRecording,
+        stopVideoRecording: stopVideoRecordingForFinalize,
       }).catch((error) => {
         console.error("Error finalizing interview upload:", error);
       });
 
-      // Immediately redirect to analytics to make the experience smooth
-      setIsUploading(false);
-      isExitingRef.current = false;
+      media.stopStream();
       router.push("/analytics");
     },
-    [interviewId, media, router, speech, videoRecording.stopVideoRecording, closeModal]
+    [interviewId, media, router, speech, stopVideoRecordingForFinalize, closeModal]
   );
 
   useEffect(() => {
     handleExitInterviewRef.current = handleExitInterview;
   }, [handleExitInterview]);
 
+  // As soon as the interview completes: stop TTS, finalize upload in the background, leave the room.
   useEffect(() => {
-    if (!interviewDone) return;
-
-    const exitTimer = setTimeout(() => {
-      if (!isExitingRef.current && !isUploading) {
-        void handleExitInterview({ skipConfirmation: true });
-      }
-    }, 4000);
-
-    return () => clearTimeout(exitTimer);
-  }, [handleExitInterview, interviewDone, isUploading]);
+    if (!interviewDone || autoExitScheduledRef.current) return;
+    autoExitScheduledRef.current = true;
+    cancelTts();
+    void handleExitInterviewRef.current({ skipConfirmation: true });
+  }, [interviewDone, cancelTts]);
 
   useEffect(() => {
     if (!chatScrollContainerRef.current) return;
@@ -256,29 +294,54 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
   useEffect(() => {
     let isCancelled = false;
 
+    const applySessionMeta = (data: {
+      questionCount?: unknown;
+      persona?: unknown;
+      type?: unknown;
+    }) => {
+      if (typeof data.questionCount === "number" && data.questionCount > 0) {
+        setTotalQuestions(data.questionCount);
+      }
+      if (typeof data.persona === "string") {
+        setPersona(data.persona);
+      }
+      setInterviewType(coerceInterviewType(data.type));
+    };
+
     const loadSessionMeta = async () => {
+      const pendingRaw = sessionStorage.getItem(`pending_interview_${interviewId}`);
+      if (pendingRaw) {
+        try {
+          const data = JSON.parse(pendingRaw);
+          if (!isCancelled) {
+            applySessionMeta(data);
+          }
+          return;
+        } catch {
+          sessionStorage.removeItem(`pending_interview_${interviewId}`);
+        }
+      }
+
+      if (initialSessionMetaId === interviewId) {
+        if (!isCancelled) {
+          applySessionMeta({
+            questionCount: initialQuestionCount,
+            persona: initialPersona,
+            type: initialInterviewType,
+          });
+        }
+        return;
+      }
+
       try {
         const res = await fetch(`/api/interview/session?interviewId=${encodeURIComponent(interviewId)}`);
         if (!res.ok) {
-          const pendingRaw = sessionStorage.getItem(`pending_interview_${interviewId}`);
-          if (pendingRaw && !isCancelled) {
-            const data = JSON.parse(pendingRaw);
-            if (typeof data?.questionCount === "number" && data.questionCount > 0) {
-              setTotalQuestions(data.questionCount);
-            }
-            if (typeof data?.persona === "string") {
-              setPersona(data.persona);
-            }
-          }
           return;
         }
 
         const data = await res.json();
-        if (!isCancelled && typeof data?.questionCount === "number" && data.questionCount > 0) {
-          setTotalQuestions(data.questionCount);
-        }
-        if (!isCancelled && typeof data?.persona === "string") {
-          setPersona(data.persona);
+        if (!isCancelled) {
+          applySessionMeta(data);
         }
       } catch (error) {
         console.error("Failed to load interview session metadata:", error);
@@ -290,7 +353,13 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     return () => {
       isCancelled = true;
     };
-  }, [interviewId]);
+  }, [
+    initialInterviewType,
+    initialPersona,
+    initialQuestionCount,
+    initialSessionMetaId,
+    interviewId,
+  ]);
 
   useEffect(() => {
     onScreenShareEndedRef.current = () => {
@@ -329,6 +398,7 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     interviewDone,
     isUploading,
     totalQuestions,
+    interviewType,
     joinBlockedReason,
     answeredQuestions,
     questionProgressPercent,
@@ -339,11 +409,13 @@ export function useInterviewPageController({ interviewId }: UseInterviewPageCont
     chat,
     tts,
     media,
+    requestPermissions,
     videoRecording,
     audioLevels,
     handlePermissionsGranted,
     handleExitInterview,
     handleVideoMount,
+    codingChallenge: chat.codingChallenge,
     modal,
     closeModal,
   };

@@ -25,6 +25,7 @@ import {
   Mail,
   Mic,
   MicOff,
+  Menu,
   Pencil,
   Play,
   Plus,
@@ -44,6 +45,7 @@ import {
   Activity,
   Gem,
   UserCheck,
+  User,
   Zap,
   Building2,
   Briefcase,
@@ -52,23 +54,27 @@ import {
   Microscope,
   Volume2,
   VolumeOff,
+  Maximize2,
+  Minimize2,
+  HelpCircle,
+  Shield,
   type LucideIcon,
   type LucideProps,
 } from "lucide-react";
 
 type IconProps = LucideProps & { interactive?: boolean };
 
-const PREMIUM_STROKE_WIDTH = 1.9;
+const PREMIUM_STROKE_WIDTH = 2.15;
 
 function makeIcon(Icon: LucideIcon) {
   return function PremiumIcon({ strokeWidth = PREMIUM_STROKE_WIDTH, className = "", interactive = false, ...props }: IconProps) {
     const interactiveClasses = interactive ? "transition-transform hover:scale-110 group-hover:scale-110 active:scale-95 will-change-transform" : "";
     return (
-      <Icon 
-        absoluteStrokeWidth 
-        strokeWidth={strokeWidth} 
-        className={`${interactiveClasses} ${className}`.trim()}
-        {...props} 
+      <Icon
+        absoluteStrokeWidth
+        strokeWidth={strokeWidth}
+        className={`icon-crisp ${interactiveClasses} ${className}`.trim()}
+        {...props}
       />
     );
   };
@@ -107,6 +113,7 @@ export const IconEyeOpen = makeIcon(Eye);
 export const IconEyeClosed = makeIcon(EyeOff);
 export const IconMicrophoneSolid = makeIcon(Mic);
 export const IconMicrophoneOffSolid = makeIcon(MicOff);
+export const IconMenu = makeIcon(Menu);
 export const IconVideoCamera = makeIcon(Video);
 export const IconVideoCameraOff = makeIcon(VideoOff);
 export const IconTag = makeIcon(Tag);
@@ -120,6 +127,7 @@ export const IconLayout = makeIcon(Layout);
 export const IconActivity = makeIcon(Activity);
 export const IconGem = makeIcon(Gem);
 export const IconUserCheck = makeIcon(UserCheck);
+export const IconUser = makeIcon(User);
 export const IconZap = makeIcon(Zap);
 export const IconBuilding = makeIcon(Building2);
 export const IconBriefcase = makeIcon(Briefcase);
@@ -128,3 +136,7 @@ export const IconTerminal = makeIcon(Terminal);
 export const IconMicroscope = makeIcon(Microscope);
 export const IconVolume = makeIcon(Volume2);
 export const IconVolumeOff = makeIcon(VolumeOff);
+export const IconMaximize = makeIcon(Maximize2);
+export const IconMinimize = makeIcon(Minimize2);
+export const IconHelp = makeIcon(HelpCircle);
+export const IconShield = makeIcon(Shield);

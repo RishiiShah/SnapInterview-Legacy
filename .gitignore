@@ -22,7 +22,10 @@
 # agents
 /.agents/
 /.claude/
+/.codex/
+/.cursor/
 CLAUDE.md
+AGENTS.md
 
 # production
 /build
@@ -58,3 +61,5 @@ next-env.d.ts
 .code-review-graph/
 
 .mcp.json
+# RAG retrieval traces (local diagnostics)
+rag-trace*.jsonl

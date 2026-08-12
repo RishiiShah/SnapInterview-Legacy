@@ -1,8 +1,8 @@
-import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiError, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 import { env } from "@/lib/env";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
+import { getSessionUserIdentity } from "@/lib/server-auth";
 import { logger } from "@/utils/logger";
 import { z } from "zod/v4";
 
@@ -21,21 +21,19 @@ const ttsLimiter = createRateLimiter("tts", 60 * 1000, 20);
 
 function resolveVoiceId(persona?: string | null): string {
   if (!persona) return PERSONA_VOICES.balanced;
-  const key = persona.toLowerCase();
-  return PERSONA_VOICES[key] ?? PERSONA_VOICES.balanced;
+  return PERSONA_VOICES[persona.toLowerCase()] ?? PERSONA_VOICES.balanced;
 }
 
+/**
+ * Dormant emergency fallback. Interview playback uses browser-local Kokoro and
+ * never calls this endpoint unless a future explicit fallback policy enables it.
+ */
 export const POST = withCsrfProtection(async (req: Request) => {
   const elevenLabsApiKey = env.ELEVENLABS_API_KEY;
-  if (!elevenLabsApiKey) {
-    return apiError("Text-to-speech is not configured", 503);
-  }
+  if (!elevenLabsApiKey) return apiError("Text-to-speech is not configured", 503);
 
   const authUser = await getSessionUserIdentity();
-  if (!authUser) {
-    return unauthorizedError();
-  }
-
+  if (!authUser) return unauthorizedError();
   if (await ttsLimiter.isLimited(authUser.userId)) {
     return apiError("Too many text-to-speech requests. Please try again later.", 429);
   }
@@ -48,16 +46,11 @@ export const POST = withCsrfProtection(async (req: Request) => {
   }
 
   const parsed = ttsSchema.safeParse(body);
-  if (!parsed.success) {
-    return badRequestError(parsed.error.issues[0]?.message || "Invalid input");
-  }
-
-  const { text, persona } = parsed.data;
-  const voiceId = resolveVoiceId(persona);
+  if (!parsed.success) return badRequestError(parsed.error.issues[0]?.message || "Invalid input");
 
   try {
     const upstream = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${resolveVoiceId(parsed.data.persona)}`,
       {
         method: "POST",
         headers: {
@@ -66,30 +59,19 @@ export const POST = withCsrfProtection(async (req: Request) => {
           Accept: "audio/mpeg",
         },
         body: JSON.stringify({
-          text,
+          text: parsed.data.text,
           model_id: "eleven_flash_v2_5",
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-          },
+          voice_settings: { stability: 0.5, similarity_boost: 0.75 },
         }),
       },
     );
-
     if (!upstream.ok) {
-      logger.error("ElevenLabs TTS request failed", {
-        status: upstream.status,
-        userId: authUser.userId,
-      });
+      logger.error("ElevenLabs TTS request failed", { status: upstream.status, userId: authUser.userId });
       return apiError("Text-to-speech generation failed", 502);
     }
 
-    const audio = await upstream.arrayBuffer();
-    return new Response(audio, {
-      headers: {
-        "Content-Type": "audio/mpeg",
-        "Cache-Control": "no-store",
-      },
+    return new Response(await upstream.arrayBuffer(), {
+      headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store" },
     });
   } catch (error) {
     logger.error("ElevenLabs TTS fetch failed", {

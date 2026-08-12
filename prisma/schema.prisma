@@ -41,6 +41,8 @@ model User {
   accounts             Account[]
   interviewSessions    InterviewSession[]
   solvedQuestions      SolvedQuestion[]
+  codingSubmissions    CodingSubmission[]
+  codingSolved         CodingSolved[]
   passwordResetCodes   PasswordResetCode[]
   securityEvents       SecurityEvent[]
   pendingRegistrations PendingUser[]
@@ -58,6 +60,7 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, expiresAt])
+  @@index([expiresAt])
 }
 
 model Account {
@@ -77,6 +80,7 @@ model Account {
   updatedAt             DateTime  @updatedAt
 
   @@unique([providerId, accountId])
+  @@index([userId])
 }
 
 model Verification {
@@ -182,7 +186,7 @@ enum InterviewStatus {
 }
 
 model InterviewSession {
-  id              String          @id @default(uuid())
+  id              String          @id @default(dbgenerated("(gen_random_uuid())::text"))
   userId          String
   role            String
   company         String?
@@ -200,6 +204,8 @@ model InterviewSession {
   focusAreas      Json?
   sessionPlan     Json?
   evaluation      Json?
+  evaluationStartedAt DateTime?
+  evaluationClaimVersion Int @default(0)
   shareToken      String?         @unique
   deletedAt       DateTime?
   createdAt       DateTime        @default(now())
@@ -207,9 +213,14 @@ model InterviewSession {
   transcript         TranscriptEntry[]
   questionFeedback   QuestionFeedback[]
   moderationNotes    InterviewModerationNote[]
+  retrievedQuestions RetrievedQuestion[]
 
   @@index([userId])
   @@index([userId, deletedAt])
+  @@index([userId, deletedAt, createdAt(sort: Desc)])
+  @@index([userId, status, deletedAt, createdAt(sort: Desc)])
+  @@index([userId, status, deletedAt, createdAt(sort: Desc), id(sort: Desc)], map: "InterviewSession_recordings_cursor_idx")
+  @@index([userId, role, deletedAt, id], map: "InterviewSession_rag_retrieval_scope_idx")
 }
 
 model InterviewModerationNote {
@@ -262,8 +273,9 @@ model PracticeQuestion {
   sampleAnswer  String?  @db.Text
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
   solvedBy      SolvedQuestion[]
+
+  @@index([category])
 }
 
 model SolvedQuestion {
@@ -276,4 +288,134 @@ model SolvedQuestion {
 
   @@unique([userId, questionId])
   @@index([userId])
+  // Serves the solved-question API's per-user newest-first history query.
+  @@index([userId, solvedAt(sort: Desc)], map: "SolvedQuestion_user_solvedAt_desc_idx")
+}
+
+model CodingQuestion {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  title         String
+  description   String
+  constraints   String?
+  difficulty    String
+  topics        String[]
+  estimatedTime String?
+  hint          String?
+  starterCode   Json
+  solutionCode  Json?
+  isPublished   Boolean  @default(false)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  testCases   CodingTestCase[]
+  submissions CodingSubmission[]
+  solvedBy    CodingSolved[]
+
+  @@index([isPublished, sortOrder, createdAt])
+}
+
+model CodingTestCase {
+  id             String         @id @default(cuid())
+  questionId     String
+  ordinal        Int
+  input          String
+  expectedOutput String
+  isHidden       Boolean        @default(false)
+  question       CodingQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, ordinal])
+}
+
+model CodingSubmission {
+  id                 String         @id @default(cuid())
+  clientSubmissionId String
+  userId             String
+  codingQuestionId   String
+  language           String
+  code               String
+  verdict            String
+  passedCount        Int
+  totalCount         Int
+  caseResults        Json?
+  executionTimeMs    Int?
+  createdAt          DateTime       @default(now())
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question           CodingQuestion @relation(fields: [codingQuestionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clientSubmissionId])
+  @@index([userId, codingQuestionId, createdAt])
+}
+
+model CodingSolved {
+  userId           String
+  codingQuestionId String
+  solvedAt         DateTime       @default(now())
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question         CodingQuestion @relation(fields: [codingQuestionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, codingQuestionId])
+}
+
+// ─── RAG: Interview Question Corpus ──────────────────────────────────────────
+// Retrieval corpus backing interview question generation. `embedding` is a
+// pgvector column Prisma cannot type, so it is written and queried with raw SQL
+// (see src/lib/rag/). Everything else is ordinary Prisma.
+
+model QuestionCorpus {
+  id          String   @id @default(cuid())
+  question    String   @db.Text
+  // Model answer, used to help grade the candidate. Present for the technical
+  // questions; the behavioural set shipped without usable ones.
+  answer      String?  @db.Text
+  category    String
+  // A hint, not a filter. The behavioural source labelled difficulty at random,
+  // so use it to order results, never to exclude them.
+  difficulty  String?
+  // Interview types this question suits.
+  types       String[]
+  // Roles this question suits. Empty means it suits any role, which is true of
+  // every behavioural question. Empty is deliberate, not missing data.
+  roleTags    String[]
+  keywords    String[]
+  source      String
+  // Fingerprint of the question text, used to avoid storing it twice. Only
+  // exact repeats are removed. Questions that merely look similar are kept:
+  // "What is OAuth..." and "What is Docker..." share a phrasing but ask
+  // different things.
+  contentHash String   @unique
+  embedding   Unsupported("vector(384)")?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  retrievals  RetrievedQuestion[]
+
+  @@index([source])
+  @@index([category])
+  @@index([types], type: Gin)
+  @@index([roleTags], type: Gin)
+}
+
+// Records which stored questions were used in which interview, so later turns
+// and later interviews can skip them.
+//
+// An earlier version tried to work this out by comparing the questions the model
+// actually asked against the stored ones. It never matched: the model rewrites a
+// stored question into something much longer and more specific. Recording what
+// was used replaces a guess with a fact.
+model RetrievedQuestion {
+  id                 String   @id @default(cuid())
+  interviewSessionId String
+  questionCorpusId   String
+  // Which turn it was used on.
+  questionOrder      Int
+  createdAt          DateTime @default(now())
+
+  interviewSession InterviewSession @relation(fields: [interviewSessionId], references: [id], onDelete: Cascade)
+  question         QuestionCorpus   @relation(fields: [questionCorpusId], references: [id], onDelete: Cascade)
+
+  // Recorded once per interview, however many turns it appears on.
+  @@unique([interviewSessionId, questionCorpusId])
+  @@index([interviewSessionId])
+  @@index([questionCorpusId])
 }

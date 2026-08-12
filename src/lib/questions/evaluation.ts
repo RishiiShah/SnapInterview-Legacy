@@ -1,5 +1,20 @@
 import type { Question } from "@/data/types";
+import type { InterviewType, QuestionCategory } from "@/lib/interview/domain";
 import { buildSystemInstruction } from "@/lib/interview/prompts";
+
+function questionCategoryToInterviewType(category: QuestionCategory): InterviewType {
+  switch (category) {
+    case "behavioral":
+    case "leadership":
+      return "behavioral-leadership";
+    case "technical":
+      return "coding-algorithms";
+    case "system-design":
+      return "system-design";
+    default:
+      return "domain-role";
+  }
+}
 
 function inferPracticeRole(question: Question): string {
   if (question.category === "leadership") {
@@ -10,7 +25,7 @@ function inferPracticeRole(question: Question): string {
     const lowerTags = question.tags.map((tag) => tag.toLowerCase());
     const frontendSignals = ["react", "frontend", "javascript", "typescript", "css", "dom"];
     const hasFrontendSignal = frontendSignals.some((signal) =>
-      lowerTags.some((tag) => tag.includes(signal))
+      lowerTags.some((tag) => tag.includes(signal)),
     );
 
     if (hasFrontendSignal) {
@@ -36,7 +51,7 @@ export async function buildQuestionEvaluationRoleContext(question: Question): Pr
   return buildSystemInstruction({
     role,
     company: null,
-    type: question.category,
+    type: questionCategoryToInterviewType(question.category),
     difficulty: question.difficulty,
     jobDescription: pseudoJobDescription,
     resumeUrl: null,

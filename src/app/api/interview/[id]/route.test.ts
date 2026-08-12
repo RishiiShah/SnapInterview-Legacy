@@ -72,6 +72,7 @@ describe("GET /api/interview/[id]", () => {
         where: { id: interviewId, userId: "user-1" },
       })
     );
+    expect(getQuestionFeedbackForSession).not.toHaveBeenCalled();
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({ error: "Interview session not found" });
   });
@@ -86,6 +87,7 @@ describe("GET /api/interview/[id]", () => {
       evaluation: { score: "bad-data", feedback: 123 },
       createdAt: new Date("2026-03-15T00:00:00.000Z"),
       transcript: [],
+      questionFeedback: [],
     } as never);
 
     const interviewId = "11111111-1111-4111-8111-111111111111";

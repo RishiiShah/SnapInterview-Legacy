@@ -1,57 +1,53 @@
-import { FadeIn, SlideIn } from "@/components/ui/motion";
-
 export default function SettingsLoading() {
-    return (
-        <div className="space-y-5 pb-8 w-full animate-pulse">
-            {/* Header Skeleton */}
-            <SlideIn>
-                <div className="space-y-3">
-                    <div className="h-8 w-32 rounded-lg bg-zinc-200 dark:bg-zinc-800" />
-                    <div className="h-4 w-64 rounded-md bg-zinc-100 dark:bg-zinc-900" />
-                </div>
-            </SlideIn>
-
-            <FadeIn delay={0.1} direction="up">
-                <div className="flex gap-6 mt-6">
-                    {/* Left Sidebar Tabs Skeleton */}
-                    <nav className="w-56 shrink-0">
-                        <div className="space-y-1 rounded-2xl border border-zinc-200 bg-white p-2">
-                            {[...Array(5)].map((_, i) => (
-                                <div key={i} className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 ${i === 0 ? "bg-zinc-900" : "bg-transparent"}`}>
-                                    <div className={`h-4 w-4 rounded-sm ${i === 0 ? "bg-zinc-700" : "bg-zinc-100"}`} />
-                                    <div className="space-y-2">
-                                        <div className={`h-3 w-24 rounded ${i === 0 ? "bg-zinc-700" : "bg-zinc-200"}`} />
-                                        <div className={`h-2 w-16 rounded ${i === 0 ? "bg-zinc-800" : "bg-zinc-100"}`} />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </nav>
-
-                    {/* Right Content Area Skeleton */}
-                    <div className="flex-1 rounded-2xl border border-zinc-200 bg-white min-h-[500px] p-8 space-y-8">
-                        {/* Fake Profile Tab Content */}
-                        <div className="flex items-center gap-6">
-                            <div className="h-20 w-20 rounded-full bg-zinc-100" />
-                            <div className="space-y-3 flex-1">
-                                <div className="h-5 w-48 rounded bg-zinc-200" />
-                                <div className="h-4 w-32 rounded bg-zinc-100" />
-                            </div>
-                        </div>
-                        <div className="space-y-6">
-                            <div className="space-y-2">
-                                <div className="h-4 w-24 rounded bg-zinc-200" />
-                                <div className="h-10 w-full max-w-md rounded-lg bg-zinc-50 border border-zinc-100" />
-                            </div>
-                            <div className="space-y-2">
-                                <div className="h-4 w-24 rounded bg-zinc-200" />
-                                <div className="h-10 w-full max-w-md rounded-lg bg-zinc-50 border border-zinc-100" />
-                            </div>
-                            <div className="h-10 w-32 rounded-lg bg-zinc-200 mt-4" />
-                        </div>
-                    </div>
-                </div>
-            </FadeIn>
+  return (
+    <div className="mx-auto max-w-7xl space-y-8 pb-16 pt-2 xl:max-w-[88rem] animate-pulse">
+      <div>
+        <div className="space-y-3">
+          <div className="h-9 w-36 rounded bg-white/[0.06]" />
+          <div className="h-4 w-64 max-w-full rounded bg-white/[0.04]" />
         </div>
-    );
+      </div>
+
+      <div>
+        <div className="mt-2 flex flex-col gap-10 lg:flex-row lg:gap-14">
+          <nav className="w-full shrink-0 lg:w-48">
+            <div className="flex gap-4 lg:flex-col lg:gap-1">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="space-y-1.5 py-2">
+                  <div
+                    className={`h-3.5 w-24 rounded ${i === 0 ? "bg-white/[0.1]" : "bg-white/[0.05]"}`}
+                  />
+                  <div className="hidden h-2.5 w-16 rounded bg-white/[0.03] lg:block" />
+                </div>
+              ))}
+            </div>
+          </nav>
+
+          <div className="min-h-[400px] flex-1 space-y-8">
+            <div className="space-y-2">
+              <div className="h-6 w-28 rounded bg-white/[0.06]" />
+              <div className="h-4 w-56 rounded bg-white/[0.04]" />
+            </div>
+            <div className="flex items-center gap-5">
+              <div className="h-16 w-16 rounded-full bg-white/[0.06]" />
+              <div className="space-y-2">
+                <div className="h-4 w-36 rounded bg-white/[0.06]" />
+                <div className="h-3 w-44 rounded bg-white/[0.04]" />
+              </div>
+            </div>
+            <div className="grid gap-8 sm:grid-cols-2">
+              <div className="space-y-2">
+                <div className="h-3 w-20 rounded bg-white/[0.05]" />
+                <div className="h-9 w-full border-b border-white/[0.08]" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 w-16 rounded bg-white/[0.05]" />
+                <div className="h-9 w-full border-b border-white/[0.08]" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -1,11 +1,21 @@
-import { useState, useCallback } from "react";
-import { motion } from "framer-motion";
+"use client";
+
+import {
+  useState,
+  useCallback,
+  type ReactNode,
+  type RefObject,
+  type KeyboardEvent,
+} from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   IconMicrophoneOffSolid,
   IconMicrophoneSolid,
   IconVideoCamera,
   IconVideoCameraOff,
 } from "@/components/ui/icons";
+import type { CodingChallenge } from "@/lib/interview/coding-challenge";
+import { InterviewCodingPanel } from "@/components/interview/InterviewCodingPanel";
 
 type ChatMessage = {
   role: "ai" | "user";
@@ -22,8 +32,8 @@ type ActiveInterviewScreenProps = {
   onExitInterview: () => void;
   onVideoMount: (node: HTMLVideoElement | null) => void;
   isRecordingVideo: boolean;
-  chatScrollContainerRef: React.RefObject<HTMLDivElement | null>;
-  chatBottomRef: React.RefObject<HTMLDivElement | null>;
+  chatScrollContainerRef: RefObject<HTMLDivElement | null>;
+  chatBottomRef: RefObject<HTMLDivElement | null>;
   messages: ChatMessage[];
   currentStreamedText: string;
   isThinking: boolean;
@@ -40,6 +50,9 @@ type ActiveInterviewScreenProps = {
   toggleCamera: () => void;
   toggleRecording: () => void;
   onSendTextAnswer: (text: string) => void;
+  codingInterview?: boolean;
+  codingChallenge?: CodingChallenge | null;
+  onSubmitCode?: (message: string) => void;
 };
 
 export default function ActiveInterviewScreen({
@@ -69,8 +82,13 @@ export default function ActiveInterviewScreen({
   toggleCamera,
   toggleRecording,
   onSendTextAnswer,
+  codingInterview = false,
+  codingChallenge,
+  onSubmitCode,
 }: ActiveInterviewScreenProps) {
+  const reducedMotion = useReducedMotion() ?? false;
   const [textDraft, setTextDraft] = useState("");
+  const codingLayout = shouldUseCodingLayout(codingInterview, codingChallenge);
 
   const handleTextSubmit = useCallback(() => {
     const trimmed = textDraft.trim();
@@ -80,233 +98,426 @@ export default function ActiveInterviewScreen({
   }, [textDraft, interviewDone, onSendTextAnswer]);
 
   const handleTextKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         handleTextSubmit();
       }
     },
-    [handleTextSubmit]
+    [handleTextSubmit],
+  );
+
+  const transcript = (
+    <TranscriptPanel
+      chatScrollContainerRef={chatScrollContainerRef}
+      chatBottomRef={chatBottomRef}
+      messages={messages}
+      currentStreamedText={currentStreamedText}
+      isThinking={isThinking}
+      interimTranscript={interimTranscript}
+      volatileTranscript={volatileTranscript}
+      compact={codingLayout}
+    />
   );
 
   return (
     <motion.div
       key="interview"
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.98 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
-      className="h-screen w-full overflow-hidden bg-zinc-950 flex flex-col p-4 sm:p-6 font-sans gap-4 sm:gap-5 relative z-0"
+      initial={reducedMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={reducedMotion ? undefined : { opacity: 0 }}
+      transition={{ duration: reducedMotion ? 0 : 0.35, ease: "easeOut" }}
+      className="relative z-0 flex h-screen w-full flex-col overflow-hidden bg-[#090A0F] text-[#F2F4F8] antialiased"
     >
-      <div className="w-full h-full relative flex flex-col gap-4 sm:gap-5 overflow-hidden max-w-400 mx-auto">
-        {/* Progress bar */}
-        <div className="relative flex items-center justify-between px-1 h-10 shrink-0">
-          <div className="flex flex-col gap-1.5 w-full max-w-100">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold tracking-wider text-zinc-500 uppercase">Progress</span>
-              <span className="text-[11px] font-semibold tracking-wider text-zinc-500">
+      <div className="mx-auto flex h-full w-full max-w-[1600px] flex-col overflow-hidden">
+        {/* Top chrome — progress + exit */}
+        <header className="flex shrink-0 items-center justify-between gap-6 border-b border-white/[0.06] px-5 py-3.5 sm:px-6">
+          <div className="flex min-w-0 flex-1 flex-col gap-2 max-w-xs sm:max-w-sm">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="font-mono text-[11px] tabular-nums text-[#6B7385]">
+                Progress
+              </span>
+              <span className="font-mono text-[11px] tabular-nums text-[#8B93A7]">
                 {answeredQuestions} / {totalQuestions}
               </span>
             </div>
-            <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-800">
+            <div className="h-px w-full overflow-hidden bg-white/[0.08]">
               <div
-                className="h-full rounded-full bg-blue-500 transition-all duration-500"
+                className="h-full bg-[#3B82F6] transition-[width] duration-500 ease-out motion-reduce:transition-none"
                 style={{ width: `${questionProgressPercent}%` }}
               />
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onExitInterview}
             disabled={isUploading || interviewDone}
-            className="absolute right-0 top-1/2 -translate-y-1/2 rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-xs font-semibold text-zinc-400 transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="shrink-0 cursor-pointer text-[13px] text-[#A8B0C2] transition-colors hover:text-[#E8ECF4] disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {isUploading ? "Uploading…" : "Exit Interview"}
+            {isUploading ? "Uploading…" : "Exit"}
           </button>
-        </div>
+        </header>
 
-        {/* Main content: video + chat */}
-        <div className="flex w-full flex-1 min-h-0 gap-5 relative">
-          {/* Video feed */}
-          <div className="relative w-full lg:w-[70%] flex-col flex overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-lg shadow-black/40 shrink-0">
-            <video
-              ref={onVideoMount}
-              autoPlay
-              playsInline
-              muted
-              className="h-full w-full object-cover"
-              style={{ transform: "scaleX(-1)" }}
-            />
-            <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full bg-zinc-900/80 px-3 py-1.5 backdrop-blur-sm border border-zinc-800/60">
-              <div className={`h-1.5 w-1.5 rounded-full ${isRecordingVideo ? 'bg-red-500 animate-[pulse_1.5s_ease-in-out_infinite]' : 'bg-zinc-600'}`} />
-              <span className="text-[11px] font-semibold tracking-wide text-zinc-300">
-                {isRecordingVideo ? 'Recording' : 'Not Recording'}
-              </span>
-            </div>
-          </div>
-
-          {/* Chat panel */}
-          <div className="hidden lg:flex flex-col flex-1 bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden relative">
-            <div className="absolute top-0 w-full h-8 bg-linear-to-b from-zinc-950 to-transparent z-10 pointer-events-none" />
-            <div ref={chatScrollContainerRef} className="flex-1 overflow-y-auto p-5 space-y-4 flex flex-col pt-8 pb-12">
-              {messages.map((msg, idx) => (
-                <div key={idx} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${msg.role === 'user'
-                    ? 'bg-blue-600 text-white rounded-br-sm'
-                    : 'bg-zinc-800 text-zinc-100 rounded-bl-sm ring-1 ring-white/5'
-                    }`}>
-                    {msg.text}
-                  </div>
+        {/* Stage */}
+        <div className="relative flex min-h-0 flex-1 gap-0">
+          {codingLayout ? (
+            <>
+              <div className="flex w-[38%] min-w-[280px] max-w-md flex-col border-r border-white/[0.06]">
+                <div className="relative h-36 shrink-0 overflow-hidden border-b border-white/[0.06] bg-[#0B0C10] sm:h-40">
+                  <video
+                    ref={onVideoMount}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="h-full w-full object-cover"
+                    style={{ transform: "scaleX(-1)" }}
+                  />
+                  <RecordingBadge compact recording={isRecordingVideo} />
                 </div>
-              ))}
+                <div className="min-h-0 flex-1">{transcript}</div>
+              </div>
 
-              {currentStreamedText && (
-                <div className="flex w-full justify-start">
-                  <div className="max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed bg-zinc-800 text-zinc-100 rounded-bl-sm ring-1 ring-white/5">
-                    {currentStreamedText}
-                    <span className="inline-block w-1 h-3.5 ml-1 align-middle bg-zinc-400 animate-pulse rounded-sm" />
+              <div className="min-h-0 min-w-0 flex-1 p-3 sm:p-4">
+                {codingChallenge ? (
+                  <InterviewCodingPanel
+                    challenge={codingChallenge}
+                    onSubmitCode={onSubmitCode!}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center rounded-xl border border-white/[0.08] bg-[#12141A]/90 px-6 text-center">
+                    <p className="text-sm text-[#8B93A7]">Preparing coding challenge…</p>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-[#0B0C10]">
+                <video
+                  ref={onVideoMount}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="h-full w-full object-cover"
+                  style={{ transform: "scaleX(-1)" }}
+                />
+                <RecordingBadge recording={isRecordingVideo} />
+                {!isCameraEnabled || hasPermission === false ? (
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#0B0C10]/70">
+                    <p className="text-[13px] text-[#8B93A7]">
+                      {hasPermission === false ? "Camera unavailable" : "Camera off"}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
 
-              {isThinking && !currentStreamedText && (
-                <div className="flex w-full justify-start">
-                  <div className="max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed bg-zinc-800 text-zinc-400 rounded-bl-sm ring-1 ring-white/5 flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
-                </div>
-              )}
-
-              {(interimTranscript || volatileTranscript) && (
-                <div className="flex w-full justify-end">
-                  <div className="max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed bg-blue-600/40 text-white rounded-br-sm border border-blue-500/20 animate-pulse">
-                    {interimTranscript} <span className="opacity-60">{volatileTranscript}</span>
-                  </div>
-                </div>
-              )}
-              <div ref={chatBottomRef} />
-            </div>
-            <div className="absolute bottom-0 w-full h-12 bg-linear-to-t from-zinc-950 to-transparent z-10 pointer-events-none" />
-          </div>
+              <aside className="hidden min-h-0 w-[min(360px,32%)] shrink-0 flex-col border-l border-white/[0.06] bg-[#0C0E14] lg:flex">
+                {transcript}
+              </aside>
+            </>
+          )}
         </div>
 
         {/* Control bar */}
-        <div className="flex flex-col items-center gap-2.5 px-2 shrink-0">
-          {hasSpeechSupport ? (
-            <div className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900 px-5 py-3.5 shadow-lg shadow-black/20">
-              <button
-                onClick={toggleMic}
-                className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all ${hasPermission && isMicEnabled
-                  ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 ring-1 ring-emerald-500/30'
-                  : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                  }`}
-              >
-                {hasPermission && isMicEnabled ? (
-                  <IconMicrophoneSolid className="h-5 w-5" />
-                ) : (
-                  <IconMicrophoneOffSolid className="h-5 w-5" />
-                )}
-              </button>
-
-              {/* Mic activity visualizer — 3 frequency bars */}
-              {hasPermission && isMicEnabled && (
-                <div className="flex items-end gap-0.5 h-5">
-                  {audioLevels.map((level, i) => (
-                    <div
-                      key={i}
-                      className="w-1 rounded-full bg-emerald-400 transition-all duration-75"
-                      style={{ height: `${Math.max(3, (level / 100) * 20)}px` }}
-                    />
-                  ))}
-                </div>
-              )}
-
-              <button
-                onClick={toggleCamera}
-                className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all ${hasPermission && isCameraEnabled
-                  ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 ring-1 ring-emerald-500/30'
-                  : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                  }`}
-              >
-                {hasPermission && isCameraEnabled ? (
-                  <IconVideoCamera className="h-5 w-5" />
-                ) : (
-                  <IconVideoCameraOff className="h-5 w-5" />
-                )}
-              </button>
-              <div className="h-7 w-px bg-zinc-800" />
-              <button
-                onClick={toggleRecording}
-                className={`flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-xs font-semibold tracking-wide transition-all ${isRecording
-                  ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-              >
-                <div className={`h-2 w-2 rounded-full flex-shrink-0 ${isRecording ? 'bg-red-400 animate-pulse' : 'bg-white'}`} />
-                {isRecording ? 'Stop Speaking' : 'Start Speaking'}
-              </button>
-            </div>
-          ) : (
-            /* Text input fallback when speech recognition is unavailable */
-            <div className="flex w-full max-w-2xl flex-col gap-2 rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-3 shadow-lg shadow-black/20">
-              <div className="flex items-center gap-3">
-                <button
+        <footer className="shrink-0 border-t border-white/[0.06] bg-[#090A0F]">
+          <div className="flex flex-col items-center gap-2 px-4 py-3.5 sm:px-6">
+            {hasSpeechSupport ? (
+              <div className="flex items-center gap-2.5">
+                <ControlIconButton
                   onClick={toggleMic}
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all ${hasPermission && isMicEnabled
-                    ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 ring-1 ring-emerald-500/30'
-                    : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                    }`}
+                  active={Boolean(hasPermission && isMicEnabled)}
+                  danger={!hasPermission || !isMicEnabled}
+                  title={isMicEnabled ? "Mute microphone" : "Unmute microphone"}
                 >
                   {hasPermission && isMicEnabled ? (
-                    <IconMicrophoneSolid className="h-4 w-4" />
+                    <IconMicrophoneSolid className="h-5 w-5" />
                   ) : (
-                    <IconMicrophoneOffSolid className="h-4 w-4" />
+                    <IconMicrophoneOffSolid className="h-5 w-5" />
                   )}
-                </button>
-                <button
+                </ControlIconButton>
+
+                {hasPermission && isMicEnabled ? (
+                  <div className="flex h-5 items-end gap-0.5" aria-hidden>
+                    {audioLevels.map((level, i) => (
+                      <div
+                        key={i}
+                        className="w-1 rounded-full bg-[#3B82F6] transition-all duration-75 ease-out motion-reduce:transition-none"
+                        style={{
+                          height: `${Math.max(3, (level / 100) * 20)}px`,
+                          opacity: level > 5 ? 0.95 : 0.35,
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+
+                <ControlIconButton
                   onClick={toggleCamera}
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all ${hasPermission && isCameraEnabled
-                    ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 ring-1 ring-emerald-500/30'
-                    : 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                    }`}
+                  active={Boolean(hasPermission && isCameraEnabled)}
+                  title={isCameraEnabled ? "Turn off camera" : "Turn on camera"}
                 >
                   {hasPermission && isCameraEnabled ? (
-                    <IconVideoCamera className="h-4 w-4" />
+                    <IconVideoCamera className="h-5 w-5" />
                   ) : (
-                    <IconVideoCameraOff className="h-4 w-4" />
+                    <IconVideoCameraOff className="h-5 w-5" />
                   )}
-                </button>
-                <div className="h-6 w-px bg-zinc-800" />
-                <span className="text-xs text-zinc-500">Voice unavailable — type your answer below</span>
-              </div>
-              <div className="flex gap-2">
-                <textarea
-                  value={textDraft}
-                  onChange={(e) => setTextDraft(e.target.value)}
-                  onKeyDown={handleTextKeyDown}
-                  disabled={interviewDone}
-                  placeholder="Type your answer… (Enter to submit, Shift+Enter for new line)"
-                  rows={3}
-                  className="flex-1 resize-none rounded-xl bg-zinc-800 px-3 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 outline-none ring-1 ring-zinc-700 focus:ring-blue-500/60 transition-all disabled:opacity-40"
-                />
+                </ControlIconButton>
+
+                <div className="mx-1 h-6 w-px bg-white/[0.1]" aria-hidden />
+
                 <button
-                  onClick={handleTextSubmit}
-                  disabled={!textDraft.trim() || interviewDone}
-                  className="self-end rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white transition-all hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                  type="button"
+                  onClick={toggleRecording}
+                  className={`inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg px-4 text-[13px] font-medium transition-colors ${
+                    isRecording
+                      ? "border border-white/[0.12] bg-white/[0.04] text-[#E8ECF4] hover:bg-white/[0.07]"
+                      : "bg-[#3B82F6] text-white hover:bg-[#4B8FF7]"
+                  }`}
                 >
-                  Submit
+                  <span
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                      isRecording
+                        ? "bg-rose-400 motion-safe:animate-pulse"
+                        : "bg-white"
+                    }`}
+                  />
+                  {isRecording ? "Stop speaking" : "Start speaking"}
                 </button>
               </div>
-            </div>
-          )}
-          {speechError && (
-            <p className="text-center text-xs text-amber-400 max-w-xl">
-              {speechError}
-            </p>
-          )}
-        </div>
+            ) : (
+              <div className="flex w-full max-w-2xl flex-col gap-2.5">
+                <div className="flex items-center gap-2.5">
+                  <ControlIconButton
+                    onClick={toggleMic}
+                    active={Boolean(hasPermission && isMicEnabled)}
+                    danger={!hasPermission || !isMicEnabled}
+                    compact
+                    title={isMicEnabled ? "Mute microphone" : "Unmute microphone"}
+                  >
+                    {hasPermission && isMicEnabled ? (
+                      <IconMicrophoneSolid className="h-4 w-4" />
+                    ) : (
+                      <IconMicrophoneOffSolid className="h-4 w-4" />
+                    )}
+                  </ControlIconButton>
+                  <ControlIconButton
+                    onClick={toggleCamera}
+                    active={Boolean(hasPermission && isCameraEnabled)}
+                    compact
+                    title={isCameraEnabled ? "Turn off camera" : "Turn on camera"}
+                  >
+                    {hasPermission && isCameraEnabled ? (
+                      <IconVideoCamera className="h-4 w-4" />
+                    ) : (
+                      <IconVideoCameraOff className="h-4 w-4" />
+                    )}
+                  </ControlIconButton>
+                  <div className="h-5 w-px bg-white/[0.1]" aria-hidden />
+                  <span className="text-[12px] text-[#8B93A7]">
+                    Voice unavailable. Type your answer below.
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <textarea
+                    value={textDraft}
+                    onChange={(e) => setTextDraft(e.target.value)}
+                    onKeyDown={handleTextKeyDown}
+                    disabled={interviewDone}
+                    placeholder="Type your answer… (Enter to submit, Shift+Enter for new line)"
+                    rows={3}
+                    className="flex-1 resize-none rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-sm leading-relaxed text-[#E8ECF4] placeholder-[#6B7385] outline-none transition-colors focus:border-[#3B82F6]/60 disabled:opacity-40"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleTextSubmit}
+                    disabled={!textDraft.trim() || interviewDone}
+                    className="self-end cursor-pointer rounded-lg bg-[#3B82F6] px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-[#4B8FF7] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Submit
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {speechError ? (
+              <p className="max-w-xl text-center text-[12px] text-amber-200/90">
+                {speechError}
+              </p>
+            ) : null}
+          </div>
+        </footer>
       </div>
     </motion.div>
+  );
+}
+
+export function shouldUseCodingLayout(
+  codingInterview: boolean,
+  codingChallenge: CodingChallenge | null | undefined,
+) {
+  return codingInterview || Boolean(codingChallenge);
+}
+
+function RecordingBadge({
+  recording,
+  compact,
+}: {
+  recording: boolean;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={`absolute flex items-center gap-1.5 ${
+        compact ? "right-2.5 top-2.5" : "right-4 top-4"
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${
+          recording
+            ? "bg-rose-500 motion-safe:animate-pulse"
+            : "bg-white/25"
+        }`}
+      />
+      <span className="font-mono text-[10px] tracking-wide text-[#C5CBD8]/90">
+        {recording ? (compact ? "REC" : "Recording") : compact ? "OFF" : "Not recording"}
+      </span>
+    </div>
+  );
+}
+
+function ControlIconButton({
+  children,
+  onClick,
+  active,
+  danger,
+  compact,
+  title,
+}: {
+  children: ReactNode;
+  onClick: () => void;
+  active?: boolean;
+  danger?: boolean;
+  compact?: boolean;
+  title?: string;
+}) {
+  const size = compact ? "h-9 w-9" : "h-11 w-11";
+  let tone =
+    "border-white/[0.14] bg-white/[0.04] text-[#F2F4F8] hover:bg-white/[0.08]";
+  if (danger) {
+    tone =
+      "border-rose-400/35 bg-rose-500/20 text-rose-50 hover:bg-rose-500/30";
+  } else if (!active) {
+    tone =
+      "border-white/[0.1] bg-white/[0.02] text-[#A8B0C2] hover:bg-white/[0.06] hover:text-[#E8ECF4]";
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`flex ${size} cursor-pointer items-center justify-center rounded-xl border transition-colors ${tone}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function TranscriptPanel({
+  chatScrollContainerRef,
+  chatBottomRef,
+  messages,
+  currentStreamedText,
+  isThinking,
+  interimTranscript,
+  volatileTranscript,
+  compact,
+}: {
+  chatScrollContainerRef: RefObject<HTMLDivElement | null>;
+  chatBottomRef: RefObject<HTMLDivElement | null>;
+  messages: ChatMessage[];
+  currentStreamedText: string;
+  isThinking: boolean;
+  interimTranscript: string;
+  volatileTranscript: string;
+  compact?: boolean;
+}) {
+  const pad = compact ? "px-3.5 py-3" : "px-4 py-4";
+  const bubble = compact ? "px-3 py-2 text-[13px]" : "px-3.5 py-2.5 text-sm";
+
+  return (
+    <div className="relative flex h-full min-h-0 flex-col">
+      <div className="flex shrink-0 items-center justify-between border-b border-white/[0.06] px-4 py-2.5">
+        <p className="font-mono text-[11px] tabular-nums text-[#6B7385]">Transcript</p>
+      </div>
+
+      <div
+        ref={chatScrollContainerRef}
+        className={`flex min-h-0 flex-1 flex-col space-y-3 overflow-y-auto ${pad}`}
+      >
+        {messages.map((msg, idx) => (
+          <div
+            key={idx}
+            className={`flex w-full ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+          >
+            <div
+              className={`max-w-[92%] rounded-xl leading-relaxed ${bubble} ${
+                msg.role === "user"
+                  ? "bg-[#3B82F6] text-white"
+                  : "border border-white/[0.06] bg-white/[0.03] text-[#E8ECF4]"
+              }`}
+            >
+              {msg.text}
+            </div>
+          </div>
+        ))}
+
+        {currentStreamedText ? (
+          <div className="flex w-full justify-start">
+            <div
+              className={`max-w-[92%] rounded-xl border border-white/[0.06] bg-white/[0.03] leading-relaxed text-[#E8ECF4] ${bubble}`}
+            >
+              {currentStreamedText}
+              <span className="ml-1 inline-block h-3.5 w-0.5 align-middle rounded-sm bg-[#A8B0C2] motion-safe:animate-pulse" />
+            </div>
+          </div>
+        ) : null}
+
+        {isThinking && !currentStreamedText ? (
+          <div className="flex w-full justify-start">
+            <div
+              className={`flex max-w-[92%] items-center gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-[#8B93A7] ${bubble}`}
+            >
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-[#6B7385] motion-safe:animate-bounce"
+                style={{ animationDelay: "0ms" }}
+              />
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-[#6B7385] motion-safe:animate-bounce"
+                style={{ animationDelay: "150ms" }}
+              />
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-[#6B7385] motion-safe:animate-bounce"
+                style={{ animationDelay: "300ms" }}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        {interimTranscript || volatileTranscript ? (
+          <div className="flex w-full justify-end">
+            <div
+              className={`max-w-[92%] rounded-xl border border-[#3B82F6]/25 bg-[#3B82F6]/15 leading-relaxed text-[#E8ECF4] ${bubble}`}
+            >
+              {interimTranscript}{" "}
+              <span className="opacity-55">{volatileTranscript}</span>
+            </div>
+          </div>
+        ) : null}
+
+        <div ref={chatBottomRef} />
+      </div>
+    </div>
   );
 }

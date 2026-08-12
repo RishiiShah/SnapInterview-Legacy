@@ -1,14 +1,18 @@
 import Link from "next/link";
 
 import { getAdminQuestionFacets } from "@/lib/admin/question-facets";
+import { QUESTION_CATEGORY_VALUES } from "@/lib/interview/domain";
 import { prisma } from "@/lib/prisma";
 import { deletePracticeQuestionAction, importPracticeQuestionsAction } from "./actions";
 import {
   adminActionLinkClass,
   adminDangerButtonClass,
+  adminInputOverrideClass,
   adminPaginationLinkClass,
   adminPaginationLinkDisabledClass,
+  adminPrimaryButtonClass,
   adminPrimaryLinkClass,
+  adminSecondaryButtonClass,
   adminSecondaryLinkClass,
 } from "@/components/admin/admin-styles";
 import { ConfirmActionForm } from "@/components/admin/ConfirmActionForm";
@@ -16,7 +20,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
 const filterSelectClass =
-  "w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none transition-all focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-100";
+  "w-full rounded-lg border border-white/[0.08] bg-white/[0.03] px-3.5 py-2.5 text-sm text-[#F2F4F8] outline-none transition-colors focus:border-[#3B82F6]/45 focus:bg-white/[0.05] focus:ring-1 focus:ring-[#3B82F6]/25";
 
 export default async function AdminQuestionsPage({
   searchParams,
@@ -39,9 +43,11 @@ export default async function AdminQuestionsPage({
   const message = sp?.message ? decodeURIComponent(sp.message) : "";
   const pageSize = 20;
 
+  const isAllowedCategory = (QUESTION_CATEGORY_VALUES as readonly string[]).includes(category);
   const where = {
+    category: isAllowedCategory ? category : { in: [...QUESTION_CATEGORY_VALUES] },
     ...(q ? { slug: { contains: q, mode: "insensitive" as const } } : {}),
-    ...(category ? { category } : {}),
+    ...(category && !isAllowedCategory ? { id: -1 } : {}),
     ...(difficulty ? { difficulty } : {}),
   };
 
@@ -84,8 +90,8 @@ export default async function AdminQuestionsPage({
       <section>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">Questions</h2>
-            <p className="mt-1 text-sm text-zinc-500">Practice question inventory and taxonomy distribution.</p>
+            <h2 className="text-2xl font-semibold tracking-tight text-[#F2F4F8]">Questions</h2>
+            <p className="mt-1 text-sm text-[#A8B0C2]">Practice question inventory and taxonomy distribution.</p>
           </div>
 
           <Link
@@ -97,13 +103,14 @@ export default async function AdminQuestionsPage({
         </div>
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <section className="rounded-xl border border-white/[0.08] bg-[#12141A] p-4">
         <form key={filterFormKey} className="grid gap-3 md:grid-cols-5">
           <Input
             type="text"
             name="q"
             defaultValue={q}
             placeholder="Search by slug"
+            className={adminInputOverrideClass}
           />
           <select
             name="category"
@@ -129,11 +136,11 @@ export default async function AdminQuestionsPage({
               </option>
             ))}
           </select>
-          <Button type="submit" size="md" className="w-full">
+          <Button type="submit" size="md" className={`w-full ${adminPrimaryButtonClass}`}>
             Apply filters
           </Button>
           <Link href="/admin/questions" className="w-full">
-            <Button type="button" variant="secondary" size="md" className="w-full">
+            <Button type="button" variant="secondary" size="md" className={`w-full ${adminSecondaryButtonClass}`}>
               Clear filters
             </Button>
           </Link>
@@ -141,21 +148,21 @@ export default async function AdminQuestionsPage({
       </section>
 
       {message ? (
-        <section className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 shadow-sm">
+        <section className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
           {message}
         </section>
       ) : null}
       {error ? (
-        <section className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+        <section className="rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {error}
         </section>
       ) : null}
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <section className="rounded-xl border border-white/[0.08] bg-[#12141A] p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-zinc-900">Bulk Import / Export</h3>
-            <p className="text-xs text-zinc-500">Import CSV/JSON questions and export full question bank.</p>
+            <h3 className="text-sm font-semibold text-[#F2F4F8]">Bulk Import / Export</h3>
+            <p className="text-xs text-[#A8B0C2]">Import CSV/JSON questions and export full question bank.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <a
@@ -180,26 +187,26 @@ export default async function AdminQuestionsPage({
               name="file"
               accept=".csv,application/json"
               required
-              className="min-w-0 flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-700 file:mr-3 file:rounded-md file:border-0 file:bg-zinc-900 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white"
+              className="min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 text-sm text-[#C5CBD8] file:mr-3 file:rounded-md file:border-0 file:bg-[#3B82F6] file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white"
             />
-            <Button type="submit" size="md" className="w-full shrink-0 sm:w-auto">
+            <Button type="submit" size="md" className={`w-full shrink-0 sm:w-auto ${adminPrimaryButtonClass}`}>
               Import file
             </Button>
           </div>
-          <p className="text-xs text-zinc-500">
-            New slugs are added. Existing slugs only get new tags merged in—edit a question to remove tags that do not fit.
+          <p className="text-xs text-[#A8B0C2]">
+            New slugs are added. Existing slugs only get new tags merged in. Edit a question to remove tags that do not fit.
           </p>
         </form>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-zinc-500">Total Questions</p>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">{totalQuestions.toLocaleString()}</p>
+        <div className="rounded-xl border border-white/[0.08] bg-[#12141A] p-4">
+          <p className="text-sm text-[#A8B0C2]">Total Questions</p>
+          <p className="mt-2 text-2xl font-semibold text-[#F2F4F8]">{totalQuestions.toLocaleString()}</p>
         </div>
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-zinc-500">Top Categories</p>
-          <div className="mt-2 space-y-1 text-sm text-zinc-700">
+        <div className="rounded-xl border border-white/[0.08] bg-[#12141A] p-4">
+          <p className="text-sm text-[#A8B0C2]">Top Categories</p>
+          <div className="mt-2 space-y-1 text-sm text-[#C5CBD8]">
             {[...categories]
               .sort((a, b) => b._count._all - a._count._all)
               .slice(0, 4)
@@ -210,9 +217,9 @@ export default async function AdminQuestionsPage({
               ))}
           </div>
         </div>
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-zinc-500">Difficulty Split</p>
-          <div className="mt-2 space-y-1 text-sm text-zinc-700">
+        <div className="rounded-xl border border-white/[0.08] bg-[#12141A] p-4">
+          <p className="text-sm text-[#A8B0C2]">Difficulty Split</p>
+          <div className="mt-2 space-y-1 text-sm text-[#C5CBD8]">
             {difficulties.map((entry) => (
               <p key={entry.difficulty}>
                 {entry.difficulty}: <span className="font-medium">{entry._count._all}</span>
@@ -222,9 +229,9 @@ export default async function AdminQuestionsPage({
         </div>
       </section>
 
-      <section className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
+      <section className="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#12141A]">
         <table className="min-w-full text-sm">
-          <thead className="border-b border-zinc-200 bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500">
+          <thead className="border-b border-white/[0.08] bg-white/[0.02] text-left text-xs uppercase tracking-wide text-[#A8B0C2]">
             <tr>
               <th className="px-4 py-3">Slug</th>
               <th className="px-4 py-3">Category</th>
@@ -236,12 +243,12 @@ export default async function AdminQuestionsPage({
           </thead>
           <tbody>
             {recentQuestions.map((question) => (
-              <tr key={question.id} className="border-b border-zinc-100 last:border-b-0">
-                <td className="px-4 py-3 font-medium text-zinc-900">{question.slug}</td>
-                <td className="px-4 py-3 text-zinc-700">{question.category}</td>
-                <td className="px-4 py-3 text-zinc-700">{question.difficulty}</td>
-                <td className="px-4 py-3 text-zinc-700">{question.tags.slice(0, 3).join(", ") || "-"}</td>
-                <td className="px-4 py-3 text-zinc-700">
+              <tr key={question.id} className="border-b border-white/[0.05] last:border-b-0">
+                <td className="px-4 py-3 font-medium text-[#F2F4F8]">{question.slug}</td>
+                <td className="px-4 py-3 text-[#C5CBD8]">{question.category}</td>
+                <td className="px-4 py-3 text-[#C5CBD8]">{question.difficulty}</td>
+                <td className="px-4 py-3 text-[#C5CBD8]">{question.tags.slice(0, 3).join(", ") || "-"}</td>
+                <td className="px-4 py-3 text-[#C5CBD8]">
                   {new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(question.updatedAt)}
                 </td>
                 <td className="px-4 py-3">
@@ -270,8 +277,8 @@ export default async function AdminQuestionsPage({
         </table>
       </section>
 
-      <section className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm">
-        <p className="text-zinc-600">
+      <section className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[#12141A] px-4 py-3 text-sm">
+        <p className="text-[#A8B0C2]">
           Showing {(page - 1) * pageSize + 1}-
           {Math.min(page * pageSize, filteredCount)} of {filteredCount}
         </p>
@@ -282,7 +289,7 @@ export default async function AdminQuestionsPage({
           >
             Previous
           </Link>
-          <span className="text-zinc-500">Page {page} / {totalPages}</span>
+          <span className="text-[#A8B0C2]">Page {page} / {totalPages}</span>
           <Link
             href={paramsForPage(nextPage)}
             className={page === totalPages ? adminPaginationLinkDisabledClass : adminPaginationLinkClass}

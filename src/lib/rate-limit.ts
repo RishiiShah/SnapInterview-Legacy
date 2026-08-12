@@ -123,22 +123,20 @@ function shouldFallbackToInMemory(error: unknown): boolean {
   return false;
 }
 
-function sampleCleanupExpiredBuckets(now: Date) {
-  if (Math.random() > CLEANUP_SAMPLE_RATE) {
-    return;
-  }
+export async function cleanupExpiredRateLimitBuckets(limit = 5_000): Promise<number> {
+  const expiredBuckets = await prisma.rateLimitBucket.findMany({
+    where: { expiresAt: { lt: new Date() } },
+    select: { id: true },
+    orderBy: { expiresAt: "asc" },
+    take: Math.min(Math.max(limit, 1), 10_000),
+  });
 
-  if (typeof prisma.$executeRaw !== "function") {
-    return;
-  }
+  if (expiredBuckets.length === 0) return 0;
 
-  void prisma
-    .$executeRaw`DELETE FROM "rate_limit_buckets" WHERE "expiresAt" < ${now}`
-    .catch((error) => {
-      if (!shouldFallbackToInMemory(error)) {
-        logger.error("Rate limiter cleanup failed", { error: error instanceof Error ? error.message : String(error) });
-      }
-    });
+  const result = await prisma.rateLimitBucket.deleteMany({
+    where: { id: { in: expiredBuckets.map((bucket) => bucket.id) } },
+  });
+  return result.count;
 }
 
 async function consumeFixedWindow(
@@ -152,8 +150,6 @@ async function consumeFixedWindow(
   const windowStart = windowStartFor(nowMs, windowMs);
   const expiresAt = new Date(windowStart.getTime() + windowMs);
   const keyHash = hashRateLimitKey(namespace, safeRawKey);
-
-  sampleCleanupExpiredBuckets(new Date(nowMs));
 
   if (typeof prisma.$queryRaw !== "function") {
     return consumeInMemoryFixedWindow(namespace, safeRawKey, windowMs, maxRequests);

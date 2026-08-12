@@ -45,6 +45,11 @@ export const COMPANIES = [
   "Elastic",
 ] as const;
 
+export function normalizeCompanyName(value: string): string {
+  return value.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+}
+
 export function isCuratedCompany(value: string): boolean {
-  return (COMPANIES as readonly string[]).includes(value);
+  const normalizedValue = normalizeCompanyName(value);
+  return COMPANIES.some((company) => normalizeCompanyName(company) === normalizedValue);
 }

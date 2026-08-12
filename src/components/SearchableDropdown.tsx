@@ -11,6 +11,7 @@ interface SearchableDropdownProps {
     placeholder?: string;
     isOptional?: boolean;
     allowCustomValue?: boolean;
+    onRequestOption?: (value: string) => void;
     /** Dashboard pages use dark; onboarding keeps light. */
     tone?: "light" | "dark";
 }
@@ -23,6 +24,7 @@ export default function SearchableDropdown({
     placeholder = "Search or type...",
     isOptional = false,
     allowCustomValue = true,
+    onRequestOption,
     tone = "light",
 }: SearchableDropdownProps) {
     const [open, setOpen] = useState(false);
@@ -36,6 +38,7 @@ export default function SearchableDropdown({
     const filteredOptions = options.filter((option) =>
         option.toLowerCase().includes((allowCustomValue ? value : searchTerm).toLowerCase())
     );
+    const requestQuery = searchTerm.trim();
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -196,13 +199,30 @@ export default function SearchableDropdown({
                                 </button>
                             ))
                         ) : (
-                            <div
-                                className={`px-4 py-3 text-center text-sm ${
-                                    dark ? "text-[#A8B0C2]" : "text-zinc-600"
-                                }`}
-                            >
-                                No matches found
-                            </div>
+                            onRequestOption && !allowCustomValue && requestQuery ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        onRequestOption(requestQuery);
+                                        setOpen(false);
+                                    }}
+                                    className={`w-full px-4 py-3 text-left text-sm transition-colors ${
+                                        dark
+                                            ? "text-[#93C5FD] hover:bg-white/[0.04]"
+                                            : "text-sky-700 hover:bg-zinc-50"
+                                    }`}
+                                >
+                                    Request {requestQuery} — use General for now
+                                </button>
+                            ) : (
+                                <div
+                                    className={`px-4 py-3 text-center text-sm ${
+                                        dark ? "text-[#A8B0C2]" : "text-zinc-600"
+                                    }`}
+                                >
+                                    No matches found
+                                </div>
+                            )
                         )}
                     </div>
                 ) : null}

@@ -82,6 +82,7 @@ export default function OnboardingPreferencesForm({
   });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [companyRequestMessage, setCompanyRequestMessage] = useState<string | null>(null);
 
   function updateValues(
     updater: (previous: OnboardingPreferencesFormValues) => OnboardingPreferencesFormValues,
@@ -93,6 +94,27 @@ export default function OnboardingPreferencesForm({
       }
       return next;
     });
+  }
+
+  async function requestCompany(company: string) {
+    setCompanyRequestMessage(null);
+    try {
+      const response = await fetch("/api/company-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      setCompanyRequestMessage(
+        typeof payload?.message === "string"
+          ? payload.message
+          : typeof payload?.error === "string"
+            ? payload.error
+            : "Unable to submit the company request.",
+      );
+    } catch {
+      setCompanyRequestMessage("Unable to submit the company request.");
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -183,8 +205,12 @@ export default function OnboardingPreferencesForm({
           options={COMPANIES}
           placeholder="Company, or General"
           allowCustomValue={false}
+          onRequestOption={requestCompany}
           tone={tone}
         />
+        {companyRequestMessage ? (
+          <p className={`text-xs ${dark ? "text-[#A8B0C2]" : "text-zinc-600"}`}>{companyRequestMessage}</p>
+        ) : null}
 
         <SelectDropdown
           label="Primary goal"

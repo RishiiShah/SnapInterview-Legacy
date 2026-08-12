@@ -77,6 +77,7 @@ export default function PracticePageClient({
   const [resumeError, setResumeError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [companyRequestMessage, setCompanyRequestMessage] = useState<string | null>(null);
   const [step, setStep] = useState(1);
   // Skip the first entrance animation so real content replaces the route skeleton in place.
   const [animateStepTransitions, setAnimateStepTransitions] = useState(false);
@@ -223,6 +224,27 @@ export default function PracticePageClient({
     }
   }
 
+  async function requestCompany(companyName: string) {
+    setCompanyRequestMessage(null);
+    try {
+      const response = await fetch("/api/company-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company: companyName }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      setCompanyRequestMessage(
+        typeof payload?.message === "string"
+          ? payload.message
+          : typeof payload?.error === "string"
+            ? payload.error
+            : "Unable to submit the company request.",
+      );
+    } catch {
+      setCompanyRequestMessage("Unable to submit the company request.");
+    }
+  }
+
   function goNext() {
     if (step === 1 && !trimmedRole) return;
     if (step < 2) {
@@ -316,8 +338,12 @@ export default function PracticePageClient({
                   placeholder="Optional"
                   isOptional
                   allowCustomValue={false}
+                  onRequestOption={requestCompany}
                   tone="dark"
                 />
+                {companyRequestMessage ? (
+                  <p className="text-xs text-[#A8B0C2]">{companyRequestMessage}</p>
+                ) : null}
 
                 <div>
                   <SelectDropdown

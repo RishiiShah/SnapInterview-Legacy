@@ -1,0 +1,1 @@
+export const INTERVIEW_RESUME_WINDOW_MS = 24 * 60 * 60 * 1000;

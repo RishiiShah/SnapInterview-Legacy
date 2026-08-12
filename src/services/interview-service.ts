@@ -1,5 +1,6 @@
 import { Prisma, type InterviewStatus } from "@/generated/prisma/client";
 import { INTERVIEW_DONE_MESSAGE } from "@/lib/interview/constants";
+import { INTERVIEW_RESUME_WINDOW_MS } from "@/lib/interview/resume-expiry";
 import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 import {
   normalizePromptInterviewSession,
@@ -26,7 +27,7 @@ import {
 
 export const ALLOWED_STATUSES = ["COMPLETED", "ABORTED"] as const;
 export const ALLOWED_QUESTION_COUNTS = [5, 10, 15] as const satisfies readonly InterviewQuestionCount[];
-export const INTERVIEW_RESUME_WINDOW_MS = 24 * 60 * 60 * 1000;
+export { INTERVIEW_RESUME_WINDOW_MS } from "@/lib/interview/resume-expiry";
 
 function deriveAdaptiveFocusAreas(params: {
   type: InterviewType;

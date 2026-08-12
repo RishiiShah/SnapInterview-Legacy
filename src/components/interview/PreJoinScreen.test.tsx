@@ -3,9 +3,30 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import PreJoinScreen, { type PreJoinScreenProps } from "./PreJoinScreen";
 
+const MOTION_ONLY_PROPS = new Set(["animate", "exit", "initial", "transition"]);
+
 vi.mock("framer-motion", () => ({
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  motion: { div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => <div {...props}>{children}</div> },
+  motion: {
+    div: ({ children, ...props }: Record<string, unknown> & { children?: React.ReactNode }) => (
+      <div {...Object.fromEntries(Object.entries(props).filter(([key]) => !MOTION_ONLY_PROPS.has(key)))}>
+        {children}
+      </div>
+    ),
+  },
+}));
+
+vi.mock("next/image", () => ({
+  default: ({ alt, ...props }: { alt: string; [key: string]: unknown }) => (
+    <span
+      aria-label={alt}
+      {...Object.fromEntries(
+        Object.entries(props).filter(
+          ([key]) => !["fill", "priority", "quality", "unoptimized"].includes(key),
+        ),
+      )}
+    />
+  ),
 }));
 
 vi.mock("@/components/interview/PermissionRequest", () => ({

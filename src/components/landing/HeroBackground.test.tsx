@@ -19,7 +19,11 @@ vi.mock("next/image", () => ({
       data-next-image
       data-src={src}
       aria-label={alt}
-      {...Object.fromEntries(Object.entries(props).filter(([key]) => key !== "fill" && key !== "unoptimized"))}
+      {...Object.fromEntries(
+        Object.entries(props).filter(
+          ([key]) => !["fill", "priority", "quality", "unoptimized"].includes(key),
+        ),
+      )}
     />
   ),
 }));

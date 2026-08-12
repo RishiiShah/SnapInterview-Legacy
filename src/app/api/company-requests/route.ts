@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 import { apiError, apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
-import { isCuratedCompany, normalizeCompanyName } from "@/lib/company-options";
+import { isBlockedCompanyRequest, isCuratedCompany, normalizeCompanyName } from "@/lib/company-options";
 import { prisma } from "@/lib/prisma";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
@@ -33,6 +33,9 @@ export const POST = withCsrfProtection(async (req: Request) => {
     if (!parsed.success) return badRequestError(parsed.error.issues[0]?.message || "Invalid company request");
 
     const requestedName = parsed.data.company;
+    if (isBlockedCompanyRequest(requestedName)) {
+      return badRequestError("This company cannot be requested");
+    }
     if (isCuratedCompany(requestedName)) {
       return badRequestError("That company is already available in the list");
     }

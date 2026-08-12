@@ -45,6 +45,8 @@ export const COMPANIES = [
   "Elastic",
 ] as const;
 
+const BLOCKED_COMPANY_REQUESTS = new Set(["pornhub"]);
+
 export function normalizeCompanyName(value: string): string {
   return value.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
 }
@@ -52,4 +54,8 @@ export function normalizeCompanyName(value: string): string {
 export function isCuratedCompany(value: string): boolean {
   const normalizedValue = normalizeCompanyName(value);
   return COMPANIES.some((company) => normalizeCompanyName(company) === normalizedValue);
+}
+
+export function isBlockedCompanyRequest(value: string): boolean {
+  return BLOCKED_COMPANY_REQUESTS.has(normalizeCompanyName(value));
 }

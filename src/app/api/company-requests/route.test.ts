@@ -55,6 +55,20 @@ describe("POST /api/company-requests", () => {
     expect(prisma.companyRequest.upsert).not.toHaveBeenCalled();
   });
 
+  it("rejects a blocked company without adding it to the review queue", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
+
+    const response = await POST(new Request("http://localhost/api/company-requests", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "http://localhost:3000" },
+      body: JSON.stringify({ company: "Pornhub" }),
+    }));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({ error: "This company cannot be requested" });
+    expect(prisma.companyRequest.upsert).not.toHaveBeenCalled();
+  });
+
   it("rejects malformed JSON without creating a request", async () => {
     vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
 

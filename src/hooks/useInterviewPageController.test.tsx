@@ -156,22 +156,20 @@ describe("useInterviewPageController", () => {
     expect(mocks.routerPush).toHaveBeenCalledWith("/interview/other-interview");
   });
 
-  it("warms the voice engine as soon as pre-join mounts and again with the permission action", async () => {
+  it("warms the voice engine in the same user action as requesting media permission", async () => {
     const { requestPermissions } = setupHookMocks();
     const warmup = vi.fn();
     mocks.useStreamingTTS.mockReturnValue({ isSpeaking: false, warmup });
 
     const { result } = renderHook(() => useInterviewPageController({ interviewId: "interview-voice" }));
 
-    await waitFor(() => expect(warmup).toHaveBeenCalledTimes(1));
-
     await act(async () => {
       await result.current.requestPermissions();
     });
 
-    expect(warmup).toHaveBeenCalledTimes(2);
+    expect(warmup).toHaveBeenCalledTimes(1);
     expect(requestPermissions).toHaveBeenCalledTimes(1);
-    expect(warmup.mock.invocationCallOrder[1]).toBeLessThan(requestPermissions.mock.invocationCallOrder[0]!);
+    expect(warmup.mock.invocationCallOrder[0]).toBeLessThan(requestPermissions.mock.invocationCallOrder[0]!);
   });
 
   it("uses pending session metadata without requesting a session that does not exist yet", async () => {
@@ -215,6 +213,40 @@ describe("useInterviewPageController", () => {
       expect(result.current.interviewType).toBe("coding-algorithms");
     });
     expect(fetch).toHaveBeenCalledWith("/api/interview/session?interviewId=interview-hydrated");
+  });
+
+  it("waits for existing-session metadata after screen-share begins before entering the interview", async () => {
+    let resolveMetadata: ((response: Response) => void) | undefined;
+    const metadata = new Promise<Response>((resolve) => {
+      resolveMetadata = resolve;
+    });
+    const startScreenRecording = vi.fn(async (_stream: MediaStream | undefined, sessionPromise?: Promise<void>) => {
+      await sessionPromise;
+      return true;
+    });
+    setupHookMocks({ startScreenRecording });
+    vi.mocked(fetch).mockReturnValue(metadata);
+
+    const { result } = renderHook(() => useInterviewPageController({ interviewId: "interview-existing" }));
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/interview/session?interviewId=interview-existing"));
+
+    void result.current.handlePermissionsGranted();
+
+    await waitFor(() => expect(startScreenRecording).toHaveBeenCalledOnce());
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(result.current.interviewStarted).toBe(false);
+
+    resolveMetadata?.(okJson({ questionCount: 5, persona: "strict", type: "coding-algorithms" }));
+
+    await waitFor(() => {
+      expect(result.current.interviewStarted).toBe(true);
+      expect(result.current.totalQuestions).toBe(5);
+      expect(result.current.interviewType).toBe("coding-algorithms");
+    });
   });
 
   it("persists pending interview config before entering the interview", async () => {

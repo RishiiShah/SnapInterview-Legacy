@@ -49,6 +49,8 @@ export function useInterviewPageController({
   const interviewDoneRef = useRef(false);
   const isExitingRef = useRef(false);
   const hasCheckedResumeRef = useRef(false);
+  const isMountedRef = useRef(true);
+  const sessionMetaPromiseRef = useRef<Promise<void> | null>(null);
   const chatMessagesRef = useRef<typeof chat.messages>([]);
   const handleExitInterviewRef = useRef<(opts?: { skipConfirmation?: boolean }) => Promise<void>>(async () => {});
   const onScreenShareEndedRef = useRef<() => void>(() => {});
@@ -125,18 +127,65 @@ export function useInterviewPageController({
   });
   const { cancel: cancelTts, warmup: warmupTts } = tts;
 
-  // Preload TTS alongside local STT while the user is still on PreJoin. This
-  // keeps the first spoken response from competing with interview startup.
-  useEffect(() => {
-    warmupTts();
-  }, [warmupTts]);
-
   const requestPermissions = useCallback(() => {
     warmupTts();
     return media.requestPermissions();
   }, [media, warmupTts]);
 
   const audioLevels = useAudioAnalyser(media.stream, media.isMicEnabled);
+
+  const applySessionMeta = useCallback((data: {
+    questionCount?: unknown;
+    persona?: unknown;
+    type?: unknown;
+  }) => {
+    if (!isMountedRef.current) return;
+    if (typeof data.questionCount === "number" && data.questionCount > 0) {
+      setTotalQuestions(data.questionCount);
+    }
+    if (typeof data.persona === "string") {
+      setPersona(data.persona);
+    }
+    setInterviewType(coerceInterviewType(data.type));
+  }, []);
+
+  const loadSessionMeta = useCallback(() => {
+    if (sessionMetaPromiseRef.current) return sessionMetaPromiseRef.current;
+
+    const loadPromise = (async () => {
+      const pendingRaw = sessionStorage.getItem(`pending_interview_${interviewId}`);
+      if (pendingRaw) {
+        try {
+          applySessionMeta(JSON.parse(pendingRaw));
+          return;
+        } catch {
+          sessionStorage.removeItem(`pending_interview_${interviewId}`);
+        }
+      }
+
+      const res = await fetch(`/api/interview/session?interviewId=${encodeURIComponent(interviewId)}`);
+      if (!res.ok) {
+        throw new Error(`Failed to load interview session metadata (${res.status})`);
+      }
+
+      applySessionMeta(await res.json());
+    })();
+
+    sessionMetaPromiseRef.current = loadPromise;
+    void loadPromise.catch(() => {
+      if (sessionMetaPromiseRef.current === loadPromise) {
+        sessionMetaPromiseRef.current = null;
+      }
+    });
+    return loadPromise;
+  }, [applySessionMeta, interviewId]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -169,7 +218,7 @@ export function useInterviewPageController({
     // context required by Safari for getDisplayMedia.
 
     const pendingRaw = sessionStorage.getItem(`pending_interview_${interviewId}`);
-    let sessionPromise = Promise.resolve();
+    let sessionPromise: Promise<void>;
     
     if (pendingRaw) {
       const payload = JSON.parse(pendingRaw);
@@ -183,6 +232,12 @@ export function useInterviewPageController({
         if (!res.ok) throw new Error("Server rejected session creation");
         sessionStorage.removeItem(`pending_interview_${interviewId}`);
       });
+    } else {
+      // Existing sessions must not enter the room with the default metadata
+      // while their client-side lookup is still in flight. startScreenRecording
+      // asks for display capture before awaiting this promise, preserving the
+      // user gesture required by Safari.
+      sessionPromise = loadSessionMeta();
     }
 
     const started = await startScreenRecording(media.stream || undefined, sessionPromise);
@@ -212,7 +267,7 @@ export function useInterviewPageController({
 
     setShowPreJoin(false);
     setInterviewStarted(true);
-  }, [media.stream, startScreenRecording, stopVideoRecording, interviewId]);
+  }, [media.stream, startScreenRecording, stopVideoRecording, interviewId, loadSessionMeta]);
 
   const handleExitInterview = useCallback(
     async ({ skipConfirmation = false }: { skipConfirmation?: boolean } = {}) => {
@@ -277,57 +332,12 @@ export function useInterviewPageController({
   }, [chat.messages, chat.currentStreamedText, chat.isThinking, speech.interimTranscript, speech.volatileTranscript]);
 
   useEffect(() => {
-    let isCancelled = false;
-
-    const applySessionMeta = (data: {
-      questionCount?: unknown;
-      persona?: unknown;
-      type?: unknown;
-    }) => {
-      if (typeof data.questionCount === "number" && data.questionCount > 0) {
-        setTotalQuestions(data.questionCount);
-      }
-      if (typeof data.persona === "string") {
-        setPersona(data.persona);
-      }
-      setInterviewType(coerceInterviewType(data.type));
-    };
-
-    const loadSessionMeta = async () => {
-      const pendingRaw = sessionStorage.getItem(`pending_interview_${interviewId}`);
-      if (pendingRaw) {
-        try {
-          const data = JSON.parse(pendingRaw);
-          if (!isCancelled) {
-            applySessionMeta(data);
-          }
-          return;
-        } catch {
-          sessionStorage.removeItem(`pending_interview_${interviewId}`);
-        }
-      }
-
-      try {
-        const res = await fetch(`/api/interview/session?interviewId=${encodeURIComponent(interviewId)}`);
-        if (!res.ok) {
-          return;
-        }
-
-        const data = await res.json();
-        if (!isCancelled) {
-          applySessionMeta(data);
-        }
-      } catch (error) {
+    void loadSessionMeta().catch((error) => {
+      if (isMountedRef.current) {
         console.error("Failed to load interview session metadata:", error);
       }
-    };
-
-    void loadSessionMeta();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [interviewId]);
+    });
+  }, [loadSessionMeta]);
 
   useEffect(() => {
     onScreenShareEndedRef.current = () => {

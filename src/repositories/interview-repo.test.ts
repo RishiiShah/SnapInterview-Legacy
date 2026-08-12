@@ -13,6 +13,8 @@ vi.mock("@/lib/prisma", () => ({
 import { prisma } from "@/lib/prisma";
 import {
   claimInterviewEvaluation,
+  completeExpiredInterviewSessions,
+  expireInterviewSessionIfStale,
   getInterviewSession,
   listCompletedSessionsForUser,
   persistClaimedEvaluation,
@@ -46,6 +48,67 @@ describe("getInterviewSession state view", () => {
     expect(prisma.interviewSession.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       select: expect.objectContaining({ type: true }),
     }));
+  });
+});
+
+describe("interview resume expiry", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("completes only the owned in-progress session at or before the cutoff", async () => {
+    const cutoff = new Date("2026-08-11T12:00:00.000Z");
+    vi.mocked(prisma.interviewSession.updateMany).mockResolvedValue({ count: 1 } as never);
+
+    const expired = await expireInterviewSessionIfStale({
+      interviewId: "interview-1",
+      userId: "user-1",
+      cutoff,
+    });
+
+    expect(expired).toBe(true);
+    expect(prisma.interviewSession.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: "interview-1",
+        userId: "user-1",
+        status: "IN_PROGRESS",
+        deletedAt: null,
+        createdAt: { lte: cutoff },
+      },
+      data: { status: "COMPLETED" },
+    });
+  });
+
+  it("rechecks expiry conditions when completing a bounded cleanup batch", async () => {
+    const cutoff = new Date("2026-08-11T12:00:00.000Z");
+    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([
+      { id: "interview-1" },
+      { id: "interview-2" },
+    ] as never);
+    vi.mocked(prisma.interviewSession.updateMany).mockResolvedValue({ count: 1 } as never);
+
+    const completed = await completeExpiredInterviewSessions({ cutoff, limit: 500 });
+
+    expect(completed).toBe(1);
+    expect(prisma.interviewSession.findMany).toHaveBeenCalledWith({
+      where: {
+        status: "IN_PROGRESS",
+        deletedAt: null,
+        createdAt: { lte: cutoff },
+      },
+      select: { id: true },
+      orderBy: { createdAt: "asc" },
+      take: 500,
+    });
+    expect(prisma.interviewSession.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ["interview-1", "interview-2"] },
+        status: "IN_PROGRESS",
+        deletedAt: null,
+        createdAt: { lte: cutoff },
+      },
+      data: { status: "COMPLETED" },
+    });
   });
 });
 

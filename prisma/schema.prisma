@@ -219,6 +219,7 @@ model InterviewSession {
   @@index([userId, deletedAt])
   @@index([userId, deletedAt, createdAt(sort: Desc)])
   @@index([userId, status, deletedAt, createdAt(sort: Desc)])
+  @@index([status, createdAt], map: "InterviewSession_resume_expiry_idx")
   @@index([userId, status, deletedAt, createdAt(sort: Desc), id(sort: Desc)], map: "InterviewSession_recordings_cursor_idx")
   @@index([userId, role, deletedAt, id], map: "InterviewSession_rag_retrieval_scope_idx")
 }

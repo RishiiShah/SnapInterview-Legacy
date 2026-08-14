@@ -12,28 +12,28 @@ import {
 } from "@/components/ui/icons";
 import LandingFooter from "@/components/landing/LandingFooter";
 
-const POPULAR_PAGES = [
+const POPULAR_HUBS = [
   {
     title: "AI Mock Interviews",
-    desc: "Practice role-specific voice interviews with automated scoring and feedback.",
+    desc: "Practice role-specific voice interviews with automated scoring.",
     icon: IconMessage,
     href: "/practice",
   },
   {
     title: "Coding Workspace",
-    desc: "Execute code in JavaScript, Python, C++, Java, and Go with automated test cases.",
+    desc: "Execute code in JavaScript, Python, C++, Java, and Go.",
     icon: IconCode,
     href: "/coding",
   },
   {
     title: "Question Bank",
-    desc: "Explore real technical interview problems from top tech companies.",
+    desc: "Explore real technical interview problems from top companies.",
     icon: IconQuestionBank,
     href: "/questions",
   },
   {
-    title: "Help & Support Center",
-    desc: "Submit a support ticket or get direct assistance from our engineering team.",
+    title: "Help & Support",
+    desc: "Submit a support ticket or get direct engineering help.",
     icon: IconHelp,
     href: "/support",
   },
@@ -93,27 +93,25 @@ export default function NotFoundPage() {
         </nav>
       </header>
 
-      {/* Main Content Area - 2 Column Layout utilizing full max-w-7xl desktop width */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-12 sm:px-6 lg:px-8 flex items-center">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full items-start">
-          {/* Left Column: 404 Hero Card (7 cols) */}
-          <div className="lg:col-span-7 rounded-xl border border-white/[0.08] bg-white/[0.02] p-8 sm:p-10 space-y-6 shadow-2xl">
-            {/* 404 Badge */}
+      {/* Main Content Area - Unified Symmetrical Card Layout */}
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-12 sm:px-6 lg:px-8 flex items-center justify-center">
+        <div className="w-full rounded-2xl border border-white/[0.08] bg-[#0C0F1A] p-8 sm:p-12 space-y-8 shadow-2xl">
+          {/* Centered Hero Header */}
+          <div className="text-center space-y-3 max-w-xl mx-auto">
             <div className="inline-flex items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 px-3.5 py-1 text-xs font-mono font-bold text-blue-400">
               ERROR 404
             </div>
 
-            <div className="space-y-2">
-              <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
-                Page Not Found
-              </h1>
-              <p className="text-xs sm:text-sm text-[#CBD5E1] leading-relaxed">
-                The page you are looking for might have been moved, renamed, or does not exist. Use the navigation links below or explore our feature hubs.
-              </p>
-            </div>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white">
+              Page Not Found
+            </h1>
+
+            <p className="text-xs sm:text-sm text-[#CBD5E1] leading-relaxed">
+              The page you are looking for might have been moved, renamed, or does not exist. Use the links below to return home or explore our platform hubs.
+            </p>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
               <Link
                 href={isLoggedIn ? "/dashboard" : "/"}
                 prefetch={false}
@@ -132,50 +130,49 @@ export default function NotFoundPage() {
                 <span>Browse FAQ</span>
               </Link>
             </div>
+          </div>
 
-            {/* Helpful Note */}
-            <div className="border-t border-white/[0.06] pt-4">
+          {/* Section Divider & 4-Column Symmetrical Hub Grid */}
+          <div className="border-t border-white/[0.08] pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-[#94A3B8]">
+                Explore Popular Platform Hubs
+              </h2>
               <Link
                 href="/support"
                 prefetch={false}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-[#94A3B8] transition-colors hover:text-blue-400"
+                className="text-xs font-medium text-blue-400 hover:underline flex items-center gap-1"
               >
-                <IconHelp className="h-3.5 w-3.5" />
-                <span>Need assistance? Contact Help & Support</span>
+                <span>Contact Support</span>
+                <IconArrowRight className="h-3 w-3" />
               </Link>
             </div>
-          </div>
 
-          {/* Right Column: Popular Destinations Grid (5 cols) */}
-          <div className="lg:col-span-5 space-y-4">
-            <div className="border-b border-white/[0.08] pb-3">
-              <h2 className="text-sm font-semibold text-white">Popular Destinations</h2>
-              <p className="text-xs text-[#94A3B8] mt-0.5">Quick access to key platform hubs</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
-              {POPULAR_PAGES.map((page) => {
-                const Icon = page.icon;
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {POPULAR_HUBS.map((hub) => {
+                const Icon = hub.icon;
                 return (
                   <Link
-                    key={page.title}
-                    href={page.href}
+                    key={hub.title}
+                    href={hub.href}
                     prefetch={false}
-                    className="group flex items-start gap-3.5 rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 transition-all duration-200 hover:border-white/[0.14] hover:bg-white/[0.03]"
+                    className="group flex flex-col justify-between rounded-xl border border-white/[0.08] bg-white/[0.02] p-5 transition-all duration-200 hover:border-white/[0.14] hover:bg-white/[0.03]"
                   >
-                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-blue-500/10 text-blue-400 mt-0.5">
-                      <Icon className="h-4.5 w-4.5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-xs sm:text-sm font-semibold text-white group-hover:text-blue-400 transition-colors">
-                          {page.title}
-                        </h3>
+                        <div className="grid h-9 w-9 place-items-center rounded-lg bg-blue-500/10 text-blue-400">
+                          <Icon className="h-4.5 w-4.5" />
+                        </div>
                         <IconArrowRight className="h-3.5 w-3.5 text-[#7D889B] group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all" />
                       </div>
-                      <p className="mt-0.5 text-xs text-[#CBD5E1] leading-relaxed line-clamp-2">
-                        {page.desc}
-                      </p>
+                      <div>
+                        <h3 className="text-xs sm:text-sm font-semibold text-white group-hover:text-blue-400 transition-colors">
+                          {hub.title}
+                        </h3>
+                        <p className="mt-1 text-xs text-[#CBD5E1] leading-relaxed">
+                          {hub.desc}
+                        </p>
+                      </div>
                     </div>
                   </Link>
                 );

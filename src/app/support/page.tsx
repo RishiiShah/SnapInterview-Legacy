@@ -2,7 +2,6 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { AppLogo } from "@/components/ui/AppLogo";
 import { useSession, signOut } from "@/lib/auth-client";
 import {
@@ -42,7 +41,6 @@ const HELP_CATEGORIES = [
 ];
 
 export default function HelpSupportPage() {
-  const router = useRouter();
   const { data: session } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,7 +68,7 @@ export default function HelpSupportPage() {
     } catch {
       // Ignore signout errors and redirect
     }
-    router.replace("/login?callbackUrl=/support");
+    window.location.href = "/login?callbackUrl=/support";
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -252,8 +250,8 @@ export default function HelpSupportPage() {
                     <IconCheckCircle className="h-4 w-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold text-white">24 Hour SLA Response</h4>
-                    <p className="text-[11px] text-[#CBD5E1] mt-0.5">All tickets are reviewed and answered within 24 hours.</p>
+                    <h4 className="text-xs font-semibold text-white">7 Day SLA Response</h4>
+                    <p className="text-[11px] text-[#CBD5E1] mt-0.5">All tickets are reviewed and answered within 7 days.</p>
                   </div>
                 </div>
 

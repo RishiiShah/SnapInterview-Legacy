@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { sendEvaluationEmail, sendPracticeReminderEmail, sendWeeklyReportEmail } from "./email";
+import {
+  sendEvaluationEmail,
+  sendOtpEmail,
+  sendPracticeReminderEmail,
+  sendResetPasswordLinkEmail,
+  sendWeeklyReportEmail,
+  sendSupportTicketEmail,
+} from "./email";
 
 const { sendMailMock } = vi.hoisted(() => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,6 +44,7 @@ describe("email templates", () => {
     expect(html).toContain("Use &quot;clearer&quot; &amp; safer examples");
     expect(html).not.toContain("<script>");
     expect(html).not.toContain("<img src=x");
+    expect(html).toContain("logo.png");
   });
 
   it("escapes user-facing names and roles in notification emails", async () => {
@@ -59,6 +67,32 @@ describe("email templates", () => {
 
     expect(weeklyHtml).toContain("Hey &lt;Admin&gt;");
     expect(weeklyHtml).toContain("<strong>Backend &amp; &quot;API&quot;</strong>");
+    expect(weeklyHtml).toContain("logo.png");
     expect(reminderHtml).toContain("Hey &lt;Admin&gt;");
+    expect(reminderHtml).toContain("logo.png");
+  });
+
+  it("renders the actual logo in OTP, reset password, and support emails without raw SI placeholder text", async () => {
+    await sendOtpEmail("user@example.com", "123456");
+    await sendResetPasswordLinkEmail("user@example.com", "https://snapinterview.app/reset-password?token=abc");
+    await sendSupportTicketEmail({
+      ticketId: "SUP-123456",
+      userEmail: "user@example.com",
+      userName: "Alex Doe",
+      category: "technical",
+      priority: "normal",
+      subject: "Microphone issue",
+      description: "Audio is not detected",
+    });
+
+    const otpHtml = sendMailMock.mock.calls[0]?.[0]?.html as string;
+    const resetHtml = sendMailMock.mock.calls[1]?.[0]?.html as string;
+    const userSupportHtml = sendMailMock.mock.calls[2]?.[0]?.html as string; // Team notification
+    const userConfirmationHtml = sendMailMock.mock.calls[3]?.[0]?.html as string; // User confirmation
+
+    expect(otpHtml).toContain("logo.png");
+    expect(resetHtml).toContain("logo.png");
+    expect(userConfirmationHtml).toContain("logo.png");
+    expect(userConfirmationHtml).toContain("SnapInterview Support");
   });
 });

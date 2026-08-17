@@ -207,7 +207,7 @@ export default function RecordingModal({
   if (!isOpen) return null;
 
   const displayError = !interviewId
-    ? "Interview session ID is missing for this recording."
+    ? "Interview data is unavailable for this recording."
     : error;
 
   const actionBtn =

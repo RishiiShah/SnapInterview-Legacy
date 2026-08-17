@@ -44,14 +44,19 @@ function getResourceForTab(activeTab: string): SettingsBootstrapResource | null 
   return null;
 }
 
-export function useSettingsBootstrap(activeTab: string) {
+export function useSettingsBootstrap(
+  activeTab: string,
+  initialOnboardingPrefs?: Partial<OnboardingPreferencesFormValues> | null,
+) {
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>(DEFAULT_NOTIFICATION_PREFS);
-  const [onboardingPrefs, setOnboardingPrefs] = useState<OnboardingPreferencesFormValues>(DEFAULT_ONBOARDING_FORM_VALUES);
+  const [onboardingPrefs, setOnboardingPrefs] = useState<OnboardingPreferencesFormValues>(() =>
+    initialOnboardingPrefs ? normalizeOnboardingFormValues(initialOnboardingPrefs) : DEFAULT_ONBOARDING_FORM_VALUES,
+  );
   const [notificationsLoaded, setNotificationsLoaded] = useState(false);
-  const [onboardingLoaded, setOnboardingLoaded] = useState(false);
+  const [onboardingLoaded, setOnboardingLoaded] = useState(() => Boolean(initialOnboardingPrefs));
   const loadedResourcesRef = useRef<Record<SettingsBootstrapResource, boolean>>({
     notifications: false,
-    onboarding: false,
+    onboarding: Boolean(initialOnboardingPrefs),
   });
   const requestRefs = useRef<Record<SettingsBootstrapResource, Promise<unknown> | null>>({
     notifications: null,

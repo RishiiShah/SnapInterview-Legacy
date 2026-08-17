@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SearchableDropdown from "@/components/SearchableDropdown";
 import SelectDropdown from "@/components/SelectDropdown";
 import { SendActionButton } from "@/components/ui/SendActionButton";
@@ -83,6 +83,16 @@ export default function OnboardingPreferencesForm({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!initialValues) return;
+    const draft = draftStorageKey ? readDraft(draftStorageKey) : null;
+    setValues({
+      ...DEFAULT_ONBOARDING_FORM_VALUES,
+      ...normalizeOnboardingFormValues(initialValues),
+      ...draft,
+    });
+  }, [initialValues, draftStorageKey]);
+
   function updateValues(
     updater: (previous: OnboardingPreferencesFormValues) => OnboardingPreferencesFormValues,
   ) {
@@ -160,7 +170,7 @@ export default function OnboardingPreferencesForm({
           value={values.onboardingRole}
           onChange={(onboardingRole) => updateValues((previous) => ({ ...previous, onboardingRole }))}
           options={ROLES}
-          placeholder="Search or type your target role"
+          placeholder="e.g. Software Engineer - Backend"
           tone={tone}
         />
 
@@ -181,7 +191,7 @@ export default function OnboardingPreferencesForm({
             updateValues((previous) => ({ ...previous, onboardingCompany }))
           }
           options={COMPANIES}
-          placeholder="Company, or General"
+          placeholder="e.g. Google, Stripe, or General"
           tone={tone}
         />
 
@@ -193,6 +203,7 @@ export default function OnboardingPreferencesForm({
           tone={tone}
         />
       </div>
+
 
       {showInterviewTypeField ? (
         <SelectDropdown

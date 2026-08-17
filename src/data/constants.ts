@@ -57,10 +57,21 @@ export const DIFFICULTIES: { value: Difficulty; label: string; color: string }[]
 ];
 
 export const EXPERIENCE_LEVELS = [
-    { value: "entry-level", label: "Entry Level" },
+    { value: "entry-level", label: "Intern / Entry Level" },
     { value: "mid-level", label: "Mid Level" },
     { value: "senior", label: "Senior" },
-    { value: "staff-plus", label: "Staff+" },
+    { value: "staff-plus", label: "Staff+ / Lead" },
+];
+
+export const INTERVIEW_FORMAT_OPTIONS: {
+    value: 5 | 10 | 15;
+    label: string;
+    shortLabel: string;
+    description: string;
+}[] = [
+    { value: 5, label: "Quick Screen (~15 min)", shortLabel: "15m Screen", description: "High-level alignment & initial domain probe" },
+    { value: 10, label: "Technical Round (~30 min)", shortLabel: "30m Round", description: "2 core topic pillars with dynamic follow-ups" },
+    { value: 15, label: "Onsite Deep Dive (~45 min)", shortLabel: "45m Deep Dive", description: "Multi-pillar architecture & scaling stress tests" },
 ];
 
 export const INTERVIEW_GOALS = [
@@ -76,35 +87,44 @@ export const INTERVIEW_PERSONAS: { value: InterviewPersona; label: string; descr
     { value: "strict", label: "Strict Panel", description: "Higher pressure, sharper follow-ups, more direct challenge." },
 ];
 
-/* ─────────────── Roles ─────────────── */
+/* ─────────────── Modern Tech Roles Taxonomy ─────────────── */
 export const ROLES: string[] = [
-    "Frontend Developer",
-    "Backend Developer",
-    "Full Stack Developer",
-    "Mobile Developer",
-    "React Developer",
-    "Vue Developer",
-    "Angular Developer",
-    "Node.js Developer",
-    "Python Developer",
-    "Java Developer",
-    "Go Developer",
-    "Rust Developer",
-    "DevOps Engineer",
-    "Data Scientist",
-    "Data Engineer",
-    "Machine Learning Engineer",
-    "Product Manager",
-    "Product Designer",
-    "UX Designer",
-    "UI Designer",
-    "QA Engineer",
-    "Solutions Architect",
-    "System Administrator",
+    // Software Engineering
+    "Software Engineer",
+    "Software Engineer - Frontend",
+    "Software Engineer - Backend",
+    "Software Engineer - Full Stack",
+    "Software Engineer - Mobile (iOS/Android)",
+    "Software Engineer - iOS",
+    "Software Engineer - Android",
+    "Software Engineer - Systems & Infrastructure",
+    "Software Engineer - Embedded & Firmware",
+    "Software Engineer in Test (SDET)",
+    // Cloud, Reliability & Security
+    "Site Reliability Engineer (SRE)",
+    "DevOps / Cloud Engineer",
+    "Platform / Infrastructure Engineer",
     "Security Engineer",
-    "Cloud Architect",
+    "Solutions Architect",
+    // AI, Machine Learning & Data
+    "Machine Learning Engineer",
+    "AI / LLM Applications Engineer",
+    "Data Engineer",
+    "Data Scientist",
+    "Analytics Engineer",
+    "AI Research Scientist",
+    // Quantitative Finance & Trading
+    "Quantitative Developer",
+    "Quantitative Researcher",
+    "Quantitative Trader",
+    // Product & Design
+    "Product Manager",
+    "Technical Product Manager (TPM)",
+    "Product Designer",
+    "Design Engineer",
+    // Engineering Leadership
     "Engineering Manager",
-    "Tech Lead",
+    "Tech Lead / Staff Engineer",
 ];
 
 /* ─────────────── Companies ─────────────── */

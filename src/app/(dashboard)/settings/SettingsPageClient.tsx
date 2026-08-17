@@ -11,6 +11,7 @@ import NotificationsTab from "@/components/settings/NotificationsTab";
 import InterviewPreferencesTab from "@/components/settings/InterviewPreferencesTab";
 import DangerZoneTab from "@/components/settings/DangerZoneTab";
 import { useSettingsBootstrap } from "@/hooks/useSettingsBootstrap";
+import type { OnboardingPreferencesFormValues } from "@/lib/onboarding/preferences";
 
 const tabs = [
   { id: "profile" as const, label: "Profile", desc: "Personal information" },
@@ -29,15 +30,20 @@ type SettingsPageClientProps = {
     image: string | null;
   };
   initialResumeText: string | null;
+  initialOnboardingPrefs?: Partial<OnboardingPreferencesFormValues> | null;
 };
 
-export default function SettingsPageClient({ user, initialResumeText }: SettingsPageClientProps) {
+export default function SettingsPageClient({
+  user,
+  initialResumeText,
+  initialOnboardingPrefs,
+}: SettingsPageClientProps) {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab") as TabId | null;
   const initialTab = tabParam && tabs.some((tab) => tab.id === tabParam) ? tabParam : "profile";
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
   const { notificationPrefs, onboardingPrefs, notificationsLoaded, onboardingLoaded } =
-    useSettingsBootstrap(activeTab);
+    useSettingsBootstrap(activeTab, initialOnboardingPrefs);
   const initials = getInitials(user.name || "U");
 
   return (
@@ -105,7 +111,11 @@ export default function SettingsPageClient({ user, initialResumeText }: Settings
             )}
             {activeTab === "security" && <SecurityTab />}
             {activeTab === "preferences" && (
-              <InterviewPreferencesTab initialValues={onboardingPrefs} isLoaded={onboardingLoaded} />
+              <InterviewPreferencesTab
+                key={onboardingLoaded ? "loaded" : "loading"}
+                initialValues={onboardingPrefs}
+                isLoaded={onboardingLoaded}
+              />
             )}
             {activeTab === "notifications" && (
               <NotificationsTab

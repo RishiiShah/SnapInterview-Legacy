@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/server-auth";
+import { normalizeOnboardingFormValues } from "@/lib/onboarding/preferences";
 import SettingsPageClient from "./SettingsPageClient";
 
 export default async function SettingsPage() {
@@ -13,8 +14,25 @@ export default async function SettingsPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { resumeText: true },
+    select: {
+      resumeText: true,
+      onboardingRole: true,
+      onboardingLevel: true,
+      onboardingCompany: true,
+      onboardingGoal: true,
+      preferredInterviewType: true,
+    },
   });
+
+  const initialOnboardingPrefs = user
+    ? normalizeOnboardingFormValues({
+        onboardingRole: user.onboardingRole,
+        onboardingLevel: user.onboardingLevel,
+        onboardingCompany: user.onboardingCompany,
+        onboardingGoal: user.onboardingGoal,
+        preferredInterviewType: user.preferredInterviewType,
+      })
+    : null;
 
   return (
     <SettingsPageClient
@@ -24,6 +42,7 @@ export default async function SettingsPage() {
         image: session?.user?.image ?? null,
       }}
       initialResumeText={user?.resumeText ?? null}
+      initialOnboardingPrefs={initialOnboardingPrefs}
     />
   );
 }

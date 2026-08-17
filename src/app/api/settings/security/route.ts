@@ -89,7 +89,7 @@ export async function GET() {
           type: { in: ["LOGIN_SUCCESS", "LOGIN_FAILED"] },
         },
         orderBy: { createdAt: "desc" },
-        take: 100,
+        take: 25,
         select: {
           id: true,
           type: true,

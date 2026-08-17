@@ -48,7 +48,7 @@ describe("DashboardPage", () => {
   });
 
   it("loads onboarding state and overview data concurrently by user ID", async () => {
-    const onboarding = deferred<{ onboardingCompletedAt: Date }>();
+    const onboarding = deferred<{ onboardingCompletedAt: Date; resumeText: string | null }>();
     const overview = deferred<{
       stats: [];
       recentSessions: [];
@@ -63,12 +63,12 @@ describe("DashboardPage", () => {
     await vi.waitFor(() => {
       expect(mocks.userFindUnique).toHaveBeenCalledWith({
         where: { id: "user-1" },
-        select: { onboardingCompletedAt: true },
+        select: { onboardingCompletedAt: true, resumeText: true },
       });
       expect(mocks.getDashboardOverviewData).toHaveBeenCalledWith("user-1");
     });
 
-    onboarding.resolve({ onboardingCompletedAt: new Date() });
+    onboarding.resolve({ onboardingCompletedAt: new Date(), resumeText: null });
     overview.resolve({ stats: [], recentSessions: [], topStrength: null, topFocus: null });
 
     await page;

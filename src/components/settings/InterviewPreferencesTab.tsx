@@ -55,6 +55,7 @@ export default function InterviewPreferencesTab({
         </p>
         {isLoaded ? (
           <OnboardingPreferencesForm
+            key={JSON.stringify(initialValues)}
             initialValues={initialValues}
             submitLabel="Save interview preferences"
             tone="dark"

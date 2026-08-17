@@ -8,6 +8,7 @@ import { withTimeout } from "@/lib/async";
 import { saveUserResume } from "@/repositories/user-repo";
 import { logger } from "@/utils/logger";
 import { MAX_RESUME_PDF_BYTES, MAX_RESUME_PDF_LABEL } from "@/lib/resume-upload";
+import { sanitizeResumeText } from "@/lib/resume/sanitizer";
 
 const PDF_PARSE_TIMEOUT_MS = 10_000;
 const resumeParseLimiter = createRateLimiter("resume-parse", 15 * 60 * 1000, 10);
@@ -88,11 +89,8 @@ export const POST = withCsrfProtection(async (req: NextRequest) => {
       }
     }
 
-    const resumeText = rawText
-      .replace(/[ \t]{3,}/g, "  ")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim()
-      .slice(0, 8000);
+    const sanitized = sanitizeResumeText(rawText);
+    const resumeText = sanitized.slice(0, 8000);
 
     await saveUserResume(identity.userId, resumeText);
 

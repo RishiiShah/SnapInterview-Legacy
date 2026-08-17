@@ -81,15 +81,16 @@ describe("buildSystemInstruction", () => {
     expect(instruction).toContain("stakeholder management");
   });
 
-  it("requires the next response to start with a question instead of a recap", async () => {
+  it("requires the next response to maintain realistic conversation flow and active listening", async () => {
     const instruction = await buildSystemInstruction(makePromptSession({
       type: "behavioral-leadership",
       currentQuestion: 1,
       transcript: [{ order: 0, question: "Tell me about a conflict.", answer: "I aligned the team." }],
     }));
 
-    expect(instruction).toContain("Start immediately with the next interview question");
-    expect(instruction).toContain("Do not recap, summarize, praise, or restate the candidate's prior answer");
+    expect(instruction).toContain("[RESPONSE FORMAT]: Respond like a real interviewer in a live conversation.");
+    expect(instruction).toContain("ACTIVE LISTENING & CORRECTION DIRECTIVE");
+    expect(instruction).toContain('Candidate\'s latest answer: "I aligned the team."');
   });
 
   it("frames candidate resume and job description as untrusted data", async () => {

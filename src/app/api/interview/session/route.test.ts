@@ -55,6 +55,10 @@ vi.mock("@/lib/rag/embeddings", () => ({
   warmEmbeddingModel: vi.fn(),
 }));
 
+vi.mock("@/lib/rag/reranker", () => ({
+  warmRerankerModel: vi.fn(),
+}));
+
 describe("POST /api/interview/session", () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -1,5 +1,5 @@
-import type { Prisma } from "@/generated/prisma/client";
-import { buildSystemInstruction } from "@/lib/interview/prompts";
+import { Prisma } from "@/generated/prisma/client";
+import { groqClient } from "@/lib/ai/groq";
 import { normalizePromptInterviewSession } from "@/lib/interview/domain";
 import {
   normalizeTranscriptEvaluation,
@@ -9,10 +9,12 @@ import {
   type TranscriptEvaluationResponse,
 } from "@/lib/interview/evaluation";
 import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
-import { buildQuestionEvaluationRoleContext } from "@/lib/questions/evaluation";
-import { groqClient } from "@/lib/ai/groq";
-import { withRetry } from "@/utils/retry";
+import {
+  buildQuestionEvaluationRoleContext,
+  buildSystemInstruction,
+} from "@/lib/interview/prompts";
 import { logger } from "@/utils/logger";
+import { withRetry } from "@/utils/retry";
 import {
   claimInterviewEvaluation,
   getInterviewSession,
@@ -86,40 +88,50 @@ export async function evaluateInterviewTranscript(params: {
         messages: [
           {
             role: "system",
-            content: `You are an expert technical interviewer evaluating a completely finished interview transcript.
-Your goal is to provide a fair, objective final score (0-100) and actionable feedback based on the candidate's overall performance.
+            content: `You are a Principal Engineer and Hiring Committee Bar Raiser conducting a rigorous post-interview evaluation of a completed transcript.
+Your goal is to provide an objective score (0-100), an evidence-based executive evaluation, and concrete, actionable technical feedback.
 
-Here is the context and criteria for the role the candidate was interviewing for:
+Candidate Target Level: ${interviewSession.difficulty}
+Target Role: ${interviewSession.role}
+
+Here is the role context and criteria:
 ---
 ${roleContext}
 ---
 
-Evaluation Criteria:
-1. Did the candidate demonstrate the required skills for the ${interviewSession.difficulty} level ${interviewSession.role} position?
-2. Were their answers structured logically and clearly communicated?
-3. Did they handle follow-up questions well, showing depth of knowledge?
-4. Did they quantify their impact and provide concrete examples?
+HIRING COMMITTEE EVALUATION RUBRIC & INSTRUCTIONS:
+1. STRICTLY FORBIDDEN: Generic mad-libs boilerplate (e.g. "The candidate demonstrated a good understanding", "their thought process was logical", "needs to provide more detailed examples"). Every single observation MUST be tied directly to specific claims and technical statements in the transcript.
+2. CITATION REQUIREMENT: Every item in "strengths" and "areasForImprovement" MUST start with the specific question reference (e.g. "[Q1 Architecture]", "[Q4 Security]").
+3. TECHNICAL RIGOR: If the candidate made an invalid technical claim, security vulnerability (e.g. Base64 for passwords), or architectural flaw (e.g. ignoring database write locks or omitting payment idempotency keys), you MUST explicitly call out the flaw and state the exact production pattern/algorithm needed (e.g. bcrypt/Argon2id, PostgreSQL MVCC, Stripe Idempotency Keys).
+4. LEVEL-CALIBRATED SCORING (0-100):
+   - 90-100: Strong Hire (Mastery of trade-offs, edge cases, distributed failure modes)
+   - 75-89: Hire (Solid design, sound fundamentals, clear communication)
+   - 65-74: Leaning Hire (Acceptable core answers, but missed edge cases or deeper trade-offs)
+   - 50-64: Leaning No Hire (Significant technical gaps or invalid architectural assumptions)
+   - <50: No Hire (Critical security vulnerabilities or foundational misconceptions)
 
-Based on the transcript, return a JSON object with exactly these seven keys:
-- "score": A number between 0 and 100 representing the overall interview performance.
-- "feedback": A concise 2-3 paragraph summary of their performance, highlighting key takeaways.
-- "strengths": An array of 2-4 strings, each being a short bullet point of something they did exceptionally well.
-- "areasForImprovement": An array of 2-4 strings, each being a short bullet point of a specific area they need to work on.
-- "communication": A number between 0 and 100 rating how clearly and effectively they communicated (structure, articulation, conciseness).
-- "technicalDepth": A number between 0 and 100 rating the depth and accuracy of their technical knowledge and reasoning.
-- "clarity": A number between 0 and 100 rating how well-organised and easy to follow their answers were (logical flow, no rambling).`,
+Required JSON Output Structure with exactly these seven keys:
+- "score": A number (0-100) calibrated against the ${interviewSession.difficulty} level bar.
+- "feedback": A detailed, 2-3 paragraph executive summary covering: (1) Overall hiring verdict and level assessment, (2) Key architectural decisions done well with transcript references, and (3) Critical technical gaps, security vulnerabilities, or trade-offs that were missed.
+- "strengths": An array of 2-4 strings, formatted as "[Q# Topic]: <Specific decision or architecture pattern the candidate got right>".
+- "areasForImprovement": An array of 2-4 strings, formatted as "[Q# Topic]: <Specific misconception or error in candidate's answer>, and <the exact production architecture, algorithm, or pattern they should have used>".
+- "communication": A number (0-100) rating structure, articulation, conciseness, and absence of rambling.
+- "technicalDepth": A number (0-100) rating architectural correctness, understanding of concurrency/scale, security, and edge cases.
+- "clarity": A number (0-100) rating logical reasoning and coherence.`,
           },
           {
             role: "user",
             content: `Interview Transcript:\n\n${formattedTranscript}`,
           },
         ],
-        model: "llama-3.3-70b-versatile",
+        model: "qwen/qwen3.6-27b",
         temperature: 0.1,
-        max_completion_tokens: 1500,
+        max_completion_tokens: 2048,
         response_format: { type: "json_object" },
-      });
+        reasoning_effort: "none",
+      } as any);
     });
+
 
     const responseContent = chatCompletion.choices[0]?.message?.content;
     if (!responseContent) {
@@ -185,7 +197,7 @@ export async function evaluatePracticeQuestion(params: {
     };
   }
 
-  const roleContext = await buildQuestionEvaluationRoleContext(question);
+  const roleContext = await buildQuestionEvaluationRoleContext(question.category);
   try {
     const chatCompletion = await withRetry(async () => {
       return groqClient.chat.completions.create({
@@ -221,10 +233,12 @@ Return your evaluation as a JSON object with exactly these two keys:
             content: `Candidate's Answer:\n"${trimmed}"`,
           },
         ],
-        model: "llama-3.3-70b-versatile",
+        model: "qwen/qwen3.6-27b",
         temperature: 0.1,
+        max_completion_tokens: 2048,
         response_format: { type: "json_object" },
-      });
+        reasoning_effort: "none",
+      } as any);
     });
 
     const responseContent = chatCompletion.choices[0]?.message?.content;

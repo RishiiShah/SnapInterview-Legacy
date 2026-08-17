@@ -112,6 +112,7 @@ describe("PracticePageClient", () => {
       type: "behavioral-leadership",
       difficulty: "medium",
       persona: "balanced",
+      durationMinutes: 30,
       questionCount: 10,
     });
     expect(payload.company).toBeUndefined();
@@ -136,9 +137,9 @@ describe("PracticePageClient", () => {
       />,
     );
 
-    expect((screen.getByPlaceholderText("e.g. Frontend Engineer") as HTMLInputElement).value)
+    expect((screen.getByPlaceholderText("e.g. Software Engineer - Backend") as HTMLInputElement).value)
       .toBe("Platform Engineer");
-    expect((screen.getByPlaceholderText("Optional") as HTMLInputElement).value).toBe("OpenAI");
+    expect((screen.getByPlaceholderText("e.g. Google, Stripe, or General") as HTMLInputElement).value).toBe("OpenAI");
     expect(fetch).not.toHaveBeenCalled();
   });
 

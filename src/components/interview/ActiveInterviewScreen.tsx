@@ -27,6 +27,10 @@ type ActiveInterviewScreenProps = {
   answeredQuestions: number;
   totalQuestions: number;
   questionProgressPercent: number;
+  durationMinutes?: number;
+  timeRemainingFormatted?: string | null;
+  timeProgressPercent?: number;
+  isGraceWarningActive?: boolean;
   isUploading: boolean;
   interviewDone: boolean;
   onExitInterview: () => void;
@@ -59,6 +63,10 @@ export default function ActiveInterviewScreen({
   answeredQuestions,
   totalQuestions,
   questionProgressPercent,
+  durationMinutes,
+  timeRemainingFormatted,
+  timeProgressPercent,
+  isGraceWarningActive,
   isUploading,
   interviewDone,
   onExitInterview,
@@ -135,16 +143,25 @@ export default function ActiveInterviewScreen({
           <div className="flex min-w-0 flex-1 flex-col gap-2 max-w-xs sm:max-w-sm">
             <div className="flex items-baseline justify-between gap-3">
               <span className="font-mono text-[11px] tabular-nums text-[#6B7385]">
-                Progress
+                {timeRemainingFormatted ? "Time Remaining" : "Progress"}
               </span>
-              <span className="font-mono text-[11px] tabular-nums text-[#8B93A7]">
-                {answeredQuestions} / {totalQuestions}
+              <span
+                className={`font-mono text-[11px] tabular-nums ${
+                  isGraceWarningActive
+                    ? "font-semibold text-amber-400 animate-pulse"
+                    : "text-[#8B93A7]"
+                }`}
+              >
+                {timeRemainingFormatted ?? `${answeredQuestions} / ${totalQuestions}`}
+                {isGraceWarningActive ? " (Ending Soon)" : ""}
               </span>
             </div>
             <div className="h-px w-full overflow-hidden bg-white/[0.08]">
               <div
-                className="h-full bg-[#3B82F6] transition-[width] duration-500 ease-out motion-reduce:transition-none"
-                style={{ width: `${questionProgressPercent}%` }}
+                className={`h-full transition-[width] duration-500 ease-out motion-reduce:transition-none ${
+                  isGraceWarningActive ? "bg-amber-400" : "bg-[#3B82F6]"
+                }`}
+                style={{ width: `${timeProgressPercent ?? questionProgressPercent}%` }}
               />
             </div>
           </div>
@@ -158,6 +175,12 @@ export default function ActiveInterviewScreen({
             {isUploading ? "Uploading…" : "Exit"}
           </button>
         </header>
+
+        {isGraceWarningActive && (
+          <div className="bg-amber-500/10 border-b border-amber-500/20 px-5 py-1.5 text-center text-xs font-medium text-amber-300">
+            Interview time is almost up. Wrap up your current response.
+          </div>
+        )}
 
         {/* Stage */}
         <div className="relative flex min-h-0 flex-1 gap-0">

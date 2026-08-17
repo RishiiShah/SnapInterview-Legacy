@@ -46,6 +46,7 @@ model User {
   passwordResetCodes   PasswordResetCode[]
   securityEvents       SecurityEvent[]
   pendingRegistrations PendingUser[]
+  supportTickets       SupportTicket[]
 }
 
 model Session {
@@ -196,6 +197,7 @@ model InterviewSession {
   jobDescription  String?         @db.Text
   resumeUrl       String?
   resumeText      String?  @db.Text
+  durationMinutes Int      @default(30)
   videoUrl        String?
   videoKey        String?         @unique
   status          InterviewStatus @default(IN_PROGRESS)
@@ -356,6 +358,39 @@ model CodingSolved {
   question         CodingQuestion @relation(fields: [codingQuestionId], references: [id], onDelete: Cascade)
 
   @@id([userId, codingQuestionId])
+}
+
+// ─── App: Support Tickets ────────────────────────────────────────────────────
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model SupportTicket {
+  id               String       @id @default(cuid())
+  ticketNumber     Int          @unique @default(autoincrement())
+  userId           String
+  userEmail        String
+  userName         String
+  category         String
+  priority         String       @default("normal")
+  subject          String
+  description      String       @db.Text
+  attachmentName   String?
+  attachmentUrl    String?
+  status           TicketStatus @default(OPEN)
+  resolvedAt       DateTime?
+  adminNotes       String?      @db.Text
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([ticketNumber])
+  @@index([status, createdAt(sort: Desc)])
 }
 
 // ─── RAG: Interview Question Corpus ──────────────────────────────────────────

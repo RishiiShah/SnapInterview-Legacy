@@ -5,6 +5,7 @@ import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 import {
   normalizePromptInterviewSession,
   type Difficulty,
+  type InterviewDuration,
   type InterviewPersona,
   type InterviewQuestionCount,
   type InterviewType,
@@ -27,6 +28,8 @@ import {
 
 export const ALLOWED_STATUSES = ["COMPLETED", "ABORTED"] as const;
 export const ALLOWED_QUESTION_COUNTS = [5, 10, 15] as const satisfies readonly InterviewQuestionCount[];
+export const ALLOWED_DURATION_VALUES = [15, 30, 45] as const satisfies readonly InterviewDuration[];
+export const INTERVIEW_GRACE_PERIOD_MS = 60_000; // 60s grace warning/period before hard stop
 export { INTERVIEW_RESUME_WINDOW_MS } from "@/lib/interview/resume-expiry";
 
 function deriveAdaptiveFocusAreas(params: {
@@ -66,13 +69,14 @@ function deriveAdaptiveFocusAreas(params: {
 }
 
 function buildAdaptiveSessionPlan(params: {
-  questionCount: InterviewQuestionCount;
+  durationMinutes: number;
+  questionCount: number;
   difficulty: Difficulty;
   persona: InterviewPersona;
   onboardingLevel?: string | null;
   onboardingGoal?: string | null;
 }) {
-  const { questionCount, difficulty, persona, onboardingLevel, onboardingGoal } = params;
+  const { durationMinutes, questionCount, difficulty, persona, onboardingLevel, onboardingGoal } = params;
 
   return {
     pacing: ["warmup", "core", "challenge"],
@@ -126,7 +130,10 @@ export async function startInterviewSession(params: StartInterviewSessionInput) 
     },
   });
 
-  const questionCount: InterviewQuestionCount = params.questionCount ?? 10;
+  const durationMinutes: InterviewDuration = params.durationMinutes ?? 30;
+  const questionCount: number =
+    params.questionCount ??
+    (durationMinutes === 15 ? 5 : durationMinutes === 45 ? 15 : 10);
   const persona: InterviewPersona = params.persona ?? "balanced";
   const role = params.role || user?.onboardingRole || "Generalist";
   const company = params.company ?? user?.onboardingCompany ?? null;
@@ -139,6 +146,7 @@ export async function startInterviewSession(params: StartInterviewSessionInput) 
   });
 
   const sessionPlan = buildAdaptiveSessionPlan({
+    durationMinutes,
     questionCount,
     difficulty: params.difficulty,
     persona,
@@ -151,6 +159,7 @@ export async function startInterviewSession(params: StartInterviewSessionInput) 
     role,
     company,
     persona,
+    durationMinutes,
     questionCount,
     focusAreas: focusAreas as unknown as Prisma.InputJsonValue,
     sessionPlan: sessionPlan as unknown as Prisma.InputJsonValue,
@@ -243,7 +252,7 @@ export async function runInterviewChat(params: {
     return { type: "not_found" };
   }
 
-  const { questionCount, currentQuestion } = interviewSession;
+  const { questionCount, currentQuestion, durationMinutes, createdAt } = interviewSession;
   if (currentQuestion !== expectedCurrentQuestion) {
     return {
       type: "conflict",
@@ -252,7 +261,14 @@ export async function runInterviewChat(params: {
     };
   }
 
-  if (currentQuestion >= questionCount) {
+  const sessionDurationMinutes = durationMinutes ?? 30;
+  const sessionAgeMs = createdAt ? Date.now() - new Date(createdAt).getTime() : 0;
+  const maxAllowedSessionMs = sessionDurationMinutes * 60_000 + INTERVIEW_GRACE_PERIOD_MS;
+  const isTimeExpired = createdAt ? sessionAgeMs >= maxAllowedSessionMs : false;
+  const isQuestionCountReached =
+    typeof questionCount === "number" && questionCount > 0 && currentQuestion >= questionCount;
+
+  if (isTimeExpired || isQuestionCountReached) {
     await saveLatestTranscriptEntry({ interviewId, currentQuestion, messages });
     invalidateInterviewMetricsCache(userId);
 
@@ -272,6 +288,8 @@ export async function runInterviewChat(params: {
   const latestAnsweredPair = extractLatestAnsweredPair(messages);
   const promptInterviewSession = normalizePromptInterviewSession({
     ...interviewSession,
+    durationMinutes: sessionDurationMinutes,
+    startedAt: createdAt instanceof Date ? createdAt.toISOString() : createdAt,
     userId,
     transcript: latestAnsweredPair
       ? [{ ...latestAnsweredPair, order: Math.max(currentQuestion - 1, 0) }]
@@ -298,12 +316,14 @@ export async function runInterviewChat(params: {
     const chatCompletion = await withRetry(async () => {
       return groqClient.chat.completions.create({
         messages: formattedMessages,
-        model: "llama-3.3-70b-versatile",
-        temperature: 0.7,
-        max_completion_tokens: 1024,
-        top_p: 1,
+        model: "qwen/qwen3.6-27b",
+        temperature: 0.6,
+        max_completion_tokens: 2048,
+        top_p: 0.95,
         stream: true,
-      }, { signal: abortSignal });
+        reasoning_effort: "none",
+        stop: null,
+      } as any, { signal: abortSignal });
     }, { signal: abortSignal });
 
     const stream = new ReadableStream<Uint8Array>({
@@ -324,7 +344,10 @@ export async function runInterviewChat(params: {
         abortSignal?.addEventListener("abort", onAbort, { once: true });
 
         try {
-          for await (const chunk of chatCompletion) {
+          const streamChunks = chatCompletion as unknown as AsyncIterable<{
+            choices: { delta?: { content?: string | null } }[];
+          }>;
+          for await (const chunk of streamChunks) {
             if (abortSignal?.aborted) break;
 
             const content = chunk.choices[0]?.delta?.content ?? "";

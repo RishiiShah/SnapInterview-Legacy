@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMediaPermissions } from "@/lib/useMediaPermissions";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
@@ -25,6 +25,10 @@ export function useInterviewPageController({
   const [interviewStarted, setInterviewStarted] = useState(false);
   const [interviewDone, setInterviewDone] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [durationMinutes, setDurationMinutes] = useState(30);
+  const [sessionCreatedAt, setSessionCreatedAt] = useState<string | null>(null);
+  const [timeRemainingMs, setTimeRemainingMs] = useState<number | null>(null);
+  const [isGraceWarningActive, setIsGraceWarningActive] = useState(false);
   const [totalQuestions, setTotalQuestions] = useState(10);
   const [persona, setPersona] = useState<string | null>(null);
   const [interviewType, setInterviewType] = useState<InterviewType | null>(null);
@@ -52,6 +56,8 @@ export function useInterviewPageController({
   const hasCheckedResumeRef = useRef(false);
   const isMountedRef = useRef(true);
   const resumeExpiredRef = useRef(false);
+  const graceWarningShownRef = useRef(false);
+  const autoExitScheduledRef = useRef(false);
   const sessionMetaPromiseRef = useRef<Promise<void> | null>(null);
   const chatMessagesRef = useRef<typeof chat.messages>([]);
   const handleExitInterviewRef = useRef<(opts?: { skipConfirmation?: boolean }) => Promise<void>>(async () => {});
@@ -102,8 +108,6 @@ export function useInterviewPageController({
     },
   });
   const { startScreenRecording, stopVideoRecording } = videoRecording;
-
-  const autoExitScheduledRef = useRef(false);
   const pendingVideoStopRef = useRef<ReturnType<typeof stopVideoRecording> | null>(null);
 
   const stopVideoRecordingForFinalize = useCallback(() => {
@@ -137,11 +141,19 @@ export function useInterviewPageController({
   const audioLevels = useAudioAnalyser(media.stream, media.isMicEnabled);
 
   const applySessionMeta = useCallback((data: {
+    durationMinutes?: unknown;
+    createdAt?: unknown;
     questionCount?: unknown;
     persona?: unknown;
     type?: unknown;
   }) => {
     if (!isMountedRef.current) return;
+    if (typeof data.durationMinutes === "number" && data.durationMinutes > 0) {
+      setDurationMinutes(data.durationMinutes);
+    }
+    if (typeof data.createdAt === "string") {
+      setSessionCreatedAt(data.createdAt);
+    }
     if (typeof data.questionCount === "number" && data.questionCount > 0) {
       setTotalQuestions(data.questionCount);
     }
@@ -341,6 +353,36 @@ export function useInterviewPageController({
     void handleExitInterviewRef.current({ skipConfirmation: true });
   }, [interviewDone, cancelTts]);
 
+  // Real-time interview countdown timer with 60s grace period
+  useEffect(() => {
+    if (!interviewStarted || interviewDone) return;
+
+    const totalMs = durationMinutes * 60_000;
+    const startTime = sessionCreatedAt ? new Date(sessionCreatedAt).getTime() : Date.now();
+
+    const tick = () => {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, totalMs - elapsed);
+      setTimeRemainingMs(remaining);
+
+      // 60-second warning before grace period starts
+      if (remaining <= 60_000 && remaining > 0 && !graceWarningShownRef.current) {
+        graceWarningShownRef.current = true;
+        setIsGraceWarningActive(true);
+      }
+
+      // Hard stop after total duration + 60s grace period
+      if (elapsed >= totalMs + 60_000) {
+        setInterviewDone(true);
+        void handleExitInterviewRef.current({ skipConfirmation: true });
+      }
+    };
+
+    tick();
+    const timerInterval = setInterval(tick, 1000);
+    return () => clearInterval(timerInterval);
+  }, [interviewStarted, interviewDone, durationMinutes, sessionCreatedAt]);
+
   useEffect(() => {
     if (!chatScrollContainerRef.current) return;
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -376,6 +418,20 @@ export function useInterviewPageController({
   );
   const questionProgressPercent = Math.min((answeredQuestions / totalQuestions) * 100, 100);
 
+  const totalDurationMs = durationMinutes * 60_000;
+  const timeProgressPercent =
+    timeRemainingMs !== null
+      ? Math.min(100, Math.max(0, ((totalDurationMs - timeRemainingMs) / totalDurationMs) * 100))
+      : questionProgressPercent;
+
+  const timeRemainingFormatted = useMemo(() => {
+    if (timeRemainingMs === null) return null;
+    const totalSec = Math.ceil(timeRemainingMs / 1000);
+    const minutes = Math.floor(totalSec / 60);
+    const seconds = totalSec % 60;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }, [timeRemainingMs]);
+
   const { mountVideoNode } = media;
   const handleVideoMount = useCallback(
     (node: HTMLVideoElement | null) => {
@@ -390,6 +446,11 @@ export function useInterviewPageController({
     interviewStarted,
     interviewDone,
     isUploading,
+    durationMinutes,
+    timeRemainingMs,
+    timeRemainingFormatted,
+    timeProgressPercent,
+    isGraceWarningActive,
     totalQuestions,
     interviewType,
     joinBlockedReason,

@@ -83,6 +83,7 @@ export const QUESTION_CATEGORY_VALUES = [
 export const INTERVIEW_DIFFICULTY_VALUES = ["easy", "medium", "hard"] as const;
 export const INTERVIEW_PERSONA_VALUES = ["friendly", "balanced", "strict"] as const;
 export const INTERVIEW_QUESTION_COUNT_VALUES = [5, 10, 15] as const;
+export const INTERVIEW_DURATION_VALUES = [15, 30, 45] as const;
 
 export const interviewIdSchema = z.string().uuid("interviewId must be a valid UUID");
 
@@ -108,11 +109,18 @@ export const interviewQuestionCountSchema = z.union([
   z.literal(15),
 ]);
 
+export const interviewDurationSchema = z.union([
+  z.literal(15),
+  z.literal(30),
+  z.literal(45),
+]);
+
 export type InterviewType = (typeof INTERVIEW_TYPE_VALUES)[number];
 export type QuestionCategory = (typeof QUESTION_CATEGORY_VALUES)[number];
 export type Difficulty = z.infer<typeof interviewDifficultySchema>;
 export type InterviewPersona = z.infer<typeof interviewPersonaSchema>;
 export type InterviewQuestionCount = z.infer<typeof interviewQuestionCountSchema>;
+export type InterviewDuration = z.infer<typeof interviewDurationSchema>;
 
 export type PromptInterviewSession = {
   role: string;
@@ -130,6 +138,8 @@ export type PromptInterviewSession = {
   resumeText?: string | null;
   questionCount: number;
   currentQuestion: number;
+  durationMinutes?: number;
+  startedAt?: string;
   focusAreas?: unknown;
   sessionPlan?: unknown;
   transcript?: Array<{
@@ -171,6 +181,8 @@ export function normalizePromptInterviewSession(session: {
   resumeText?: string | null;
   questionCount: number;
   currentQuestion: number;
+  durationMinutes?: number;
+  startedAt?: string | Date;
   focusAreas?: unknown;
   sessionPlan?: unknown;
   transcript?: Array<{
@@ -195,6 +207,8 @@ export function normalizePromptInterviewSession(session: {
     type: typeResult.data,
     difficulty: difficultyResult.data,
     persona: personaResult.data,
+    durationMinutes: session.durationMinutes,
+    startedAt: session.startedAt instanceof Date ? session.startedAt.toISOString() : session.startedAt,
   };
 }
 
@@ -210,4 +224,5 @@ export type StartInterviewSessionInput = {
   resumeUrl?: string | null;
   resumeText?: string | null;
   questionCount?: InterviewQuestionCount;
+  durationMinutes?: InterviewDuration;
 };

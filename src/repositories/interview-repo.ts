@@ -20,9 +20,11 @@ const interviewSessionStateSelect = {
   videoUrl: true,
   videoKey: true,
   questionCount: true,
+  durationMinutes: true,
   currentQuestion: true,
   persona: true,
   type: true,
+  createdAt: true,
 } satisfies Prisma.InterviewSessionSelect;
 
 const interviewSessionChatSelect = {
@@ -37,9 +39,11 @@ const interviewSessionChatSelect = {
   resumeUrl: true,
   resumeText: true,
   questionCount: true,
+  durationMinutes: true,
   currentQuestion: true,
   focusAreas: true,
   sessionPlan: true,
+  createdAt: true,
   transcript: {
     select: {
       question: true,
@@ -64,10 +68,12 @@ const interviewSessionEvaluationSelect = {
   resumeUrl: true,
   resumeText: true,
   questionCount: true,
+  durationMinutes: true,
   currentQuestion: true,
   focusAreas: true,
   sessionPlan: true,
   evaluation: true,
+  createdAt: true,
   evaluationStartedAt: true,
   evaluationClaimVersion: true,
   transcript: {
@@ -122,6 +128,7 @@ export async function createInterviewSession(params: {
   jobDescription?: string | null;
   resumeUrl?: string | null;
   resumeText?: string | null;
+  durationMinutes?: number;
   questionCount?: number;
   focusAreas?: Prisma.InputJsonValue;
   sessionPlan?: Prisma.InputJsonValue;
@@ -137,6 +144,7 @@ export async function createInterviewSession(params: {
     jobDescription,
     resumeUrl,
     resumeText,
+    durationMinutes,
     questionCount,
     focusAreas,
     sessionPlan,
@@ -154,6 +162,7 @@ export async function createInterviewSession(params: {
       jobDescription: jobDescription ?? null,
       resumeUrl: resumeUrl ?? null,
       resumeText: resumeText ?? null,
+      durationMinutes: durationMinutes ?? 30,
       questionCount: questionCount ?? 10,
       focusAreas: focusAreas ?? undefined,
       sessionPlan: sessionPlan ?? undefined,

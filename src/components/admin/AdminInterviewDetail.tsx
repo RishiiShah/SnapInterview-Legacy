@@ -145,9 +145,10 @@ export default function AdminInterviewDetailView({ interview }: { interview: Adm
           <MetaItem label="Difficulty" value={interview.difficulty} />
           <MetaItem label="Company" value={interview.company ?? "—"} />
           <MetaItem label="Persona" value={interview.persona ?? "—"} />
+          <MetaItem label="Duration" value={`${interview.durationMinutes ?? 30} min`} />
           <MetaItem
             label="Progress"
-            value={`${interview.currentQuestion} / ${interview.questionCount} questions`}
+            value={`${interview.currentQuestion} turns (${interview.durationMinutes ?? 30}m round)`}
           />
           <MetaItem label="Created" value={formatDateTime(interview.createdAtIso)} />
           <MetaItem

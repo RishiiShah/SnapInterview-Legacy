@@ -33,6 +33,7 @@ vi.mock("@/lib/ai/groq", () => ({
 
 vi.mock("@/lib/interview/prompts", () => ({
   buildSystemInstruction: vi.fn().mockResolvedValue("Role scoring criteria"),
+  buildQuestionEvaluationRoleContext: vi.fn().mockResolvedValue("Role scoring criteria"),
 }));
 
 describe("evaluatePracticeQuestion", () => {

@@ -1,6 +1,7 @@
 import type { InterviewStatus } from "@/generated/prisma/client";
 import {
     interviewDifficultySchema,
+    interviewDurationSchema,
     interviewIdSchema,
     interviewPersonaSchema,
     interviewQuestionCountSchema,
@@ -20,6 +21,7 @@ import { deleteInterviewSession } from "@/repositories/interview-repo";
 import { withCsrfProtection } from "@/lib/route-security";
 import { verifyMultipartCompletionToken } from "@/lib/s3/multipart-upload-token";
 import { warmEmbeddingModel } from "@/lib/rag/embeddings";
+import { warmRerankerModel } from "@/lib/rag/reranker";
 import { logger } from "@/utils/logger";
 
 const createSessionSchema = z.object({
@@ -32,6 +34,7 @@ const createSessionSchema = z.object({
     jobDescription: z.string().trim().max(10000).optional(),
     resumeUrl: z.string().url().optional(),
     resumeText: z.string().trim().max(8000).optional(),
+    durationMinutes: interviewDurationSchema.optional(),
     questionCount: interviewQuestionCountSchema.optional(),
 });
 const createSessionLimiter = createRateLimiter("interview-session-create", 60 * 60 * 1000, 30);
@@ -99,7 +102,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
             return badRequestError(firstError);
         }
 
-        const { id, role, company, type, difficulty, persona, jobDescription, resumeUrl, resumeText, questionCount } = parsed.data;
+        const { id, role, company, type, difficulty, persona, jobDescription, resumeUrl, resumeText, durationMinutes, questionCount } = parsed.data;
 
         const interviewSession = await startInterviewSession({
             id,
@@ -112,9 +115,11 @@ export const POST = withCsrfProtection(async (req: Request) => {
             jobDescription,
             resumeUrl,
             resumeText,
+            durationMinutes,
             questionCount,
         });
         warmEmbeddingModel();
+        warmRerankerModel();
 
         return apiJson({ id: interviewSession.id }, 201);
     } catch (error) {

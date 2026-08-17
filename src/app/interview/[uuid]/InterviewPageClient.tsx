@@ -24,6 +24,10 @@ export default function InterviewPageClient() {
     interviewStarted,
     interviewDone,
     isUploading,
+    durationMinutes,
+    timeRemainingFormatted,
+    timeProgressPercent,
+    isGraceWarningActive,
     totalQuestions,
     interviewType,
     joinBlockedReason,
@@ -89,6 +93,10 @@ export default function InterviewPageClient() {
           answeredQuestions={answeredQuestions}
           totalQuestions={totalQuestions}
           questionProgressPercent={questionProgressPercent}
+          durationMinutes={durationMinutes}
+          timeRemainingFormatted={timeRemainingFormatted}
+          timeProgressPercent={timeProgressPercent}
+          isGraceWarningActive={isGraceWarningActive}
           isUploading={isUploading}
           interviewDone={interviewDone}
           onExitInterview={() => {

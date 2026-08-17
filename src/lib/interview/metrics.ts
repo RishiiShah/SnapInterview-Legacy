@@ -36,6 +36,7 @@ type SessionRecord = {
   type: string;
   difficulty?: string;
   status: "IN_PROGRESS" | "COMPLETED" | "ABORTED";
+  durationMinutes?: number | null;
   questionCount: number;
   currentQuestion: number;
   evaluation: unknown;
@@ -189,6 +190,9 @@ const addDays = (date: Date, days: number): Date => {
 };
 
 const estimateSessionMinutes = (session: SessionRecord): number => {
+  if (session.durationMinutes && session.status === "COMPLETED") {
+    return session.durationMinutes;
+  }
   const questions = Math.max(1, session.questionCount);
   const answered = clamp(session.currentQuestion, 0, questions);
   const effectiveAnswered = session.status === "COMPLETED" ? questions : Math.max(answered, 1);
@@ -497,6 +501,7 @@ async function getUserSessionsByUserId(userId: string): Promise<SessionRecord[]>
       type: true,
       difficulty: true,
       status: true,
+      durationMinutes: true,
       questionCount: true,
       currentQuestion: true,
       evaluation: true,
@@ -535,6 +540,7 @@ async function getCompletedUserSessionsByUserId(userId: string): Promise<Session
       type: true,
       difficulty: true,
       status: true,
+      durationMinutes: true,
       questionCount: true,
       currentQuestion: true,
       evaluation: true,
@@ -574,6 +580,7 @@ export async function getRecentPracticeSessionsByUserId(
       videoKey: true,
       type: true,
       status: true,
+      durationMinutes: true,
       questionCount: true,
       currentQuestion: true,
       evaluation: true,

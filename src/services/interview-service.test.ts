@@ -54,10 +54,12 @@ describe("runInterviewChat", () => {
       jobDescription: null,
       resumeUrl: null,
       resumeText: null,
+      durationMinutes: 30,
       questionCount: 5,
       currentQuestion: 5,
       focusAreas: null,
       sessionPlan: null,
+      createdAt: new Date(),
       transcript: [],
     });
 
@@ -102,10 +104,12 @@ describe("runInterviewChat", () => {
       jobDescription: null,
       resumeUrl: null,
       resumeText: null,
+      durationMinutes: 30,
       questionCount: 5,
       currentQuestion: 1,
       focusAreas: null,
       sessionPlan: null,
+      createdAt: new Date(),
       transcript: [],
     });
 
@@ -263,6 +267,8 @@ describe("updateSessionStatusIfOwned", () => {
       persona: null,
       videoUrl: null,
       videoKey: null,
+      durationMinutes: 30,
+      createdAt: new Date(),
       questionCount: 10,
       currentQuestion: 0,
     });

@@ -76,9 +76,10 @@ async function run() {
   const retrieved = await retrieveQuestionsForSession(session);
   const elapsed = Date.now() - started;
 
-  console.log(`\nretrieved ${retrieved.length} question(s) in ${elapsed}ms:`);
+  console.log(`\nretrieved & reranked ${retrieved.length} question(s) in ${elapsed}ms:`);
   for (const entry of retrieved) {
-    console.log(`  ${entry.similarity.toFixed(3)}  [${entry.category}] ${entry.question}`);
+    const hasAnswerTag = entry.answer ? " [Ref Answer]" : "";
+    console.log(`  ${entry.similarity.toFixed(3)}  [${entry.category}] ${entry.question}${hasAnswerTag}`);
   }
 
   if (retrieved.length === 0) {

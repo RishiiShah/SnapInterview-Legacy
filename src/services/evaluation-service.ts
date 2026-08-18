@@ -2,6 +2,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { groqClient } from "@/lib/ai/groq";
 import { normalizePromptInterviewSession } from "@/lib/interview/domain";
 import {
+  getScorecardDimensionsForType,
   normalizeTranscriptEvaluation,
   parseQuestionEvaluationResponse,
   parseTranscriptEvaluationResponse,
@@ -25,6 +26,10 @@ import { getPracticeQuestionById } from "@/repositories/question-repo";
 
 const EVALUATION_CLAIM_TTL_MS = 10 * 60 * 1000;
 
+export type EvaluationServiceFailure =
+  | { type: "invalid_session"; message: string }
+  | { type: "upstream_error"; message: string };
+
 export async function evaluateInterviewTranscript(params: {
   userId: string;
   interviewId: string;
@@ -32,7 +37,7 @@ export async function evaluateInterviewTranscript(params: {
   | { type: "not_found" }
   | { type: "no_transcript" }
   | { type: "in_progress" }
-  | { type: "error"; message: string }
+  | EvaluationServiceFailure
   | { type: "ok"; data: TranscriptEvaluationResponse; role: string; fresh: boolean }
 > {
   const { userId, interviewId } = params;
@@ -58,7 +63,7 @@ export async function evaluateInterviewTranscript(params: {
   const promptInterviewSession = normalizePromptInterviewSession(interviewSession);
   if (!promptInterviewSession) {
     logger.error("Interview evaluation received invalid domain values", { interviewId });
-    return { type: "error", message: "Interview session is invalid. Please start a new session." };
+    return { type: "invalid_session", message: "Interview session is invalid. Please start a new session." };
   }
 
   const claimedAt = new Date();
@@ -83,16 +88,73 @@ export async function evaluateInterviewTranscript(params: {
       .map((entry, index) => `Q${index + 1}: ${entry.question}\nCandidate: ${entry.answer}`)
       .join("\n\n");
 
-    const chatCompletion = await withRetry(async () => {
-      return groqClient.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: `You are a Principal Engineer and Hiring Committee Bar Raiser conducting a rigorous post-interview evaluation of a completed transcript.
-Your goal is to provide an objective score (0-100), an evidence-based executive evaluation, and concrete, actionable technical feedback.
+    const sessionPlan = interviewSession.sessionPlan as Record<string, unknown> | null;
+    const brief = sessionPlan?.brief;
+    const briefProfile = brief && typeof brief === "object"
+      ? (brief as Record<string, unknown>).profile
+      : null;
+    const briefLevel = briefProfile && typeof briefProfile === "object"
+      ? (briefProfile as Record<string, unknown>).level
+      : null;
+    const targetLevel = typeof briefLevel === "string" && briefLevel.trim()
+      ? briefLevel.trim()
+      : interviewSession.difficulty;
+    const whiteboardScene = sessionPlan?.whiteboardScene as any;
+    let whiteboardContext = "";
+    if (
+      whiteboardScene &&
+      Array.isArray(whiteboardScene.nodes) &&
+      whiteboardScene.nodes.length > 0
+    ) {
+      whiteboardContext = `\n\nCandidate's Final Architecture Whiteboard Diagram:\nNodes: ${whiteboardScene.nodes.map((n: any) => `${n.label} (${n.kind})`).join(", ")}\nConnections: ${whiteboardScene.edges?.map((e: any) => `${e.from} -> ${e.to}${e.label ? ` [${e.label}]` : ""}`).join("; ") || "None"}`;
+    }
+    const whiteboardSnapshot = sessionPlan?.whiteboardSnapshot;
+    const hasWhiteboardSnapshot =
+      whiteboardSnapshot &&
+      typeof whiteboardSnapshot === "object" &&
+      typeof (whiteboardSnapshot as Record<string, unknown>).imageBase64 === "string" &&
+      ((whiteboardSnapshot as Record<string, unknown>).mimeType === "image/jpeg" ||
+        (whiteboardSnapshot as Record<string, unknown>).mimeType === "image/png");
+    const evaluationUserContent = `Interview Transcript:\n\n${formattedTranscript}${whiteboardContext}`;
 
-Candidate Target Level: ${interviewSession.difficulty}
+    const targetDimensions = getScorecardDimensionsForType(promptInterviewSession.type);
+    const dimensionsJsonExample = targetDimensions.map((d, i) => ({
+      key: d.key,
+      label: d.label,
+      score: 85,
+      weight: d.weight,
+      summary: `${d.description}`,
+      strengths: [`[Q${i + 1} Topic]: Concrete strength on ${d.label}`],
+      growthAreas: [`[Q${i + 1} Topic]: Improvement area on ${d.label}`],
+      evidenceCitations: [{ turnOrder: i + 1, quoteOrTopic: "Specific answer quote", note: "Evaluation rationale" }],
+    }));
+
+    let briefPillars: Array<{ id: string; title: string; source: string; targetMinutes: number }> = [];
+    if (sessionPlan && typeof sessionPlan === "object") {
+      const b = (sessionPlan as any).brief || (sessionPlan as any);
+      if (b && Array.isArray(b.agenda?.pillars)) {
+        briefPillars = b.agenda.pillars;
+      }
+    }
+
+    const pillarInstructions = briefPillars.length > 0
+      ? `\n7. AGENDA PILLAR COVERAGE:\nEvaluate whether the interview covered each planned agenda pillar:\n${briefPillars.map((p) => `- [${p.id}] "${p.title}" (source: ${p.source})`).join("\n")}\nReturn an entry for each pillar in "briefPillarCoverage" with "pillarId", "pillarTitle", "covered": true/false, and concise "notes".\n`
+      : "";
+
+    const pillarJsonExample = briefPillars.map((p) => ({
+      pillarId: p.id,
+      pillarTitle: p.title,
+      covered: true,
+      notes: "Covered during technical discussion.",
+    }));
+
+    const maxTokens = 3500;
+    const systemContent = `You are a Principal Engineer and Hiring Committee Bar Raiser conducting a rigorous post-interview scorecard evaluation of a completed transcript.
+Your goal is to provide a calibrated hiring verdict, estimated level, dimension-by-dimension scorecard with evidence citations, and concrete technical feedback.
+
+Candidate Target Level: ${targetLevel}
 Target Role: ${interviewSession.role}
+Interview Type: ${interviewSession.type}
 
 Here is the role context and criteria:
 ---
@@ -100,42 +162,72 @@ ${roleContext}
 ---
 
 HIRING COMMITTEE EVALUATION RUBRIC & INSTRUCTIONS:
-1. STRICTLY FORBIDDEN: Generic mad-libs boilerplate (e.g. "The candidate demonstrated a good understanding", "their thought process was logical", "needs to provide more detailed examples"). Every single observation MUST be tied directly to specific claims and technical statements in the transcript.
-2. CITATION REQUIREMENT: Every item in "strengths" and "areasForImprovement" MUST start with the specific question reference (e.g. "[Q1 Architecture]", "[Q4 Security]").
-3. TECHNICAL RIGOR: If the candidate made an invalid technical claim, security vulnerability (e.g. Base64 for passwords), or architectural flaw (e.g. ignoring database write locks or omitting payment idempotency keys), you MUST explicitly call out the flaw and state the exact production pattern/algorithm needed (e.g. bcrypt/Argon2id, PostgreSQL MVCC, Stripe Idempotency Keys).
-4. LEVEL-CALIBRATED SCORING (0-100):
-   - 90-100: Strong Hire (Mastery of trade-offs, edge cases, distributed failure modes)
-   - 75-89: Hire (Solid design, sound fundamentals, clear communication)
-   - 65-74: Leaning Hire (Acceptable core answers, but missed edge cases or deeper trade-offs)
-   - 50-64: Leaning No Hire (Significant technical gaps or invalid architectural assumptions)
-   - <50: No Hire (Critical security vulnerabilities or foundational misconceptions)
+1. STRICTLY FORBIDDEN: Generic boilerplate. Every observation MUST be tied directly to specific claims and technical statements in the transcript.
+2. CITATION REQUIREMENT: In each dimension's "evidenceCitations" and key strengths/gaps, cite the specific question (e.g. "[Q1 Architecture]", "[Q3 Concurrency]").
+3. TECHNICAL RIGOR: Explicitly call out any architectural flaws or invalid assumptions and state the exact production pattern needed.
+4. CALIBRATED VERDICT:
+   - "strong_hire" (90-100): Clear top-tier signal, mastery of failure modes and trade-offs.
+   - "hire" (75-89): Meets bar across all dimensions, sound fundamentals and execution.
+   - "lean_hire" (65-74): Acceptable core answers with minor gaps on depth or edge cases.
+   - "lean_no_hire" (50-64): Gaps in core architecture, misconceptions on fundamentals.
+   - "no_hire" (<50): Critical flaws, security issues, or unable to decompose problems.
+5. ESTIMATED LEVEL: One of ["entry-level", "mid-level", "senior", "staff-plus", "not-levelable"]. Provide levelRationale.
+6. REQUIRED SCORECARD DIMENSIONS for ${interviewSession.type} (${targetDimensions.map((d) => `${d.key} [weight ${d.weight}]`).join(", ")}):
+${targetDimensions.map((d) => `- "${d.key}" (${d.label}, weight ${d.weight}): ${d.description}`).join("\n")}${pillarInstructions}
 
-Required JSON Output Structure with exactly these seven keys:
-- "score": A number (0-100) calibrated against the ${interviewSession.difficulty} level bar.
-- "feedback": A detailed, 2-3 paragraph executive summary covering: (1) Overall hiring verdict and level assessment, (2) Key architectural decisions done well with transcript references, and (3) Critical technical gaps, security vulnerabilities, or trade-offs that were missed.
-- "strengths": An array of 2-4 strings, formatted as "[Q# Topic]: <Specific decision or architecture pattern the candidate got right>".
-- "areasForImprovement": An array of 2-4 strings, formatted as "[Q# Topic]: <Specific misconception or error in candidate's answer>, and <the exact production architecture, algorithm, or pattern they should have used>".
-- "communication": A number (0-100) rating structure, articulation, conciseness, and absence of rambling.
-- "technicalDepth": A number (0-100) rating architectural correctness, understanding of concurrency/scale, security, and edge cases.
-- "clarity": A number (0-100) rating logical reasoning and coherence.`,
+Output MUST be valid JSON matching this exact structure:
+{
+  "version": 2,
+  "overallScore": <number 0-100>,
+  "verdict": <"strong_hire" | "hire" | "lean_hire" | "lean_no_hire" | "no_hire">,
+  "estimatedLevel": <"entry-level" | "mid-level" | "senior" | "staff-plus" | "not-levelable">,
+  "levelRationale": <string explaining level calibration>,
+  "companySignals": {
+    "matchedCompanyPack": "${interviewSession.company || "General Tech"}",
+    "methodNotes": <string summarizing alignment with company method>
+  },
+  "dimensions": ${JSON.stringify(dimensionsJsonExample, null, 2)},
+  "briefPillarCoverage": ${JSON.stringify(pillarJsonExample, null, 2)},
+  "executiveSummary": <detailed 2-3 paragraph summary>,
+  "keyStrengths": [<3-5 strings formatted as "[Q# Topic]: <Specific decision>">],
+  "criticalGaps": [<2-4 strings formatted as "[Q# Topic]: <Specific gap and correct production pattern>">],
+  "recommendedPreparation": [<2-4 high leverage prep steps>]
+}`;
+
+    const chatCompletion = await withRetry(async () => {
+      return groqClient.chat.completions.create({
+        messages: [
+          {
+            role: "system",
+            content: systemContent,
           },
           {
             role: "user",
-            content: `Interview Transcript:\n\n${formattedTranscript}`,
+            content: hasWhiteboardSnapshot
+              ? [
+                  { type: "text", text: evaluationUserContent },
+                  {
+                    type: "image_url",
+                    image_url: {
+                      url: `data:${(whiteboardSnapshot as Record<string, string>).mimeType};base64,${(whiteboardSnapshot as Record<string, string>).imageBase64}`,
+                    },
+                  },
+                ]
+              : evaluationUserContent,
           },
         ],
         model: "qwen/qwen3.6-27b",
         temperature: 0.1,
-        max_completion_tokens: 2048,
+        max_completion_tokens: maxTokens,
         response_format: { type: "json_object" },
         reasoning_effort: "none",
-      } as any);
+      });
     });
 
 
     const responseContent = chatCompletion.choices[0]?.message?.content;
     if (!responseContent) {
-      return { type: "error", message: "Empty response from evaluation service" };
+      throw new Error("Empty response from evaluation service");
     }
 
     const parsedEvaluation = parseTranscriptEvaluationResponse(responseContent);
@@ -147,9 +239,17 @@ Required JSON Output Structure with exactly these seven keys:
       evaluation: parsedEvaluation as unknown as Prisma.InputJsonValue,
     });
     if (!persisted) {
-      return { type: "error", message: "Evaluation ownership changed. Please try again." };
+      return { type: "invalid_session", message: "Evaluation ownership changed. Please try again." };
     }
-    invalidateInterviewMetricsCache(userId);
+    try {
+      invalidateInterviewMetricsCache(userId);
+    } catch (error) {
+      logger.error("Failed to invalidate interview metrics cache", {
+        error,
+        interviewId,
+        userId,
+      });
+    }
 
     return { type: "ok", data: parsedEvaluation, role: interviewSession.role, fresh: true };
   } catch (error) {
@@ -166,7 +266,7 @@ Required JSON Output Structure with exactly these seven keys:
       });
     }
     logger.error("Interview evaluation error", { error, interviewId });
-    return { type: "error", message: "Failed to generate interview evaluation" };
+    return { type: "upstream_error", message: "Failed to generate interview evaluation" };
   }
 }
 
@@ -175,7 +275,7 @@ export async function evaluatePracticeQuestion(params: {
   answer: string;
 }): Promise<
   | { type: "not_found" }
-  | { type: "error"; message: string }
+  | { type: "upstream_error"; message: string }
   | { type: "empty"; data: QuestionEvaluationResponse }
   | { type: "ok"; data: QuestionEvaluationResponse }
 > {
@@ -238,18 +338,18 @@ Return your evaluation as a JSON object with exactly these two keys:
         max_completion_tokens: 2048,
         response_format: { type: "json_object" },
         reasoning_effort: "none",
-      } as any);
+      });
     });
 
     const responseContent = chatCompletion.choices[0]?.message?.content;
     if (!responseContent) {
-      return { type: "error", message: "Empty response from evaluation service" };
+      return { type: "upstream_error", message: "Empty response from evaluation service" };
     }
 
     const parsedEvaluation = parseQuestionEvaluationResponse(responseContent);
     return { type: "ok", data: parsedEvaluation };
   } catch (error) {
     logger.error("Practice question evaluation error", { error, questionId });
-    return { type: "error", message: "Failed to generate answer evaluation" };
+    return { type: "upstream_error", message: "Failed to generate answer evaluation" };
   }
 }

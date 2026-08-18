@@ -90,7 +90,8 @@ describe("buildSystemInstruction", () => {
 
     expect(instruction).toContain("[RESPONSE FORMAT]: Respond like a real interviewer in a live conversation.");
     expect(instruction).toContain("ACTIVE LISTENING & CORRECTION DIRECTIVE");
-    expect(instruction).toContain('Candidate\'s latest answer: "I aligned the team."');
+    expect(instruction).toContain("UNTRUSTED_CANDIDATE_LATEST_ANSWER");
+    expect(instruction).toContain(JSON.stringify("I aligned the team."));
   });
 
   it("frames candidate resume and job description as untrusted data", async () => {
@@ -109,5 +110,46 @@ describe("buildSystemInstruction", () => {
     expect(instruction).toContain(JSON.stringify(maliciousJobDescription));
     expect(instruction).not.toContain(`---\n${maliciousResume}\n---`);
     expect(instruction).not.toContain(`---\n${maliciousJobDescription}\n---`);
+  });
+
+  it("injects structured brief and planned topic pillars when brief is present", async () => {
+    const instruction = await buildSystemInstruction(makePromptSession({
+      sessionPlan: {
+        version: 1,
+        brief: {
+          version: 1,
+          candidate: { mode: "new_grad", recentRoles: [], projects: [{ name: "KVStore", bullets: ["Raft in Go"] }], stack: ["Go", "gRPC"] },
+          company: { methodSummary: "Leadership Principles", levelSignals: ["Fast learning"], roleFamilySignals: ["Go concurrency"], frequentThemes: ["Customer impact"] },
+          profile: { role: "Software Engineer - Backend", roleSlug: "software-engineer-backend", type: "system-design", difficulty: "medium", durationMinutes: 30, level: "entry-level", goal: "land-first-role", persona: "balanced" },
+          agenda: {
+            pillars: [
+              { id: "pillar-1", title: "Project Architecture: KVStore", source: "project", targetMinutes: 10 },
+              { id: "pillar-2", title: "Raft Consensus & Log Replication", source: "role", targetMinutes: 15 },
+            ],
+            openingDirective: "Ask candidate to walk through KVStore",
+            closingDirective: "Wrap up naturally. Never ask if candidate has questions.",
+          },
+        },
+      },
+    }));
+
+    expect(instruction).toContain("STRUCTURED INTERVIEW BRIEF & AGENDA");
+    expect(instruction).toContain("Candidate Experience Mode: new_grad");
+    expect(instruction).toContain("PLANNED TOPIC PILLARS");
+    expect(instruction).toContain("Project Architecture: KVStore");
+    expect(instruction).toContain("Raft Consensus & Log Replication");
+    expect(instruction).toContain("DO NOT invite the candidate to ask questions for you");
+  });
+
+  it("correctly resolves prompt packs for parenthetical role titles", async () => {
+    const sreInstruction = await buildSystemInstruction(makePromptSession({
+      role: "Site Reliability Engineer (SRE)",
+    }));
+    expect(sreInstruction).toContain("Site Reliability Engineer");
+
+    const sdetInstruction = await buildSystemInstruction(makePromptSession({
+      role: "Software Engineer in Test (SDET)",
+    }));
+    expect(sdetInstruction).toContain("Software Engineer in Test");
   });
 });

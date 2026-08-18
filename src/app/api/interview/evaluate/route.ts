@@ -1,12 +1,13 @@
 import { z } from "zod/v4";
 import { getSessionUserIdentity } from "@/lib/server-auth";
-import { apiJson, badRequestError, conflictError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
+import { apiJson, badGatewayError, badRequestError, conflictError, internalServerError, notFoundError, tooManyRequestsError, unauthorizedError } from "@/lib/api-response";
 import { evaluateInterviewTranscript } from "@/services/evaluation-service";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
 import { sendEvaluationEmail } from "@/lib/email";
 import { getNotificationPrefs } from "@/repositories/user-repo";
 import { interviewIdSchema } from "@/lib/interview/domain";
+import { parseJsonBody } from "@/lib/http/request-body";
 import { logger } from "@/utils/logger";
 
 const evaluateTranscriptSchema = z.object({
@@ -23,15 +24,12 @@ export const POST = withCsrfProtection(async (req: Request) => {
         }
 
         if (await interviewEvaluateLimiter.isLimited(authUser.userId)) {
-            return badRequestError("Too many evaluation requests. Please try again later.");
+            return tooManyRequestsError("Too many evaluation requests. Please try again later.");
         }
 
-        const body = await req.json();
-        const parsed = evaluateTranscriptSchema.safeParse(body);
-
-        if (!parsed.success) {
-            const firstError = parsed.error.issues[0]?.message || "Invalid request body";
-            return badRequestError(firstError);
+        const parsed = await parseJsonBody(req, evaluateTranscriptSchema);
+        if (!parsed.ok) {
+            return parsed.response;
         }
 
         const { interviewId } = parsed.data;
@@ -53,8 +51,12 @@ export const POST = withCsrfProtection(async (req: Request) => {
             return conflictError("Evaluation is already in progress. Please retry shortly.");
         }
 
-        if (result.type === "error") {
+        if (result.type === "invalid_session") {
             return badRequestError(result.message);
+        }
+
+        if (result.type === "upstream_error") {
+            return badGatewayError(result.message);
         }
 
         if (result.fresh && authUser.email) {

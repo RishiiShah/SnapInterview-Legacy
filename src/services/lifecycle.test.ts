@@ -1,20 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { startInterviewSession, runInterviewChat } from "./interview-service";
 import { evaluateInterviewTranscript } from "./evaluation-service";
-import { prisma } from "@/lib/prisma";
 import { groqClient } from "@/lib/ai/groq";
 import * as interviewRepo from "@/repositories/interview-repo";
+import * as userRepo from "@/repositories/user-repo";
 import * as transcriptService from "@/lib/interview/transcript-service";
-
-// Mock dependencies
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    user: {
-      findUnique: vi.fn(),
-    },
-  },
-}));
 
 vi.mock("@/lib/ai/groq", () => ({
   groqClient: {
@@ -27,6 +18,7 @@ vi.mock("@/lib/ai/groq", () => ({
 }));
 
 vi.mock("@/repositories/interview-repo");
+vi.mock("@/repositories/user-repo");
 vi.mock("@/lib/interview/transcript-service");
 
 describe("Interview Lifecycle Integration", () => {
@@ -39,11 +31,13 @@ describe("Interview Lifecycle Integration", () => {
 
   it("completes a full interview flow: create -> chat -> evaluate", async () => {
     // 1. Create Session
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      id: userId,
+    vi.mocked(userRepo.getUserOnboardingContext).mockResolvedValue({
+      onboardingGoal: null,
+      onboardingLevel: null,
       onboardingRole: "Software Engineer",
-    } as any);
-    
+      onboardingCompany: null,
+    });
+
     vi.mocked(interviewRepo.createInterviewSession).mockResolvedValue({
       id: interviewId,
     } as any);

@@ -2,9 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { INTERVIEW_DONE_MESSAGE } from "@/lib/interview/constants";
 import { Prisma } from "@/generated/prisma/client";
 import { getResumableInterviewSessionState, runInterviewChat, startInterviewSession, updateSessionStatusIfOwned } from "./interview-service";
-import { advanceInterviewCurrentQuestion, createInterviewSession, expireInterviewSessionIfStale, getInterviewSession, updateInterviewSessionStatus } from "@/repositories/interview-repo";
+import { advanceInterviewCurrentQuestion, createInterviewSession, expireInterviewSessionIfStale, getInterviewSession, persistWhiteboardScene, updateInterviewSessionStatus } from "@/repositories/interview-repo";
+import { getUserOnboardingContext } from "@/repositories/user-repo";
 import { saveLatestTranscriptEntry } from "@/lib/interview/transcript-service";
-import { prisma } from "@/lib/prisma";
+import { groqClient } from "@/lib/ai/groq";
+import { buildSystemInstruction } from "@/lib/interview/prompts";
 
 vi.mock("@/repositories/interview-repo", () => ({
   getInterviewSession: vi.fn(),
@@ -12,18 +14,15 @@ vi.mock("@/repositories/interview-repo", () => ({
   advanceInterviewCurrentQuestion: vi.fn(),
   updateInterviewSessionStatus: vi.fn(),
   expireInterviewSessionIfStale: vi.fn(),
+  persistWhiteboardScene: vi.fn(),
+}));
+
+vi.mock("@/repositories/user-repo", () => ({
+  getUserOnboardingContext: vi.fn(),
 }));
 
 vi.mock("@/lib/interview/transcript-service", () => ({
   saveLatestTranscriptEntry: vi.fn(),
-}));
-
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    user: {
-      findUnique: vi.fn(),
-    },
-  },
 }));
 
 vi.mock("@/lib/ai/groq", () => ({
@@ -36,6 +35,33 @@ vi.mock("@/lib/ai/groq", () => ({
   },
 }));
 
+vi.mock("@/lib/interview/prompts", () => ({
+  buildSystemInstruction: vi.fn(),
+}));
+
+function chatSession(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "int-1",
+    status: "IN_PROGRESS",
+    role: "Frontend Engineer",
+    company: null,
+    type: "behavioral-leadership",
+    difficulty: "medium",
+    persona: null,
+    jobDescription: null,
+    resumeUrl: null,
+    resumeText: null,
+    durationMinutes: 30,
+    questionCount: 5,
+    currentQuestion: 5,
+    focusAreas: null,
+    sessionPlan: null,
+    createdAt: new Date(),
+    transcript: [],
+    ...overrides,
+  } as never;
+}
+
 describe("runInterviewChat", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -43,25 +69,7 @@ describe("runInterviewChat", () => {
 
   it("saves the latest transcript entry before returning done", async () => {
     vi.mocked(expireInterviewSessionIfStale).mockResolvedValue(false);
-    vi.mocked(getInterviewSession).mockResolvedValue({
-      id: "int-1",
-      status: "IN_PROGRESS",
-      role: "Frontend Engineer",
-      company: null,
-      type: "behavioral-leadership",
-      difficulty: "medium",
-      persona: null,
-      jobDescription: null,
-      resumeUrl: null,
-      resumeText: null,
-      durationMinutes: 30,
-      questionCount: 5,
-      currentQuestion: 5,
-      focusAreas: null,
-      sessionPlan: null,
-      createdAt: new Date(),
-      transcript: [],
-    });
+    vi.mocked(getInterviewSession).mockResolvedValue(chatSession());
 
     const rawMessages = [
       { role: "assistant", content: "Tell me about a project you led." },
@@ -93,25 +101,7 @@ describe("runInterviewChat", () => {
 
   it("returns a conflict when the client question index is stale", async () => {
     vi.mocked(expireInterviewSessionIfStale).mockResolvedValue(false);
-    vi.mocked(getInterviewSession).mockResolvedValue({
-      id: "int-2",
-      status: "IN_PROGRESS",
-      role: "Frontend Engineer",
-      company: null,
-      type: "behavioral-leadership",
-      difficulty: "medium",
-      persona: null,
-      jobDescription: null,
-      resumeUrl: null,
-      resumeText: null,
-      durationMinutes: 30,
-      questionCount: 5,
-      currentQuestion: 1,
-      focusAreas: null,
-      sessionPlan: null,
-      createdAt: new Date(),
-      transcript: [],
-    });
+    vi.mocked(getInterviewSession).mockResolvedValue(chatSession({ id: "int-2", currentQuestion: 1 }));
 
     const result = await runInterviewChat({
       userId: "user-1",
@@ -128,6 +118,69 @@ describe("runInterviewChat", () => {
     });
   });
 
+  it("awaits final system-design board persistence before returning done", async () => {
+    vi.mocked(expireInterviewSessionIfStale).mockResolvedValue(false);
+    vi.mocked(getInterviewSession).mockResolvedValue(chatSession({
+      id: "int-final-board",
+      role: "Staff Engineer",
+      type: "system-design",
+      difficulty: "hard",
+      persona: "balanced",
+      sessionPlan: { brief: { profile: { level: "staff-plus" } } },
+    }));
+    let resolvePersistence!: (value: unknown) => void;
+    vi.mocked(persistWhiteboardScene).mockReturnValue(
+      new Promise((resolve) => {
+        resolvePersistence = resolve;
+      }) as never,
+    );
+
+    const scene = {
+      version: 1 as const,
+      revision: 4,
+      contentHash: "final-scene",
+      nodes: [{ id: "api", kind: "service", label: "API" }],
+      edges: [],
+    };
+
+    const resultPromise = runInterviewChat({
+      userId: "user-1",
+      interviewId: "int-final-board",
+      expectedCurrentQuestion: 5,
+      rawMessages: [
+        { role: "assistant", content: "Finish your design." },
+        {
+          role: "user",
+          content: "The API fans out to workers.",
+          board: { scene, imageBase64: "ZmluYWwtc25hcHNob3Q=", mimeType: "image/png" },
+        },
+      ],
+    });
+    let resultSettled = false;
+    void resultPromise.then(() => {
+      resultSettled = true;
+    });
+
+    await vi.waitFor(() => expect(persistWhiteboardScene).toHaveBeenCalledOnce());
+    expect(resultSettled).toBe(false);
+
+    resolvePersistence({});
+    await expect(resultPromise).resolves.toMatchObject({ type: "done" });
+    expect(persistWhiteboardScene).toHaveBeenCalledWith({
+      interviewId: "int-final-board",
+      userId: "user-1",
+      expectedCurrentQuestion: 5,
+      sessionPlan: {
+        brief: { profile: { level: "staff-plus" } },
+        whiteboardScene: scene,
+        whiteboardSnapshot: {
+          imageBase64: "ZmluYWwtc25hcHNob3Q=",
+          mimeType: "image/png",
+        },
+      },
+    });
+  });
+
   it("rejects an expired interview before transcript or model work", async () => {
     vi.mocked(expireInterviewSessionIfStale).mockResolvedValue(true);
 
@@ -141,6 +194,114 @@ describe("runInterviewChat", () => {
     expect(result).toEqual({ type: "expired" });
     expect(getInterviewSession).not.toHaveBeenCalled();
     expect(saveLatestTranscriptEntry).not.toHaveBeenCalled();
+  });
+
+  it("persists the latest system-design scene and bounded snapshot", async () => {
+    vi.mocked(expireInterviewSessionIfStale).mockResolvedValue(false);
+    vi.mocked(getInterviewSession).mockResolvedValue(chatSession({
+      id: "int-whiteboard",
+      role: "Staff Engineer",
+      type: "system-design",
+      difficulty: "hard",
+      persona: "balanced",
+      currentQuestion: 0,
+      sessionPlan: { brief: { profile: { level: "staff-plus" } } },
+    }));
+    vi.mocked(buildSystemInstruction).mockResolvedValue("Interview instructions");
+    vi.mocked(persistWhiteboardScene).mockResolvedValue(true);
+    vi.mocked(groqClient.chat.completions.create).mockResolvedValue((async function* () {
+      yield { choices: [{ delta: { content: "What would you optimize next?" } }] };
+    })() as never);
+
+    const scene = {
+      version: 1 as const,
+      revision: 3,
+      contentHash: "scene-v3",
+      nodes: [{ id: "api", kind: "service", label: "API" }],
+      edges: [],
+    };
+
+    const result = await runInterviewChat({
+      userId: "user-1",
+      interviewId: "int-whiteboard",
+      expectedCurrentQuestion: 0,
+      rawMessages: [
+        { role: "assistant", content: "Design a notifications system." },
+        {
+          role: "user",
+          content: "Clients connect through the API.",
+          board: { scene, imageBase64: "c25hcHNob3Q=", mimeType: "image/jpeg" },
+        },
+      ],
+    });
+
+    expect(result.type).toBe("stream");
+    expect(persistWhiteboardScene).toHaveBeenCalledWith({
+      interviewId: "int-whiteboard",
+      userId: "user-1",
+      expectedCurrentQuestion: 0,
+      sessionPlan: {
+        brief: { profile: { level: "staff-plus" } },
+        whiteboardScene: scene,
+        whiteboardSnapshot: {
+          imageBase64: "c25hcHNob3Q=",
+          mimeType: "image/jpeg",
+        },
+      },
+    });
+  });
+
+  it("clears a previous whiteboard snapshot when the newest scene has no image", async () => {
+    vi.mocked(expireInterviewSessionIfStale).mockResolvedValue(false);
+    vi.mocked(getInterviewSession).mockResolvedValue(chatSession({
+      id: "int-text-only-board",
+      role: "Staff Engineer",
+      type: "system-design",
+      difficulty: "hard",
+      persona: "balanced",
+      currentQuestion: 0,
+      sessionPlan: {
+        brief: { profile: { level: "staff-plus" } },
+        whiteboardSnapshot: { imageBase64: "c3RhbGU=", mimeType: "image/jpeg" },
+      },
+    }));
+    vi.mocked(buildSystemInstruction).mockResolvedValue("Interview instructions");
+    vi.mocked(persistWhiteboardScene).mockResolvedValue(true);
+    vi.mocked(groqClient.chat.completions.create).mockResolvedValue((async function* () {
+      yield { choices: [{ delta: { content: "What would you optimize next?" } }] };
+    })() as never);
+
+    const scene = {
+      version: 1 as const,
+      revision: 5,
+      contentHash: "text-only-scene",
+      nodes: [{ id: "worker", kind: "service", label: "Worker" }],
+      edges: [],
+    };
+
+    await runInterviewChat({
+      userId: "user-1",
+      interviewId: "int-text-only-board",
+      expectedCurrentQuestion: 0,
+      rawMessages: [
+        { role: "assistant", content: "Update your design." },
+        {
+          role: "user",
+          content: "Workers now process the events.",
+          board: { scene, mimeType: "image/jpeg" },
+        },
+      ],
+    });
+
+    expect(persistWhiteboardScene).toHaveBeenCalledWith({
+      interviewId: "int-text-only-board",
+      userId: "user-1",
+      expectedCurrentQuestion: 0,
+      sessionPlan: {
+        brief: { profile: { level: "staff-plus" } },
+        whiteboardScene: scene,
+      },
+    });
   });
 });
 
@@ -174,12 +335,12 @@ describe("startInterviewSession", () => {
   });
 
   it("derives adaptive defaults from onboarding state", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+    vi.mocked(getUserOnboardingContext).mockResolvedValue({
       onboardingGoal: "prepare-for-promo",
       onboardingLevel: "staff-plus",
       onboardingRole: "Staff Engineer",
       onboardingCompany: "Stripe",
-    } as Awaited<ReturnType<typeof prisma.user.findUnique>>);
+    });
     vi.mocked(createInterviewSession).mockResolvedValue({ id: "int-2" });
 
     const result = await startInterviewSession({
@@ -199,28 +360,24 @@ describe("startInterviewSession", () => {
         company: "Stripe",
         persona: "strict",
         questionCount: 15,
-        focusAreas: [
-          "system-design fundamentals",
-          "trade-off reasoning",
-          "leadership scope",
-          "decision rationale",
-          "organizational trade-offs",
-        ],
-        sessionPlan: {
-          pacing: ["warmup", "core", "challenge"],
-          targetLevel: "staff-plus",
-          goal: "prepare-for-promo",
-          persona: "strict",
-          followUpBias: "probe weak answers quickly",
-          questionCount: 15,
-        },
+        sessionPlan: expect.objectContaining({
+          version: 1,
+          brief: expect.objectContaining({
+            company: expect.objectContaining({ packId: "stripe" }),
+            profile: expect.objectContaining({
+              level: "staff-plus",
+              persona: "strict",
+              type: "system-design",
+            }),
+          }),
+        }),
       })
     );
     expect(result).toEqual({ id: "int-2" });
   });
 
   it("falls back to balanced persona and user inputs when onboarding is missing", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
+    vi.mocked(getUserOnboardingContext).mockResolvedValue(null);
     vi.mocked(createInterviewSession).mockResolvedValue({ id: "int-3" });
 
     await startInterviewSession({
@@ -237,21 +394,21 @@ describe("startInterviewSession", () => {
         company: "Acme",
         persona: "balanced",
         questionCount: 10,
-        focusAreas: [
-          "behavioral-leadership fundamentals",
-          "structured communication",
-        ],
-        sessionPlan: {
-          pacing: ["warmup", "core", "challenge"],
-          targetLevel: "medium",
-          goal: "switch-companies",
-          persona: "balanced",
-          followUpBias: "balance encouragement with pressure",
-          questionCount: 10,
-        },
+        sessionPlan: expect.objectContaining({
+          version: 1,
+          brief: expect.objectContaining({
+            company: expect.objectContaining({ packId: "general" }),
+            profile: expect.objectContaining({
+              role: "Frontend Engineer",
+              type: "behavioral-leadership",
+              difficulty: "medium",
+            }),
+          }),
+        }),
       })
     );
   });
+
 });
 
 describe("updateSessionStatusIfOwned", () => {

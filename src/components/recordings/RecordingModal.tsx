@@ -141,7 +141,7 @@ export default function RecordingModal({
     if (!isOpen || !interviewId) return;
 
     const controller = new AbortController();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+
     setActiveTab("results");
     setInterviewData(null);
     setShareToken(undefined);

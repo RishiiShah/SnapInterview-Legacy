@@ -3,7 +3,6 @@ import {
   sanitizeResumeText,
   stripBulletMarkers,
   ACTION_VERB_REGEX,
-  DATE_RANGE_REGEX,
   TRAILING_DATE_REGEX,
 } from "@/lib/resume/sanitizer";
 

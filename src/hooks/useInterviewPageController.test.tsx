@@ -20,7 +20,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mocks.routerPush }),
 }));
 
-vi.mock("@/lib/useMediaPermissions", () => ({
+vi.mock("@/hooks/useMediaPermissions", () => ({
   useMediaPermissions: mocks.useMediaPermissions,
 }));
 
@@ -118,6 +118,53 @@ function setupHookMocks({
   };
 }
 
+function renderScrollController(interviewId: string, frameId: number) {
+  setupHookMocks();
+  const chatState = {
+    messages: [] as Array<{ role: "ai" | "user"; text: string }>,
+    currentStreamedText: "",
+    lastCompletedAiText: "",
+    isThinking: true,
+    codingChallenge: null,
+  };
+  const speechState = {
+    finalTranscriptBlock: "",
+    interimTranscript: "",
+    volatileTranscript: "",
+    stopRecording: vi.fn(),
+  };
+  mocks.useChatSession.mockImplementation(() => chatState);
+  mocks.useSpeechRecognition.mockImplementation(() => speechState);
+
+  let scheduledFrame: FrameRequestCallback | null = null;
+  const requestAnimationFrame = vi.fn((callback: FrameRequestCallback) => {
+    scheduledFrame = callback;
+    return frameId;
+  });
+  const cancelAnimationFrame = vi.fn();
+  vi.stubGlobal("requestAnimationFrame", requestAnimationFrame);
+  vi.stubGlobal("cancelAnimationFrame", cancelAnimationFrame);
+
+  const hook = renderHook(() => useInterviewPageController({ interviewId }));
+  const bottom = document.createElement("div");
+  const scrollIntoView = vi.fn();
+  bottom.scrollIntoView = scrollIntoView;
+  act(() => {
+    hook.result.current.chatScrollContainerRef.current = document.createElement("div");
+    hook.result.current.chatBottomRef.current = bottom;
+  });
+
+  return {
+    ...hook,
+    chatState,
+    speechState,
+    requestAnimationFrame,
+    cancelAnimationFrame,
+    scrollIntoView,
+    runScheduledFrame: () => act(() => scheduledFrame?.(16)),
+  };
+}
+
 describe("useInterviewPageController", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(okJson({ questionCount: 10, persona: "balanced" })));
@@ -137,6 +184,7 @@ describe("useInterviewPageController", () => {
 
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -338,7 +386,7 @@ describe("useInterviewPageController", () => {
     consoleError.mockRestore();
   });
 
-  it("finalizes an answered interview as completed and navigates to recordings", async () => {
+  it("finalizes an answered interview as completed and navigates to analytics", async () => {
     const { stopRecording, stopStream } = setupHookMocks({
       chatMessages: [{ role: "user", content: "My answer" }],
     });
@@ -361,7 +409,7 @@ describe("useInterviewPageController", () => {
     expect(mocks.routerPush).toHaveBeenCalledWith("/analytics");
   });
 
-  it("redirects immediately when the interview completes and finalizes upload in the background", async () => {
+  it("exits through finalize when the interview completes", async () => {
     const stopVideoRecording = vi.fn().mockResolvedValue(null);
     setupHookMocks({ stopVideoRecording });
 
@@ -389,31 +437,142 @@ describe("useInterviewPageController", () => {
     expect(mocks.routerPush).toHaveBeenCalledWith("/analytics");
   });
 
-  it("redirects immediately when the interview completes and finalizes upload in the background", async () => {
-    const stopVideoRecording = vi.fn().mockResolvedValue(null);
-    setupHookMocks({ stopVideoRecording });
-
-    const chatOptions: { setInterviewDone?: (done: boolean) => void } = {};
-    mocks.useChatSession.mockImplementation((options: { setInterviewDone: (done: boolean) => void }) => {
-      chatOptions.setInterviewDone = options.setInterviewDone;
-      return {
-        messages: [],
-        currentStreamedText: "",
-        lastCompletedAiText: "",
-        isThinking: false,
-      };
+  it("surfaces a recording-save error instead of navigating away", async () => {
+    setupHookMocks();
+    mocks.scheduleInterviewFinalize.mockResolvedValue({
+      type: "error",
+      message: "Upload failed",
     });
-    const cancel = vi.fn();
-    mocks.useStreamingTTS.mockReturnValue({ isSpeaking: false, warmup: vi.fn(), cancel });
 
-    renderHook(() => useInterviewPageController({ interviewId: "interview-done" }));
+    const { result } = renderHook(() => useInterviewPageController({ interviewId: "interview-fail" }));
 
     await act(async () => {
-      chatOptions.setInterviewDone?.(true);
+      await result.current.handleExitInterview({ skipConfirmation: true });
     });
 
-    expect(cancel).toHaveBeenCalled();
-    expect(mocks.scheduleInterviewFinalize).toHaveBeenCalled();
+    expect(mocks.routerPush).not.toHaveBeenCalled();
+    expect(result.current.modal).toMatchObject({
+      isOpen: true,
+      title: "Recording Save Failed",
+      confirmLabel: "Proceed to Analytics",
+    });
+  });
+
+  it("routes countdown expiration through the existing finalization path", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-17T12:00:00.000Z"));
+    setupHookMocks();
+    sessionStorage.setItem(
+      "pending_interview_interview-timeout",
+      JSON.stringify({
+        role: "Backend Engineer",
+        type: "coding-algorithms",
+        difficulty: "medium",
+        durationMinutes: 1,
+      }),
+    );
+
+    const { result } = renderHook(() =>
+      useInterviewPageController({ interviewId: "interview-timeout" }),
+    );
+
+    await act(async () => {
+      await result.current.handlePermissionsGranted();
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(120_000);
+    });
+
+    expect(mocks.scheduleInterviewFinalize).toHaveBeenCalledOnce();
     expect(mocks.routerPush).toHaveBeenCalledWith("/analytics");
   });
+
+  it("coalesces streaming transcript scrolls into one animation frame", () => {
+    const harness = renderScrollController("interview-scroll", 17);
+
+    act(() => {
+      harness.chatState.currentStreamedText = "First";
+      harness.rerender();
+    });
+    act(() => {
+      harness.chatState.currentStreamedText = "First chunk";
+      harness.rerender();
+    });
+
+    expect(harness.requestAnimationFrame).toHaveBeenCalledOnce();
+    expect(harness.scrollIntoView).not.toHaveBeenCalled();
+
+    harness.runScheduledFrame();
+    expect(harness.scrollIntoView).toHaveBeenCalledOnce();
+    expect(harness.scrollIntoView).toHaveBeenCalledWith({
+      behavior: "auto",
+      block: "end",
+    });
+  });
+
+  it("re-arms transcript scrolling after the scheduled frame completes", () => {
+    const harness = renderScrollController("interview-scroll-rearm", 18);
+
+    act(() => {
+      harness.chatState.currentStreamedText = "First";
+      harness.rerender();
+    });
+    harness.runScheduledFrame();
+    expect(harness.requestAnimationFrame).toHaveBeenCalledOnce();
+    expect(harness.scrollIntoView).toHaveBeenCalledOnce();
+
+    act(() => {
+      harness.chatState.currentStreamedText = "Second";
+      harness.rerender();
+    });
+    expect(harness.requestAnimationFrame).toHaveBeenCalledTimes(2);
+
+    harness.runScheduledFrame();
+    expect(harness.scrollIntoView).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses the latest scroll behavior when streaming completes in the same frame", () => {
+    const harness = renderScrollController("interview-scroll-complete", 19);
+
+    act(() => {
+      harness.chatState.currentStreamedText = "Complete me";
+      harness.rerender();
+    });
+    act(() => {
+      harness.chatState.currentStreamedText = "";
+      harness.chatState.messages = [{ role: "ai", text: "Complete me" }];
+      harness.chatState.isThinking = false;
+      harness.rerender();
+    });
+
+    expect(harness.requestAnimationFrame).toHaveBeenCalledOnce();
+    harness.runScheduledFrame();
+    expect(harness.scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "end",
+    });
+  });
+
+  it("cancels its pending transcript scroll only when unmounted", () => {
+    const harness = renderScrollController("interview-scroll-cleanup", 23);
+
+    act(() => {
+      harness.chatState.currentStreamedText = "First";
+      harness.rerender();
+    });
+    act(() => {
+      harness.chatState.currentStreamedText = "First chunk";
+      harness.rerender();
+    });
+
+    expect(harness.requestAnimationFrame).toHaveBeenCalledOnce();
+    expect(harness.cancelAnimationFrame).not.toHaveBeenCalled();
+
+    harness.unmount();
+
+    expect(harness.cancelAnimationFrame).toHaveBeenCalledOnce();
+    expect(harness.cancelAnimationFrame).toHaveBeenCalledWith(23);
+  });
+
 });

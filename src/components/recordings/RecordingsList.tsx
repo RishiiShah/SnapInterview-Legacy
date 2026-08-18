@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { FadeIn } from "@/components/ui/motion";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
@@ -11,11 +11,14 @@ import { displayCompany } from "@/lib/company-brands";
 import { IconSpinner } from "@/components/ui/icons";
 import { getScoreLabel } from "@/utils/helpers";
 import {
-  coerceInterviewType,
-  INTERVIEW_TYPE_META,
   INTERVIEW_TYPE_VALUES,
   type InterviewType,
 } from "@/lib/interview/domain";
+import {
+  interviewTypeBadgeClass,
+  interviewTypeDisplayLabel,
+} from "@/lib/interview/analytics-display";
+import { scoreToneClass } from "@/lib/interview/sub-score-dimensions";
 
 const sessionDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -37,36 +40,7 @@ const FILTER_OPTIONS: FilterType[] = ["all", ...INTERVIEW_TYPE_VALUES];
 
 function typeLabel(type: string): string {
   if (type === "all") return "All";
-  const coerced = coerceInterviewType(type);
-  return coerced ? INTERVIEW_TYPE_META[coerced].shortLabel : type;
-}
-
-function typeStyle(type: string): string {
-  const coerced = coerceInterviewType(type);
-  switch (coerced) {
-    case "recruiter-screen":
-    case "behavioral-leadership":
-      return "text-sky-300/90 bg-sky-500/10 border-sky-500/20";
-    case "coding-algorithms":
-    case "domain-role":
-      return "text-teal-300/90 bg-teal-500/10 border-teal-500/20";
-    case "system-design":
-      return "text-cyan-300/90 bg-cyan-500/10 border-cyan-500/20";
-    case "take-home":
-      return "text-amber-300/90 bg-amber-500/10 border-amber-500/20";
-    case "hiring-manager":
-      return "text-blue-300/90 bg-blue-500/10 border-blue-500/20";
-    case "bar-raiser":
-      return "text-rose-300/90 bg-rose-500/10 border-rose-500/20";
-    default:
-      return "text-[#B0B8C8] bg-white/[0.04] border-white/[0.08]";
-  }
-}
-
-function scoreTone(score: number): string {
-  if (score >= 80) return "text-emerald-400";
-  if (score >= 70) return "text-amber-300";
-  return "text-rose-300";
+  return interviewTypeDisplayLabel(type, "short") ?? type;
 }
 
 type SessionCard = {
@@ -172,10 +146,14 @@ export default function RecordingsList({
     };
   }, [filterType]);
 
-  const displayedSessions = [...sessions].sort((a, b) =>
-    sortBy === "score"
-      ? b.score - a.score
-      : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  const displayedSessions = useMemo(
+    () =>
+      [...sessions].sort((a, b) =>
+        sortBy === "score"
+          ? b.score - a.score
+          : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
+    [sessions, sortBy],
   );
 
   const loadMore = async () => {
@@ -428,7 +406,7 @@ export default function RecordingsList({
                     </p>
                     {session.type ? (
                       <span
-                        className={`shrink-0 rounded border px-1.5 py-px text-[10px] font-medium leading-tight tracking-wide ${typeStyle(session.type)}`}
+                        className={`shrink-0 rounded border px-1.5 py-px text-[10px] font-medium leading-tight tracking-wide ${interviewTypeBadgeClass(session.type)}`}
                       >
                         {typeLabel(session.type)}
                       </span>
@@ -452,7 +430,7 @@ export default function RecordingsList({
                 </div>
 
                 <span
-                  className={`shrink-0 font-mono text-base tabular-nums leading-none ${scoreTone(session.score)}`}
+                  className={`shrink-0 font-mono text-base tabular-nums leading-none ${scoreToneClass(session.score)}`}
                 >
                   {session.score}
                 </span>

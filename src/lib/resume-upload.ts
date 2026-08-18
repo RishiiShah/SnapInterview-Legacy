@@ -44,3 +44,19 @@ export async function parseResumeUploadResponse(response: Response): Promise<str
 
   return payload.resumeText;
 }
+
+export async function uploadResumeFile(file: File): Promise<string> {
+  const validationError = validateResumeFile(file);
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  const formData = new FormData();
+  formData.append("resume", file);
+
+  const response = await fetch("/api/resume/parse", {
+    method: "POST",
+    body: formData,
+  });
+  return parseResumeUploadResponse(response);
+}

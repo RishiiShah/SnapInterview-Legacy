@@ -12,9 +12,8 @@ import {
   ROLES,
   COMPANIES,
 } from "@/data/constants";
-import type { Difficulty, InterviewPersona, InterviewType } from "@/lib/interview/domain";
+import type { InterviewPersona, InterviewType } from "@/lib/interview/domain";
 import {
-  getDefaultDifficultyForOnboardingLevel,
   normalizeOnboardingFormValues,
 } from "@/lib/onboarding/preferences";
 import type { OnboardingPreferencesFormValues } from "@/lib/onboarding/preferences";
@@ -26,7 +25,7 @@ import { getSharedKokoroWorkerClient } from "@/lib/tts/kokoro-worker-client";
 import ResumeDocumentModal from "@/components/resume/ResumeDocumentModal";
 import {
   MAX_RESUME_PDF_LABEL,
-  parseResumeUploadResponse,
+  uploadResumeFile,
   validateResumeFile,
 } from "@/lib/resume-upload";
 
@@ -178,7 +177,6 @@ export default function PracticePageClient({
     const fileError = validateResumeFile(file);
     if (fileError) {
       setResumeError(fileError);
-      setResumeName("");
       return;
     }
 
@@ -187,12 +185,8 @@ export default function PracticePageClient({
     setResumeError(null);
     setResumeText("");
 
-    const formData = new FormData();
-    formData.append("resume", file);
-
     try {
-      const res = await fetch("/api/resume/parse", { method: "POST", body: formData });
-      setResumeText(await parseResumeUploadResponse(res));
+      setResumeText(await uploadResumeFile(file));
     } catch (err) {
       setResumeError(err instanceof Error ? err.message : "Failed to process resume");
       setResumeName("");
@@ -453,7 +447,6 @@ export default function PracticePageClient({
                         type="button"
                         onClick={() => {
                           setResumeError(null);
-                          setResumeName("");
                         }}
                         className="cursor-pointer text-sm text-[#C5CBD8] hover:text-[#E8ECF4]"
                       >
@@ -462,7 +455,7 @@ export default function PracticePageClient({
                     </div>
                   ) : null}
 
-                  {!resumeUploading && !resumeError && hasResume ? (
+                  {!resumeUploading && hasResume ? (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between gap-3 border-b border-[#3B82F6]/40 py-2.5">
                         <div className="min-w-0">

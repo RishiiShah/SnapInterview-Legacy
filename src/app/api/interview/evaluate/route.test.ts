@@ -5,6 +5,10 @@ import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { evaluateInterviewTranscript } from "@/services/evaluation-service";
 
+const { isLimitedMock } = vi.hoisted(() => ({
+  isLimitedMock: vi.fn().mockResolvedValue(false),
+}));
+
 vi.mock("@/lib/csrf", () => ({
   csrfRejectIfInvalid: vi.fn(() => null),
 }));
@@ -19,13 +23,14 @@ vi.mock("@/services/evaluation-service", () => ({
 
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: vi.fn(() => ({
-    isLimited: vi.fn().mockResolvedValue(false),
+    isLimited: isLimitedMock,
   })),
 }));
 
 describe("POST /api/interview/evaluate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    isLimitedMock.mockResolvedValue(false);
   });
 
   it("returns 403 when CSRF validation fails", async () => {
@@ -101,5 +106,78 @@ describe("POST /api/interview/evaluate", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Evaluation is already in progress. Please retry shortly.",
     });
+  });
+
+  it("returns 429 when evaluation requests are rate limited", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "u@example.com" });
+    isLimitedMock.mockResolvedValueOnce(true);
+
+    const request = new Request("http://localhost/api/interview/evaluate", {
+      method: "POST",
+      body: JSON.stringify({ interviewId: "11111111-1111-4111-8111-111111111111" }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(429);
+    await expect(response.json()).resolves.toEqual({
+      error: "Too many evaluation requests. Please try again later.",
+    });
+    expect(evaluateInterviewTranscript).not.toHaveBeenCalled();
+  });
+
+  it("returns 502 for model-provider failure", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "u@example.com" });
+    vi.mocked(evaluateInterviewTranscript).mockResolvedValue({
+      type: "upstream_error",
+      message: "Failed to generate interview evaluation",
+    });
+
+    const request = new Request("http://localhost/api/interview/evaluate", {
+      method: "POST",
+      body: JSON.stringify({ interviewId: "11111111-1111-4111-8111-111111111111" }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toEqual({
+      error: "Failed to generate interview evaluation",
+    });
+  });
+
+  it("preserves the safe 400 mapping for invalid persisted session data", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "u@example.com" });
+    vi.mocked(evaluateInterviewTranscript).mockResolvedValue({
+      type: "invalid_session",
+      message: "Interview session is invalid. Please start a new session.",
+    });
+
+    const request = new Request("http://localhost/api/interview/evaluate", {
+      method: "POST",
+      body: JSON.stringify({ interviewId: "11111111-1111-4111-8111-111111111111" }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Interview session is invalid. Please start a new session.",
+    });
+  });
+
+  it("returns 400 when request body is malformed JSON", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "u@example.com" });
+
+    const request = new Request("http://localhost/api/interview/evaluate", {
+      method: "POST",
+      body: "not-json",
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid JSON body" });
+    expect(evaluateInterviewTranscript).not.toHaveBeenCalled();
   });
 });

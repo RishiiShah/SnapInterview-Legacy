@@ -36,7 +36,3 @@ export function clearPendingInterviewFinalize(interviewId: string) {
 export function getPendingInterviewFinalizeIds(): string[] {
   return readIds();
 }
-
-export function hasPendingInterviewFinalize(): boolean {
-  return readIds().length > 0;
-}

@@ -6,10 +6,15 @@ const requestOrigin = "http://127.0.0.1:3000";
 test.describe("Protected smoke flows", () => {
   test.skip(!supportsProtectedFlows, "Protected E2E smoke tests require E2E_PROTECTED_FLOWS=1 with a real database-backed test environment.");
 
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page }, testInfo) => {
+    const suffix = `${testInfo.workerIndex}-${testInfo.retry}-${testInfo.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")}`;
+
     await page.goto(requestOrigin);
 
-    const ok = await page.evaluate(async (reqOrigin) => {
+    const ok = await page.evaluate(async ({ reqOrigin, suffix }) => {
       const res = await fetch("/api/test-auth/session", {
         method: "POST",
         headers: {
@@ -17,14 +22,15 @@ test.describe("Protected smoke flows", () => {
           origin: reqOrigin,
         },
         body: JSON.stringify({
-          email: "e2e@example.com",
+          userId: `e2e-${suffix}`,
+          email: `e2e+${suffix}@example.com`,
           name: "E2E User",
           onboardingCompleted: true,
         }),
         credentials: "include",
       });
       return res.ok;
-    }, requestOrigin);
+    }, { reqOrigin: requestOrigin, suffix });
 
     expect(ok).toBeTruthy();
   });

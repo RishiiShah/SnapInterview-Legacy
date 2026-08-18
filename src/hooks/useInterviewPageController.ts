@@ -1,16 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMediaPermissions } from "@/lib/useMediaPermissions";
+import { useMediaPermissions } from "@/hooks/useMediaPermissions";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useVideoRecording } from "@/hooks/useVideoRecording";
 import { useChatSession } from "@/hooks/useChatSession";
 import { useStreamingTTS } from "@/hooks/useStreamingTTS";
 import { useAudioAnalyser } from "@/hooks/useAudioAnalyser";
+import { useInterviewCountdown } from "@/hooks/useInterviewCountdown";
 import { getInterviewBlockReason, type BrowserBlockResult } from "@/lib/interview/browser-block";
 import { scheduleInterviewFinalize } from "@/lib/video/background-finalize";
 import { addPendingInterviewFinalize } from "@/lib/interview/finalize-pending-client";
 import type { InterviewCompletionStatus } from "@/lib/video/upload-service";
 import { coerceInterviewType, type InterviewType } from "@/lib/interview/domain";
+import type { InterviewWhiteboardRef } from "@/components/interview/InterviewWhiteboard";
 
 type UseInterviewPageControllerOptions = {
   interviewId: string;
@@ -27,8 +29,6 @@ export function useInterviewPageController({
   const [isUploading, setIsUploading] = useState(false);
   const [durationMinutes, setDurationMinutes] = useState(30);
   const [sessionCreatedAt, setSessionCreatedAt] = useState<string | null>(null);
-  const [timeRemainingMs, setTimeRemainingMs] = useState<number | null>(null);
-  const [isGraceWarningActive, setIsGraceWarningActive] = useState(false);
   const [totalQuestions, setTotalQuestions] = useState(10);
   const [persona, setPersona] = useState<string | null>(null);
   const [interviewType, setInterviewType] = useState<InterviewType | null>(null);
@@ -40,6 +40,7 @@ export function useInterviewPageController({
     title: string;
     description: string;
     onConfirm?: () => void;
+    onCancel?: () => void;
     variant?: "danger" | "info" | "warning";
     confirmLabel?: string;
     cancelLabel?: string;
@@ -56,7 +57,6 @@ export function useInterviewPageController({
   const hasCheckedResumeRef = useRef(false);
   const isMountedRef = useRef(true);
   const resumeExpiredRef = useRef(false);
-  const graceWarningShownRef = useRef(false);
   const autoExitScheduledRef = useRef(false);
   const sessionMetaPromiseRef = useRef<Promise<void> | null>(null);
   const chatMessagesRef = useRef<typeof chat.messages>([]);
@@ -69,7 +69,7 @@ export function useInterviewPageController({
 
     const activeId = localStorage.getItem("active_interview_id");
     if (activeId && activeId !== interviewId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+
       setModal({
         isOpen: true,
         title: "Active Interview Found",
@@ -96,6 +96,9 @@ export function useInterviewPageController({
   }, [interviewStarted, interviewId]);
   const chatScrollContainerRef = useRef<HTMLDivElement | null>(null);
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
+  const chatScrollFrameRef = useRef<number | null>(null);
+  const chatScrollBehaviorRef = useRef<ScrollBehavior>("smooth");
+  const whiteboardRef = useRef<InterviewWhiteboardRef | null>(null);
 
   const media = useMediaPermissions();
 
@@ -117,12 +120,20 @@ export function useInterviewPageController({
     return pendingVideoStopRef.current;
   }, [stopVideoRecording]);
 
+  const getWhiteboardExport = useCallback(async () => {
+    if (whiteboardRef.current?.exportBoard) {
+      return whiteboardRef.current.exportBoard();
+    }
+    return null;
+  }, []);
+
   const chat = useChatSession({
     interviewId,
     interviewStarted,
     interviewDone,
     finalTranscriptBlock: speech.finalTranscriptBlock,
     setInterviewDone,
+    getWhiteboardExport,
   });
 
   const tts = useStreamingTTS({
@@ -140,21 +151,21 @@ export function useInterviewPageController({
 
   const audioLevels = useAudioAnalyser(media.stream, media.isMicEnabled);
 
-  const applySessionMeta = useCallback((data: {
-    durationMinutes?: unknown;
-    createdAt?: unknown;
-    questionCount?: unknown;
-    persona?: unknown;
-    type?: unknown;
-  }) => {
-    if (!isMountedRef.current) return;
-    if (typeof data.durationMinutes === "number" && data.durationMinutes > 0) {
+  const handleStartInterview = useCallback(() => {
+    if (resumeExpiredRef.current) return;
+    setInterviewStarted(true);
+    localStorage.setItem("active_interview_id", interviewId);
+  }, [interviewId]);
+
+  const applySessionMeta = useCallback((data: any) => {
+    if (!data) return;
+    if (typeof data.durationMinutes === "number") {
       setDurationMinutes(data.durationMinutes);
     }
     if (typeof data.createdAt === "string") {
       setSessionCreatedAt(data.createdAt);
     }
-    if (typeof data.questionCount === "number" && data.questionCount > 0) {
+    if (typeof data.questionCount === "number") {
       setTotalQuestions(data.questionCount);
     }
     if (typeof data.persona === "string") {
@@ -237,19 +248,23 @@ export function useInterviewPageController({
   }, [chat.messages]);
 
   const handlePermissionsGranted = useCallback(async () => {
-    // Note: joinBlockedReason check is handled synchronously by the UI before calling this.
-    // We must call startScreenRecording synchronously here to preserve the user gesture 
-    // context required by Safari for getDisplayMedia.
-
     if (resumeExpiredRef.current) return;
 
     const pendingRaw = sessionStorage.getItem(`pending_interview_${interviewId}`);
     let sessionPromise: Promise<void>;
-    
+    let payload: Record<string, unknown> | null = null;
+
     if (pendingRaw) {
-      const payload = JSON.parse(pendingRaw);
+      try {
+        payload = JSON.parse(pendingRaw);
+      } catch {
+        sessionStorage.removeItem(`pending_interview_${interviewId}`);
+      }
+    }
+
+    if (payload) {
       payload.id = interviewId;
-      setInterviewType(coerceInterviewType(payload.type));
+      setInterviewType(coerceInterviewType(payload.type as string | undefined));
       sessionPromise = fetch("/api/interview/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -259,10 +274,6 @@ export function useInterviewPageController({
         sessionStorage.removeItem(`pending_interview_${interviewId}`);
       });
     } else {
-      // Existing sessions must not enter the room with the default metadata
-      // while their client-side lookup is still in flight. startScreenRecording
-      // asks for display capture before awaiting this promise, preserving the
-      // user gesture required by Safari.
       sessionPromise = loadSessionMeta();
     }
 
@@ -327,13 +338,61 @@ export function useInterviewPageController({
         interviewDoneRef.current || userAnswerCount > 0 ? "COMPLETED" : "ABORTED";
 
       addPendingInterviewFinalize(interviewId);
-      void scheduleInterviewFinalize({
-        interviewId,
-        status: interviewStatus,
-        stopVideoRecording: stopVideoRecordingForFinalize,
-      }).catch((error) => {
+      try {
+        const finalizeResult = await scheduleInterviewFinalize({
+          interviewId,
+          status: interviewStatus,
+          stopVideoRecording: stopVideoRecordingForFinalize,
+        });
+
+        if (finalizeResult && finalizeResult.type === "error") {
+          setIsUploading(false);
+          isExitingRef.current = false;
+          setModal({
+            isOpen: true,
+            title: "Recording Save Failed",
+            description:
+              finalizeResult.message ||
+              "Failed to finalize and save your interview recording. You can retry or proceed to analytics.",
+            confirmLabel: "Proceed to Analytics",
+            cancelLabel: "Retry",
+            variant: "warning",
+            onConfirm: () => {
+              closeModal();
+              media.stopStream();
+              router.push("/analytics");
+            },
+            onCancel: () => {
+              closeModal();
+              void handleExitInterviewRef.current({ skipConfirmation: true });
+            },
+          });
+          return;
+        }
+      } catch (error) {
         console.error("Error finalizing interview upload:", error);
-      });
+        setIsUploading(false);
+        isExitingRef.current = false;
+        setModal({
+          isOpen: true,
+          title: "Recording Save Failed",
+          description:
+            "An unexpected error occurred while saving your interview recording. You can retry or proceed to analytics.",
+          confirmLabel: "Proceed to Analytics",
+          cancelLabel: "Retry",
+          variant: "warning",
+          onConfirm: () => {
+            closeModal();
+            media.stopStream();
+            router.push("/analytics");
+          },
+          onCancel: () => {
+            closeModal();
+            void handleExitInterviewRef.current({ skipConfirmation: true });
+          },
+        });
+        return;
+      }
 
       media.stopStream();
       router.push("/analytics");
@@ -353,40 +412,48 @@ export function useInterviewPageController({
     void handleExitInterviewRef.current({ skipConfirmation: true });
   }, [interviewDone, cancelTts]);
 
-  // Real-time interview countdown timer with 60s grace period
-  useEffect(() => {
-    if (!interviewStarted || interviewDone) return;
+  const handleCountdownExpired = useCallback(() => {
+    setInterviewDone(true);
+    void handleExitInterviewRef.current({ skipConfirmation: true });
+  }, []);
 
-    const totalMs = durationMinutes * 60_000;
-    const startTime = sessionCreatedAt ? new Date(sessionCreatedAt).getTime() : Date.now();
-
-    const tick = () => {
-      const elapsed = Date.now() - startTime;
-      const remaining = Math.max(0, totalMs - elapsed);
-      setTimeRemainingMs(remaining);
-
-      // 60-second warning before grace period starts
-      if (remaining <= 60_000 && remaining > 0 && !graceWarningShownRef.current) {
-        graceWarningShownRef.current = true;
-        setIsGraceWarningActive(true);
-      }
-
-      // Hard stop after total duration + 60s grace period
-      if (elapsed >= totalMs + 60_000) {
-        setInterviewDone(true);
-        void handleExitInterviewRef.current({ skipConfirmation: true });
-      }
-    };
-
-    tick();
-    const timerInterval = setInterval(tick, 1000);
-    return () => clearInterval(timerInterval);
-  }, [interviewStarted, interviewDone, durationMinutes, sessionCreatedAt]);
+  const countdown = useInterviewCountdown({
+    interviewStarted,
+    interviewDone,
+    durationMinutes,
+    sessionCreatedAt,
+    onExpired: handleCountdownExpired,
+  });
 
   useEffect(() => {
     if (!chatScrollContainerRef.current) return;
-    chatBottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+
+    chatScrollBehaviorRef.current =
+      chat.currentStreamedText ||
+      speech.interimTranscript ||
+      speech.volatileTranscript
+        ? "auto"
+        : "smooth";
+
+    if (chatScrollFrameRef.current !== null) return;
+
+    chatScrollFrameRef.current = requestAnimationFrame(() => {
+      chatScrollFrameRef.current = null;
+      chatBottomRef.current?.scrollIntoView({
+        behavior: chatScrollBehaviorRef.current,
+        block: "end",
+      });
+    });
   }, [chat.messages, chat.currentStreamedText, chat.isThinking, speech.interimTranscript, speech.volatileTranscript]);
+
+  useEffect(() => {
+    return () => {
+      if (chatScrollFrameRef.current !== null) {
+        cancelAnimationFrame(chatScrollFrameRef.current);
+        chatScrollFrameRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     void loadSessionMeta().catch((error) => {
@@ -418,19 +485,7 @@ export function useInterviewPageController({
   );
   const questionProgressPercent = Math.min((answeredQuestions / totalQuestions) * 100, 100);
 
-  const totalDurationMs = durationMinutes * 60_000;
-  const timeProgressPercent =
-    timeRemainingMs !== null
-      ? Math.min(100, Math.max(0, ((totalDurationMs - timeRemainingMs) / totalDurationMs) * 100))
-      : questionProgressPercent;
-
-  const timeRemainingFormatted = useMemo(() => {
-    if (timeRemainingMs === null) return null;
-    const totalSec = Math.ceil(timeRemainingMs / 1000);
-    const minutes = Math.floor(totalSec / 60);
-    const seconds = totalSec % 60;
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-  }, [timeRemainingMs]);
+  const timeProgressPercent = countdown.timeProgressPercent ?? questionProgressPercent;
 
   const { mountVideoNode } = media;
   const handleVideoMount = useCallback(
@@ -441,16 +496,13 @@ export function useInterviewPageController({
   );
 
   return {
-    router,
     showPreJoin,
     interviewStarted,
     interviewDone,
     isUploading,
-    durationMinutes,
-    timeRemainingMs,
-    timeRemainingFormatted,
+    timeRemainingFormatted: countdown.timeRemainingFormatted,
     timeProgressPercent,
-    isGraceWarningActive,
+    isGraceWarningActive: countdown.isGraceWarningActive,
     totalQuestions,
     interviewType,
     joinBlockedReason,
@@ -459,7 +511,6 @@ export function useInterviewPageController({
     questionProgressPercent,
     chatScrollContainerRef,
     chatBottomRef,
-    setInterviewDone,
     speech,
     chat,
     tts,
@@ -471,6 +522,7 @@ export function useInterviewPageController({
     handleExitInterview,
     handleVideoMount,
     codingChallenge: chat.codingChallenge,
+    whiteboardRef,
     modal,
     closeModal,
   };

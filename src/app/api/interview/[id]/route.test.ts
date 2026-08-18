@@ -1,17 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { GET } from "./route";
+import { DELETE, GET } from "./route";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
-import { getQuestionFeedbackForSession } from "@/repositories/interview-repo";
+import { getQuestionFeedbackForSession, softDeleteInterviewSession } from "@/repositories/interview-repo";
+import { deleteS3Object } from "@/lib/s3/videos";
+import { csrfRejectIfInvalid } from "@/lib/csrf";
 
 vi.mock("@/lib/server-auth", () => ({
   getSessionUserIdentity: vi.fn(),
+}));
+
+vi.mock("@/lib/csrf", () => ({
+  csrfRejectIfInvalid: vi.fn(() => null),
 }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     interviewSession: {
       findFirst: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn(),
     },
     questionFeedback: {
       findMany: vi.fn(),
@@ -24,8 +32,13 @@ vi.mock("@/repositories/interview-repo", async (importOriginal) => {
   return {
     ...actual,
     getQuestionFeedbackForSession: vi.fn().mockResolvedValue([]),
+    softDeleteInterviewSession: vi.fn(),
   };
 });
+
+vi.mock("@/lib/s3/videos", () => ({
+  deleteS3Object: vi.fn(),
+}));
 
 describe("GET /api/interview/[id]", () => {
   beforeEach(() => {
@@ -69,7 +82,7 @@ describe("GET /api/interview/[id]", () => {
 
     expect(prisma.interviewSession.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: interviewId, userId: "user-1" },
+        where: { id: interviewId, userId: "user-1", deletedAt: null },
       })
     );
     expect(getQuestionFeedbackForSession).not.toHaveBeenCalled();
@@ -102,5 +115,47 @@ describe("GET /api/interview/[id]", () => {
       evaluation: null,
       feedback: [],
     });
+  });
+});
+
+describe("DELETE /api/interview/[id]", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+  });
+
+  it("soft deletes the owned session without hard-deleting data or S3 objects", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
+    vi.mocked(softDeleteInterviewSession).mockResolvedValue(true);
+
+    const interviewId = "11111111-1111-4111-8111-111111111111";
+    const response = await DELETE(
+      new Request(`http://localhost/api/interview/${interviewId}`, { method: "DELETE" }),
+      { params: Promise.resolve({ id: interviewId }) },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ success: true });
+    expect(softDeleteInterviewSession).toHaveBeenCalledWith({
+      interviewId,
+      userId: "user-1",
+    });
+    expect(prisma.interviewSession.delete).not.toHaveBeenCalled();
+    expect(prisma.interviewSession.deleteMany).not.toHaveBeenCalled();
+    expect(deleteS3Object).not.toHaveBeenCalled();
+  });
+
+  it("preserves the safe not-found response for an absent active session", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
+    vi.mocked(softDeleteInterviewSession).mockResolvedValue(false);
+
+    const interviewId = "11111111-1111-4111-8111-111111111111";
+    const response = await DELETE(
+      new Request(`http://localhost/api/interview/${interviewId}`, { method: "DELETE" }),
+      { params: Promise.resolve({ id: interviewId }) },
+    );
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({ error: "Interview session not found" });
   });
 });

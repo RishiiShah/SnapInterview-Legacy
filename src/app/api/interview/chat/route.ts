@@ -11,6 +11,8 @@ import { runInterviewChat } from "@/services/interview-service";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
 import { interviewIdSchema } from "@/lib/interview/domain";
+import { parseJsonBody } from "@/lib/http/request-body";
+import { MAX_IMAGE_BASE64_LENGTH } from "@/lib/interview/chat-messages";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
 
@@ -21,6 +23,35 @@ const chatSchema = z.object({
     z.object({
       role: z.string().min(1),
       content: z.string(),
+      board: z
+        .object({
+          scene: z.object({
+            version: z.literal(1),
+            revision: z.number(),
+            contentHash: z.string(),
+            nodes: z.array(
+              z.object({
+                id: z.string(),
+                kind: z.string(),
+                label: z.string(),
+                x: z.number().optional(),
+                y: z.number().optional(),
+              })
+            ),
+            edges: z.array(
+              z.object({
+                id: z.string(),
+                from: z.string(),
+                to: z.string(),
+                label: z.string().optional(),
+              })
+            ),
+          }),
+          imageBase64: z.string().max(MAX_IMAGE_BASE64_LENGTH).optional(),
+          mimeType: z.enum(["image/jpeg", "image/png"]),
+          visionStatus: z.enum(["vision_available", "vision_unavailable"]).optional(),
+        })
+        .optional(),
     })
   ),
 });
@@ -38,12 +69,9 @@ export const POST = withCsrfProtection(async (req: Request) => {
       return new Response("Too many chat requests. Please try again later.", { status: 429 });
     }
 
-    const body = await req.json();
-    const parsed = chatSchema.safeParse(body);
-
-    if (!parsed.success) {
-      const firstError = parsed.error.issues[0]?.message || "Invalid input";
-      return badRequestError(firstError);
+    const parsed = await parseJsonBody(req, chatSchema);
+    if (!parsed.ok) {
+      return parsed.response;
     }
 
     const { interviewId, messages: rawMessages, expectedCurrentQuestion } = parsed.data;

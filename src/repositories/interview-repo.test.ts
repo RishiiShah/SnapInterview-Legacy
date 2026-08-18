@@ -5,6 +5,7 @@ vi.mock("@/lib/prisma", () => ({
     interviewSession: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
+      update: vi.fn(),
       updateMany: vi.fn(),
     },
   },
@@ -18,7 +19,11 @@ import {
   getInterviewSession,
   listCompletedSessionsForUser,
   persistClaimedEvaluation,
+  persistWhiteboardScene,
   releaseInterviewEvaluationClaim,
+  softDeleteInterviewSession,
+  updateInterviewSessionStatus,
+  advanceInterviewCurrentQuestion,
 } from "./interview-repo";
 
 describe("getInterviewSession state view", () => {
@@ -46,8 +51,111 @@ describe("getInterviewSession state view", () => {
 
     expect(session).toMatchObject({ type: "coding-algorithms" });
     expect(prisma.interviewSession.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "interview-1", userId: "user-1", deletedAt: null },
       select: expect.objectContaining({ type: true }),
     }));
+  });
+
+  it("excludes soft-deleted sessions from every active view", async () => {
+    vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue(null);
+
+    await getInterviewSession({
+      interviewId: "int-1",
+      userId: "user-1",
+      view: "chat",
+    });
+
+    expect(prisma.interviewSession.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "int-1", userId: "user-1", deletedAt: null },
+      }),
+    );
+  });
+});
+
+describe("active interview mutations", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("soft deletes only an owned active row", async () => {
+    const deletedAt = new Date("2026-08-17T12:00:00.000Z");
+    vi.mocked(prisma.interviewSession.updateMany).mockResolvedValue({ count: 1 } as never);
+
+    await expect(
+      softDeleteInterviewSession({
+        interviewId: "int-1",
+        userId: "user-1",
+        deletedAt,
+      }),
+    ).resolves.toBe(true);
+
+    expect(prisma.interviewSession.updateMany).toHaveBeenCalledWith({
+      where: { id: "int-1", userId: "user-1", deletedAt: null },
+      data: { deletedAt, shareToken: null },
+    });
+  });
+
+  it("persists whiteboard scene only for an owned in-progress row at the expected question", async () => {
+    vi.mocked(prisma.interviewSession.updateMany).mockResolvedValue({ count: 1 } as never);
+
+    await expect(
+      persistWhiteboardScene({
+        interviewId: "int-1",
+        userId: "user-1",
+        expectedCurrentQuestion: 2,
+        sessionPlan: { whiteboardScene: { nodes: [] } },
+      }),
+    ).resolves.toBe(true);
+
+    expect(prisma.interviewSession.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: "int-1",
+        userId: "user-1",
+        deletedAt: null,
+        status: "IN_PROGRESS",
+        currentQuestion: 2,
+      },
+      data: { sessionPlan: { whiteboardScene: { nodes: [] } } },
+    });
+  });
+
+  it("updates status only for an owned active row", async () => {
+    vi.mocked(prisma.interviewSession.update).mockResolvedValue({ id: "int-1" } as never);
+
+    await updateInterviewSessionStatus({
+      interviewId: "int-1",
+      userId: "user-1",
+      status: "COMPLETED",
+    });
+
+    expect(prisma.interviewSession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "int-1", userId: "user-1", deletedAt: null },
+      }),
+    );
+  });
+
+  it("advances only an owned active row at the expected question", async () => {
+    vi.mocked(prisma.interviewSession.updateMany).mockResolvedValue({ count: 1 } as never);
+
+    await advanceInterviewCurrentQuestion({
+      interviewId: "int-1",
+      userId: "user-1",
+      expectedCurrentQuestion: 2,
+    });
+
+    expect(prisma.interviewSession.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: "int-1",
+          userId: "user-1",
+          deletedAt: null,
+          status: "IN_PROGRESS",
+          currentQuestion: 2,
+        },
+      }),
+    );
   });
 });
 
@@ -171,6 +279,7 @@ describe("interview evaluation claims", () => {
       where: {
         id: "interview-1",
         userId: "user-1",
+        deletedAt: null,
         evaluationClaimVersion: 4,
         OR: [
           { evaluationStartedAt: null },
@@ -201,11 +310,11 @@ describe("interview evaluation claims", () => {
 
     expect(persisted).toBe(false);
     expect(prisma.interviewSession.updateMany).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      where: expect.objectContaining({ evaluationClaimVersion: 5 }),
+      where: expect.objectContaining({ userId: "user-1", deletedAt: null, evaluationClaimVersion: 5 }),
       data: { evaluation: { score: 90 }, evaluationStartedAt: null },
     }));
     expect(prisma.interviewSession.updateMany).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      where: expect.objectContaining({ evaluationClaimVersion: 5 }),
+      where: expect.objectContaining({ userId: "user-1", deletedAt: null, evaluationClaimVersion: 5 }),
       data: { evaluationStartedAt: null },
     }));
   });

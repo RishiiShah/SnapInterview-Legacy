@@ -10,6 +10,7 @@ import {
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiError, apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { parseJsonBody } from "@/lib/http/request-body";
 import { z } from "zod/v4";
 import {
     ALLOWED_STATUSES,
@@ -17,7 +18,7 @@ import {
     startInterviewSession,
     updateSessionStatusIfOwned,
 } from "@/services/interview-service";
-import { deleteInterviewSession } from "@/repositories/interview-repo";
+import { softDeleteInterviewSession } from "@/repositories/interview-repo";
 import { withCsrfProtection } from "@/lib/route-security";
 import { verifyMultipartCompletionToken } from "@/lib/s3/multipart-upload-token";
 import { warmEmbeddingModel } from "@/lib/rag/embeddings";
@@ -94,12 +95,9 @@ export const POST = withCsrfProtection(async (req: Request) => {
             return apiError("Too many interview sessions created. Please try again later.", 429);
         }
 
-        const body = await req.json();
-        const parsed = createSessionSchema.safeParse(body);
-
-        if (!parsed.success) {
-            const firstError = parsed.error.issues[0]?.message || "Invalid input";
-            return badRequestError(firstError);
+        const parsed = await parseJsonBody(req, createSessionSchema);
+        if (!parsed.ok) {
+            return parsed.response;
         }
 
         const { id, role, company, type, difficulty, persona, jobDescription, resumeUrl, resumeText, durationMinutes, questionCount } = parsed.data;
@@ -139,6 +137,14 @@ const patchSessionSchema = z.object({
         (val) => (ALLOWED_STATUSES as readonly string[]).includes(val),
         "Invalid status value"
     ).optional(),
+    videoUrl: z.unknown().optional(),
+}).superRefine((data, ctx) => {
+    if (data.videoUrl !== undefined) {
+        ctx.addIssue({
+            code: "custom",
+            message: "videoUrl cannot be updated directly",
+        });
+    }
 });
 
 export const PATCH = withCsrfProtection(async (req: Request) => {
@@ -148,16 +154,9 @@ export const PATCH = withCsrfProtection(async (req: Request) => {
             return unauthorizedError();
         }
 
-        const body = await req.json();
-        if (body && typeof body === "object" && "videoUrl" in body) {
-            return badRequestError("videoUrl cannot be updated directly");
-        }
-
-        const parsed = patchSessionSchema.safeParse(body);
-
-        if (!parsed.success) {
-            const firstError = parsed.error.issues[0]?.message || "Invalid input";
-            return badRequestError(firstError);
+        const parsed = await parseJsonBody(req, patchSessionSchema);
+        if (!parsed.ok) {
+            return parsed.response;
         }
 
         const { interviewId, videoKey, videoCompletionToken, status } = parsed.data;
@@ -235,7 +234,7 @@ export const DELETE = withCsrfProtection(async (req: Request) => {
         }
         const interviewId = parsedId.data;
 
-        await deleteInterviewSession({
+        await softDeleteInterviewSession({
             interviewId,
             userId: authUser.userId,
         });

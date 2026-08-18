@@ -117,4 +117,17 @@ describe("POST /api/interview/chat", () => {
     expect(response.status).toBe(410);
     await expect(response.json()).resolves.toEqual({ error: "This interview expired after 24 hours." });
   });
+
+  it("returns 400 when request body is malformed JSON", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "u@example.com" });
+
+    const response = await POST(new Request("http://localhost/api/interview/chat", {
+      method: "POST",
+      body: "not-json",
+    }));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid JSON body" });
+    expect(runInterviewChat).not.toHaveBeenCalled();
+  });
 });

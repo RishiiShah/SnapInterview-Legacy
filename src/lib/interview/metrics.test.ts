@@ -1,46 +1,52 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getAnalyticsOverviewData, getDashboardOverviewData } from "./metrics";
-import { prisma } from "@/lib/prisma";
+import {
+  getAnalyticsOverviewData,
+  getDashboardOverviewData,
+  getRecentPracticeSessionsByUserId,
+} from "./metrics";
+import {
+  groupQuestionFeedbackForUser,
+  listMetricSessionsForUser,
+  listMetricTranscriptsForUser,
+  listRecentRecordedMetricSessionsForUser,
+} from "@/repositories/interview-metrics-repo";
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    user: {
-      findUnique: vi.fn(),
-    },
-    interviewSession: {
-      findMany: vi.fn(),
-    },
-    transcriptEntry: {
-      findMany: vi.fn(),
-    },
-    questionFeedback: {
-      groupBy: vi.fn().mockResolvedValue([]),
-    },
-  },
+vi.mock("@/repositories/interview-metrics-repo", () => ({
+  groupQuestionFeedbackForUser: vi.fn(),
+  listMetricSessionsForUser: vi.fn(),
+  listMetricTranscriptsForUser: vi.fn(),
+  listRecentRecordedMetricSessionsForUser: vi.fn(),
 }));
+
+function makeSession(overrides: object) {
+  return {
+    id: "s",
+    role: "Engineer",
+    company: "Acme",
+    videoKey: null,
+    type: "behavioral",
+    status: "COMPLETED",
+    questionCount: 5,
+    currentQuestion: 5,
+    evaluation: null,
+    createdAt: new Date(),
+    ...overrides,
+  };
+}
 
 describe("interview metrics scoring", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(prisma.questionFeedback.groupBy).mockResolvedValue([] as never);
+    vi.mocked(listMetricSessionsForUser).mockResolvedValue([]);
+    vi.mocked(listMetricTranscriptsForUser).mockResolvedValue([]);
+    vi.mocked(listRecentRecordedMetricSessionsForUser).mockResolvedValue([]);
+    vi.mocked(groupQuestionFeedbackForUser).mockResolvedValue([]);
   });
 
   it("prefers persisted model evaluation score over derived completion score", async () => {
     const now = new Date();
 
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      id: "user-1",
-      name: null,
-      email: "user@example.com",
-      emailVerified: null,
-      image: null,
-      passwordHash: null,
-      isFirstLogin: false,
-      notificationPrefs: {},
-      createdAt: now,
-      updatedAt: now,
-    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
-    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([
+    vi.mocked(listMetricSessionsForUser).mockResolvedValue([
       {
         id: "session-1",
         userId: "user-1",
@@ -62,10 +68,8 @@ describe("interview metrics scoring", () => {
           areasForImprovement: ["Add more metrics"],
         },
         createdAt: now,
-      } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      } as any,
     ]);
-    vi.mocked(prisma.transcriptEntry.findMany).mockResolvedValue([]);
-
     const dashboard = await getDashboardOverviewData("user-1");
     const avgStat = dashboard.stats.find((item) => item.label === "Average Score");
 
@@ -83,7 +87,7 @@ describe("interview metrics scoring", () => {
   it("uses rubric scores only on the dashboard — never progress placeholders", async () => {
     const now = new Date();
 
-    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([
+    vi.mocked(listMetricSessionsForUser).mockResolvedValue([
       {
         id: "scored-zero",
         role: "Backend Developer",
@@ -128,7 +132,7 @@ describe("interview metrics scoring", () => {
         evaluation: null,
         createdAt: new Date(now.getTime() - 60_000),
       },
-    ] as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+    ] as any);
 
     const dashboard = await getDashboardOverviewData("user-rubric-only");
     const avgStat = dashboard.stats.find((item) => item.label === "Average Score");
@@ -156,7 +160,7 @@ describe("interview metrics scoring", () => {
   it("prefers persisted evaluation strengths and improvements over transcript keyword fallbacks", async () => {
     const now = new Date();
 
-    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([
+    vi.mocked(listMetricSessionsForUser).mockResolvedValue([
       {
         id: "session-1",
         role: "Frontend Engineer",
@@ -192,7 +196,7 @@ describe("interview metrics scoring", () => {
         createdAt: now,
       },
     ] as never);
-    vi.mocked(prisma.transcriptEntry.findMany).mockResolvedValue([
+    vi.mocked(listMetricTranscriptsForUser).mockResolvedValue([
       {
         question: "Tell me about leadership",
         answer: "Um, maybe I led the project.",
@@ -204,12 +208,12 @@ describe("interview metrics scoring", () => {
 
     expect(analytics.strengths[0]).toBe("Structured storytelling");
     expect(analytics.improvements[0]).toBe("Technical depth");
-    expect(prisma.transcriptEntry.findMany).not.toHaveBeenCalled();
+    expect(listMetricTranscriptsForUser).not.toHaveBeenCalled();
   });
 
   it("uses completed-session and grouped-feedback queries for analytics", async () => {
     const now = new Date();
-    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([
+    vi.mocked(listMetricSessionsForUser).mockResolvedValue([
       {
         id: "session-1",
         role: "Frontend Engineer",
@@ -229,62 +233,105 @@ describe("interview metrics scoring", () => {
         createdAt: now,
       },
     ] as never);
-    vi.mocked(prisma.questionFeedback.groupBy).mockResolvedValue([
-      { rating: "up", _count: { _all: 4 } },
-      { rating: "down", _count: { _all: 2 } },
-    ] as never);
+    vi.mocked(groupQuestionFeedbackForUser).mockResolvedValue([
+      { rating: "up", count: 4 },
+      { rating: "down", count: 2 },
+    ]);
 
     const analytics = await getAnalyticsOverviewData("user-1");
 
-    expect(prisma.interviewSession.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { userId: "user-1", deletedAt: null, status: "COMPLETED" },
-      }),
-    );
-    expect(prisma.questionFeedback.groupBy).toHaveBeenCalledWith({
-      by: ["rating"],
-      where: { interviewSession: { userId: "user-1", deletedAt: null } },
-      _count: { _all: true },
+    expect(listMetricSessionsForUser).toHaveBeenCalledWith({
+      userId: "user-1",
+      status: "COMPLETED",
     });
+    expect(groupQuestionFeedbackForUser).toHaveBeenCalledWith("user-1");
     expect(analytics.feedbackStats).toEqual({ total: 6, thumbsUp: 4, thumbsDown: 2 });
   });
 
+  it("reports lifetime totals beyond the former 300-session cap", async () => {
+    const sessions = Array.from({ length: 301 }, (_, index) => ({
+      id: `session-${index}`,
+      role: "Software Engineer",
+      company: null,
+      videoKey: null,
+      type: "behavioral-leadership",
+      difficulty: "medium",
+      status: "COMPLETED" as const,
+      durationMinutes: 30,
+      questionCount: 5,
+      currentQuestion: 5,
+      evaluation: {
+        score: 80,
+        feedback: "Good",
+        strengths: [],
+        areasForImprovement: [],
+      },
+      createdAt: new Date(2025, 0, 1 + index),
+    }));
+    vi.mocked(listMetricSessionsForUser).mockResolvedValue(sessions);
+
+    const analytics = await getAnalyticsOverviewData("user-301");
+    const dashboard = await getDashboardOverviewData("user-301");
+
+    expect(analytics.totalSessions).toBe(301);
+    expect(dashboard.stats.find((stat) => stat.label === "Interviews Completed")?.value).toBe("301");
+    expect(dashboard.stats.find((stat) => stat.label === "Hours Practiced")?.value).toBe("150.5");
+    expect(dashboard.recentSessions).toHaveLength(5);
+  });
+
+  it("keeps recent practice output at the requested limit", async () => {
+    vi.mocked(listRecentRecordedMetricSessionsForUser).mockResolvedValue(
+      Array.from({ length: 6 }, (_, index) => ({
+        id: `session-${index}`,
+        role: "Software Engineer",
+        company: null,
+        videoKey: `video-${index}`,
+        type: "coding-algorithms",
+        difficulty: "medium",
+        status: "COMPLETED" as const,
+        durationMinutes: 30,
+        questionCount: 5,
+        currentQuestion: 5,
+        evaluation: null,
+        createdAt: new Date(2025, 0, index + 1),
+      })),
+    );
+
+    const recent = await getRecentPracticeSessionsByUserId("user-recent", 2);
+
+    expect(listRecentRecordedMetricSessionsForUser).toHaveBeenCalledWith({
+      userId: "user-recent",
+      limit: 2,
+    });
+    expect(recent).toHaveLength(2);
+  });
+
   it("returns empty strengths and improvements for users with no history", async () => {
-    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([]);
-    vi.mocked(prisma.transcriptEntry.findMany).mockResolvedValue([]);
+    vi.mocked(listMetricSessionsForUser).mockResolvedValue([]);
+    vi.mocked(listMetricTranscriptsForUser).mockResolvedValue([]);
 
     const analytics = await getAnalyticsOverviewData("user-no-history");
 
     expect(analytics.strengths).toEqual([]);
     expect(analytics.improvements).toEqual([]);
+    expect(listMetricTranscriptsForUser).toHaveBeenCalledWith({
+      userId: "user-no-history",
+      limit: 500,
+    });
   });
 });
 
 describe("deriveSubScores (via getAnalyticsOverviewData)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(prisma.transcriptEntry.findMany).mockResolvedValue([]);
-    vi.mocked(prisma.questionFeedback.groupBy).mockResolvedValue([] as never);
+    vi.mocked(listMetricSessionsForUser).mockResolvedValue([]);
+    vi.mocked(listMetricTranscriptsForUser).mockResolvedValue([]);
+    vi.mocked(listRecentRecordedMetricSessionsForUser).mockResolvedValue([]);
+    vi.mocked(groupQuestionFeedbackForUser).mockResolvedValue([]);
   });
 
-  function makeSession(overrides: object) {
-    return {
-      id: "s",
-      role: "Engineer",
-      company: "Acme",
-      videoKey: null,
-      type: "behavioral",
-      status: "COMPLETED",
-      questionCount: 5,
-      currentQuestion: 5,
-      evaluation: null,
-      createdAt: new Date(),
-      ...overrides,
-    };
-  }
-
   it("averages sub-scores across all sessions that have evaluations", async () => {
-    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([
+    vi.mocked(listMetricSessionsForUser).mockResolvedValue([
       makeSession({
         id: "s1",
         evaluation: {
@@ -318,34 +365,17 @@ describe("deriveSubScores (via getAnalyticsOverviewData)", () => {
     expect(analytics.subScores.clarity).toBe(80); // (90 + 70) / 2
   });
 
-  it("returns null for each sub-score when no sessions have evaluations", async () => {
-    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([
-      makeSession({ id: "s1", evaluation: null }),
-      makeSession({ id: "s2", evaluation: null }),
-    ] as never);
+  it.each([
+    ["there are no completed sessions", []],
+    ["sessions have no evaluations", [makeSession({ id: "s1" }), makeSession({ id: "s2" })]],
+    ["legacy evaluations omit sub-scores", [makeSession({
+      id: "s1",
+      evaluation: { score: 85, feedback: "Ok.", strengths: [], areasForImprovement: [] },
+    })]],
+  ])("returns null sub-scores when %s", async (_label, sessions) => {
+    vi.mocked(listMetricSessionsForUser).mockResolvedValue(sessions as never);
 
-    const analytics = await getAnalyticsOverviewData("user-no-evals");
-
-    expect(analytics.subScores.communication).toBeNull();
-    expect(analytics.subScores.technicalDepth).toBeNull();
-    expect(analytics.subScores.clarity).toBeNull();
-  });
-
-  it("returns null for sub-scores omitted from some evaluations (backward compat)", async () => {
-    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([
-      makeSession({
-        id: "s1",
-        evaluation: {
-          score: 85,
-          feedback: "Ok.",
-          strengths: [],
-          areasForImprovement: [],
-          // no sub-score fields
-        },
-      }),
-    ] as never);
-
-    const analytics = await getAnalyticsOverviewData("user-old-eval");
+    const analytics = await getAnalyticsOverviewData("user-no-subscores");
 
     expect(analytics.subScores.communication).toBeNull();
     expect(analytics.subScores.technicalDepth).toBeNull();
@@ -353,7 +383,7 @@ describe("deriveSubScores (via getAnalyticsOverviewData)", () => {
   });
 
   it("includes only sessions that have the sub-score when mixing old and new evaluations", async () => {
-    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([
+    vi.mocked(listMetricSessionsForUser).mockResolvedValue([
       makeSession({
         id: "s1",
         evaluation: {
@@ -384,15 +414,5 @@ describe("deriveSubScores (via getAnalyticsOverviewData)", () => {
     expect(analytics.subScores.communication).toBe(70); // (60 + 80) / 2
     expect(analytics.subScores.technicalDepth).toBe(70); // only s2
     expect(analytics.subScores.clarity).toBe(90); // only s2
-  });
-
-  it("returns null sub-scores when there are no completed sessions at all", async () => {
-    vi.mocked(prisma.interviewSession.findMany).mockResolvedValue([] as never);
-
-    const analytics = await getAnalyticsOverviewData("user-empty");
-
-    expect(analytics.subScores.communication).toBeNull();
-    expect(analytics.subScores.technicalDepth).toBeNull();
-    expect(analytics.subScores.clarity).toBeNull();
   });
 });

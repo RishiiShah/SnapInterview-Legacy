@@ -1,6 +1,33 @@
 import { describe, expect, it } from "vitest";
 
-import { formatMonthBucketRange, formatMonthOverMonthChange } from "./analytics-display";
+import {
+  formatMonthBucketRange,
+  formatMonthOverMonthChange,
+  interviewTypeBadgeClass,
+  interviewTypeDisplayLabel,
+} from "./analytics-display";
+
+describe("interview type display metadata", () => {
+  it("normalizes legacy values before choosing full or short labels", () => {
+    expect(interviewTypeDisplayLabel("technical", "full")).toBe(
+      "Coding / algorithms",
+    );
+    expect(interviewTypeDisplayLabel("technical", "short")).toBe("Coding");
+  });
+
+  it("uses one canonical badge tone for domain interviews", () => {
+    expect(interviewTypeBadgeClass("domain-role")).toBe(
+      "text-emerald-300/90 bg-emerald-500/10 border-emerald-500/20",
+    );
+  });
+
+  it("keeps unknown persisted values readable", () => {
+    expect(interviewTypeDisplayLabel("legacy_panel_round", "full")).toBe(
+      "legacy panel round",
+    );
+    expect(interviewTypeDisplayLabel(null, "full")).toBeNull();
+  });
+});
 
 describe("formatMonthOverMonthChange", () => {
   it("labels first activity as new instead of 0%", () => {

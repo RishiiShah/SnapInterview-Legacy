@@ -3,17 +3,19 @@
  * 
  * Runs side-by-side evaluation of:
  * 1. Baseline RAG: 160-char sliding window chunking, linear vector averaging, pure dense cosine search.
- * 2. Production RAG (Upgraded): Semantic section chunking, contextual query formulation, Hybrid Search (Dense + Sparse RRF), and Cross-Encoder Reranker.
+ * 2. Production retrieval: Real end-to-end production pipeline with hybrid search, pgvector + FTS, reranking, and MMR.
  * 
  * Usage:
- *   npx tsx scripts/benchmark-rag.ts
+ *   npm run rag:benchmark
  */
 
 import { readFile } from "fs/promises";
 import path from "path";
+import { parseCsvRecords } from "../src/lib/csv";
+import { prisma } from "../src/lib/prisma";
+import { dedupeByNormalizedQuestion } from "../src/lib/rag/corpus-normalization";
+import { runProductionRetrieval, type RagBenchmarkScenario } from "../src/lib/rag/benchmark-session";
 import { localEmbedder, cosineSimilarity } from "../src/lib/rag/embeddings";
-import { chunkResumeSemantic } from "../src/lib/rag/chunker";
-import { rerankCandidates } from "../src/lib/rag/reranker";
 import { mapSoftwareCategory, mapHrCategory, normalizeRoleSlug } from "../src/lib/rag/taxonomy";
 import { extractKeyTechnicalTerms } from "../src/lib/rag/chunker";
 
@@ -29,20 +31,7 @@ interface QuestionRecord {
   vector: number[];
 }
 
-interface BenchmarkScenario {
-  id: string;
-  title: string;
-  role: string;
-  type: string;
-  difficulty: string;
-  resume: string;
-  jobDescription?: string;
-  latestAnswer: string;
-  expectedKeywords: string[];
-  targetCategories: string[];
-}
-
-const BENCHMARK_SCENARIOS: BenchmarkScenario[] = [
+const BENCHMARK_SCENARIOS: RagBenchmarkScenario[] = [
   {
     id: "frontend-perf",
     title: "1. Frontend Architecture & React Optimization",
@@ -98,33 +87,34 @@ Lead Backend Engineer | FinTech Cloud (2021 - Present)
 - Systems: Linux, Bash, Nginx, Networking
 
 ## WORK EXPERIENCE
-DevOps Cloud Engineer | SaaS Platforms (2022 - Present)
-- Built multi-region Kubernetes clusters with Terraform and automated zero-downtime canary deployments via ArgoCD.
-- Configured horizontal pod autoscalers (HPA) using custom Prometheus metrics.
+Senior DevOps Engineer | CloudScale (2021 - Present)
+- Engineered GitOps deployments across 12 EKS clusters using ArgoCD and Helm.
+- Reduced mean time to recovery (MTTR) by 60% by creating dynamic Prometheus alert pipelines and distributed tracing with OpenTelemetry.
     `.trim(),
-    latestAnswer: "We set up automated canary deployments using ArgoCD rollouts and configured Prometheus alertmanager to automatically trigger rollbacks if error rates exceed 0.5%.",
-    expectedKeywords: ["kubernetes", "ci/cd", "continuous", "pipeline", "docker", "cloud", "devops", "infrastructure", "terraform", "monitor", "ansible"],
-    targetCategories: ["DevOps", "System Design", "Networking", "Security"],
+    latestAnswer: "We set up automated canary deployments using Argo Rollouts with Prometheus metrics analysis for instant automated rollbacks on HTTP 5xx error spikes.",
+    expectedKeywords: ["kubernetes", "docker", "ci/cd", "argo", "prometheus", "aws", "cloud", "helm", "devops", "container", "deploy"],
+    targetCategories: ["DevOps", "Cloud and Architecture", "Infrastructure", "Linux and Systems", "System Design"],
   },
   {
-    id: "security-auth",
-    title: "4. Web Security, OAuth2 & Authentication",
-    role: "Software Engineer - Backend",
-    type: "domain-role",
-    difficulty: "hard",
+    id: "data-algorithms",
+    title: "4. Algorithms & Data Structures (Trees & DP)",
+    role: "Full Stack Software Engineer",
+    type: "coding-algorithms",
+    difficulty: "medium",
     resume: `
 ## TECHNICAL SKILLS
-- Security: OAuth2, OIDC, JWT, SAML, OWASP Top 10, TLS, Vault, PKI
-- Backend: Node.js, Express, PostgreSQL, Redis, Docker
+- Languages: C++, Python, TypeScript, Java
+- Algorithms: Graph Algorithms, Dynamic Programming, Binary Search, Trees, Heaps
+- Systems: Linux, Algorithms, System Programming
 
 ## WORK EXPERIENCE
-Security Backend Engineer | AuthCore Inc.
-- Implemented OAuth2 authorization server with PKCE flow and refresh token rotation.
-- Hardened APIs against CSRF, SSRF, SQL Injection, and timing attacks.
+Software Engineer | Algorithmic Trading (2022 - Present)
+- Implemented custom lock-free ring buffer and order-matching engine with sub-millisecond execution times.
+- Solved graph connectivity and shortest-path routing optimization for arbitrary exchange order books.
     `.trim(),
-    latestAnswer: "We use short-lived JWT access tokens with rotating refresh tokens stored in httpOnly sameSite cookies, and enforced PKCE for single-page client authorization.",
-    expectedKeywords: ["security", "auth", "authentication", "token", "jwt", "oauth", "attack", "privilege", "vulnerability", "encryption"],
-    targetCategories: ["Security", "Web Development", "System Design", "Database and SQL"],
+    latestAnswer: "I used a Trie combined with a min-heap for prefix-based autocomplete to achieve O(k log n) lookup time while bounding worst-case memory footprint.",
+    expectedKeywords: ["tree", "graph", "algorithm", "heap", "trie", "dynamic", "complexity", "time", "space", "sorting", "search"],
+    targetCategories: ["Data Structures and Algorithms", "Algorithms", "Computer Science Fundamentals", "General Programming"],
   },
   {
     id: "behavioral-leadership",
@@ -147,49 +137,6 @@ Engineering Manager | TechScale (2020 - Present)
   },
 ];
 
-// Minimal CSV parser
-function parseCsv(text: string): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let field = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
-    if (inQuotes) {
-      if (char === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        field += char;
-      }
-      continue;
-    }
-    if (char === '"') {
-      inQuotes = true;
-    } else if (char === ",") {
-      row.push(field);
-      field = "";
-    } else if (char === "\n") {
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = "";
-    } else if (char !== "\r") {
-      field += char;
-    }
-  }
-  if (field.length > 0 || row.length > 0) {
-    row.push(field);
-    rows.push(row);
-  }
-  return rows.filter((r) => r.some((cell) => cell.trim().length > 0));
-}
-
 async function loadDataset(): Promise<QuestionRecord[]> {
   const softwareCsvPath = path.join(process.cwd(), "src/data/corpus/software-questions.csv");
   const hrJsonPath = path.join(process.cwd(), "src/data/corpus/hr-questions.json");
@@ -199,7 +146,7 @@ async function loadDataset(): Promise<QuestionRecord[]> {
     readFile(hrJsonPath, "utf-8"),
   ]);
 
-  const softwareRows = parseCsv(softwareRaw);
+  const softwareRows = parseCsvRecords(softwareRaw);
   const [header, ...body] = softwareRows;
   const col = (name: string) => header.findIndex((h) => h.trim().toLowerCase() === name);
   const qIdx = col("question");
@@ -240,10 +187,10 @@ async function loadDataset(): Promise<QuestionRecord[]> {
     };
   });
 
-  const all = [...softwareQuestions, ...hrQuestions];
+  const all = dedupeByNormalizedQuestion([...softwareQuestions, ...hrQuestions]).unique;
 
   // Batch embed all corpus questions
-  console.log(`Loading and embedding ${all.length} corpus questions with Xenova/all-MiniLM-L6-v2...`);
+  console.log(`Loading and embedding ${all.length} normalized corpus questions with Xenova/all-MiniLM-L6-v2...`);
   const texts = all.map((q) => (q.answer ? `${q.question}\n${q.answer}` : q.question));
   const vectors = await localEmbedder.embed(texts);
 
@@ -260,7 +207,7 @@ async function loadDataset(): Promise<QuestionRecord[]> {
  * 3. Pure vector cosine similarity
  */
 async function runBaselineRetrieval(
-  scenario: BenchmarkScenario,
+  scenario: RagBenchmarkScenario,
   corpus: QuestionRecord[],
   topK = 6
 ): Promise<QuestionRecord[]> {
@@ -313,130 +260,12 @@ async function runBaselineRetrieval(
 }
 
 /**
- * Upgraded Production RAG Retrieval (New Approach):
- * 1. Section-aware semantic chunking
- * 2. Contextual query formulation
- * 3. Hybrid Search: Dense cosine + Sparse keyword scoring with RRF (k=60)
- * 4. Cross-Encoder Reranker with calibrated scoring
- */
-async function runUpgradedRetrieval(
-  scenario: BenchmarkScenario,
-  corpus: QuestionRecord[],
-  topK = 6
-): Promise<QuestionRecord[]> {
-  const roleSlug = normalizeRoleSlug(scenario.role);
-
-  // 1. Semantic Chunking
-  const resumeChunks = chunkResumeSemantic(scenario.resume);
-  const activeChunk = resumeChunks.find((c) => c.section === "skills") ?? resumeChunks[0];
-
-  // 2. Synthesized Contextual Query
-  const keyTerms = activeChunk?.keywords.slice(0, 10).join(", ") || "";
-  const denseQueryText = `A ${scenario.type} interview for a ${scenario.role} role. Discussion topic and candidate response: ${scenario.latestAnswer}. Focus area: ${activeChunk?.title || activeChunk?.section || "skills"} - ${keyTerms}`;
-  const [queryVec] = await localEmbedder.embed([denseQueryText]);
-
-  // 3. Sparse Keyword Matching
-  const queryTerms = extractKeyTechnicalTerms(`${scenario.latestAnswer} ${keyTerms}`).map((t) => t.toLowerCase());
-
-  // 4. Hybrid Scoring with RRF (k=60)
-  const filtered = corpus.filter((q) => q.types.includes(scenario.type) || q.types.length === 0);
-
-  // Dense ranking
-  const denseRanked = [...filtered]
-    .map((q) => {
-      let sim = cosineSimilarity(queryVec, q.vector);
-      if (q.roleTags.includes(roleSlug)) sim += 0.1;
-      return { q, sim };
-    })
-    .sort((a, b) => b.sim - a.sim);
-
-  // Sparse ranking (lexical overlap & term matching)
-  const sparseRanked = [...filtered]
-    .map((q) => {
-      const qText = `${q.question} ${q.answer || ""} ${q.keywords.join(" ")}`.toLowerCase();
-      let matches = 0;
-      for (const t of queryTerms) {
-        if (qText.includes(t) || q.keywords.some((k) => t.includes(k.toLowerCase()) || k.toLowerCase().includes(t))) {
-          matches += 2.0;
-        }
-      }
-      return { q, score: matches };
-    })
-    .sort((a, b) => b.score - a.score);
-
-  // Reciprocal Rank Fusion
-  const rrfMap = new Map<string, { q: QuestionRecord; rrfScore: number; similarity: number }>();
-  const RRF_K = 60;
-
-  denseRanked.forEach((item, i) => {
-    const rank = i + 1;
-    rrfMap.set(item.q.id, {
-      q: item.q,
-      similarity: item.sim,
-      rrfScore: 0.6 / (RRF_K + rank),
-    });
-  });
-
-  sparseRanked.forEach((item, i) => {
-    const rank = i + 1;
-    const existing = rrfMap.get(item.q.id);
-    if (existing) {
-      existing.rrfScore += 0.4 / (RRF_K + rank);
-    }
-  });
-
-  const hybridCandidates = Array.from(rrfMap.values())
-    .sort((a, b) => b.rrfScore - a.rrfScore)
-    .slice(0, 30);
-
-  // 5. Stage 2: Cross-Encoder Reranker
-  const rerankInput = hybridCandidates.map((c) => ({
-    id: c.q.id,
-    question: c.q.question,
-    answer: c.q.answer,
-    category: c.q.category,
-    difficulty: c.q.difficulty,
-    roleTags: c.q.roleTags,
-    baseScore: c.similarity,
-  }));
-
-  const reranked = await rerankCandidates(denseQueryText, rerankInput, {
-    targetRoleSlug: roleSlug,
-    topK: 25,
-    useModel: false,
-  });
-
-  // Stage 3: MMR Diversity & Deduplication
-  const candidatesWithVec = reranked.map((r) => {
-    const q = corpus.find((item) => item.id === r.id)!;
-    return { row: r, vector: q.vector, record: q };
-  });
-
-  const selected: QuestionRecord[] = [];
-  const selectedVectors: number[][] = [];
-
-  for (const item of candidatesWithVec) {
-    if (selected.length >= topK) break;
-
-    const isDuplicate = selected.some((chosen, idx) => {
-      if (chosen.question.toLowerCase() === item.record.question.toLowerCase()) return true;
-      const sim = cosineSimilarity(selectedVectors[idx], item.vector);
-      return sim >= 0.85;
-    });
-
-    if (!isDuplicate) {
-      selected.push(item.record);
-      selectedVectors.push(item.vector);
-    }
-  }
-
-  return selected;
-}
-
-/**
  * Calculates quantitative accuracy metrics for a set of retrieved questions against scenario ground-truth criteria.
  */
-function evaluateResults(scenario: BenchmarkScenario, retrieved: QuestionRecord[]) {
+function evaluateResults(
+  scenario: RagBenchmarkScenario,
+  retrieved: Array<{ question: string; answer: string | null; category: string; keywords?: string[] }>
+) {
   if (retrieved.length === 0) {
     return { p1: 0, p3: 0, p6: 0, mrr: 0, ndcg: 0, keywordRecall: 0, diversity: 0 };
   }
@@ -444,7 +273,8 @@ function evaluateResults(scenario: BenchmarkScenario, retrieved: QuestionRecord[
   // Graded relevance score for each question (0.0 to 1.0)
   const relevanceScores = retrieved.map((q) => {
     let score = 0;
-    const textLower = `${q.question} ${q.answer || ""} ${q.keywords.join(" ")}`.toLowerCase();
+    const kws = q.keywords ?? extractKeyTechnicalTerms(`${q.question} ${q.answer || ""}`);
+    const textLower = `${q.question} ${q.answer || ""} ${kws.join(" ")}`.toLowerCase();
 
     // Target category match (0.5 for direct category hit)
     if (scenario.targetCategories.includes(q.category)) {
@@ -455,7 +285,7 @@ function evaluateResults(scenario: BenchmarkScenario, retrieved: QuestionRecord[
     let matchCount = 0;
     for (const kw of scenario.expectedKeywords) {
       const kwLower = kw.toLowerCase();
-      if (textLower.includes(kwLower) || q.keywords.some((k) => k.toLowerCase().includes(kwLower) || kwLower.includes(k.toLowerCase()))) {
+      if (textLower.includes(kwLower) || kws.some((k) => k.toLowerCase().includes(kwLower) || kwLower.includes(k.toLowerCase()))) {
         matchCount++;
       }
     }
@@ -509,15 +339,20 @@ function evaluateResults(scenario: BenchmarkScenario, retrieved: QuestionRecord[
 
 async function main() {
   console.log("================================================================================");
-  console.log("  SnapInterview RAG Accuracy & Quality Benchmark: Baseline vs Production RAG");
+  console.log("  SnapInterview RAG Accuracy & Quality Benchmark: Baseline vs Production retrieval");
   console.log("================================================================================\n");
+
+  const corpusCount = await prisma.questionCorpus.count();
+  if (corpusCount === 0) {
+    throw new Error("QuestionCorpus is empty; run `npm run corpus:ingest` against the benchmark database first.");
+  }
 
   const corpus = await loadDataset();
   console.log(`Corpus loaded: ${corpus.length} questions ready.\n`);
 
   const summary = {
     baseline: { p1: 0, p3: 0, p6: 0, mrr: 0, ndcg: 0, keywordRecall: 0, diversity: 0, timeMs: 0 },
-    upgraded: { p1: 0, p3: 0, p6: 0, mrr: 0, ndcg: 0, keywordRecall: 0, diversity: 0, timeMs: 0 },
+    production: { p1: 0, p3: 0, p6: 0, mrr: 0, ndcg: 0, keywordRecall: 0, diversity: 0, timeMs: 0 },
   };
 
   for (const scenario of BENCHMARK_SCENARIOS) {
@@ -534,33 +369,33 @@ async function main() {
     const baseElapsed = Date.now() - t0;
     const baseMetrics = evaluateResults(scenario, baseRetrieved);
 
-    // Upgraded Run
+    // Production Run
     const t1 = Date.now();
-    const upRetrieved = await runUpgradedRetrieval(scenario, corpus, 6);
-    const upElapsed = Date.now() - t1;
-    const upMetrics = evaluateResults(scenario, upRetrieved);
+    const prodRetrieved = await runProductionRetrieval(scenario);
+    const prodElapsed = Date.now() - t1;
+    const prodMetrics = evaluateResults(scenario, prodRetrieved);
 
     console.log("\n[BASELINE TOP 3 RETRIEVED QUESTIONS]:");
     baseRetrieved.slice(0, 3).forEach((q, i) => {
       console.log(`  ${i + 1}. [${q.category}] ${q.question}`);
     });
 
-    console.log("\n[UPGRADED (NEW) TOP 3 RETRIEVED QUESTIONS]:");
-    upRetrieved.slice(0, 3).forEach((q, i) => {
+    console.log("\n[PRODUCTION RETRIEVAL TOP 3 RETRIEVED QUESTIONS]:");
+    prodRetrieved.slice(0, 3).forEach((q, i) => {
       console.log(`  ${i + 1}. [${q.category}] ${q.question}`);
     });
 
     console.log("\nMetrics Comparison for this Scenario:");
-    console.log(`  Metric                   | Baseline RAG | Upgraded RAG | Improvement`);
-    console.log(`  -------------------------+--------------+--------------+-------------`);
-    console.log(`  Precision @ 1            | ${(baseMetrics.p1 * 100).toFixed(1)}%        | ${(upMetrics.p1 * 100).toFixed(1)}%        | ${upMetrics.p1 >= baseMetrics.p1 ? "+" : ""}${((upMetrics.p1 - baseMetrics.p1) * 100).toFixed(1)}%`);
-    console.log(`  Precision @ 3            | ${(baseMetrics.p3 * 100).toFixed(1)}%        | ${(upMetrics.p3 * 100).toFixed(1)}%        | +${((upMetrics.p3 - baseMetrics.p3) * 100).toFixed(1)}%`);
-    console.log(`  Precision @ 6            | ${(baseMetrics.p6 * 100).toFixed(1)}%        | ${(upMetrics.p6 * 100).toFixed(1)}%        | +${((upMetrics.p6 - baseMetrics.p6) * 100).toFixed(1)}%`);
-    console.log(`  NDCG @ 6                 | ${baseMetrics.ndcg.toFixed(3)}        | ${upMetrics.ndcg.toFixed(3)}        | +${((upMetrics.ndcg - baseMetrics.ndcg) * 100).toFixed(1)}%`);
-    console.log(`  MRR (Reciprocal Rank)    | ${baseMetrics.mrr.toFixed(3)}        | ${upMetrics.mrr.toFixed(3)}        | +${((upMetrics.mrr - baseMetrics.mrr) * 100).toFixed(1)}%`);
-    console.log(`  Tech Keyword Recall      | ${(baseMetrics.keywordRecall * 100).toFixed(1)}%        | ${(upMetrics.keywordRecall * 100).toFixed(1)}%        | +${((upMetrics.keywordRecall - baseMetrics.keywordRecall) * 100).toFixed(1)}%`);
-    console.log(`  Category Diversity       | ${(baseMetrics.diversity * 100).toFixed(1)}%        | ${(upMetrics.diversity * 100).toFixed(1)}%        | +${((upMetrics.diversity - baseMetrics.diversity) * 100).toFixed(1)}%`);
-    console.log(`  Execution Latency        | ${baseElapsed}ms         | ${upElapsed}ms         | -`);
+    console.log(`  Metric                   | Baseline RAG | Production retrieval | Improvement`);
+    console.log(`  -------------------------+--------------+----------------------+-------------`);
+    console.log(`  Precision @ 1            | ${(baseMetrics.p1 * 100).toFixed(1)}%        | ${(prodMetrics.p1 * 100).toFixed(1)}%                 | ${prodMetrics.p1 >= baseMetrics.p1 ? "+" : ""}${((prodMetrics.p1 - baseMetrics.p1) * 100).toFixed(1)}%`);
+    console.log(`  Precision @ 3            | ${(baseMetrics.p3 * 100).toFixed(1)}%        | ${(prodMetrics.p3 * 100).toFixed(1)}%                 | +${((prodMetrics.p3 - baseMetrics.p3) * 100).toFixed(1)}%`);
+    console.log(`  Precision @ 6            | ${(baseMetrics.p6 * 100).toFixed(1)}%        | ${(prodMetrics.p6 * 100).toFixed(1)}%                 | +${((prodMetrics.p6 - baseMetrics.p6) * 100).toFixed(1)}%`);
+    console.log(`  NDCG @ 6                 | ${baseMetrics.ndcg.toFixed(3)}        | ${prodMetrics.ndcg.toFixed(3)}                 | +${((prodMetrics.ndcg - baseMetrics.ndcg) * 100).toFixed(1)}%`);
+    console.log(`  MRR (Reciprocal Rank)    | ${baseMetrics.mrr.toFixed(3)}        | ${prodMetrics.mrr.toFixed(3)}                 | +${((prodMetrics.mrr - baseMetrics.mrr) * 100).toFixed(1)}%`);
+    console.log(`  Tech Keyword Recall      | ${(baseMetrics.keywordRecall * 100).toFixed(1)}%        | ${(prodMetrics.keywordRecall * 100).toFixed(1)}%                 | +${((prodMetrics.keywordRecall - baseMetrics.keywordRecall) * 100).toFixed(1)}%`);
+    console.log(`  Category Diversity       | ${(baseMetrics.diversity * 100).toFixed(1)}%        | ${(prodMetrics.diversity * 100).toFixed(1)}%                 | +${((prodMetrics.diversity - baseMetrics.diversity) * 100).toFixed(1)}%`);
+    console.log(`  Execution Latency        | ${baseElapsed}ms         | ${prodElapsed}ms                  | -`);
     console.log("\n");
 
     // Aggregate
@@ -573,14 +408,14 @@ async function main() {
     summary.baseline.diversity += baseMetrics.diversity;
     summary.baseline.timeMs += baseElapsed;
 
-    summary.upgraded.p1 += upMetrics.p1;
-    summary.upgraded.p3 += upMetrics.p3;
-    summary.upgraded.p6 += upMetrics.p6;
-    summary.upgraded.mrr += upMetrics.mrr;
-    summary.upgraded.ndcg += upMetrics.ndcg;
-    summary.upgraded.keywordRecall += upMetrics.keywordRecall;
-    summary.upgraded.diversity += upMetrics.diversity;
-    summary.upgraded.timeMs += upElapsed;
+    summary.production.p1 += prodMetrics.p1;
+    summary.production.p3 += prodMetrics.p3;
+    summary.production.p6 += prodMetrics.p6;
+    summary.production.mrr += prodMetrics.mrr;
+    summary.production.ndcg += prodMetrics.ndcg;
+    summary.production.keywordRecall += prodMetrics.keywordRecall;
+    summary.production.diversity += prodMetrics.diversity;
+    summary.production.timeMs += prodElapsed;
   }
 
   const N = BENCHMARK_SCENARIOS.length;
@@ -596,21 +431,21 @@ async function main() {
   });
 
   const bAvg = avg(summary.baseline);
-  const uAvg = avg(summary.upgraded);
+  const pAvg = avg(summary.production);
 
   console.log("================================================================================");
   console.log("  AGGREGATE BENCHMARK RESULTS (Across all 5 Scenarios)");
   console.log("================================================================================");
-  console.log(`  Metric                     | Baseline RAG | Upgraded RAG | Accuracy Gain`);
-  console.log(`  ---------------------------+--------------+--------------+----------------`);
-  console.log(`  Precision @ 1              | ${bAvg.p1.toFixed(1).padStart(10)}% | ${uAvg.p1.toFixed(1).padStart(10)}% | ${"+" + (uAvg.p1 - bAvg.p1).toFixed(1)}%`);
-  console.log(`  Precision @ 3              | ${bAvg.p3.toFixed(1).padStart(10)}% | ${uAvg.p3.toFixed(1).padStart(10)}% | ${"+" + (uAvg.p3 - bAvg.p3).toFixed(1)}%`);
-  console.log(`  Precision @ 6              | ${bAvg.p6.toFixed(1).padStart(10)}% | ${uAvg.p6.toFixed(1).padStart(10)}% | ${"+" + (uAvg.p6 - bAvg.p6).toFixed(1)}%`);
-  console.log(`  Mean Reciprocal Rank (MRR) | ${bAvg.mrr.toFixed(3).padStart(11)} | ${uAvg.mrr.toFixed(3).padStart(11)} | ${"+" + ((uAvg.mrr - bAvg.mrr) * 100).toFixed(1)}%`);
-  console.log(`  NDCG @ 6 (Graded Ranking)  | ${bAvg.ndcg.toFixed(3).padStart(11)} | ${uAvg.ndcg.toFixed(3).padStart(11)} | ${"+" + ((uAvg.ndcg - bAvg.ndcg) * 100).toFixed(1)}%`);
-  console.log(`  Technical Keyword Recall   | ${bAvg.keywordRecall.toFixed(1).padStart(10)}% | ${uAvg.keywordRecall.toFixed(1).padStart(10)}% | ${"+" + (uAvg.keywordRecall - bAvg.keywordRecall).toFixed(1)}%`);
-  console.log(`  Category Diversity Ratio   | ${bAvg.diversity.toFixed(1).padStart(10)}% | ${uAvg.diversity.toFixed(1).padStart(10)}% | ${"+" + (uAvg.diversity - bAvg.diversity).toFixed(1)}%`);
-  console.log(`  Average Query Latency      | ${bAvg.timeMs.toFixed(0).padStart(9)} ms | ${uAvg.timeMs.toFixed(0).padStart(9)} ms | Fast & Within Budget`);
+  console.log(`  Metric                     | Baseline RAG | Production retrieval | Accuracy Gain`);
+  console.log(`  ---------------------------+--------------+----------------------+----------------`);
+  console.log(`  Precision @ 1              | ${bAvg.p1.toFixed(1).padStart(10)}% | ${pAvg.p1.toFixed(1).padStart(18)}% | ${"+" + (pAvg.p1 - bAvg.p1).toFixed(1)}%`);
+  console.log(`  Precision @ 3              | ${bAvg.p3.toFixed(1).padStart(10)}% | ${pAvg.p3.toFixed(1).padStart(18)}% | ${"+" + (pAvg.p3 - bAvg.p3).toFixed(1)}%`);
+  console.log(`  Precision @ 6              | ${bAvg.p6.toFixed(1).padStart(10)}% | ${pAvg.p6.toFixed(1).padStart(18)}% | ${"+" + (pAvg.p6 - bAvg.p6).toFixed(1)}%`);
+  console.log(`  Mean Reciprocal Rank (MRR) | ${bAvg.mrr.toFixed(3).padStart(11)} | ${pAvg.mrr.toFixed(3).padStart(19)} | ${"+" + ((pAvg.mrr - bAvg.mrr) * 100).toFixed(1)}%`);
+  console.log(`  NDCG @ 6 (Graded Ranking)  | ${bAvg.ndcg.toFixed(3).padStart(11)} | ${pAvg.ndcg.toFixed(3).padStart(19)} | ${"+" + ((pAvg.ndcg - bAvg.ndcg) * 100).toFixed(1)}%`);
+  console.log(`  Technical Keyword Recall   | ${bAvg.keywordRecall.toFixed(1).padStart(10)}% | ${pAvg.keywordRecall.toFixed(1).padStart(18)}% | ${"+" + (pAvg.keywordRecall - bAvg.keywordRecall).toFixed(1)}%`);
+  console.log(`  Category Diversity Ratio   | ${bAvg.diversity.toFixed(1).padStart(10)}% | ${pAvg.diversity.toFixed(1).padStart(18)}% | ${"+" + (pAvg.diversity - bAvg.diversity).toFixed(1)}%`);
+  console.log(`  Average Query Latency      | ${bAvg.timeMs.toFixed(0).padStart(9)} ms | ${pAvg.timeMs.toFixed(0).padStart(17)} ms | Fast & Within Budget`);
   console.log("================================================================================\n");
 }
 

@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 import { Input } from "@/components/ui/Input";
-import { cn } from "@/utils/helpers";
+import { cn } from "@/lib/utils";
 import { adminInputOverrideClass } from "./admin-styles";
 
 type ConfirmActionFormProps = {

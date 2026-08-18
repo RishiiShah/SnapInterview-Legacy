@@ -1,16 +1,7 @@
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { requireAwsS3Env } from "@/lib/env";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { getS3Runtime } from "@/lib/s3/runtime";
 import { apiError, internalServerError, notFoundError } from "@/lib/api-response";
 import { logger } from "@/utils/logger";
-
-const aws = requireAwsS3Env();
-const s3Client = new S3Client({
-  region: aws.region,
-  credentials: {
-    accessKeyId: aws.accessKeyId,
-    secretAccessKey: aws.secretAccessKey,
-  },
-});
 
 export async function GET(_: Request, context: { params: Promise<{ key?: string[] }> }) {
   try {
@@ -23,8 +14,10 @@ export async function GET(_: Request, context: { params: Promise<{ key?: string[
       return apiError("Invalid avatar key", 400);
     }
 
-    const object = await s3Client.send(new GetObjectCommand({
-      Bucket: aws.bucketName,
+    const { client, bucketName } = getS3Runtime();
+
+    const object = await client.send(new GetObjectCommand({
+      Bucket: bucketName,
       Key: key,
     }));
 

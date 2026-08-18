@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/Button";
 import ResumeDocumentModal from "@/components/resume/ResumeDocumentModal";
 import {
   MAX_RESUME_PDF_LABEL,
-  parseResumeUploadResponse,
-  validateResumeFile,
+  uploadResumeFile,
 } from "@/lib/resume-upload";
 
 type ProfileTabProps = {
@@ -119,19 +118,10 @@ export default function ProfileTab({
   }
 
   async function handleResumeUpload(file: File) {
-    const fileError = validateResumeFile(file);
-    if (fileError) {
-      setUploadError(fileError);
-      return;
-    }
-
     setResumeUploading(true);
     setUploadError(null);
-    const formData = new FormData();
-    formData.append("resume", file);
     try {
-      const res = await fetch("/api/resume/parse", { method: "POST", body: formData });
-      setResumeText(await parseResumeUploadResponse(res));
+      setResumeText(await uploadResumeFile(file));
       setConfirmingClear(false);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Failed to process resume");

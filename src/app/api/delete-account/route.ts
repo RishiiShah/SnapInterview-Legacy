@@ -13,6 +13,7 @@ import { extractRequestContext } from "@/lib/security";
 import { verifyCredentialPassword } from "@/lib/password";
 import { withCsrfProtection } from "@/lib/route-security";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { parseJsonBody } from "@/lib/http/request-body";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
 
@@ -37,11 +38,9 @@ export const DELETE = withCsrfProtection(async (req: Request) => {
       return apiError("Too many account deletion attempts. Please try again later.", 429);
     }
 
-    const body = await req.json();
-    const parsed = deleteAccountSchema.safeParse(body);
-    if (!parsed.success) {
-      const firstError = parsed.error.issues[0]?.message || "Invalid input";
-      return badRequestError(firstError);
+    const parsed = await parseJsonBody(req, deleteAccountSchema);
+    if (!parsed.ok) {
+      return parsed.response;
     }
 
     const { currentPassword } = parsed.data;

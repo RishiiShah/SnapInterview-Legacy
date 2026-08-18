@@ -1,11 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
+import { z } from "zod/v4";
 import { getServerAuthSession } from "@/lib/server-auth";
 import { sendSupportTicketEmail } from "@/lib/email";
 import { withCsrfProtection } from "@/lib/route-security";
+import { parseJsonBody } from "@/lib/http/request-body";
+import { createRateLimiter } from "@/lib/rate-limit";
 import { logger } from "@/utils/logger";
 import { env } from "@/lib/env";
 import { createSupportTicket } from "@/repositories/support-ticket-repo";
+
+const supportTicketLimiter = createRateLimiter("support-ticket", 15 * 60 * 1000, 10);
+
+const supportTicketSchema = z.object({
+  category: z.string().optional(),
+  priority: z.string().optional(),
+  subject: z.string().trim().min(1, "Subject line is required"),
+  description: z.string().trim().min(1, "Description is required"),
+  attachmentName: z.string().optional(),
+  attachmentBase64: z.string().max(10 * 1024 * 1024, "Attachment is too large").optional(),
+});
 
 export const POST = withCsrfProtection(async (request: NextRequest) => {
   try {
@@ -17,23 +31,26 @@ export const POST = withCsrfProtection(async (request: NextRequest) => {
       );
     }
 
-    const body = await request.json();
-    const { category, priority, subject, description, attachmentName, attachmentBase64 } = body;
-
-    if (!subject || typeof subject !== "string" || !subject.trim()) {
-      return NextResponse.json({ error: "Subject line is required" }, { status: 400 });
+    if (await supportTicketLimiter.isLimited(session.user.id)) {
+      return NextResponse.json(
+        { error: "Too many support ticket requests. Please try again later." },
+        { status: 429 }
+      );
     }
 
-    if (!description || typeof description !== "string" || !description.trim()) {
-      return NextResponse.json({ error: "Description is required" }, { status: 400 });
+    const parsed = await parseJsonBody(request, supportTicketSchema);
+    if (!parsed.ok) {
+      return parsed.response;
     }
+
+    const { category, priority, subject, description, attachmentName, attachmentBase64 } = parsed.data;
 
     const userEmail = session.user.email;
     const userName = session.user.name || session.user.email;
     const safeCategory = category || "general";
     const safePriority = priority || "normal";
-    const safeSubject = subject.trim();
-    const safeDescription = description.trim();
+    const safeSubject = subject;
+    const safeDescription = description;
 
     // 1. Attempt to persist ticket in database for guaranteed sequential tracking
     const persisted = await createSupportTicket({

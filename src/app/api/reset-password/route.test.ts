@@ -277,4 +277,21 @@ describe("POST /api/reset-password", () => {
       expect.objectContaining({ type: "PASSWORD_RESET_COMPLETED" }),
     );
   });
+
+  it("returns 400 when request body is malformed JSON", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+
+    const req = new Request("http://localhost/api/reset-password", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: "not-json",
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({ error: "Invalid JSON body" });
+  });
 });

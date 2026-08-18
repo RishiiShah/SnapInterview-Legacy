@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "id": "role-software-engineer",
+  "title": "Software Engineer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Software Engineer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Entry-level / New Grad: Algorithmic fundamentals, clean data structure usage, basic modular design, and robust test writing.",
+        "2. Mid-level: End-to-end feature delivery, API design, database querying and schema modeling, asynchronous processing, and debugging production issues.",
+        "3. Senior: Distributed systems principles, resilience, performance optimization, architectural trade-offs, and technical mentorship.",
+        "4. Staff-plus: Multi-system technical vision, cross-organizational influence, scaling primitives, and de-risking complex technical roadmaps."
+      ]
+    },
+    {
+      "heading": "Question Strategy & Guidance",
+      "lines": [
+        "- PREFER BRIEF PILLARS: When brief pillars or candidate projects are provided, always prioritize exploring those specific areas over generic checklist questions.",
+        "- NEW-GRAD GUIDANCE: Probe personal/academic projects, data structures, and learning speed without penalizing lack of staff-level organizational scope."
+      ]
+    },
+    {
+      "heading": "Interview Type Adaptation",
+      "lines": [
+        "- coding-algorithms: Assess algorithmic problem solving, clean coding, complexity analysis, and edge case handling.",
+        "- system-design: Assess scalable architecture, data storage choices, caching, decoupling, and reliability.",
+        "- behavioral-leadership: Probe ownership, teamwork, overcoming technical obstacles, and communication clarity."
+      ]
+    }
+  ]
+}

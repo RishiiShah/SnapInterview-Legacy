@@ -6,6 +6,7 @@ import { z } from "zod/v4";
 import { apiError, apiJson, badRequestError, internalServerError } from "@/lib/api-response";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
+import { parseJsonBody } from "@/lib/http/request-body";
 import { logger } from "@/utils/logger";
 
 const schema = z.object({
@@ -28,15 +29,12 @@ const GENERIC_RESET_CODE_ERROR = "Invalid or expired reset code.";
 
 export const POST = withCsrfProtection(async (req: Request) => {
     try {
-        const body = await req.json();
-        const result = schema.safeParse(body);
-
-        if (!result.success) {
-            const firstError = result.error.issues[0]?.message || "Invalid input";
-            return badRequestError(firstError);
+        const parsed = await parseJsonBody(req, schema);
+        if (!parsed.ok) {
+            return parsed.response;
         }
 
-        const { email, otp, newPassword } = result.data;
+        const { email, otp, newPassword } = parsed.data;
         const normalizedEmail = normalizeEmail(email);
 
         if (await resetPasswordLimiter.isLimited(normalizedEmail)) {

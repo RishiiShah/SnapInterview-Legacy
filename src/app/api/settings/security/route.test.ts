@@ -117,4 +117,22 @@ describe("PATCH /api/settings/security", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ success: true, revokedCount: 6 });
   });
+
+  it("returns 400 when request body is malformed JSON", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
+
+    const request = new Request("http://localhost/api/settings/security", {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: "not-json",
+    });
+
+    const response = await PATCH(request);
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid JSON body" });
+  });
 });

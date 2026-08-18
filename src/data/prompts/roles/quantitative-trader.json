@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "id": "role-quantitative-trader",
+  "title": "Quantitative Trader Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Quantitative Trader."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Market Microstructure & Order Dynamics: Bid-ask spread dynamics, market making heuristics, adverse selection, order book depth, and liquidity provisioning.",
+        "2. Risk Management & PnL Discipline: Real-time risk exposure monitoring, Greeks management (options/derivatives), position sizing, and stop-loss execution.",
+        "3. Quantitative Intuition & Mental Probability: Expected value calculation under time pressure, Bayesian probability updates, and game theory.",
+        "4. Execution Strategy: Volume Weighted Average Price (VWAP), Time Weighted Average Price (TWAP), implementation shortfall, and exchange fee optimization."
+      ]
+    }
+  ]
+}

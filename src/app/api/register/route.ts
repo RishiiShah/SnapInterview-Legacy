@@ -17,6 +17,7 @@ import {
 import { createRateLimiter } from "@/lib/rate-limit";
 import { hashCredentialPassword } from "@/lib/password";
 import { withCsrfProtection } from "@/lib/route-security";
+import { parseJsonBody } from "@/lib/http/request-body";
 import { logger } from "@/utils/logger";
 
 // ── Zod schema ──
@@ -52,15 +53,12 @@ export const POST = withCsrfProtection(async (req: Request) => {
     }
 
     // Parse & validate input
-    const body = await req.json();
-    const result = registerSchema.safeParse(body);
-
-    if (!result.success) {
-      const firstError = result.error.issues[0]?.message || "Invalid input";
-      return badRequestError(firstError);
+    const parsed = await parseJsonBody(req, registerSchema);
+    if (!parsed.ok) {
+      return parsed.response;
     }
 
-    const { name, email, password } = result.data;
+    const { name, email, password } = parsed.data;
     const normalizedEmail = normalizeEmail(email);
 
     // Generic response on trip to avoid leaking whether the email is already pending.

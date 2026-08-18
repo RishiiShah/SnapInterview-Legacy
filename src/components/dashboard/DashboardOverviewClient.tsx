@@ -10,7 +10,12 @@ import { FlipDate } from "@/components/ui/FlipDate";
 import { CompanyMark } from "@/components/ui/CompanyMark";
 import { displayCompany } from "@/lib/company-brands";
 import { IconPractice } from "@/components/ui/icons";
-import { validateResumeFile } from "@/lib/resume-upload";
+import { uploadResumeFile } from "@/lib/resume-upload";
+import {
+  interviewTypeBadgeClass,
+  interviewTypeDisplayLabel,
+} from "@/lib/interview/analytics-display";
+import { scoreToneClass } from "@/lib/interview/sub-score-dimensions";
 
 type StatItem = {
   label: string;
@@ -43,56 +48,9 @@ type DashboardOverviewClientProps = {
   topFocus: string | null;
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  "recruiter-screen": "Recruiter / screen",
-  "behavioral-leadership": "Behavioral / leadership",
-  "coding-algorithms": "Coding / algorithms",
-  "system-design": "System design",
-  "domain-role": "Domain / role-specific",
-  "take-home": "Take-home / project",
-  "hiring-manager": "Hiring manager",
-  "bar-raiser": "Bar raiser / panel",
-  behavioral: "Behavioral",
-  technical: "Technical",
-  leadership: "Leadership",
-  coding: "Coding",
-};
-
-const TYPE_STYLES: Record<string, string> = {
-  "recruiter-screen": "text-sky-300/90 bg-sky-500/10 border-sky-500/20",
-  "behavioral-leadership": "text-sky-300/90 bg-sky-500/10 border-sky-500/20",
-  "coding-algorithms": "text-teal-300/90 bg-teal-500/10 border-teal-500/20",
-  "system-design": "text-cyan-300/90 bg-cyan-500/10 border-cyan-500/20",
-  "domain-role": "text-emerald-300/90 bg-emerald-500/10 border-emerald-500/20",
-  "take-home": "text-amber-300/90 bg-amber-500/10 border-amber-500/20",
-  "hiring-manager": "text-blue-300/90 bg-blue-500/10 border-blue-500/20",
-  "bar-raiser": "text-rose-300/90 bg-rose-500/10 border-rose-500/20",
-  behavioral: "text-sky-300/90 bg-sky-500/10 border-sky-500/20",
-  technical: "text-teal-300/90 bg-teal-500/10 border-teal-500/20",
-  leadership: "text-amber-300/90 bg-amber-500/10 border-amber-500/20",
-  coding: "text-emerald-300/90 bg-emerald-500/10 border-emerald-500/20",
-};
-
-function typeLabel(type: string | null | undefined): string | null {
-  if (!type) return null;
-  return TYPE_LABELS[type] ?? type.replace(/[_-]+/g, " ");
-}
-
-function typeStyle(type: string | null | undefined): string {
-  if (!type) return "text-[#B0B8C8] bg-white/[0.04] border-white/[0.08]";
-  return TYPE_STYLES[type] ?? "text-[#B0B8C8] bg-white/[0.04] border-white/[0.08]";
-}
-
 function difficultyLabel(difficulty: string | null | undefined): string | null {
   if (!difficulty) return null;
   return difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
-}
-
-function scoreTone(score: number | null): string {
-  if (score == null) return "text-[#A8B0C2]";
-  if (score >= 80) return "text-emerald-400";
-  if (score >= 70) return "text-amber-300";
-  return "text-rose-300";
 }
 
 function ScorePath({ points }: { points: { label: string; value: number }[] }) {
@@ -231,7 +189,6 @@ export default function DashboardOverviewClient({
   const [showWelcome, setShowWelcome] = useState(false);
   const [hasResume, setHasResume] = useState(initialHasResume ?? false);
   const [resumeUploading, setResumeUploading] = useState(false);
-  const [resumeUploadSuccess, setResumeUploadSuccess] = useState(false);
   const [resumeUploadError, setResumeUploadError] = useState<string | null>(null);
 
   const hasSessions = recentSessions.length > 0;
@@ -306,25 +263,12 @@ export default function DashboardOverviewClient({
   }, [showWelcome, dismissWelcome]);
 
   async function handleDirectResumeUpload(file: File) {
-    const error = validateResumeFile(file);
-    if (error) {
-      setResumeUploadError(error);
-      return;
-    }
-
     setResumeUploading(true);
     setResumeUploadError(null);
-    const formData = new FormData();
-    formData.append("resume", file);
     try {
-      const res = await fetch("/api/resume/parse", { method: "POST", body: formData });
-      if (!res.ok) {
-        throw new Error("Failed to process resume");
-      }
+      await uploadResumeFile(file);
       setHasResume(true);
-      setResumeUploadSuccess(true);
       router.refresh();
-      setTimeout(() => setResumeUploadSuccess(false), 3000);
     } catch (err) {
       setResumeUploadError(err instanceof Error ? err.message : "Failed to process resume");
     } finally {
@@ -558,6 +502,11 @@ export default function DashboardOverviewClient({
                       </Link>
                     ) : null}
                   </div>
+                  {resumeUploadError ? (
+                    <p role="alert" className="mt-2 text-xs text-rose-300">
+                      {resumeUploadError}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 text-left">
@@ -586,7 +535,7 @@ export default function DashboardOverviewClient({
           ) : (
             <FadeInStagger instant className="divide-y divide-white/[0.05]">
               {recentSessions.slice(0, 6).map((s) => {
-                const kind = typeLabel(s.type);
+                const kind = interviewTypeDisplayLabel(s.type, "full");
                 const level = difficultyLabel(s.difficulty);
                 return (
                   <FadeInStaggerItem instant key={s.id}>
@@ -604,7 +553,7 @@ export default function DashboardOverviewClient({
                           </p>
                           {kind ? (
                             <span
-                              className={`shrink-0 rounded border px-1.5 py-px text-[10px] font-medium leading-tight tracking-wide ${typeStyle(s.type)}`}
+                              className={`shrink-0 rounded border px-1.5 py-px text-[10px] font-medium leading-tight tracking-wide ${interviewTypeBadgeClass(s.type)}`}
                             >
                               {kind}
                             </span>
@@ -625,7 +574,7 @@ export default function DashboardOverviewClient({
                         </p>
                       </div>
                       <span
-                        className={`shrink-0 font-mono text-base tabular-nums leading-none ${scoreTone(s.score)}`}
+                        className={`shrink-0 font-mono text-base tabular-nums leading-none ${scoreToneClass(s.score)}`}
                       >
                         {s.score == null ? "—" : s.score}
                       </span>

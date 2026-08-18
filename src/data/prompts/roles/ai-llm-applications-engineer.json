@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "role-ai-llm-applications-engineer",
+  "title": "AI / LLM Applications Engineer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: AI / LLM Applications Engineer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. LLM Architecture & RAG Pipelines: Chunking strategies, dense/sparse embeddings, vector databases (Pinecone/Qdrant/pgvector), reranking, and semantic caching.",
+        "2. Prompt Engineering & Agent Frameworks: Chain-of-thought, tool calling/function execution, multi-agent coordination, and deterministic output schema enforcement.",
+        "3. Production LLM Operations (LLMOps): Token budgeting, latency streaming (TTFT), fallback routing across providers, evaluation benchmarks (Evals), and hallucination guardrails.",
+        "4. Fine-Tuning & Small Models: LoRA/QLoRA fine-tuning, dataset curation, and distillation for on-premise/low-latency inference."
+      ]
+    },
+    {
+      "heading": "Question Strategy & Guidance",
+      "lines": [
+        "- PREFER BRIEF PILLARS: Explore the candidate's actual generative AI pipelines, vector retrieval setups, or agent workflows.",
+        "- Assess handling of non-deterministic model responses, context window limits, and prompt injection vulnerabilities."
+      ]
+    }
+  ]
+}

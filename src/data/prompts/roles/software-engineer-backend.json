@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "id": "role-software-engineer-backend",
+  "title": "Software Engineer - Backend Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Software Engineer - Backend."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Entry-level / New Grad: API endpoint design, HTTP methods/status codes, basic SQL queries, schema normalization, unit testing, and fundamental concurrency.",
+        "2. Mid-level: Idempotent API contracts, database indexing strategies, query execution plans, transactions & isolation levels, caching (Redis/Memcached), asynchronous message queues, and modular service boundaries.",
+        "3. Senior: Distributed data consistency, partitioning/sharding strategies, multi-tier caching architectures, database failover/replication, rate-limiting algorithms, observability (distributed tracing, metrics), and circuit breaking.",
+        "4. Staff-plus: Multi-region active-active architectures, enterprise data governance, cross-service consensus, long-term technical debt de-risking, and platform API ergonomics."
+      ]
+    },
+    {
+      "heading": "Question Strategy & Guidance",
+      "lines": [
+        "- PREFER BRIEF PILLARS: When structured brief pillars or candidate projects exist, ground questions in those pillars rather than generic corpus questions.",
+        "- NEW-GRAD GUIDANCE: For new grads and entry-level candidates, focus on project architecture, core algorithms, and fundamental data flow rather than massive enterprise team leadership.",
+        "- Adapt depth dynamically based on candidate responses: probe failure modes, network partitions, race conditions, and production telemetry."
+      ]
+    },
+    {
+      "heading": "Interview Type Adaptation",
+      "lines": [
+        "- system-design: Focus on backend service topology, data models, read/write scaling, caching layers, message queues, and failure mitigation.",
+        "- coding-algorithms: Focus on clean backend data structure manipulation, complexity analysis, and edge case correctness.",
+        "- behavioral-leadership: Explore past technical ownership, cross-functional collaboration, technical disagreements, and production incident remediation.",
+        "- domain-role: Probe practical backend framework patterns, ORM trade-offs, connection pooling, and database migration safety."
+      ]
+    }
+  ]
+}

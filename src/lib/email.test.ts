@@ -9,7 +9,7 @@ import {
 } from "./email";
 
 const { sendMailMock } = vi.hoisted(() => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   sendMailMock: vi.fn<(...args: any[]) => Promise<void>>(() => Promise.resolve()),
 }));
 
@@ -87,7 +87,6 @@ describe("email templates", () => {
 
     const otpHtml = sendMailMock.mock.calls[0]?.[0]?.html as string;
     const resetHtml = sendMailMock.mock.calls[1]?.[0]?.html as string;
-    const userSupportHtml = sendMailMock.mock.calls[2]?.[0]?.html as string; // Team notification
     const userConfirmationHtml = sendMailMock.mock.calls[3]?.[0]?.html as string; // User confirmation
 
     expect(otpHtml).toContain("logo.png");

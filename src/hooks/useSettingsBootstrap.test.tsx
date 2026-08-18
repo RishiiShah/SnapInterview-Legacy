@@ -3,6 +3,7 @@
 import { StrictMode } from "react";
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { deferred } from "@/test-utils/deferred";
 import { useSettingsBootstrap } from "./useSettingsBootstrap";
 
 function jsonResponse(body: Record<string, unknown>) {
@@ -10,15 +11,6 @@ function jsonResponse(body: Record<string, unknown>) {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
-}
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-
-  return { promise, resolve };
 }
 
 describe("useSettingsBootstrap", () => {

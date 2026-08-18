@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "id": "role-software-engineer-in-test-sdet",
+  "title": "Software Engineer in Test (SDET) Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Software Engineer in Test (SDET)."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Entry-level / New Grad: Test automation scripting, unit/integration test design, test case edge generation, and bug reporting.",
+        "2. Mid-level: Building robust test automation frameworks (Playwright, Cypress, Selenium, PyTest), API mocking, contract testing, and CI pipeline integration.",
+        "3. Senior: Distributed load testing (k6, Locust), chaos engineering, synthetic monitoring, test flaky mitigation, and quality metrics (code coverage, defect density).",
+        "4. Staff-plus: Org-wide quality engineering strategy, automated regression gates, and scalable testing infrastructure."
+      ]
+    }
+  ]
+}

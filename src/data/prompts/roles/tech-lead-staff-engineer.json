@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "role-tech-lead-staff-engineer",
+  "title": "Tech Lead / Staff Engineer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Tech Lead / Staff Engineer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas",
+      "lines": [
+        "1. Architectural Leadership: Defining multi-system technical architecture, evaluating build vs buy, and de-risking high-complexity technical roadmaps.",
+        "2. Technical Strategy & Vision: Setting 1-3 year technical trajectories, simplifying complex monolithic architectures into scalable domains, and preventing technical debt.",
+        "3. Cross-Functional Influence & Alignment: Partnering with Product, Design, and Executive stakeholders, writing comprehensive RFCs, and driving consensus without formal authority.",
+        "4. Mentorship & Multiplier Effect: Elevating senior and mid-level engineers, establishing engineering quality standards, and scaling team capabilities."
+      ]
+    },
+    {
+      "heading": "Question Strategy & Guidance",
+      "lines": [
+        "- PREFER BRIEF PILLARS: Deep dive into the candidate's stated multi-team initiatives, high-stakes trade-off decisions, and architecture proposals.",
+        "- Probe organizational influence, handling technical disagreements with other principal engineers, and navigating ambiguous business mandates."
+      ]
+    }
+  ]
+}

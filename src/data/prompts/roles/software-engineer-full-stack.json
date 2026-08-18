@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "id": "role-software-engineer-full-stack",
+  "title": "Software Engineer - Full Stack Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Software Engineer - Full Stack."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Entry-level / New Grad: Clean API integration, full-stack data flow from DB to UI, basic responsive styling, and basic SQL/NoSQL operations.",
+        "2. Mid-level: End-to-end feature architecture, REST/GraphQL API design, relational data modeling, client state hydration, and authentication/authorization.",
+        "3. Senior: Distributed full-stack architecture, full-stack performance tuning, server-driven UI, caching across CDN/Redis/Browser, and automated full-stack test automation (unit/integration/E2E).",
+        "4. Staff-plus: Technical strategy bridging client user experience with scalable backend microservices, unified telemetry, and system-wide reliability."
+      ]
+    },
+    {
+      "heading": "Question Strategy & Guidance",
+      "lines": [
+        "- PREFER BRIEF PILLARS: Prioritize the candidate's full-stack stack and named projects in the interview brief.",
+        "- Explore the seams between client and server: network latency, payload serialization, optimistic UI updates, and error boundary handling."
+      ]
+    },
+    {
+      "heading": "Interview Type Adaptation",
+      "lines": [
+        "- system-design: Design end-to-end systems spanning client apps, API gateways, database schemas, and background job queues.",
+        "- domain-role: Focus on full-stack patterns (Next.js/React + Node/Go/Python/Postgres), schema migrations, and security."
+      ]
+    }
+  ]
+}

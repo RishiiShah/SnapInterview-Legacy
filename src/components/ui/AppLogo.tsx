@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { cn } from "@/utils/helpers";
+import { cn } from "@/lib/utils";
 
 type AppLogoSize = 28 | 32 | 36;
 

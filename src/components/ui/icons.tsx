@@ -58,6 +58,9 @@ import {
   Minimize2,
   HelpCircle,
   Shield,
+  Check,
+  RefreshCw,
+  Trash2,
   type LucideIcon,
   type LucideProps,
 } from "lucide-react";
@@ -140,3 +143,7 @@ export const IconMaximize = makeIcon(Maximize2);
 export const IconMinimize = makeIcon(Minimize2);
 export const IconHelp = makeIcon(HelpCircle);
 export const IconShield = makeIcon(Shield);
+export const IconCheck = makeIcon(Check);
+export const IconRefresh = makeIcon(RefreshCw);
+export const IconTrash = makeIcon(Trash2);
+export const IconPencil = makeIcon(Pencil);

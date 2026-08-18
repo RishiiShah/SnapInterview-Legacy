@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "id": "role-devops-cloud-engineer",
+  "title": "DevOps / Cloud Engineer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: DevOps / Cloud Engineer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Entry-level / New Grad: CI/CD pipeline basics (GitHub Actions/GitLab CI), Infrastructure as Code (Terraform fundamentals), Docker containers, and cloud provider basics.",
+        "2. Mid-level: Kubernetes cluster management, Helm charts, Terraform module design, secret management (Vault), automated security scanning, and multi-environment orchestration.",
+        "3. Senior: Multi-cloud architecture, zero-trust network topology, cost optimization (FinOps), progressive delivery (ArgoCD, Flagger), and infrastructure reliability.",
+        "4. Staff-plus: Strategic cloud platform roadmap, developer productivity engineering, and company-wide infrastructure governance."
+      ]
+    }
+  ]
+}

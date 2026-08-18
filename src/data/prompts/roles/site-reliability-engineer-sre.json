@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "role-site-reliability-engineer-sre",
+  "title": "Site Reliability Engineer (SRE) Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Site Reliability Engineer (SRE)."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Entry-level / New Grad: Linux command line, shell scripting/Python/Go, basic networking (DNS, HTTP, TCP), and containerization (Docker).",
+        "2. Mid-level: SLO/SLI definition, error budgets, Prometheus/Grafana monitoring, alerting hygiene, incident response on-call, and Kubernetes orchestration.",
+        "3. Senior: Distributed systems failure modes, multi-region disaster recovery, chaos engineering, capacity planning, and blameless postmortem culture.",
+        "4. Staff-plus: Organization-wide reliability architecture, global traffic engineering, and platform availability governance."
+      ]
+    },
+    {
+      "heading": "Question Strategy & Guidance",
+      "lines": [
+        "- PREFER BRIEF PILLARS: Focus on candidate's infrastructure telemetry, incident management experience, and automation tools.",
+        "- Assess balance between software development (eliminating toil) and systems operations."
+      ]
+    }
+  ]
+}

@@ -68,7 +68,7 @@ export default function HelpSupportPage() {
     } catch {
       // Ignore signout errors and redirect
     }
-    window.location.href = "/login?callbackUrl=/support";
+    window.location.assign("/login?callbackUrl=/support");
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

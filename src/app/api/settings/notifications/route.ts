@@ -1,31 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { z } from "zod/v4";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
+import { normalizeNotificationPrefs, notificationPrefsInputSchema } from "@/lib/notifications/preferences";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { withCsrfProtection } from "@/lib/route-security";
+import { parseJsonBody } from "@/lib/http/request-body";
 import { logger } from "@/utils/logger";
-
-const prefsSchema = z.object({
-  emailNotifs: z.boolean(),
-  practiceReminders: z.boolean(),
-  weeklyReport: z.boolean(),
-  scoreAlerts: z.boolean(),
-});
-
-type NotificationPrefs = z.infer<typeof prefsSchema>;
-
-const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
-  emailNotifs: true,
-  practiceReminders: true,
-  weeklyReport: true,
-  scoreAlerts: false,
-};
-
-function normalizePrefs(value: unknown): NotificationPrefs {
-  const parsed = prefsSchema.safeParse(value);
-  if (parsed.success) return parsed.data;
-  return DEFAULT_NOTIFICATION_PREFS;
-}
 
 export async function GET() {
   try {
@@ -44,7 +23,7 @@ export async function GET() {
     }
 
     return apiJson({
-      notificationPrefs: normalizePrefs(user.notificationPrefs),
+      notificationPrefs: normalizeNotificationPrefs(user.notificationPrefs),
     });
   } catch (error) {
     logger.error("Get notification preferences error:", {
@@ -61,11 +40,9 @@ export const PUT = withCsrfProtection(async (req: Request) => {
       return unauthorizedError();
     }
 
-    const body = await req.json();
-    const parsed = prefsSchema.safeParse(body);
-    if (!parsed.success) {
-      const message = parsed.error.issues[0]?.message || "Invalid notification preferences";
-      return badRequestError(message);
+    const parsed = await parseJsonBody(req, notificationPrefsInputSchema);
+    if (!parsed.ok) {
+      return parsed.response;
     }
 
     const updated = await prisma.user.update({
@@ -86,7 +63,7 @@ export const PUT = withCsrfProtection(async (req: Request) => {
     }
 
     return apiJson({
-      notificationPrefs: normalizePrefs(updated.notificationPrefs),
+      notificationPrefs: normalizeNotificationPrefs(updated.notificationPrefs),
     });
   } catch (error) {
     logger.error("Update notification preferences error:", {

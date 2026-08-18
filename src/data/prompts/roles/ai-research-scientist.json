@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "id": "role-ai-research-scientist",
+  "title": "AI Research Scientist Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: AI Research Scientist."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Novel Architecture Design: Deep theoretical grasp of Transformer attention mechanisms, diffusion models, reinforcement learning (RLHF/DPO), and state-space models (Mamba).",
+        "2. Large-Scale Training Dynamics: Distributed training paradigms (Megatron-LM, DeepSpeed, ZeRO, FSDP), loss stability, gradient checkpointing, and GPU cluster optimization.",
+        "3. Research Methodology: Hypothesis formulation, empirical validation, rigorous ablation studies, and mathematical proofs.",
+        "4. Research to Production Transfer: Efficient model architectures, quantization, distillation, and frontier safety alignment."
+      ]
+    }
+  ]
+}

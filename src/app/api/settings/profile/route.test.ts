@@ -68,7 +68,7 @@ describe("PUT /api/settings/profile", () => {
       name: "Rishi Patel",
       email: "user@example.com",
       image: null,
-    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+    } as any);
 
     const request = new Request("http://localhost/api/settings/profile", {
       method: "PUT",
@@ -120,5 +120,24 @@ describe("PUT /api/settings/profile", () => {
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({ error: "User not found" });
+  });
+
+  it("returns 400 when request body is malformed JSON", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
+
+    const request = new Request("http://localhost/api/settings/profile", {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: "not-json",
+    });
+
+    const response = await PUT(request);
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid JSON body" });
+    expect(prisma.user.update).not.toHaveBeenCalled();
   });
 });

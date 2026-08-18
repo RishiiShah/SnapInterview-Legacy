@@ -111,4 +111,19 @@ describe("POST /api/forgot-password", () => {
     });
     expect(sendOtpEmail).not.toHaveBeenCalled();
   });
+
+  it("returns 400 when request body is malformed JSON", async () => {
+    const request = new Request("http://localhost/api/forgot-password", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: "not-json",
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid JSON body" });
+  });
 });

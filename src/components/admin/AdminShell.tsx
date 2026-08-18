@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useRef } from "react";
-import { cn } from "@/utils/helpers";
+import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/app/providers";
 import { adminInteractiveClass } from "./admin-styles";

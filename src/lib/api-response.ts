@@ -24,6 +24,14 @@ export function conflictError(message: string) {
   return apiError(message, 409);
 }
 
+export function tooManyRequestsError(message: string) {
+  return apiError(message, 429);
+}
+
+export function badGatewayError(message: string) {
+  return apiError(message, 502);
+}
+
 export function internalServerError(message = "Something went wrong") {
   return apiError(message, 500);
 }

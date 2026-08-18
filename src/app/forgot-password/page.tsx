@@ -14,9 +14,14 @@ import {
   AuthShell,
   AuthTextField,
 } from "@/components/auth/AuthShell";
+import {
+  OtpCodeInput,
+  type OtpCodeInputHandle,
+} from "@/components/auth/OtpCodeInput";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { SubmitButton } from "@/components/auth/SubmitButton";
 import { IconArrowLeft, IconCheckCircle } from "@/components/ui/icons";
+import { useCountdown } from "@/hooks/useCountdown";
 
 const OTP_LENGTH = 6;
 
@@ -29,28 +34,17 @@ export default function ForgotPasswordPage() {
   const [emailError, setEmailError] = useState("");
   const [emailLoading, setEmailLoading] = useState(false);
 
-  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
+  const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [otpError, setOtpError] = useState("");
   const [otpLoading, setOtpLoading] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
+  const { seconds: resendCooldown, reset: resetResend } = useCountdown(0);
   const [resending, setResending] = useState(false);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const otpInputRef = useRef<OtpCodeInputHandle>(null);
 
   useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const timer = setInterval(() => {
-      setResendCooldown((prev) => {
-        if (prev <= 1) { clearInterval(timer); return 0; }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [resendCooldown]);
-
-  useEffect(() => {
-    if (step === "otp") inputRefs.current[0]?.focus();
+    if (step === "otp") otpInputRef.current?.focusFirst();
   }, [step]);
 
   async function sendResetEmail() {
@@ -73,7 +67,7 @@ export default function ForgotPasswordPage() {
     try {
       await sendResetEmail();
       setStep("otp");
-      setResendCooldown(30);
+      resetResend(30);
     } catch (err) {
       setEmailError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -81,36 +75,9 @@ export default function ForgotPasswordPage() {
     }
   }
 
-  const handleOtpChange = (index: number, value: string) => {
-    if (value && !/^\d$/.test(value)) return;
-    const next = [...otp];
-    next[index] = value;
-    setOtp(next);
-    setOtpError("");
-    if (value && index < OTP_LENGTH - 1) inputRefs.current[index + 1]?.focus();
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleOtpPaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH);
-    if (!pasted) return;
-    const next = [...otp];
-    for (let i = 0; i < pasted.length; i++) next[i] = pasted[i];
-    setOtp(next);
-    setOtpError("");
-    const nextEmpty = next.findIndex((v) => !v);
-    inputRefs.current[nextEmpty === -1 ? OTP_LENGTH - 1 : nextEmpty]?.focus();
-  };
-
   const handleResetPassword = useCallback(async () => {
     setOtpError("");
-    const code = otp.join("");
+    const code = otp;
     if (code.length !== OTP_LENGTH) { setOtpError("Please enter all 6 digits."); return; }
     if (!newPassword) { setOtpError("Please enter a new password."); return; }
     if (newPassword.length < 8) { setOtpError("Password must be at least 8 characters."); return; }
@@ -127,8 +94,8 @@ export default function ForgotPasswordPage() {
       if (!res.ok) {
         setOtpError(data.error || "Failed to reset password.");
         if (data.error?.includes("expired") || data.error?.includes("No reset")) {
-          setOtp(Array(OTP_LENGTH).fill(""));
-          inputRefs.current[0]?.focus();
+          setOtp("");
+          otpInputRef.current?.focusFirst();
         }
       } else {
         setStep("done");
@@ -146,11 +113,13 @@ export default function ForgotPasswordPage() {
     setOtpError("");
     try {
       await sendResetEmail();
-      setResendCooldown(30);
-      setOtp(Array(OTP_LENGTH).fill(""));
-      inputRefs.current[0]?.focus();
+      resetResend(30);
+      setOtp("");
+      otpInputRef.current?.focusFirst();
     } catch {
       setOtpError("Failed to resend code.");
+      setOtp("");
+      otpInputRef.current?.focusFirst();
     } finally {
       setResending(false);
     }
@@ -242,28 +211,15 @@ export default function ForgotPasswordPage() {
               </AuthFormStaggerItem>
 
               <AuthFormStaggerItem>
-                <div className="flex justify-start gap-2" onPaste={handleOtpPaste}>
-                  {otp.map((digit, i) => (
-                    <input
-                      key={i}
-                      ref={(el) => { inputRefs.current[i] = el; }}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(i, e.target.value)}
-                      onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                      className={`h-12 w-10 rounded-xl border bg-[#0C0F1A]/80 text-center text-lg font-semibold text-white outline-none transition-colors sm:w-11 ${
-                        otpError
-                          ? "border-red-500/50"
-                          : digit
-                            ? "border-blue-500/50"
-                            : "border-white/[0.1]"
-                      } focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15`}
-                      aria-label={`Digit ${i + 1}`}
-                    />
-                  ))}
-                </div>
+                <OtpCodeInput
+                  ref={otpInputRef}
+                  value={otp}
+                  onChange={(value) => {
+                    setOtp(value);
+                    setOtpError("");
+                  }}
+                  invalid={Boolean(otpError)}
+                />
 
                 <div className="mt-3">
                   {resendCooldown > 0 ? (
@@ -319,14 +275,14 @@ export default function ForgotPasswordPage() {
                   loading={otpLoading}
                   text="Reset password"
                   onClick={handleResetPassword}
-                  disabled={otp.some((d) => !d) || !newPassword || !confirmPassword}
+                  disabled={otp.length !== OTP_LENGTH || !newPassword || !confirmPassword}
                 />
               </AuthFormStaggerItem>
 
               <AuthFormStaggerItem>
                 <button
                   type="button"
-                  onClick={() => { setStep("email"); setOtp(Array(OTP_LENGTH).fill("")); setOtpError(""); }}
+                  onClick={() => { setStep("email"); setOtp(""); setOtpError(""); }}
                   className="mt-5 flex w-full cursor-pointer items-center justify-center gap-1.5 text-xs text-[#CBD5E1] transition-colors hover:text-[#CBD5E1]"
                 >
                   <IconArrowLeft className="h-3.5 w-3.5" />

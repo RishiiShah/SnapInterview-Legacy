@@ -3,10 +3,9 @@ import {
   GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
-  S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { requireAwsS3Env } from "@/lib/env";
+import { getS3Runtime } from "@/lib/s3/runtime";
 
 type S3ListItem = {
   Key?: string;
@@ -39,22 +38,6 @@ export function normalizeListedVideoObjects(contents: S3ListItem[]): VideoRecord
       lastModified: item.LastModified?.toISOString() || new Date(0).toISOString(),
       size: item.Size || 0,
     }));
-}
-
-let s3Client: S3Client | null = null;
-
-function getS3Runtime() {
-  const aws = requireAwsS3Env();
-  if (!s3Client) {
-    s3Client = new S3Client({
-      region: aws.region,
-      credentials: {
-        accessKeyId: aws.accessKeyId,
-        secretAccessKey: aws.secretAccessKey,
-      },
-    });
-  }
-  return { client: s3Client, bucketName: aws.bucketName };
 }
 
 /**

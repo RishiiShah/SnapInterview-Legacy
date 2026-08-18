@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
+import { applyStaticSecurityHeaders } from "@/lib/security-headers";
 import { decodeE2ETestIdentity, E2E_TEST_AUTH_COOKIE, isTestAuthEnabled } from "@/lib/test-auth";
 import { logger } from "@/utils/logger";
 
@@ -88,11 +89,7 @@ function createContentSecurityPolicy(nonce: string, isDev: boolean) {
 
 function applySecurityHeaders(response: NextResponse, cspHeader: string) {
     response.headers.set("Content-Security-Policy", cspHeader);
-    response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-    response.headers.set("X-Frame-Options", "DENY");
-    response.headers.set("X-Content-Type-Options", "nosniff");
-    response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-    response.headers.set("Permissions-Policy", "camera=(self), microphone=(self), geolocation=()");
+    applyStaticSecurityHeaders(response.headers);
 }
 
 function isValidSessionData(value: unknown): value is ProxySessionData {

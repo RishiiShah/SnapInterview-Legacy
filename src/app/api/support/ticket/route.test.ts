@@ -2,10 +2,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { POST } from "./route";
 
-const { sendSupportTicketEmailMock, getServerAuthSessionMock, createSupportTicketMock } = vi.hoisted(() => ({
+const {
+  sendSupportTicketEmailMock,
+  getServerAuthSessionMock,
+  createSupportTicketMock,
+  isLimitedMock,
+} = vi.hoisted(() => ({
   sendSupportTicketEmailMock: vi.fn(),
   getServerAuthSessionMock: vi.fn(),
   createSupportTicketMock: vi.fn(),
+  isLimitedMock: vi.fn().mockResolvedValue(false),
+}));
+
+vi.mock("@/lib/rate-limit", () => ({
+  createRateLimiter: vi.fn(() => ({
+    isLimited: isLimitedMock,
+  })),
 }));
 
 vi.mock("@/lib/server-auth", () => ({
@@ -33,6 +45,7 @@ vi.mock("@/lib/env", () => ({
 describe("POST /api/support/ticket", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    isLimitedMock.mockResolvedValue(false);
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ ok: true }),
@@ -143,4 +156,61 @@ describe("POST /api/support/ticket", () => {
     expect(data.success).toBe(true);
     expect(data.ticketId).toMatch(/^SUP-[A-Z0-9]+-[A-Z0-9]+$/);
   });
+
+  it("returns 400 when request body is malformed JSON", async () => {
+    getServerAuthSessionMock.mockResolvedValue({
+      user: { id: "u1", email: "user@example.com", name: "User One" },
+    });
+
+    const req = new NextRequest("http://localhost:3000/api/support/ticket", {
+      method: "POST",
+      body: "not-json",
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({ error: "Invalid JSON body" });
+    expect(createSupportTicketMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 429 when support ticket rate limit is exceeded", async () => {
+    getServerAuthSessionMock.mockResolvedValue({
+      user: { id: "u1", email: "user@example.com", name: "User One" },
+    });
+    isLimitedMock.mockResolvedValue(true);
+
+    const req = new NextRequest("http://localhost:3000/api/support/ticket", {
+      method: "POST",
+      body: JSON.stringify({
+        subject: "Need help",
+        description: "Something is broken",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(429);
+    await expect(res.json()).resolves.toEqual({
+      error: "Too many support ticket requests. Please try again later.",
+    });
+  });
+
+  it("returns 400 when attachmentBase64 exceeds maximum allowed size", async () => {
+    getServerAuthSessionMock.mockResolvedValue({
+      user: { id: "u1", email: "user@example.com", name: "User One" },
+    });
+
+    const oversizedBase64 = "a".repeat(11 * 1024 * 1024);
+    const req = new NextRequest("http://localhost:3000/api/support/ticket", {
+      method: "POST",
+      body: JSON.stringify({
+        subject: "Need help",
+        description: "Something is broken",
+        attachmentBase64: oversizedBase64,
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
 });
+

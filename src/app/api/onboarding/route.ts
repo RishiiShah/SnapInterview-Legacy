@@ -4,6 +4,7 @@ import { apiJson, badRequestError, internalServerError, notFoundError, unauthori
 import { normalizeOnboardingResponse } from "@/lib/onboarding/preferences";
 import { withCsrfProtection } from "@/lib/route-security";
 import { getSessionUserIdentity } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/http/request-body";
 import { logger } from "@/utils/logger";
 import { interviewTypeSchema } from "@/lib/interview/domain";
 
@@ -72,10 +73,9 @@ export const PUT = withCsrfProtection(async (req: Request) => {
       return unauthorizedError();
     }
 
-    const body = await req.json();
-    const parsed = onboardingSchema.safeParse(body);
-    if (!parsed.success) {
-      return badRequestError(parsed.error.issues[0]?.message || "Invalid onboarding preferences");
+    const parsed = await parseJsonBody(req, onboardingSchema);
+    if (!parsed.ok) {
+      return parsed.response;
     }
 
     const values = parsed.data;

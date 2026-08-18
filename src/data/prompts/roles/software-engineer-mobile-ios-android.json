@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "role-software-engineer-mobile-ios-android",
+  "title": "Software Engineer - Mobile (iOS/Android) Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Software Engineer - Mobile (iOS/Android)."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Entry-level / New Grad: Mobile app lifecycle, UI layout primitives, memory awareness, and asynchronous network calls.",
+        "2. Mid-level: State architecture (MVVM, MVI, Redux), local caching (SQLite, Room, CoreData), offline sync, background task scheduling, and push notifications.",
+        "3. Senior: Mobile performance (app launch time, memory leaks, frame drops 60/120fps, battery drain), modular app architecture, CI/CD release automation, and crash reporting.",
+        "4. Staff-plus: Cross-platform mobile strategy, mobile core infrastructure (networking layers, design systems), and app store release risk governance."
+      ]
+    },
+    {
+      "heading": "Question Strategy & Guidance",
+      "lines": [
+        "- PREFER BRIEF PILLARS: Explore the candidate's mobile projects, target OS experience (Swift/Kotlin/React Native/Flutter), and app architecture.",
+        "- Focus on constraints unique to mobile: intermittent connectivity, limited battery, background execution limits, and OS version fragmentation."
+      ]
+    }
+  ]
+}

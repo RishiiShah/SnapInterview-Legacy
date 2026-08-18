@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "id": "role-technical-product-manager-tpm",
+  "title": "Technical Product Manager (TPM) Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Technical Product Manager (TPM)."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Technical Depth & Architecture Fluency: Deep understanding of system dependencies, APIs, data flows, and infrastructure constraints.",
+        "2. Program Management & Execution: Driving cross-team technical deliverables, dependency mapping, critical path management, and risk mitigation.",
+        "3. Stakeholder Communication: Translating complex technical constraints to business leaders and product strategy to engineering teams.",
+        "4. Operational Governance: Tracking release telemetry, launch readiness checklists, and incident management."
+      ]
+    }
+  ]
+}

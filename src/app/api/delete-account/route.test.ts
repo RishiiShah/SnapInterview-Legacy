@@ -218,4 +218,24 @@ describe("DELETE /api/delete-account", () => {
     );
     expect(extractRequestContext).toHaveBeenCalled();
   });
+
+  it("returns 400 when request body is malformed JSON", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+    vi.mocked(getServerAuthSession).mockResolvedValue({
+      user: { id: "user-1", email: "user@example.com" },
+    } as never);
+
+    const request = new Request("http://localhost/api/delete-account", {
+      method: "DELETE",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: "not-json",
+    });
+
+    const res = await DELETE(request);
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({ error: "Invalid JSON body" });
+  });
 });

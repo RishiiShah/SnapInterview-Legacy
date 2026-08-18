@@ -1,0 +1,46 @@
+{
+  "id": "netflix",
+  "version": 1,
+  "displayNames": ["Netflix"],
+  "method": [
+    "Freedom and Responsibility: stunning colleagues, context not control, high autonomy and extreme accountability",
+    "Chaos Engineering and Fault Tolerance: assume anything and everything can fail at any time",
+    "Dream Team bar: high performance, selfless collaboration, candor, and business acumen"
+  ],
+  "signalsByLevel": {
+    "senior": [
+      "Deep autonomy: making high-stakes architectural decisions without needing managerial oversight",
+      "Designing highly resilient, self-healing systems (circuit breaking, fallback degradation, active-active multi-region)",
+      "High business context: aligning technical choices directly with streaming quality of experience (QoE) and subscriber retention"
+    ],
+    "staff-plus": [
+      "Pioneering cloud-native architecture paradigms adopted widely across the tech industry",
+      "Cross-domain technical influence bridging content engineering, platform infrastructure, and playback telemetry"
+    ]
+  },
+  "signalsByRoleFamily": {
+    "swe": [
+      "Active-active multi-region replication, edge routing (Zuul), caching architectures (EVCache), and stream processing (Flink/Kafka)",
+      "Graceful degradation: ensuring core user playback continues even when downstream metadata services fail"
+    ],
+    "ml-data": [
+      "Real-time recommendation ranking, bandit algorithms, dynamic artwork generation, big data compute (Spark/Iceberg)"
+    ],
+    "sre-infra": [
+      "Chaos Monkey / Simian Army principles, automated canary deployments (Spinnaker), and zero-downtime traffic evacuation"
+    ]
+  },
+  "frequentThemes": [
+    {
+      "id": "netflix-playback-resilience",
+      "shape": "Design a globally available video streaming metadata or playback initiation pipeline resilient to region outages",
+      "types": ["system-design"]
+    },
+    {
+      "id": "context-not-control",
+      "shape": "Describe a major technical decision you made autonomously with high ambiguity, how you gathered context, and the outcome",
+      "types": ["behavioral-leadership", "hiring-manager"]
+    }
+  ],
+  "sourcesNote": "Curated from Netflix Culture memo and open-source distributed systems engineering blog"
+}

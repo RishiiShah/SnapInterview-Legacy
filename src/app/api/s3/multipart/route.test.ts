@@ -107,7 +107,25 @@ describe("S3 Multipart APIs", () => {
       const res = await createPOST(req);
       expect(res.status).toBe(200);
       expect(await res.json()).toMatchObject({ uploadId: "upload-123", key: "user-1/interview-a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.webm" });
+      expect(prisma.interviewSession.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          userId: "user-1",
+          deletedAt: null,
+        },
+        select: { id: true, videoKey: true },
+      });
       expect(CreateMultipartUploadCommand).toHaveBeenCalled();
+    });
+
+    it("returns 400 when request body is malformed JSON", async () => {
+      const req = new Request("http://localhost/api/s3/multipart/create", {
+        method: "POST",
+        body: "not-json",
+      });
+      const res = await createPOST(req);
+      expect(res.status).toBe(400);
+      await expect(res.json()).resolves.toEqual({ error: "Invalid JSON body" });
     });
   });
 
@@ -234,6 +252,16 @@ describe("S3 Multipart APIs", () => {
       const res = await signPartPOST(req);
       expect(res.status).toBe(429);
       expect(UploadPartCommand).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 when request body is malformed JSON", async () => {
+      const req = new Request("http://localhost/api/s3/multipart/sign-part", {
+        method: "POST",
+        body: "not-json",
+      });
+      const res = await signPartPOST(req);
+      expect(res.status).toBe(400);
+      await expect(res.json()).resolves.toEqual({ error: "Invalid JSON body" });
     });
   });
 
@@ -400,6 +428,16 @@ describe("S3 Multipart APIs", () => {
       const res = await completePOST(req);
       expect(res.status).toBe(400);
       expect(CompleteMultipartUploadCommand).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 when request body is malformed JSON", async () => {
+      const req = new Request("http://localhost/api/s3/multipart/complete", {
+        method: "POST",
+        body: "not-json",
+      });
+      const res = await completePOST(req);
+      expect(res.status).toBe(400);
+      await expect(res.json()).resolves.toEqual({ error: "Invalid JSON body" });
     });
   });
 });

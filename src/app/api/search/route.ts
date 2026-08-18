@@ -1,5 +1,5 @@
 import { getSessionUserIdentity } from "@/lib/server-auth";
-import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
+import { apiJson, badRequestError, internalServerError, tooManyRequestsError, unauthorizedError } from "@/lib/api-response";
 import { QUESTION_CATEGORY_VALUES } from "@/lib/interview/domain";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
@@ -39,7 +39,7 @@ export async function GET(req: Request) {
     }
 
     if (await searchLimiter.isLimited(authUser.userId)) {
-      return badRequestError("Too many search requests. Please slow down.");
+      return tooManyRequestsError("Too many search requests. Please slow down.");
     }
 
     const { searchParams } = new URL(req.url);

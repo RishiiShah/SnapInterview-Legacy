@@ -1,0 +1,28 @@
+{
+  "id": "payments",
+  "version": 1,
+  "displayNames": ["Payments & Fintech", "Financial Technology"],
+  "method": [
+    "Strict transactional integrity: ACID guarantees, idempotent mutation endpoints, and immutable audit ledgers",
+    "Zero tolerance for double spending, data loss, or unhandled network timeouts",
+    "Deep awareness of regulatory compliance, encryption at rest/in transit (PCI-DSS), and sub-second fraud detection"
+  ],
+  "signalsByLevel": {
+    "entry-level": ["Understanding database transactions, race condition avoidance, and clean unit testing"],
+    "mid-level": ["Designing idempotent payment APIs, two-phase commits, and asynchronous reconciliation jobs"],
+    "senior": ["Architecting multi-region ledger systems, distributed locking, and resilient payment gateway fallbacks"],
+    "staff-plus": ["Company-wide financial data architecture, security posture, and high-volume settlement engines"]
+  },
+  "signalsByRoleFamily": {
+    "swe": ["Idempotency keys, optimistic locking, distributed transactions, immutable event logs"],
+    "ml-data": ["Real-time fraud detection, anomaly scoring, AML compliance pipelines"],
+    "sre-infra": ["Zero-downtime database upgrades, multi-region replication, HSM key management"]
+  },
+  "frequentThemes": [
+    {
+      "id": "payment-gateway-design",
+      "shape": "Design an idempotent payment processing and transaction ledger system handling network timeouts and retries",
+      "types": ["system-design"]
+    }
+  ]
+}

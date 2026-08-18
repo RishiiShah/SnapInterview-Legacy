@@ -1,0 +1,28 @@
+{
+  "id": "marketplace",
+  "version": 1,
+  "displayNames": ["Marketplace & E-commerce"],
+  "method": [
+    "Two-sided marketplace dynamics: buyer/seller incentives, inventory state machines, and dynamic search/discovery",
+    "High concurrent read traffic with atomic inventory reservations and payment checkout orchestration",
+    "Real-world physical logistics, delivery tracking, and marketplace trust & safety"
+  ],
+  "signalsByLevel": {
+    "entry-level": ["Solid data modeling for orders, items, inventory, and users with clean CRUD APIs"],
+    "mid-level": ["Handling flash sales, cart checkout concurrency, inventory race conditions, and event-driven fulfillment"],
+    "senior": ["Architecting high-throughput catalog search, distributed reservation engines, and dynamic pricing systems"],
+    "staff-plus": ["Global marketplace scalability, multi-region catalog synchronization, and strategic platform architecture"]
+  },
+  "signalsByRoleFamily": {
+    "swe": ["Distributed locks on inventory items, Elasticsearch/OpenSearch indexing, async order state machines"],
+    "ml-data": ["Personalized search ranking, demand forecasting, dynamic pricing algorithms"],
+    "sre-infra": ["Handling extreme traffic spikes (Black Friday / flash sales), edge caching, automated scaling"]
+  },
+  "frequentThemes": [
+    {
+      "id": "flash-sale-inventory",
+      "shape": "Design an e-commerce flash sale system with limited inventory, high concurrent checkout requests, and atomic stock decrement",
+      "types": ["system-design"]
+    }
+  ]
+}

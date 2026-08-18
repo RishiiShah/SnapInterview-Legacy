@@ -4,29 +4,19 @@ import { prisma } from "@/lib/prisma";
 import {
   apiError,
   apiJson,
-  badRequestError,
   internalServerError,
   notFoundError,
   unauthorizedError,
 } from "@/lib/api-response";
 import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 import { createRateLimiter } from "@/lib/rate-limit";
-import { requireAwsS3Env } from "@/lib/env";
 import { listUserVideos, getSignedVideoUrl } from "@/lib/s3/videos";
-import { S3Client } from "@aws-sdk/client-s3";
+import { getS3Runtime } from "@/lib/s3/runtime";
 import { withCsrfProtection } from "@/lib/route-security";
+import { parseJsonBody } from "@/lib/http/request-body";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
-
-const aws = requireAwsS3Env();
-
-const s3Client = new S3Client({
-  region: aws.region,
-  credentials: {
-    accessKeyId: aws.accessKeyId,
-    secretAccessKey: aws.secretAccessKey,
-  },
-});
+import { softDeleteInterviewSession } from "@/repositories/interview-repo";
 
 const deleteVideoSchema = z.object({
   key: z.string().min(1, "Missing key"),
@@ -54,6 +44,7 @@ async function findOwnedVideoSession(userId: string, key: string) {
     where: {
       userId,
       videoKey: key,
+      deletedAt: null,
     },
     select: { id: true },
   });
@@ -100,11 +91,9 @@ export const POST = withCsrfProtection(async (req: Request) => {
       return unauthorizedError();
     }
 
-    const body = await req.json();
-    const parsed = signVideoSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return badRequestError("Invalid request body");
+    const parsed = await parseJsonBody(req, signVideoSchema, { invalidMessage: "Invalid request body" });
+    if (!parsed.ok) {
+      return parsed.response;
     }
 
     const { key } = parsed.data;
@@ -140,12 +129,9 @@ export const DELETE = withCsrfProtection(async (req: Request) => {
       return unauthorizedError();
     }
 
-    const body = await req.json();
-    const parsed = deleteVideoSchema.safeParse(body);
-
-    if (!parsed.success) {
-      const firstError = parsed.error.issues[0]?.message || "Invalid input";
-      return badRequestError(firstError);
+    const parsed = await parseJsonBody(req, deleteVideoSchema);
+    if (!parsed.ok) {
+      return parsed.response;
     }
 
     const { key, deleteInterviewData } = parsed.data;
@@ -164,25 +150,26 @@ export const DELETE = withCsrfProtection(async (req: Request) => {
       return notFoundError("Video not found");
     }
 
+    const { client, bucketName } = getS3Runtime();
+
     const deleteCommand = new DeleteObjectCommand({
-      Bucket: aws.bucketName,
+      Bucket: bucketName,
       Key: key,
     });
 
-    await s3Client.send(deleteCommand);
+    await client.send(deleteCommand);
 
     if (deleteInterviewData) {
-      await prisma.interviewSession.deleteMany({
-        where: {
-          userId: authUser.userId,
-          videoKey: key,
-        },
+      await softDeleteInterviewSession({
+        interviewId: session.id,
+        userId: authUser.userId,
       });
     } else {
       await prisma.interviewSession.updateMany({
         where: {
           userId: authUser.userId,
           videoKey: key,
+          deletedAt: null,
         },
         data: {
           videoKey: null,

@@ -3,6 +3,7 @@ import { env } from "@/lib/env";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
 import { getSessionUserIdentity } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/http/request-body";
 import { logger } from "@/utils/logger";
 import { z } from "zod/v4";
 
@@ -38,15 +39,8 @@ export const POST = withCsrfProtection(async (req: Request) => {
     return apiError("Too many text-to-speech requests. Please try again later.", 429);
   }
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return badRequestError("Invalid JSON body");
-  }
-
-  const parsed = ttsSchema.safeParse(body);
-  if (!parsed.success) return badRequestError(parsed.error.issues[0]?.message || "Invalid input");
+  const parsed = await parseJsonBody(req, ttsSchema);
+  if (!parsed.ok) return parsed.response;
 
   try {
     const upstream = await fetch(

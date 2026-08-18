@@ -38,4 +38,15 @@ describe("POST /api/tts", () => {
       expect.objectContaining({ method: "POST" }),
     );
   });
+
+  it("returns 400 when request body is malformed JSON", async () => {
+    const response = await POST(new Request("http://localhost/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "not-json",
+    }));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid JSON body" });
+  });
 });

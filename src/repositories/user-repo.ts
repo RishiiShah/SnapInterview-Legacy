@@ -1,28 +1,23 @@
 import { prisma } from "@/lib/prisma";
+import { normalizeNotificationPrefs, type NotificationPrefs } from "@/lib/notifications/preferences";
 
-export type NotificationPrefs = {
-  emailNotifs: boolean;
-  practiceReminders: boolean;
-  weeklyReport: boolean;
-  scoreAlerts: boolean;
+export type UserOnboardingContext = {
+  onboardingGoal: string | null;
+  onboardingLevel: string | null;
+  onboardingRole: string | null;
+  onboardingCompany: string | null;
 };
 
-export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
-  emailNotifs: true,
-  practiceReminders: true,
-  weeklyReport: true,
-  scoreAlerts: false,
-};
-
-function coercePrefs(value: unknown): NotificationPrefs {
-  if (!value || typeof value !== "object") return DEFAULT_NOTIFICATION_PREFS;
-  const v = value as Record<string, unknown>;
-  return {
-    emailNotifs: typeof v.emailNotifs === "boolean" ? v.emailNotifs : DEFAULT_NOTIFICATION_PREFS.emailNotifs,
-    practiceReminders: typeof v.practiceReminders === "boolean" ? v.practiceReminders : DEFAULT_NOTIFICATION_PREFS.practiceReminders,
-    weeklyReport: typeof v.weeklyReport === "boolean" ? v.weeklyReport : DEFAULT_NOTIFICATION_PREFS.weeklyReport,
-    scoreAlerts: typeof v.scoreAlerts === "boolean" ? v.scoreAlerts : DEFAULT_NOTIFICATION_PREFS.scoreAlerts,
-  };
+export async function getUserOnboardingContext(userId: string): Promise<UserOnboardingContext | null> {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      onboardingGoal: true,
+      onboardingLevel: true,
+      onboardingRole: true,
+      onboardingCompany: true,
+    },
+  });
 }
 
 export async function getNotificationPrefs(userId: string): Promise<NotificationPrefs> {
@@ -30,7 +25,7 @@ export async function getNotificationPrefs(userId: string): Promise<Notification
     where: { id: userId },
     select: { notificationPrefs: true },
   });
-  return coercePrefs(user?.notificationPrefs);
+  return normalizeNotificationPrefs(user?.notificationPrefs);
 }
 
 export async function saveUserResume(userId: string, resumeText: string): Promise<void> {
@@ -89,7 +84,7 @@ export async function findWeeklyReportRecipients(): Promise<WeeklyReportRecipien
 
   const recipients: WeeklyReportRecipient[] = [];
   for (const u of candidates) {
-    const prefs = coercePrefs(u.notificationPrefs);
+    const prefs = normalizeNotificationPrefs(u.notificationPrefs);
     if (!prefs.emailNotifs || !prefs.weeklyReport) continue;
 
     const scores: number[] = [];
@@ -155,7 +150,7 @@ export async function findPracticeReminderRecipients(): Promise<PracticeReminder
 
   const recipients: PracticeReminderRecipient[] = [];
   for (const u of candidates) {
-    const prefs = coercePrefs(u.notificationPrefs);
+    const prefs = normalizeNotificationPrefs(u.notificationPrefs);
     if (!prefs.emailNotifs || !prefs.practiceReminders) continue;
 
     const lastSession = u.interviewSessions[0];

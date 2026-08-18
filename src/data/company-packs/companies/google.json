@@ -1,0 +1,65 @@
+{
+  "id": "google",
+  "version": 1,
+  "displayNames": ["Google", "Alphabet", "Google Cloud"],
+  "method": [
+    "Googleyness: intellectual humility, navigating ambiguity, doing the right thing, collaborative problem solving",
+    "General Cognitive Ability (GCA): structured breakdown of unbounded problems from first principles",
+    "Role-Related Knowledge (RRK): rigorous algorithmic thinking, clean modular abstractions, and planetary scale system design"
+  ],
+  "signalsByLevel": {
+    "entry-level": [
+      "Algorithmic precision: optimal time/space complexity with mathematical reasoning",
+      "Clean abstractions, testability, and edge-case rigor (nulls, overflows, boundaries)",
+      "Openness to hints, intellectual curiosity, and transparent thought process"
+    ],
+    "mid-level": [
+      "Deep understanding of distributed consensus, RPC frameworks (gRPC/Stubby), and caching layers",
+      "Designing services that scale smoothly with data volume and concurrent queries",
+      "Clear articulation of trade-offs between consistency, availability, and hardware cost"
+    ],
+    "senior": [
+      "Designing resilient planetary-scale distributed systems (Spanner/TrueTime, Bigtable, Colossus concepts)",
+      "High reliability engineering: cross-region replication, fault domains, and graceful degradation",
+      "Navigating complex ambiguous engineering mandates and driving consensus across diverse teams"
+    ],
+    "staff-plus": [
+      "Defining foundational technical standards and reusable infrastructure primitives across organizations",
+      "Setting long-term architectural visions for multi-billion request systems with strict safety guarantees",
+      "Exemplary leadership in technical mentorship, diversity, and engineering culture"
+    ]
+  },
+  "signalsByRoleFamily": {
+    "swe": [
+      "Scalable algorithms, memory layout awareness, concurrency primitives, and thread safety",
+      "Clean separation of API contracts, business logic, and durable storage"
+    ],
+    "ml-data": [
+      "Large-scale distributed training (TPU/GPU pods), embeddings search, vector indexing at scale",
+      "Model quantization, distillation, low-latency online serving, and data governance"
+    ],
+    "sre-infra": [
+      "SRE principles: error budgets, SLOs vs SLAs, toil automation, canary releases, and postmortems without blame",
+      "Distributed tracing (Dapper), Borg/Kubernetes cluster scheduling, and global traffic management"
+    ],
+    "pm-design": [
+      "10x thinking, user-first problem discovery, platform ecosystem leverage, and data-driven iteration"
+    ],
+    "em-lead": [
+      "Servant leadership, psychological safety, engineering excellence, and multi-team goal alignment"
+    ]
+  },
+  "frequentThemes": [
+    {
+      "id": "google-scale-design",
+      "shape": "Design a globally distributed service with low read latency, high write consistency, and resilient partitioning",
+      "types": ["system-design"]
+    },
+    {
+      "id": "navigating-ambiguity",
+      "shape": "Describe a scenario where requirements were incomplete or shifting, and you established structure and technical clarity",
+      "types": ["behavioral-leadership", "hiring-manager"]
+    }
+  ],
+  "sourcesNote": "Curated from public Google engineering and Googleyness hiring rubrics"
+}

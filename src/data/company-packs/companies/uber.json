@@ -1,0 +1,55 @@
+{
+  "id": "uber",
+  "version": 1,
+  "displayNames": ["Uber", "Uber Freight", "Uber Eats"],
+  "method": [
+    "Go get it / Trip mindset: real-time physical world marketplace matching at massive scale",
+    "High-throughput low-latency geospatial data pipelines and dynamic matching algorithms",
+    "Great Minds Don't Think Alike: valuing diverse perspectives and strong technical debate"
+  ],
+  "signalsByLevel": {
+    "entry-level": [
+      "Solid understanding of concurrency, data structures, and spatial indexing concepts (H3, geohashes)",
+      "Strong debugging instincts on distributed logs and live stream events"
+    ],
+    "mid-level": [
+      "Designing scalable event-driven services (Kafka, gRPC, Go/Java microservices)",
+      "Understanding geospatial lookup indexing, dynamic pricing surges, and high-frequency dispatch locks",
+      "Handling edge network instability on driver/rider mobile clients"
+    ],
+    "senior": [
+      "Architecting distributed stateful marketplaces with sub-second matching and strict consistency",
+      "Designing massive distributed storage (Schemaless / Docstore / Apache Pinot / Apache Hudi)",
+      "Leading cross-domain technical strategy across marketplace, map routing, and payments"
+    ],
+    "staff-plus": [
+      "Directing global real-time infrastructure and multi-datacenter active-active state replication",
+      "Technical mentorship and defining company-wide distributed systems architecture"
+    ]
+  },
+  "signalsByRoleFamily": {
+    "swe": [
+      "H3 spatial indexing, distributed state machines, atomic dispatch locks, Redis cluster caching",
+      "Reliable event sourcing, stream processing (Flink), and exactly-once processing semantics"
+    ],
+    "ml-data": [
+      "Marketplace pricing models, dynamic ETA prediction, routing graph heuristics (OSRM)"
+    ],
+    "sre-infra": [
+      "Multi-datacenter zone replication, edge routing, Kubernetes orchestration at massive scale"
+    ]
+  },
+  "frequentThemes": [
+    {
+      "id": "uber-dispatch-matching",
+      "shape": "Design a real-time ride-matching and driver location tracking system handling millions of concurrent geospatial queries",
+      "types": ["system-design"]
+    },
+    {
+      "id": "marketplace-disruption",
+      "shape": "Describe a production incident or scaling bottleneck you resolved in a real-time system and how you prevented recurrence",
+      "types": ["behavioral-leadership", "hiring-manager"]
+    }
+  ],
+  "sourcesNote": "Curated from Uber engineering blog and real-time geospatial system architecture"
+}

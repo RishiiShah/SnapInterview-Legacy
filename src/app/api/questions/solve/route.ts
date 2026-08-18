@@ -3,6 +3,7 @@ import { z } from "zod/v4";
 import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
 import { getServerAuthSession } from "@/lib/server-auth";
 import { withCsrfProtection } from "@/lib/route-security";
+import { parseJsonBody } from "@/lib/http/request-body";
 import { logger } from "@/utils/logger";
 
 const toggleSolvedSchema = z.object({
@@ -57,12 +58,9 @@ export const POST = withCsrfProtection(async (req: Request) => {
       return unauthorizedError();
     }
 
-    const body = await req.json();
-    const parsed = toggleSolvedSchema.safeParse(body);
-
-    if (!parsed.success) {
-      const message = parsed.error.issues[0]?.message || "Invalid payload";
-      return badRequestError(message);
+    const parsed = await parseJsonBody(req, toggleSolvedSchema);
+    if (!parsed.ok) {
+      return parsed.response;
     }
 
     const { questionId, solved } = parsed.data;

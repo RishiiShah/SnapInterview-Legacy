@@ -6,6 +6,7 @@ import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { getSignedVideoUrl, listUserVideos } from "@/lib/s3/videos";
 import { prisma } from "@/lib/prisma";
+import { softDeleteInterviewSession } from "@/repositories/interview-repo";
 
 const { s3SendMock } = vi.hoisted(() => ({
   s3SendMock: vi.fn().mockResolvedValue({}),
@@ -44,6 +45,10 @@ vi.mock("@/lib/prisma", () => ({
       deleteMany: vi.fn(),
     },
   },
+}));
+
+vi.mock("@/repositories/interview-repo", () => ({
+  softDeleteInterviewSession: vi.fn(),
 }));
 
 vi.mock("@aws-sdk/client-s3", () => {
@@ -86,7 +91,7 @@ describe("GET /api/s3/videos", () => {
           size: 123,
         }
       ]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     } as any);
 
     const req = new Request("http://localhost/api/s3/videos");
@@ -157,6 +162,30 @@ describe("POST /api/s3/videos", () => {
 
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({ url: "https://signed.example/video" });
+    expect(prisma.interviewSession.findFirst).toHaveBeenCalledWith({
+      where: {
+        userId: "user-1",
+        videoKey: "user-1/interview-1.webm",
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+  });
+
+  it("returns 400 when request body is malformed JSON", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({
+      userId: "user-1",
+    } as never);
+
+    const req = new Request("http://localhost/api/s3/videos", {
+      method: "POST",
+      body: "not-json",
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({ error: "Invalid JSON body" });
   });
 });
 
@@ -234,6 +263,7 @@ describe("DELETE /api/s3/videos", () => {
       where: {
         userId: "user-1",
         videoKey: "user-1/interview-1.webm",
+        deletedAt: null,
       },
       data: {
         videoKey: null,
@@ -249,7 +279,7 @@ describe("DELETE /api/s3/videos", () => {
       userId: "user-1",
     } as never);
     vi.mocked(prisma.interviewSession.findFirst).mockResolvedValue({ id: "int-1" } as never);
-    vi.mocked(prisma.interviewSession.deleteMany).mockResolvedValue({ count: 1 } as never);
+    vi.mocked(softDeleteInterviewSession).mockResolvedValue(true);
 
     const req = new Request("http://localhost/api/s3/videos", {
       method: "DELETE",
@@ -259,12 +289,11 @@ describe("DELETE /api/s3/videos", () => {
     const res = await DELETE(req);
 
     expect(res.status).toBe(200);
-    expect(prisma.interviewSession.deleteMany).toHaveBeenCalledWith({
-      where: {
-        userId: "user-1",
-        videoKey: "user-1/interview-1.webm",
-      },
+    expect(softDeleteInterviewSession).toHaveBeenCalledWith({
+      interviewId: "int-1",
+      userId: "user-1",
     });
+    expect(prisma.interviewSession.deleteMany).not.toHaveBeenCalled();
   });
 
   it("rejects deleting user-prefixed keys that are not linked to an interview", async () => {
@@ -282,6 +311,24 @@ describe("DELETE /api/s3/videos", () => {
     const res = await DELETE(req);
 
     expect(res.status).toBe(404);
+    expect(s3SendMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when request body is malformed JSON", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({
+      userId: "user-1",
+    } as never);
+
+    const req = new Request("http://localhost/api/s3/videos", {
+      method: "DELETE",
+      body: "not-json",
+    });
+
+    const res = await DELETE(req);
+
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({ error: "Invalid JSON body" });
     expect(s3SendMock).not.toHaveBeenCalled();
   });
 });

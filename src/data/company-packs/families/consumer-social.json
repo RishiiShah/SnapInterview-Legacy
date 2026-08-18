@@ -1,0 +1,28 @@
+{
+  "id": "consumer-social",
+  "version": 1,
+  "displayNames": ["Consumer Social & Media"],
+  "method": [
+    "High concurrent user scale: real-time feeds, low-latency live interactions, push notifications, and media streaming",
+    "Fan-out on write vs fan-out on read architectures, distributed caching, and real-time WebSocket messaging",
+    "Growth experimentation, recommendation engagement loops, and moderation at scale"
+  ],
+  "signalsByLevel": {
+    "entry-level": ["Understanding real-time pub/sub, caching, and responsive frontend/mobile client engineering"],
+    "mid-level": ["Designing activity feeds, direct messaging systems, dynamic content delivery, and rate limiting"],
+    "senior": ["Architecting global media streaming pipelines, real-time presence indicators, and feed ranking architectures"],
+    "staff-plus": ["Company-wide consumer media infrastructure, graph storage scalability, and real-time streaming platforms"]
+  },
+  "signalsByRoleFamily": {
+    "swe": ["WebSocket gateway clusters, Redis Pub/Sub, CDN edge caching, video chunking (HLS/DASH)"],
+    "ml-data": ["Feed ranking models, collaborative filtering, real-time engagement telemetry"],
+    "sre-infra": ["Global edge routing, DDoS mitigation, dynamic auto-scaling on viral event spikes"]
+  },
+  "frequentThemes": [
+    {
+      "id": "social-feed-system",
+      "shape": "Design a high-scale social feed and real-time messaging platform handling celebrity follower fan-out and sub-100ms delivery",
+      "types": ["system-design"]
+    }
+  ]
+}

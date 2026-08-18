@@ -1,0 +1,55 @@
+{
+  "id": "stripe",
+  "version": 1,
+  "displayNames": ["Stripe"],
+  "method": [
+    "Users First: meticulous API ergonomics, developer experience, and clear, predictable abstractions",
+    "Extreme Financial Correctness: zero tolerance for data loss, double spending, or silent race conditions",
+    "Move Rigorously: high craftsmanship, thorough testing, written design culture, and deep operational discipline"
+  ],
+  "signalsByLevel": {
+    "entry-level": [
+      "Obsessive attention to code clarity, edge cases, and deterministic test suites",
+      "Grasp of ACID database transactions, idempotency primitives, and REST/HTTP status semantics"
+    ],
+    "mid-level": [
+      "Designing idempotent payment APIs and distributed reconciliation systems",
+      "Understanding isolation levels, two-phase commits, saga patterns, and ledger immutability",
+      "Writing clear, rigorous technical specs and communicating trade-offs concisely in writing"
+    ],
+    "senior": [
+      "Architecting global financial infrastructure with five-nines availability and zero data corruption",
+      "Designing complex distributed ledger systems, rate limiters, and fraud detection pipelines",
+      "Driving written technical consensus across global engineering organizations"
+    ],
+    "staff-plus": [
+      "Setting foundational company-wide API design standards and distributed systems architecture",
+      "Leading multi-year infrastructure transformations supporting global economic infrastructure"
+    ]
+  },
+  "signalsByRoleFamily": {
+    "swe": [
+      "Idempotency keys, distributed locks, ledger double-entry bookkeeping, monotonic clock timestamps",
+      "API backward compatibility, versioning strategies, webhook delivery with retry backoff"
+    ],
+    "ml-data": [
+      "Real-time fraud scoring (Radar), sub-100ms inference pipelines, low false-positive anomaly detection"
+    ],
+    "sre-infra": [
+      "Multi-region database sharding (Spanner/PostgreSQL/Vitess), zero-downtime schema migrations, live data backfills"
+    ]
+  },
+  "frequentThemes": [
+    {
+      "id": "stripe-payment-idempotency",
+      "shape": "Design an idempotent payment processing and transaction ledger system handling network timeouts and retries",
+      "types": ["system-design"]
+    },
+    {
+      "id": "rigorous-debugging",
+      "shape": "A time you diagnosed an elusive concurrency bug or race condition in production and implemented bulletproof guardrails",
+      "types": ["behavioral-leadership", "hiring-manager"]
+    }
+  ],
+  "sourcesNote": "Curated from Stripe engineering blog, API design guidelines, and written design culture"
+}

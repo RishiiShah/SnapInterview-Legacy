@@ -1,0 +1,72 @@
+{
+  "id": "amazon",
+  "version": 1,
+  "displayNames": ["Amazon", "AWS", "Amazon Web Services"],
+  "method": [
+    "Strict Leadership Principles (LPs) framing for behavioral answers (Customer Obsession, Ownership, Bias for Action, Dive Deep, Earn Trust, Have Backbone; Disagree and Commit)",
+    "Expect concrete quantifiable customer impact, ownership metrics, and specific individual contributions ('I' vs 'we')",
+    "Bar-raiser standard: candidate must raise the bar relative to current team peers; consistent sound judgment under ambiguity"
+  ],
+  "signalsByLevel": {
+    "entry-level": [
+      "Customer obsession demonstrated through personal projects or coursework delivery",
+      "Learn and be curious: rapid acquisition of new tools and willingness to dive deep into debugging",
+      "Writing clean, modular code with solid understanding of algorithmic efficiency"
+    ],
+    "mid-level": [
+      "Clear end-to-end ownership of services, APIs, and operational metrics (alarms, latency p99)",
+      "Bias for action with calculated risk-taking; delivering two-way door decisions autonomously",
+      "Thorough root-cause analysis on past outages or production incidents"
+    ],
+    "senior": [
+      "Architectural leadership across multi-tier distributed systems with strict SLAs",
+      "Frugality and operational excellence: optimizing cloud costs and reducing operational friction",
+      "Demonstrated ability to influence cross-org stakeholders and raise the engineering bar"
+    ],
+    "staff-plus": [
+      "Think Big: Defining multi-year distributed systems roadmaps spanning org boundaries",
+      "Invent and Simplify: Replacing complex legacy systems with scalable, decoupled primitives",
+      "Executive communication and technical governance across entire VP organizations"
+    ]
+  },
+  "signalsByRoleFamily": {
+    "swe": [
+      "Distributed architecture fundamentals: DynamoDB/NoSQL modeling, SQS/SNS decoupling, idempotent APIs",
+      "Concurrency, error handling, retry policies with jitter/exponential backoff, and circuit breakers"
+    ],
+    "ml-data": [
+      "SageMaker / distributed training pipelines, real-time feature extraction, low-latency model inference",
+      "Data consistency, schema evolution, and cost-effective data warehousing on Redshift/S3"
+    ],
+    "sre-infra": [
+      "Operational excellence: high-cardinality CloudWatch metrics, automated deployment pipelines, canary analysis",
+      "Multi-AZ / Multi-Region resilience, cell-based architecture, and blast-radius containment"
+    ],
+    "pm-design": [
+      "Working Backwards: writing Press Release / FAQ (PR/FAQ) artifacts before building",
+      "Deep customer discovery, ruthless prioritization, and metric-driven business outcomes"
+    ],
+    "em-lead": [
+      "Hire and Develop the Best: continuous talent assessment and clear career progression coaching",
+      "Managing operational burden, technical debt, and high-velocity roadmap commitments"
+    ]
+  },
+  "frequentThemes": [
+    {
+      "id": "customer-metric",
+      "shape": "Past example with customer impact, measurable telemetry, and specific personal trade-offs made under pressure",
+      "types": ["behavioral-leadership", "hiring-manager", "bar-raiser"]
+    },
+    {
+      "id": "scaling-aws-primitives",
+      "shape": "Design an asynchronous, fault-tolerant processing pipeline handling high burst traffic with decoupled storage",
+      "types": ["system-design", "domain-role"]
+    },
+    {
+      "id": "disagree-and-commit",
+      "shape": "Scenario where candidate had strong technical conviction against team consensus, gathered data, and navigated outcome",
+      "types": ["behavioral-leadership", "bar-raiser"]
+    }
+  ],
+  "sourcesNote": "Curated from public Amazon Leadership Principles and technical interview standards"
+}

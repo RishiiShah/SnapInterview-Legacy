@@ -1,32 +1,22 @@
 import {
-  S3Client,
   CompleteMultipartUploadCommand,
   AbortMultipartUploadCommand,
   ListPartsCommand,
 } from "@aws-sdk/client-s3";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiError, apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
-import { requireAwsS3Env } from "@/lib/env";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
 import {
   MULTIPART_UPLOAD_MAX_BYTES,
   MULTIPART_UPLOAD_MAX_PARTS,
 } from "@/lib/s3/multipart-upload-constraints";
-import { createMultipartCompletionToken, verifyMultipartUploadToken } from "@/lib/s3/multipart-upload-token";
-import { interviewIdSchema } from "@/lib/interview/domain";
+import { createMultipartCompletionToken } from "@/lib/s3/multipart-upload-token";
+import { parseJsonBody } from "@/lib/http/request-body";
+import { getS3Runtime } from "@/lib/s3/runtime";
+import { isAuthorizedMultipartIdentity, multipartIdentitySchema } from "@/lib/s3/multipart-request";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
-
-const aws = requireAwsS3Env();
-
-const s3Client = new S3Client({
-  region: aws.region,
-  credentials: {
-    accessKeyId: aws.accessKeyId,
-    secretAccessKey: aws.secretAccessKey,
-  },
-});
 
 const completeLimiter = createRateLimiter("s3-multipart-complete", 60 * 60 * 1000, 20);
 
@@ -36,11 +26,7 @@ type UploadedPart = {
   Size?: number;
 };
 
-const completeSchema = z.object({
-  interviewId: interviewIdSchema,
-  key: z.string().min(1),
-  uploadId: z.string().min(1),
-  uploadToken: z.string().min(1),
+const completeSchema = multipartIdentitySchema.extend({
   parts: z.array(z.object({
     PartNumber: z.number().int().min(1).max(MULTIPART_UPLOAD_MAX_PARTS),
     ETag: z.string().min(1),
@@ -53,22 +39,25 @@ function normalizeETag(etag: string) {
 }
 
 async function abortMultipartUpload(key: string, uploadId: string) {
+  const { client, bucketName } = getS3Runtime();
   const command = new AbortMultipartUploadCommand({
-    Bucket: aws.bucketName,
+    Bucket: bucketName,
     Key: key,
     UploadId: uploadId,
   });
-  await s3Client.send(command);
+  await client.send(command);
 }
 
 async function listUploadedParts(key: string, uploadId: string) {
+  const { client, bucketName } = getS3Runtime();
   const uploadedParts: UploadedPart[] = [];
   let partNumberMarker: string | undefined;
   let isTruncated = true;
+  let isTruncatedLoop = true;
 
-  while (isTruncated) {
-    const response = await s3Client.send(new ListPartsCommand({
-      Bucket: aws.bucketName,
+  while (isTruncatedLoop) {
+    const response = await client.send(new ListPartsCommand({
+      Bucket: bucketName,
       Key: key,
       UploadId: uploadId,
       PartNumberMarker: partNumberMarker,
@@ -77,6 +66,7 @@ async function listUploadedParts(key: string, uploadId: string) {
 
     uploadedParts.push(...(response.Parts ?? []));
     isTruncated = Boolean(response.IsTruncated);
+    isTruncatedLoop = isTruncated;
     partNumberMarker = response.NextPartNumberMarker;
   }
 
@@ -88,22 +78,20 @@ export const POST = withCsrfProtection(async (req: Request) => {
     const authUser = await getSessionUserIdentity();
     if (!authUser) return unauthorizedError();
 
-    const body = await req.json();
-    const parsed = completeSchema.safeParse(body);
-    if (!parsed.success) {
-      return badRequestError(parsed.error.issues[0]?.message || "Invalid input");
+    const parsed = await parseJsonBody(req, completeSchema);
+    if (!parsed.ok) {
+      return parsed.response;
     }
 
     const { interviewId, key, uploadId, uploadToken, parts, action } = parsed.data;
-    const expectedKey = `${authUser.userId}/interview-${interviewId}.webm`;
 
     if (
-      key !== expectedKey ||
-      !verifyMultipartUploadToken(uploadToken, {
+      !isAuthorizedMultipartIdentity({
         userId: authUser.userId,
         interviewId,
         key,
         uploadId,
+        uploadToken,
       })
     ) {
       return apiError("Unauthorized to complete multipart upload for this key", 403);
@@ -159,9 +147,11 @@ export const POST = withCsrfProtection(async (req: Request) => {
       return badRequestError("Upload exceeds the maximum allowed size");
     }
 
+    const { client, bucketName } = getS3Runtime();
+
     // Process Complete
     const command = new CompleteMultipartUploadCommand({
-      Bucket: aws.bucketName,
+      Bucket: bucketName,
       Key: key,
       UploadId: uploadId,
       MultipartUpload: {
@@ -170,7 +160,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
       },
     });
 
-    await s3Client.send(command);
+    await client.send(command);
 
     const videoCompletionToken = createMultipartCompletionToken({
       userId: authUser.userId,

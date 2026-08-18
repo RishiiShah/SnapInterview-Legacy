@@ -96,11 +96,12 @@ describe("GET /api/search", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 400 when rate limited", async () => {
+  it("returns 429 when rate limited", async () => {
     isLimitedMock.mockResolvedValueOnce(true);
     const res = await GET(makeRequest("engineer"));
-    expect(res.status).toBe(400);
-    expect(await res.json()).toMatchObject({ error: /too many/i });
+    expect(res.status).toBe(429);
+    expect(await res.json()).toEqual({ error: "Too many search requests. Please slow down." });
+    expect(prisma.interviewSession.findMany).not.toHaveBeenCalled();
   });
 
   it("returns matching sessions and questions", async () => {

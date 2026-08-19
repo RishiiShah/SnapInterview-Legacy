@@ -8,6 +8,7 @@ import {
 } from "@/lib/interview/domain";
 import { buildInterviewBrief } from "@/lib/interview/brief";
 import { getUserOnboardingContext } from "@/repositories/user-repo";
+import { isCuratedCompany } from "@/lib/company-options";
 import {
   createInterviewSession,
   expireInterviewSessionIfStale,
@@ -67,7 +68,11 @@ export async function startInterviewSession(params: StartInterviewSessionInput) 
     (durationMinutes === 15 ? 5 : durationMinutes === 45 ? 15 : 10);
   const persona: InterviewPersona = params.persona ?? "balanced";
   const role = params.role || user?.onboardingRole || "Generalist";
-  const company = params.company ?? user?.onboardingCompany ?? null;
+  const onboardingCompany =
+    user?.onboardingCompany && isCuratedCompany(user.onboardingCompany)
+      ? user.onboardingCompany
+      : null;
+  const company = params.company ?? onboardingCompany ?? null;
 
   const brief = await buildInterviewBrief({
     role,

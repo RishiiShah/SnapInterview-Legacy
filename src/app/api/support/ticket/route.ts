@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { z } from "zod/v4";
 import { getServerAuthSession } from "@/lib/server-auth";
@@ -8,6 +8,7 @@ import { createRateLimiter } from "@/lib/rate-limit";
 import { logger } from "@/utils/logger";
 import { env } from "@/lib/env";
 import { createSupportTicket } from "@/repositories/support-ticket-repo";
+import { sendSupportTicketEmail } from "@/lib/email";
 
 const supportTicketLimiter = createRateLimiter("support-ticket", 15 * 60 * 1000, 10);
 
@@ -19,35 +20,6 @@ const supportTicketSchema = z.object({
   attachmentName: z.string().optional(),
   attachmentBase64: z.string().max(10 * 1024 * 1024, "Attachment is too large").optional(),
 });
-
-const FORMSPREE_SUPPORT_ENDPOINT = "https://formspree.io/f/xwlebndz";
-const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
-const supportTicketSchema = z.object({
-  category: z.enum(["technical", "coding", "billing", "account", "feedback"]).default("technical"),
-  priority: z.enum(["low", "normal", "high"]).default("normal"),
-  subject: z.string().trim().min(1, "Subject line is required").max(200, "Subject line is too long"),
-  description: z.string().trim().min(1, "Description is required").max(10_000, "Description is too long"),
-});
-const supportTicketLimiter = createRateLimiter("support-ticket", 60 * 60 * 1000, 5);
-
-function getAttachmentType(bytes: Uint8Array): "png" | "jpeg" | "webp" | null {
-  const matches = (...signature: number[]) => signature.every((byte, index) => bytes[index] === byte);
-  if (bytes.length >= 8 && matches(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) return "png";
-  if (bytes.length >= 3 && matches(0xff, 0xd8, 0xff)) return "jpeg";
-  if (bytes.length >= 12 && String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" && String.fromCharCode(...bytes.slice(8, 12)) === "WEBP") return "webp";
-  return null;
-}
-
-async function validateAttachment(file: File): Promise<File | null> {
-  if (file.size === 0 || file.size > MAX_ATTACHMENT_BYTES) return null;
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const type = getAttachmentType(bytes);
-  if (!type) return null;
-
-  const extension = type === "jpeg" ? "jpg" : type;
-  const contentType = type === "jpeg" ? "image/jpeg" : `image/${type}`;
-  return new File([bytes], `support-attachment.${extension}`, { type: contentType });
-}
 
 export const POST = withCsrfProtection(async (request: Request) => {
   try {
@@ -144,7 +116,7 @@ export const POST = withCsrfProtection(async (request: Request) => {
       });
     }
 
-    return NextResponse.json({ success: true, message: "Ticket submitted successfully" });
+    return NextResponse.json({ success: true, message: "Ticket submitted successfully", ticketId });
   } catch (error) {
     logger.error("Error submitting Formspree support ticket", {
       error: error instanceof Error ? error.message : String(error),

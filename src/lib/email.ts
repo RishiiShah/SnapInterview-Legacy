@@ -26,8 +26,53 @@ function escapeSubject(value: string) {
     return value.replace(/[\r\n]+/g, " ").trim();
 }
 
+function notificationFrom() {
+    const configured = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.app";
+    const address = configured.match(/<([^>]+)>/)?.[1] ?? configured;
+    return `SnapInterview Notifications <${address}>`;
+}
+
+function isLocalHost(hostname: string) {
+    const normalized = hostname.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
+    if (normalized === "localhost" || normalized.endsWith(".localhost")) return true;
+
+    const ipVersion = isIP(normalized);
+    return (
+        (ipVersion === 4 && normalized.startsWith("127.")) ||
+        (ipVersion === 6 && (normalized === "::1" || normalized.startsWith("::ffff:127.")))
+    );
+}
+
+export function publicAppUrl(candidate = env.NEXT_PUBLIC_APP_URL ?? env.APP_URL) {
+    if (candidate) {
+        try {
+            const url = new URL(candidate);
+            if (!isLocalHost(url.hostname)) {
+                return url.origin;
+            }
+        } catch {
+            // Use the public default below.
+        }
+    }
+    return "https://snapinterview.app";
+}
+
+function publicLink(value: string) {
+    try {
+        const url = new URL(value);
+        if (isLocalHost(url.hostname)) {
+            return `${publicAppUrl()}${url.pathname}${url.search}${url.hash}`;
+        }
+        return url.toString();
+    } catch {
+        return `${publicAppUrl()}${value.startsWith('/') ? value : `/${value}`}`;
+    }
+}
+
+const automatedEmailFooter = '<p style="margin:16px 0 0;font-size:12px;line-height:1.5;color:#a1a1aa;">This is an automated email. Please do not reply.</p>';
+
 function renderEmailBrandHeader(title = "SnapInterview") {
-    const appUrl = env.NEXT_PUBLIC_APP_URL ?? env.APP_URL ?? "https://snapinterview.app";
+    const appUrl = publicAppUrl();
     const logoUrl = `${appUrl}/logo.png`;
     return `
       <table cellpadding="0" cellspacing="0">

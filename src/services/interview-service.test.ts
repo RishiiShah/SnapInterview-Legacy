@@ -377,12 +377,12 @@ describe("startInterviewSession", () => {
   });
 
   it("does not copy a legacy uncurated onboarding company into a new session", async () => {
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+    vi.mocked(getUserOnboardingContext).mockResolvedValue({
       onboardingGoal: "switch-companies",
       onboardingLevel: "mid-level",
       onboardingRole: "Frontend Engineer",
       onboardingCompany: "Acme",
-    } as Awaited<ReturnType<typeof prisma.user.findUnique>>);
+    });
     vi.mocked(createInterviewSession).mockResolvedValue({ id: "int-uncurated-company" });
 
     await startInterviewSession({

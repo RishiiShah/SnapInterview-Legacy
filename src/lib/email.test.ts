@@ -6,6 +6,7 @@ import {
   sendResetPasswordLinkEmail,
   sendWeeklyReportEmail,
   sendSupportTicketEmail,
+  publicAppUrl,
 } from "./email";
 
 const { sendMailMock } = vi.hoisted(() => ({

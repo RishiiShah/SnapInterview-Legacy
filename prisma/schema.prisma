@@ -47,6 +47,7 @@ model User {
   securityEvents       SecurityEvent[]
   pendingRegistrations PendingUser[]
   supportTickets       SupportTicket[]
+  companyRequests      CompanyRequest[]
 }
 
 model Session {

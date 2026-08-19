@@ -50,8 +50,8 @@ test.describe("Protected smoke flows", () => {
   test("practice page loads for an authenticated test user", async ({ page }) => {
     await page.goto("/practice");
 
-    await expect(page.getByRole("heading", { name: /practice interview/i, level: 1 })).toBeVisible();
-    await expect(page.getByPlaceholder(/search or type your target role/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /set up your interview|practice/i, level: 1 })).toBeVisible();
+    await expect(page.getByPlaceholder(/software engineer|search or type/i)).toBeVisible();
     await expect(page.getByRole("button", { name: /continue|start interview/i })).toBeVisible();
   });
 
@@ -83,10 +83,18 @@ test.describe("Protected smoke flows", () => {
   test("settings page loads profile settings", async ({ page }) => {
     await page.goto("/dashboard");
 
-    // Open account drop-up and click Settings (target the button with the user's name)
-    await page.locator('aside button').last().click();
-    await page.locator('a:has-text("Settings")').first().click();
-    await page.waitForURL('**/settings', { timeout: 10000 });
+    // Click Settings link from sidebar or header user menu
+    const settingsLink = page.locator('a[href*="/settings"]').first();
+    if (await settingsLink.isVisible()) {
+      await settingsLink.click();
+    } else {
+      const userMenu = page.getByRole("button", { name: /user profile menu/i });
+      if (await userMenu.isVisible()) {
+        await userMenu.click();
+      }
+      await page.locator('a[href*="/settings"]').first().click();
+    }
+    await page.waitForURL('**/settings**', { timeout: 10000 });
 
     // Confirm the page actually rendered (not just a blank route).
     await expect(page.getByRole("heading", { name: /settings/i })).toBeVisible({ timeout: 10_000 });

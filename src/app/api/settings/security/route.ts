@@ -11,6 +11,7 @@ import {
 } from "@/lib/security-activity";
 import { headers } from "next/headers";
 import { withCsrfProtection } from "@/lib/route-security";
+import { parseJsonBody } from "@/lib/http/request-body";
 import { logger } from "@/utils/logger";
 import { mapWithConcurrency } from "@/lib/async";
 
@@ -89,7 +90,7 @@ export async function GET() {
           type: { in: ["LOGIN_SUCCESS", "LOGIN_FAILED"] },
         },
         orderBy: { createdAt: "desc" },
-        take: 100,
+        take: 25,
         select: {
           id: true,
           type: true,
@@ -141,11 +142,10 @@ export const PATCH = withCsrfProtection(async (req: Request) => {
     }
 
     const currentSession = await getCurrentSession();
-    const body = await req.json();
-    const parsed = securityActionSchema.safeParse(body);
+    const parsed = await parseJsonBody(req, securityActionSchema);
 
-    if (!parsed.success) {
-      return badRequestError(parsed.error.issues[0]?.message || "Invalid action");
+    if (!parsed.ok) {
+      return parsed.response;
     }
 
     if (parsed.data.action === "revokeOthers") {

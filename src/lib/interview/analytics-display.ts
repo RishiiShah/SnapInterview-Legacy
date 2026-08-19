@@ -1,3 +1,46 @@
+import {
+  coerceInterviewType,
+  INTERVIEW_TYPE_META,
+  type InterviewType,
+} from "./domain";
+
+export type InterviewTypeLabelVariant = "full" | "short";
+
+const INTERVIEW_TYPE_BADGE_CLASSES: Record<InterviewType, string> = {
+  "recruiter-screen": "text-sky-300/90 bg-sky-500/10 border-sky-500/20",
+  "behavioral-leadership": "text-sky-300/90 bg-sky-500/10 border-sky-500/20",
+  "coding-algorithms": "text-teal-300/90 bg-teal-500/10 border-teal-500/20",
+  "system-design": "text-cyan-300/90 bg-cyan-500/10 border-cyan-500/20",
+  "domain-role": "text-emerald-300/90 bg-emerald-500/10 border-emerald-500/20",
+  "take-home": "text-amber-300/90 bg-amber-500/10 border-amber-500/20",
+  "hiring-manager": "text-blue-300/90 bg-blue-500/10 border-blue-500/20",
+  "bar-raiser": "text-rose-300/90 bg-rose-500/10 border-rose-500/20",
+};
+
+const UNKNOWN_INTERVIEW_TYPE_BADGE_CLASS =
+  "text-[#B0B8C8] bg-white/[0.04] border-white/[0.08]";
+
+export function interviewTypeDisplayLabel(
+  value: unknown,
+  variant: InterviewTypeLabelVariant = "full",
+): string | null {
+  if (typeof value !== "string" || value.length === 0) return null;
+
+  const interviewType = coerceInterviewType(value);
+  if (!interviewType) return value.replace(/[_-]+/g, " ");
+
+  return variant === "short"
+    ? INTERVIEW_TYPE_META[interviewType].shortLabel
+    : INTERVIEW_TYPE_META[interviewType].label;
+}
+
+export function interviewTypeBadgeClass(value: unknown): string {
+  const interviewType = coerceInterviewType(value);
+  return interviewType
+    ? INTERVIEW_TYPE_BADGE_CLASSES[interviewType]
+    : UNKNOWN_INTERVIEW_TYPE_BADGE_CLASS;
+}
+
 export type MonthCompareTone = "up" | "down" | "neutral" | "new";
 
 export function formatMonthOverMonthChange(

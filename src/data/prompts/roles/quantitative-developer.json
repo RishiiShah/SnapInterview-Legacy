@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "id": "role-quantitative-developer",
+  "title": "Quantitative Developer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Quantitative Developer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Ultra-Low Latency & High Performance: Modern C++ (C++20/23), memory layout, CPU cache lines (L1/L2/L3), branch prediction, lock-free queues, and SIMD vectorization.",
+        "2. Market Data & Order Execution: FIX protocol, ITCH/OUCH binary feeds, exchange matching engine interaction, order book state reconstruction, and ring buffers.",
+        "3. Concurrency & Operating System Tuning: Kernel bypass (Solarflare OpenOnload, DPDK), thread pinning, isolcpus, interrupt affinity, and timestamping (RDTSC/PTP).",
+        "4. Strategy Implementation: Translating quantitative alpha models into deterministic, sub-microsecond production execution engines."
+      ]
+    }
+  ]
+}

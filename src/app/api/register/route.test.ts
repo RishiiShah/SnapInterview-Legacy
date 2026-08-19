@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { deferred } from "@/test-utils/deferred";
 import { NextResponse } from "next/server";
 import { POST } from "./route";
 
@@ -12,14 +13,6 @@ import { hashCredentialPassword } from "@/lib/password";
 const { isLimitedMock } = vi.hoisted(() => ({
   isLimitedMock: vi.fn().mockResolvedValue(false),
 }));
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-  return { promise, resolve };
-}
 
 vi.mock("@/lib/rate-limit", () => ({
   createRateLimiter: vi.fn(() => ({
@@ -282,5 +275,23 @@ describe("POST /api/register", () => {
     passwordHash.resolve("hashed-password");
 
     await expect(registration).resolves.toHaveProperty("status", 200);
+  });
+
+  it("returns 400 when request body is malformed JSON", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+
+    const res = await POST(
+      new Request("http://localhost/api/register", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "http://localhost:3000",
+        },
+        body: "not-json",
+      }),
+    );
+
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({ error: "Invalid JSON body" });
   });
 });

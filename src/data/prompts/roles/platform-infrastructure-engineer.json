@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "id": "role-platform-infrastructure-engineer",
+  "title": "Platform / Infrastructure Engineer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Platform / Infrastructure Engineer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Entry-level / New Grad: Linux fundamentals, container orchestration basics, scripting (Go/Python/Bash), and developer workflows.",
+        "2. Mid-level: Building internal developer platforms (IDP), service mesh (Istio/Linkerd), Kubernetes operators, CI/CD runners, and telemetry collectors.",
+        "3. Senior: Self-service platform design, multi-tenant cluster isolation, cloud cost governance, developer productivity metrics (DORA metrics), and platform API design.",
+        "4. Staff-plus: Organization-wide developer platform vision, foundational compute/storage primitives, and developer velocity transformation."
+      ]
+    }
+  ]
+}

@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 
 import { StrictMode } from "react";
-import { render } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { deferred } from "@/test-utils/deferred";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
@@ -10,17 +11,9 @@ vi.mock("next/navigation", () => ({
 
 import ProfileTab from "./ProfileTab";
 
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-
-  return { promise, resolve };
-}
-
 describe("ProfileTab", () => {
   afterEach(() => {
+    cleanup();
     vi.unstubAllGlobals();
   });
 
@@ -55,5 +48,33 @@ describe("ProfileTab", () => {
     );
 
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("shows the saved resume after one successful upload request", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ resumeText: "Built distributed systems." }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <ProfileTab
+        userName="Ada Lovelace"
+        userEmail="ada@example.com"
+        initials="AL"
+        initialResumeText={null}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/upload resume/i), {
+      target: {
+        files: [new File(["pdf"], "resume.pdf", { type: "application/pdf" })],
+      },
+    });
+
+    expect(await screen.findByText("Resume saved")).toBeDefined();
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 });

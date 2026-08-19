@@ -1,0 +1,27 @@
+{
+  "id": "enterprise",
+  "version": 1,
+  "displayNames": ["Enterprise SaaS", "B2B Software"],
+  "method": [
+    "Enterprise requirements: multi-tenancy, granular Role-Based Access Control (RBAC/ABAC), SSO/SAML, and audit logging",
+    "High security compliance (SOC 2, GDPR, HIPAA, ISO 27001) with tenant-level data isolation and encryption keys",
+    "High availability, workflow automations, and enterprise integration ecosystems (webhooks, REST/GraphQL APIs)"
+  ],
+  "signalsByLevel": {
+    "entry-level": ["Solid database schema design, modular service architecture, and secure authentication flows"],
+    "mid-level": ["Designing multi-tenant data isolation (row-level security vs schema-per-tenant), RBAC engines, and webhooks"],
+    "senior": ["Architecting large-scale enterprise SaaS platforms with customizable workflow engines and high-volume reporting"],
+    "staff-plus": ["Company-wide platform strategy, unified enterprise data models, and enterprise security governance"]
+  },
+  "signalsByRoleFamily": {
+    "swe": ["Multi-tenant partitioning, fine-grained authorization (Zanzibar/ReBAC), idempotent webhook dispatchers"],
+    "sre-infra": ["Zero-downtime rolling updates, tenant resource quotas, disaster recovery RPO/RTO compliance"]
+  },
+  "frequentThemes": [
+    {
+      "id": "multitenant-saas-architecture",
+      "shape": "Design a secure multi-tenant SaaS application with custom subdomain routing, tenant-isolated data storage, and scalable RBAC",
+      "types": ["system-design"]
+    }
+  ]
+}

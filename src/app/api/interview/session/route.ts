@@ -1,6 +1,7 @@
 import type { InterviewStatus } from "@/generated/prisma/client";
 import {
     interviewDifficultySchema,
+    interviewDurationSchema,
     interviewIdSchema,
     interviewPersonaSchema,
     interviewQuestionCountSchema,
@@ -9,6 +10,7 @@ import {
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiError, apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { parseJsonBody } from "@/lib/http/request-body";
 import { z } from "zod/v4";
 import {
     ALLOWED_STATUSES,
@@ -16,10 +18,11 @@ import {
     startInterviewSession,
     updateSessionStatusIfOwned,
 } from "@/services/interview-service";
-import { deleteInterviewSession } from "@/repositories/interview-repo";
+import { softDeleteInterviewSession } from "@/repositories/interview-repo";
 import { withCsrfProtection } from "@/lib/route-security";
 import { verifyMultipartCompletionToken } from "@/lib/s3/multipart-upload-token";
 import { warmEmbeddingModel } from "@/lib/rag/embeddings";
+import { warmRerankerModel } from "@/lib/rag/reranker";
 import { logger } from "@/utils/logger";
 import { isCuratedCompany } from "@/lib/company-options";
 
@@ -36,6 +39,7 @@ const createSessionSchema = z.object({
     jobDescription: z.string().trim().max(10000).optional(),
     resumeUrl: z.string().url().optional(),
     resumeText: z.string().trim().max(8000).optional(),
+    durationMinutes: interviewDurationSchema.optional(),
     questionCount: interviewQuestionCountSchema.optional(),
 });
 const createSessionLimiter = createRateLimiter("interview-session-create", 60 * 60 * 1000, 30);
@@ -95,15 +99,12 @@ export const POST = withCsrfProtection(async (req: Request) => {
             return apiError("Too many interview sessions created. Please try again later.", 429);
         }
 
-        const body = await req.json();
-        const parsed = createSessionSchema.safeParse(body);
-
-        if (!parsed.success) {
-            const firstError = parsed.error.issues[0]?.message || "Invalid input";
-            return badRequestError(firstError);
+        const parsed = await parseJsonBody(req, createSessionSchema);
+        if (!parsed.ok) {
+            return parsed.response;
         }
 
-        const { id, role, company, type, difficulty, persona, jobDescription, resumeUrl, resumeText, questionCount } = parsed.data;
+        const { id, role, company, type, difficulty, persona, jobDescription, resumeUrl, resumeText, durationMinutes, questionCount } = parsed.data;
 
         const interviewSession = await startInterviewSession({
             id,
@@ -116,9 +117,11 @@ export const POST = withCsrfProtection(async (req: Request) => {
             jobDescription,
             resumeUrl,
             resumeText,
+            durationMinutes,
             questionCount,
         });
         warmEmbeddingModel();
+        warmRerankerModel();
 
         return apiJson({ id: interviewSession.id }, 201);
     } catch (error) {
@@ -138,6 +141,14 @@ const patchSessionSchema = z.object({
         (val) => (ALLOWED_STATUSES as readonly string[]).includes(val),
         "Invalid status value"
     ).optional(),
+    videoUrl: z.unknown().optional(),
+}).superRefine((data, ctx) => {
+    if (data.videoUrl !== undefined) {
+        ctx.addIssue({
+            code: "custom",
+            message: "videoUrl cannot be updated directly",
+        });
+    }
 });
 
 export const PATCH = withCsrfProtection(async (req: Request) => {
@@ -147,16 +158,9 @@ export const PATCH = withCsrfProtection(async (req: Request) => {
             return unauthorizedError();
         }
 
-        const body = await req.json();
-        if (body && typeof body === "object" && "videoUrl" in body) {
-            return badRequestError("videoUrl cannot be updated directly");
-        }
-
-        const parsed = patchSessionSchema.safeParse(body);
-
-        if (!parsed.success) {
-            const firstError = parsed.error.issues[0]?.message || "Invalid input";
-            return badRequestError(firstError);
+        const parsed = await parseJsonBody(req, patchSessionSchema);
+        if (!parsed.ok) {
+            return parsed.response;
         }
 
         const { interviewId, videoKey, videoCompletionToken, status } = parsed.data;
@@ -234,7 +238,7 @@ export const DELETE = withCsrfProtection(async (req: Request) => {
         }
         const interviewId = parsedId.data;
 
-        await deleteInterviewSession({
+        await softDeleteInterviewSession({
             interviewId,
             userId: authUser.userId,
         });

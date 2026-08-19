@@ -24,11 +24,70 @@ export function normalizeCategory(category: string): string {
   return CATEGORY_ALIASES[trimmed] ?? trimmed;
 }
 
-const BACKEND_ROLES = ["backend-developer", "node-js-developer", "java-developer", "python-developer", "go-developer", "rust-developer", "full-stack-developer"];
-const FRONTEND_ROLES = ["frontend-developer", "react-developer", "angular-developer", "vue-developer", "full-stack-developer"];
-const ARCHITECT_ROLES = ["solutions-architect", "cloud-architect", "tech-lead", "engineering-manager"];
-const DATA_ROLES = ["data-engineer", "data-scientist", "machine-learning-engineer"];
-const ALL_ENGINEERING = [...new Set([...BACKEND_ROLES, ...FRONTEND_ROLES, "mobile-developer", "qa-engineer", "devops-engineer"])];
+const BACKEND_ROLES = [
+  "software-engineer-backend",
+  "software-engineer-systems-infrastructure",
+  "software-engineer-full-stack",
+  "software-engineer",
+];
+
+const FRONTEND_ROLES = [
+  "software-engineer-frontend",
+  "software-engineer-full-stack",
+  "design-engineer",
+  "software-engineer",
+];
+
+const MOBILE_ROLES = [
+  "software-engineer-mobile-ios-android",
+  "software-engineer-ios",
+  "software-engineer-android",
+];
+
+const CLOUD_SRE_ROLES = [
+  "site-reliability-engineer-sre",
+  "devops-cloud-engineer",
+  "platform-infrastructure-engineer",
+  "solutions-architect",
+  "security-engineer",
+];
+
+const DATA_AI_ROLES = [
+  "machine-learning-engineer",
+  "ai-llm-applications-engineer",
+  "data-engineer",
+  "data-scientist",
+  "analytics-engineer",
+  "ai-research-scientist",
+];
+
+const QUANT_ROLES = [
+  "quantitative-developer",
+  "quantitative-researcher",
+  "quantitative-trader",
+];
+
+const ARCHITECT_ROLES = [
+  "solutions-architect",
+  "tech-lead-staff-engineer",
+  "engineering-manager",
+  "platform-infrastructure-engineer",
+];
+
+const ALL_ENGINEERING = [
+  ...new Set([
+    "software-engineer",
+    "software-engineer-in-test-sdet",
+    "software-engineer-embedded-firmware",
+    ...BACKEND_ROLES,
+    ...FRONTEND_ROLES,
+    ...MOBILE_ROLES,
+    ...CLOUD_SRE_ROLES,
+    ...DATA_AI_ROLES,
+    ...QUANT_ROLES,
+    ...ARCHITECT_ROLES,
+  ]),
+];
 
 interface CategoryMapping {
   types: InterviewType[];
@@ -36,26 +95,26 @@ interface CategoryMapping {
 }
 
 const SOFTWARE_CATEGORY_MAP: Record<string, CategoryMapping> = {
-  "System Design": { types: ["system-design", "domain-role"], roleTags: [...ARCHITECT_ROLES, ...BACKEND_ROLES] },
-  "Distributed Systems": { types: ["system-design", "domain-role"], roleTags: [...ARCHITECT_ROLES, ...BACKEND_ROLES, "data-engineer"] },
-  DevOps: { types: ["domain-role", "system-design"], roleTags: ["devops-engineer", "cloud-architect", "system-administrator", "solutions-architect"] },
+  "System Design": { types: ["system-design", "domain-role"], roleTags: [...ARCHITECT_ROLES, ...BACKEND_ROLES, ...CLOUD_SRE_ROLES] },
+  "Distributed Systems": { types: ["system-design", "domain-role"], roleTags: [...ARCHITECT_ROLES, ...BACKEND_ROLES, ...DATA_AI_ROLES, ...CLOUD_SRE_ROLES] },
+  DevOps: { types: ["domain-role", "system-design"], roleTags: CLOUD_SRE_ROLES },
   "Front-end": { types: ["domain-role"], roleTags: FRONTEND_ROLES },
   "Back-end": { types: ["domain-role"], roleTags: BACKEND_ROLES },
-  "Full-stack": { types: ["domain-role"], roleTags: ["full-stack-developer", ...BACKEND_ROLES, ...FRONTEND_ROLES] },
-  "Web Development": { types: ["domain-role"], roleTags: [...FRONTEND_ROLES, "full-stack-developer"] },
-  Security: { types: ["domain-role", "system-design"], roleTags: ["security-engineer", ...BACKEND_ROLES, "devops-engineer"] },
+  "Full-stack": { types: ["domain-role"], roleTags: ["software-engineer-full-stack", ...BACKEND_ROLES, ...FRONTEND_ROLES] },
+  "Web Development": { types: ["domain-role"], roleTags: [...FRONTEND_ROLES, "software-engineer-full-stack"] },
+  Security: { types: ["domain-role", "system-design"], roleTags: ["security-engineer", ...BACKEND_ROLES, ...CLOUD_SRE_ROLES] },
   "Data Structures": { types: ["coding-algorithms", "domain-role"], roleTags: ALL_ENGINEERING },
   Algorithms: { types: ["coding-algorithms", "domain-role"], roleTags: ALL_ENGINEERING },
   "Languages and Frameworks": { types: ["domain-role"], roleTags: ALL_ENGINEERING },
   "General Programming": { types: ["domain-role"], roleTags: ALL_ENGINEERING },
-  "Database and SQL": { types: ["domain-role"], roleTags: [...BACKEND_ROLES, ...DATA_ROLES] },
-  "Data Engineering": { types: ["domain-role", "system-design"], roleTags: DATA_ROLES },
-  "Machine Learning": { types: ["domain-role"], roleTags: ["machine-learning-engineer", "data-scientist"] },
-  "Artificial Intelligence": { types: ["domain-role"], roleTags: ["machine-learning-engineer", "data-scientist"] },
-  "Software Testing": { types: ["domain-role"], roleTags: ["qa-engineer", ...ALL_ENGINEERING] },
+  "Database and SQL": { types: ["domain-role"], roleTags: [...BACKEND_ROLES, ...DATA_AI_ROLES] },
+  "Data Engineering": { types: ["domain-role", "system-design"], roleTags: DATA_AI_ROLES },
+  "Machine Learning": { types: ["domain-role"], roleTags: DATA_AI_ROLES },
+  "Artificial Intelligence": { types: ["domain-role"], roleTags: DATA_AI_ROLES },
+  "Software Testing": { types: ["domain-role"], roleTags: ["software-engineer-in-test-sdet", ...ALL_ENGINEERING] },
   "Version Control": { types: ["domain-role"], roleTags: ALL_ENGINEERING },
-  Networking: { types: ["domain-role", "system-design"], roleTags: ["devops-engineer", "cloud-architect", "system-administrator", "security-engineer"] },
-  "Low-level Systems": { types: ["domain-role"], roleTags: ["go-developer", "rust-developer", "system-administrator"] },
+  Networking: { types: ["domain-role", "system-design"], roleTags: [...CLOUD_SRE_ROLES, "security-engineer"] },
+  "Low-level Systems": { types: ["domain-role"], roleTags: ["software-engineer-systems-infrastructure", "software-engineer-embedded-firmware", ...QUANT_ROLES] },
 };
 
 export function mapSoftwareCategory(category: string): CategoryMapping {
@@ -88,17 +147,51 @@ export function mapHrCategory(category: string): CategoryMapping {
   return { types: HR_CATEGORY_MAP[category.trim()] ?? ["behavioral-leadership"], roleTags: [] };
 }
 
+const LEGACY_ROLE_SLUG_ALIASES: Record<string, string> = {
+  "backend-developer": "software-engineer-backend",
+  "backend-engineer": "software-engineer-backend",
+  "frontend-developer": "software-engineer-frontend",
+  "frontend-engineer": "software-engineer-frontend",
+  "full-stack-developer": "software-engineer-full-stack",
+  "full-stack-engineer": "software-engineer-full-stack",
+  "fullstack-developer": "software-engineer-full-stack",
+  "fullstack-engineer": "software-engineer-full-stack",
+  "mobile-developer": "software-engineer-mobile-ios-android",
+  "mobile-engineer": "software-engineer-mobile-ios-android",
+  "ios-developer": "software-engineer-ios",
+  "android-developer": "software-engineer-android",
+  "devops-engineer": "devops-cloud-engineer",
+  "cloud-engineer": "devops-cloud-engineer",
+  "sre": "site-reliability-engineer-sre",
+  "site-reliability-engineer": "site-reliability-engineer-sre",
+  "sdet": "software-engineer-in-test-sdet",
+  "qa-engineer": "software-engineer-in-test-sdet",
+  "software-engineer-in-test": "software-engineer-in-test-sdet",
+  "ml-engineer": "machine-learning-engineer",
+  "machine-learning": "machine-learning-engineer",
+  "systems-engineer": "software-engineer-systems-infrastructure",
+  "systems-infrastructure-engineer": "software-engineer-systems-infrastructure",
+  "embedded-engineer": "software-engineer-embedded-firmware",
+  "firmware-engineer": "software-engineer-embedded-firmware",
+  "tech-lead": "tech-lead-staff-engineer",
+  "staff-engineer": "tech-lead-staff-engineer",
+  "tpm": "technical-product-manager-tpm",
+  "technical-program-manager": "technical-product-manager-tpm",
+};
+
 /**
- * Turns a display role ("Frontend Developer") into the slug used by `roleTags`
- * and the role packs in `src/data/prompts/roles/` ("frontend-developer").
+ * Turns a display role ("Software Engineer - Backend") into the slug used by `roleTags`
+ * and the role packs in `src/data/prompts/roles/` ("software-engineer-backend").
  * Mirrors the normalization in `src/lib/interview/prompts.ts`.
  */
 export function normalizeRoleSlug(role: string): string {
-  return role
+  const baseSlug = role
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
+
+  return LEGACY_ROLE_SLUG_ALIASES[baseSlug] ?? baseSlug;
 }
 
 export const CORPUS_SOURCES = {

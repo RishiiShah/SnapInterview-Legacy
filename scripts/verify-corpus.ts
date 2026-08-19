@@ -139,7 +139,7 @@ async function main() {
   const excluded = await prisma.$queryRaw<MatchRow[]>`
     SELECT "question" FROM "QuestionCorpus"
     WHERE "embedding" IS NOT NULL
-      AND "question" <> ALL(${unfiltered.map((r) => r.question)}::text[])
+    AND "question" <> ALL(${unfiltered.map((r) => r.question)}::text[])
     ORDER BY "embedding" OPERATOR(extensions.<=>) ${literal}::extensions.vector
     LIMIT 1
   `;
@@ -149,6 +149,22 @@ async function main() {
   console.log(`  with top excluded:  ${excluded[0]?.question.slice(0, 60)}`);
   if (!excluded[0] || excluded[0].question === unfiltered[0]?.question) {
     fail("exclusion filter did not remove the excluded question");
+  }
+
+  // ── 5. Hybrid Retrieval & Reranker Probe ───────────────────────────────
+  console.log("\nHybrid Search & Reranker verification:");
+  const hybridCheck = await prisma.$queryRaw<Array<{ id: string; question: string; category: string }>>`
+    SELECT "id", "question", "category"
+    FROM "QuestionCorpus"
+    WHERE to_tsvector('english', "question" || ' ' || COALESCE("answer", '') || ' ' || "category" || ' ' || array_to_string("keywords", ' '))
+          @@ plainto_tsquery('english', 'React hooks')
+    LIMIT 3
+  `;
+  console.log(`  FTS text search matches for 'React hooks': ${hybridCheck.length}`);
+  if (hybridCheck.length === 0) {
+    fail("FTS text search matched 0 questions for 'React hooks'");
+  } else {
+    console.log(`    top match: [${hybridCheck[0].category}] ${hybridCheck[0].question.slice(0, 60)}`);
   }
 
   console.log(failures === 0 ? "\nAll checks passed." : `\n${failures} check(s) FAILED.`);

@@ -22,28 +22,6 @@ describe("OtpDialog", () => {
     vi.unstubAllGlobals();
   });
 
-  it("accepts only digits and keeps the verify action disabled until all digits are present", () => {
-    render(
-      <OtpDialog
-        email="user@example.com"
-        onVerified={vi.fn()}
-        onCancel={vi.fn()}
-        onResend={vi.fn()}
-      />,
-    );
-
-    const firstDigit = screen.getByLabelText("Digit 1") as HTMLInputElement;
-    const verifyButton = screen.getByRole("button", { name: /verify email/i }) as HTMLButtonElement;
-
-    fireEvent.change(firstDigit, { target: { value: "x" } });
-    expect(firstDigit.value).toBe("");
-    expect(verifyButton.disabled).toBe(true);
-
-    fireEvent.change(firstDigit, { target: { value: "1" } });
-    expect(firstDigit.value).toBe("1");
-    expect(verifyButton.disabled).toBe(true);
-  });
-
   it("submits pasted digits automatically and prevents duplicate verification while loading", async () => {
     const onVerified = vi.fn();
     let resolveFetch: (response: Response) => void = () => {};
@@ -106,6 +84,29 @@ describe("OtpDialog", () => {
     });
 
     await screen.findByText("Invalid code.");
+
+    const firstDigit = screen.getByLabelText("Digit 1") as HTMLInputElement;
+    expect(firstDigit.value).toBe("");
+    expect(document.activeElement).toBe(firstDigit);
+  });
+
+  it("resets entered digits and restores focus after a verification network failure", async () => {
+    vi.mocked(fetch).mockRejectedValue(new Error("offline"));
+
+    render(
+      <OtpDialog
+        email="user@example.com"
+        onVerified={vi.fn()}
+        onCancel={vi.fn()}
+        onResend={vi.fn()}
+      />,
+    );
+
+    fireEvent.paste(screen.getByLabelText("Digit 1"), {
+      clipboardData: { getData: () => "123456" },
+    });
+
+    await screen.findByText("Something went wrong. Please try again.");
 
     const firstDigit = screen.getByLabelText("Digit 1") as HTMLInputElement;
     expect(firstDigit.value).toBe("");

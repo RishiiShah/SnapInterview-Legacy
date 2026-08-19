@@ -2,7 +2,7 @@
 
 import type { RefObject } from "react";
 import { useAudioAnalyser } from "@/hooks/useAudioAnalyser";
-import type { MediaDeviceInfo } from "@/lib/useMediaPermissions";
+import type { MediaDeviceInfo } from "@/hooks/useMediaPermissions";
 import {
   IconMicrophoneOffSolid,
   IconMicrophoneSolid,

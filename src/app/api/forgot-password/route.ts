@@ -6,6 +6,7 @@ import { apiError, apiJson, internalServerError } from "@/lib/api-response";
 import { extractRequestContext, generateNumericCode, hashOneTimeCode, normalizeEmail } from "@/lib/security";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
+import { parseJsonBody } from "@/lib/http/request-body";
 import { logger } from "@/utils/logger";
 
 const schema = z.object({
@@ -24,14 +25,12 @@ const GENERIC_FORGOT_PASSWORD_RESPONSE = {
 
 export const POST = withCsrfProtection(async (req: Request) => {
     try {
-        const body = await req.json();
-        const result = schema.safeParse(body);
-
-        if (!result.success) {
-            return apiError("Invalid email address.", 400);
+        const parsed = await parseJsonBody(req, schema, { invalidMessage: "Invalid email address." });
+        if (!parsed.ok) {
+            return parsed.response;
         }
 
-        const email = normalizeEmail(result.data.email);
+        const email = normalizeEmail(parsed.data.email);
         const { ipHash, userAgent } = extractRequestContext(req.headers);
         const limiterKey = `${email}:${ipHash ?? "unknown"}`;
 

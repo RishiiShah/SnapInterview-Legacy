@@ -3,6 +3,7 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MAX_RESUME_PDF_BYTES } from "@/lib/resume-upload";
 import PracticePageClient from "./PracticePageClient";
 
 const { routerPush, preloadKokoro } = vi.hoisted(() => ({
@@ -112,6 +113,7 @@ describe("PracticePageClient", () => {
       type: "behavioral-leadership",
       difficulty: "medium",
       persona: "balanced",
+      durationMinutes: 30,
       questionCount: 10,
     });
     expect(payload.company).toBeUndefined();
@@ -136,9 +138,9 @@ describe("PracticePageClient", () => {
       />,
     );
 
-    expect((screen.getByPlaceholderText("e.g. Frontend Engineer") as HTMLInputElement).value)
+    expect((screen.getByPlaceholderText("e.g. Software Engineer - Backend") as HTMLInputElement).value)
       .toBe("Platform Engineer");
-    expect((screen.getByPlaceholderText("Optional") as HTMLInputElement).value).toBe("OpenAI");
+    expect((screen.getByPlaceholderText("e.g. Google, Stripe, or General") as HTMLInputElement).value).toBe("OpenAI");
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -159,5 +161,76 @@ describe("PracticePageClient", () => {
     expect(getByTestId("practice-step-two-actions").className).not.toContain("border-t");
     expect(screen.queryByTestId("practice-step-two-footer")).toBeNull();
     expect(screen.getByRole("button", { name: /^start interview$/i })).not.toBeNull();
+  });
+
+  it("shows the uploaded resume after one successful request", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
+      resumeText: "Built distributed systems.",
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <PracticePageClient
+        initialDefaults={{
+          onboarding: {
+            onboardingRole: "Backend Developer",
+            onboardingCompany: "Google",
+            onboardingLevel: "senior",
+            onboardingGoal: "switch-companies",
+            preferredInterviewType: "coding-algorithms",
+          },
+          resumeText: null,
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    fireEvent.change(screen.getByLabelText(/upload pdf resume/i), {
+      target: {
+        files: [new File(["pdf"], "resume.pdf", { type: "application/pdf" })],
+      },
+    });
+
+    expect(await screen.findByRole("button", { name: /view document/i })).toBeDefined();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("keeps an existing resume visible when an oversized replacement is rejected", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <PracticePageClient
+        initialDefaults={{
+          onboarding: {
+            onboardingRole: "Backend Developer",
+            onboardingCompany: "Google",
+            onboardingLevel: "senior",
+            onboardingGoal: "switch-companies",
+            preferredInterviewType: "coding-algorithms",
+          },
+          resumeText: "Existing distributed-systems experience.",
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    fireEvent.change(screen.getByLabelText(/^replace$/i), {
+      target: {
+        files: [
+          new File(
+            [new Uint8Array(MAX_RESUME_PDF_BYTES + 1)],
+            "oversized.pdf",
+            { type: "application/pdf" },
+          ),
+        ],
+      },
+    });
+
+    expect(
+      await screen.findByText("File too large. Choose a PDF smaller than 4 MB."),
+    ).toBeDefined();
+    expect(screen.getByRole("button", { name: /view document/i })).toBeDefined();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

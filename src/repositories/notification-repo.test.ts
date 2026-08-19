@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { deferred } from "@/test-utils/deferred";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -9,14 +10,6 @@ vi.mock("@/lib/prisma", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { getUserNotifications } from "./notification-repo";
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-  return { promise, resolve };
-}
 
 describe("getUserNotifications", () => {
   beforeEach(() => {

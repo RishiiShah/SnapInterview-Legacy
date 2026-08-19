@@ -1,0 +1,27 @@
+{
+  "id": "infra-devtools",
+  "version": 1,
+  "displayNames": ["Infrastructure & Developer Tools", "Cloud & DevTools"],
+  "method": [
+    "High-reliability distributed infrastructure, extreme developer velocity, and robust APIs/SDKs",
+    "Deep systems understanding: Linux kernel primitives, networking (eBPF, TCP, TLS), concurrency, and storage engines",
+    "Telemetry, observability, automated remediation, and zero-downtime deployment pipelines"
+  ],
+  "signalsByLevel": {
+    "entry-level": ["Understanding concurrency, memory management, CLI tooling, and automated testing"],
+    "mid-level": ["Building high-throughput microservices, distributed logging, and resilient cloud infrastructure"],
+    "senior": ["Designing custom storage engines, distributed consensus (Raft/Paxos), and multi-tenant virtualization"],
+    "staff-plus": ["Architecting planetary-scale infrastructure platforms and setting global developer ecosystem standards"]
+  },
+  "signalsByRoleFamily": {
+    "swe": ["Systems programming (Go/Rust/C++), Raft consensus, custom network protocols, storage engine internals"],
+    "sre-infra": ["Kubernetes controllers, eBPF observability, multi-cloud disaster recovery, automated traffic shifting"]
+  },
+  "frequentThemes": [
+    {
+      "id": "distributed-kv-store",
+      "shape": "Design a distributed key-value store or consensus-based configuration service with high write throughput and linearizable reads",
+      "types": ["system-design"]
+    }
+  ]
+}

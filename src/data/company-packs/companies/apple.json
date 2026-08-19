@@ -1,0 +1,55 @@
+{
+  "id": "apple",
+  "version": 1,
+  "displayNames": ["Apple", "Apple Inc."],
+  "method": [
+    "Uncompromising quality, craftsmanship, and user privacy as foundational requirements",
+    "Deep vertical integration: understanding software-hardware interaction, memory management, and battery impact",
+    "Directly Responsible Individual (DRI) culture: crisp individual ownership and meticulous attention to edge details"
+  ],
+  "signalsByLevel": {
+    "entry-level": [
+      "Rigorous understanding of memory safety, runtime efficiency, and foundational data structures",
+      "Obsession with polish, robust error handling, and clean code craftsmanship"
+    ],
+    "mid-level": [
+      "Deep platform fluency (Swift, Objective-C, C++, Metal, or low-level systems APIs)",
+      "Strong intuition for multi-threaded programming, GCD, run loops, and lock-free data structures",
+      "Designing private-by-default protocols and client-side processing architectures"
+    ],
+    "senior": [
+      "Architectural mastery of complex subsystem boundaries across OS, daemon, and cloud sync tiers",
+      "Direct ownership as DRI for flagship feature launches with zero tolerance for regression",
+      "Cross-functional collaboration with hardware, UI/UX, security, and QA teams"
+    ],
+    "staff-plus": [
+      "Setting long-term system architecture across Apple platforms (iOS, macOS, watchOS, CloudKit)",
+      "Driving multi-year architectural evolution while maintaining strict backward compatibility"
+    ]
+  },
+  "signalsByRoleFamily": {
+    "swe": [
+      "Memory footprint optimization, cache locality, binary size constraints, and power efficiency",
+      "Offline-first synchronization with CloudKit / secure storage"
+    ],
+    "ml-data": [
+      "On-device ML (CoreML, Apple Silicon Neural Engine), privacy-preserving differential privacy, on-device embeddings"
+    ],
+    "sre-infra": [
+      "Large-scale iCloud service availability, encrypted key management, and zero-knowledge cloud architectures"
+    ]
+  },
+  "frequentThemes": [
+    {
+      "id": "offline-sync",
+      "shape": "Design an offline-first data synchronization system between mobile clients and cloud services with conflict resolution and privacy",
+      "types": ["system-design"]
+    },
+    {
+      "id": "dri-ownership",
+      "shape": "Describe a project where you were the sole technical DRI, handled unexpected blockers, and delivered exceptional quality",
+      "types": ["behavioral-leadership", "hiring-manager"]
+    }
+  ],
+  "sourcesNote": "Curated from public Apple DRI culture and platform engineering hiring principles"
+}

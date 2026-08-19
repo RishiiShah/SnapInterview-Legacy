@@ -1,7 +1,7 @@
-import { PutObjectCommand, DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
-import { requireAwsS3Env } from "@/lib/env";
+import { getS3Runtime } from "@/lib/s3/runtime";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { withCsrfProtection } from "@/lib/route-security";
@@ -9,15 +9,6 @@ import { logger } from "@/utils/logger";
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const SUPPORTED_CONTENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-
-const aws = requireAwsS3Env();
-const s3Client = new S3Client({
-  region: aws.region,
-  credentials: {
-    accessKeyId: aws.accessKeyId,
-    secretAccessKey: aws.secretAccessKey,
-  },
-});
 
 function extensionForType(contentType: string) {
   switch (contentType) {
@@ -64,9 +55,10 @@ export const POST = withCsrfProtection(async (req: Request) => {
     const extension = extensionForType(file.type);
     const key = `${authUser.userId}/avatars/${Date.now()}-${randomUUID()}.${extension}`;
     const body = Buffer.from(await file.arrayBuffer());
+    const { client, bucketName } = getS3Runtime();
 
-    await s3Client.send(new PutObjectCommand({
-      Bucket: aws.bucketName,
+    await client.send(new PutObjectCommand({
+      Bucket: bucketName,
       Key: key,
       Body: body,
       ContentType: file.type,
@@ -96,8 +88,8 @@ export const POST = withCsrfProtection(async (req: Request) => {
 
     const previousKey = extractAvatarKeyFromPath(existing.image);
     if (previousKey && previousKey !== key) {
-      s3Client.send(new DeleteObjectCommand({
-        Bucket: aws.bucketName,
+      client.send(new DeleteObjectCommand({
+        Bucket: bucketName,
         Key: previousKey,
       })).catch(() => {
         logger.warn("Failed to delete previous avatar object", { userId: authUser.userId });

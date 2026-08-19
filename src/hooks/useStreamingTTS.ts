@@ -88,17 +88,25 @@ export function useStreamingTTS({
   const mutedRef = useRef(muted);
   const audioContextRef = useRef<AudioContext | null>(null);
   const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
-  const queueRef = useRef<string[]>([]);
+  
+  // Pipelined double-queue: text waiting to be synthesized, audio buffers ready to play
+  const textQueueRef = useRef<string[]>([]);
+  const audioQueueRef = useRef<AudioBuffer[]>([]);
+  
+  const isSynthesizingRef = useRef(false);
+  const isPlayingRef = useRef(false);
+  const generationRef = useRef(0);
+
   const spokenPrefixRef = useRef("");
   const activeResponseRef = useRef("");
-  const speakNextRef = useRef<() => void>(() => {});
-  const isSpeakingRef = useRef(false);
-  const generationRef = useRef(0);
   const engineRef = useRef<BrowserTtsEngine | null>(null);
   const preloadPromiseRef = useRef<Promise<void> | null>(null);
   const localReadyRef = useRef(false);
   const localFailureRef = useRef(!localEnabled);
   const [status, setStatus] = useState<BrowserTtsStatus>(localEnabled ? "idle" : "error");
+
+  const processSynthesisQueueRef = useRef<() => void>(() => {});
+  const processPlaybackQueueRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     if (!localEnabled) {
@@ -142,10 +150,12 @@ export function useStreamingTTS({
 
   const cancel = useCallback(() => {
     generationRef.current += 1;
-    queueRef.current = [];
+    textQueueRef.current = [];
+    audioQueueRef.current = [];
     spokenPrefixRef.current = "";
     activeResponseRef.current = "";
-    isSpeakingRef.current = false;
+    isSynthesizingRef.current = false;
+    isPlayingRef.current = false;
     engineRef.current?.cancel();
     if (currentSourceRef.current) {
       try {
@@ -158,68 +168,91 @@ export function useStreamingTTS({
     }
   }, []);
 
-  const speakNext = useCallback(() => {
+  // 1. Playback Queue Consumer: Plays prepared AudioBuffers seamlessly back-to-back
+  const processPlaybackQueue = useCallback(() => {
     if (typeof window === "undefined" || mutedRef.current || !enabled) return;
-    if (isSpeakingRef.current || currentSourceRef.current) return; // already fetching or playing
+    if (isPlayingRef.current || currentSourceRef.current) return;
 
-    if (!localEnabled || localFailureRef.current) {
-      queueRef.current = [];
-      isSpeakingRef.current = false;
+    const nextBuffer = audioQueueRef.current.shift();
+    if (!nextBuffer) {
+      isPlayingRef.current = false;
       return;
     }
 
-    const nextText = queueRef.current.shift();
-    if (!nextText) return;
-
-    isSpeakingRef.current = true;
+    isPlayingRef.current = true;
     const rate = getSpeechRate();
     const requestGeneration = generationRef.current;
 
-    const playAudio = (audioBuffer: AudioBuffer) => {
-      if (requestGeneration !== generationRef.current || mutedRef.current) return;
-      const ctx = getOrCreateAudioContext(audioContextRef);
-      const source = ctx.createBufferSource();
-      source.buffer = audioBuffer;
-      source.playbackRate.value = rate;
-      source.connect(ctx.destination);
-      source.onended = () => {
-        currentSourceRef.current = null;
-        isSpeakingRef.current = false;
-        speakNextRef.current();
-      };
-      currentSourceRef.current = source;
-      source.start();
-    };
+    const ctx = getOrCreateAudioContext(audioContextRef);
+    const source = ctx.createBufferSource();
+    source.buffer = nextBuffer;
+    source.playbackRate.value = rate;
+    source.connect(ctx.destination);
 
-    const synthesize = async () => {
-      const engine = engineRef.current ?? getSharedKokoroWorkerClient();
-      try {
-        await engine.preload();
-        const audio = await engine.synthesize(nextText, { persona: personaRef.current });
-        if (requestGeneration !== generationRef.current) return;
-        playAudio(createAudioBufferFromPcm(getOrCreateAudioContext(audioContextRef), audio));
-      } catch (error) {
-        if (requestGeneration !== generationRef.current) return;
-        localFailureRef.current = true;
-        setStatus("error");
-        console.error("[TTS] Kokoro playback error:", error);
-        throw error;
+    source.onended = () => {
+      currentSourceRef.current = null;
+      isPlayingRef.current = false;
+      if (requestGeneration === generationRef.current) {
+        processPlaybackQueueRef.current();
       }
     };
 
-    void synthesize()
-      .catch((err) => {
-        if (requestGeneration !== generationRef.current) return;
-        console.error("[TTS] playback error:", err);
-        currentSourceRef.current = null;
-        isSpeakingRef.current = false;
-        speakNextRef.current(); // skip failed sentence, continue queue
-      });
+    currentSourceRef.current = source;
+    source.start();
+  }, [enabled]);
+
+  // 2. Background Synthesis Pipeline: Continuously pre-synthesizes upcoming sentences
+  const processSynthesisQueue = useCallback(async () => {
+    if (typeof window === "undefined" || mutedRef.current || !enabled) return;
+    if (isSynthesizingRef.current) return;
+
+    if (!localEnabled || localFailureRef.current) {
+      textQueueRef.current = [];
+      return;
+    }
+
+    const nextText = textQueueRef.current.shift();
+    if (!nextText) return;
+
+    isSynthesizingRef.current = true;
+    const requestGeneration = generationRef.current;
+
+    const engine = engineRef.current ?? getSharedKokoroWorkerClient();
+    try {
+      await engine.preload();
+      const audio = await engine.synthesize(nextText, { persona: personaRef.current });
+      
+      if (requestGeneration === generationRef.current && !mutedRef.current) {
+        const audioBuffer = createAudioBufferFromPcm(getOrCreateAudioContext(audioContextRef), audio);
+        audioQueueRef.current.push(audioBuffer);
+        
+        // Start playback if not already playing
+        processPlaybackQueueRef.current();
+      }
+    } catch (error) {
+      if (requestGeneration === generationRef.current) {
+        localFailureRef.current = true;
+        setStatus("error");
+        console.error("[TTS] Kokoro background synthesis error:", error);
+      }
+    } finally {
+      if (requestGeneration === generationRef.current) {
+        isSynthesizingRef.current = false;
+        // Immediately trigger synthesis of the next sentence in the queue (while current sentence plays)
+        if (textQueueRef.current.length > 0) {
+          processSynthesisQueueRef.current();
+        }
+      }
+    }
   }, [enabled, localEnabled]);
 
   useEffect(() => {
-    speakNextRef.current = speakNext;
-  }, [speakNext]);
+    processPlaybackQueueRef.current = processPlaybackQueue;
+  }, [processPlaybackQueue]);
+
+  useEffect(() => {
+    processSynthesisQueueRef.current = processSynthesisQueue;
+  }, [processSynthesisQueue]);
 
   const queueSpeech = useCallback(
     (text: string) => {
@@ -227,16 +260,16 @@ export function useStreamingTTS({
       if (!cleaned) return;
 
       for (const chunk of splitTtsText(cleaned)) {
-        if (queueRef.current.length >= 3) {
-          const lastIndex = queueRef.current.length - 1;
-          queueRef.current[lastIndex] = mergePendingTtsText(queueRef.current[lastIndex], chunk);
+        if (textQueueRef.current.length >= 3) {
+          const lastIndex = textQueueRef.current.length - 1;
+          textQueueRef.current[lastIndex] = mergePendingTtsText(textQueueRef.current[lastIndex], chunk);
         } else {
-          queueRef.current.push(chunk);
+          textQueueRef.current.push(chunk);
         }
       }
-      speakNext();
+      processSynthesisQueue();
     },
-    [speakNext]
+    [processSynthesisQueue]
   );
 
   const queueIncrementalSpeech = useCallback(
@@ -324,7 +357,8 @@ export function useStreamingTTS({
   // Clean up audio resources on unmount
   useEffect(() => {
     return () => {
-      queueRef.current = [];
+      textQueueRef.current = [];
+      audioQueueRef.current = [];
       if (currentSourceRef.current) {
         try {
           currentSourceRef.current.onended = null;

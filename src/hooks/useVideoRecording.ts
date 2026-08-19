@@ -30,6 +30,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
         uploadQueue: Promise<void>;
         isAborted: boolean;
         isCompleting: boolean;
+        hasPartFailure: boolean;
     }>({
         uploadId: null,
         key: null,
@@ -43,6 +44,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
         uploadQueue: Promise.resolve(),
         isAborted: false,
         isCompleting: false,
+        hasPartFailure: false,
     });
 
     // Cleanup aborts upload if component unmounts prematurely
@@ -51,6 +53,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
         return () => {
             if (state.uploadId && state.key && !state.isCompleting) {
                 state.isAborted = true;
+                console.warn("Component unmounted during active upload; aborting multipart upload", { interviewId });
                 fetch("/api/s3/multipart/complete", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -62,7 +65,9 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
                         action: "abort",
                     }),
                     keepalive: true,
-                }).catch(() => {});
+                }).catch((err) => {
+                    console.warn("Failed to abort multipart upload on unmount:", err);
+                });
             }
         };
     }, [interviewId]);
@@ -106,6 +111,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
         const partNumber = state.partNumber++;
         const uploadPromise = flushBuffer(blobData, partNumber).catch((err) => {
             console.error("Multipart upload part failed:", err);
+            state.hasPartFailure = true;
         });
         state.partUploadPromises.push(uploadPromise);
         state.uploadQueue = Promise.all(state.partUploadPromises).then(() => undefined);
@@ -173,6 +179,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
             multipartStateRef.current.partUploadPromises = [];
             multipartStateRef.current.isAborted = false;
             multipartStateRef.current.isCompleting = false;
+            multipartStateRef.current.hasPartFailure = false;
             multipartStateRef.current.uploadQueue = Promise.resolve();
 
             const combinedStream = new MediaStream();
@@ -259,8 +266,35 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
                 const finalize = async () => {
                     await Promise.all(state.partUploadPromises);
 
-                    if (finalBlob && finalBlob.size > 0 && state.uploadId && state.key && state.uploadToken) {
-                        await flushBuffer(finalBlob, state.partNumber++);
+                    if (finalBlob && finalBlob.size > 0 && state.uploadId && state.key && state.uploadToken && !state.hasPartFailure) {
+                        try {
+                            await flushBuffer(finalBlob, state.partNumber++);
+                        } catch (err) {
+                            console.error("Multipart upload final part failed:", err);
+                            state.hasPartFailure = true;
+                        }
+                    }
+
+                    if (state.hasPartFailure) {
+                        console.warn("One or more multipart upload parts failed; aborting upload", { interviewId });
+                        if (state.uploadId && state.key && state.uploadToken) {
+                            state.isAborted = true;
+                            await fetch("/api/s3/multipart/complete", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    interviewId,
+                                    key: state.key,
+                                    uploadId: state.uploadId,
+                                    uploadToken: state.uploadToken,
+                                    action: "abort",
+                                }),
+                            }).catch((abortErr) => {
+                                console.error("Failed to abort multipart upload after part failure:", abortErr);
+                            });
+                        }
+                        resolve(null);
+                        return;
                     }
 
                     state.parts.sort((a, b) => a.PartNumber - b.PartNumber);

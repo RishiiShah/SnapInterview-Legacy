@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { deferred } from "@/test-utils/deferred";
 
 const mocks = vi.hoisted(() => ({
   getServerAuthSession: vi.fn(),
@@ -25,15 +26,6 @@ vi.mock("@/components/questions/QuestionDetailPageClient", () => ({
 }));
 
 import QuestionDetailPage from "./page";
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-
-  return { promise, resolve };
-}
 
 describe("QuestionDetailPage", () => {
   beforeEach(() => {

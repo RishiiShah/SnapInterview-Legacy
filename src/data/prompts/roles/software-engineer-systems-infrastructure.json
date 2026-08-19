@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "role-software-engineer-systems-infrastructure",
+  "title": "Software Engineer - Systems & Infrastructure Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Software Engineer - Systems & Infrastructure."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Entry-level / New Grad: C/C++/Rust/Go fundamentals, memory management, pointer arithmetic, threads/locks, and basic socket programming.",
+        "2. Mid-level: Concurrency models (epoll/kqueue, event loops, thread pools), storage engine internals (LSM trees, B-trees, WAL), network protocols (TCP, HTTP/2, gRPC), and Linux system calls.",
+        "3. Senior: Distributed consensus protocols (Raft, Paxos), lock-free data structures, memory-mapped I/O, kernel bypass (eBPF, DPDK), cache coherence, and hardware-software performance tuning.",
+        "4. Staff-plus: Planetary distributed storage/compute architecture, custom hardware acceleration integration, and fleet-wide reliability."
+      ]
+    },
+    {
+      "heading": "Question Strategy & Guidance",
+      "lines": [
+        "- PREFER BRIEF PILLARS: Target low-level systems projects, kernel interactions, and distributed infrastructure described in candidate's brief.",
+        "- Probe performance bottlenecks at the hardware, OS, and network layers."
+      ]
+    }
+  ]
+}

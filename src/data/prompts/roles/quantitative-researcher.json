@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "id": "role-quantitative-researcher",
+  "title": "Quantitative Researcher Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Quantitative Researcher."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Statistical Modeling & Alpha Discovery: Time series econometrics, signal generation, feature engineering from market microstructure and alternative datasets.",
+        "2. Backtesting & Overfitting Mitigation: Cross-validation methods, walk-forward testing, survivorship/lookahead bias prevention, and transaction cost modeling.",
+        "3. Portfolio Optimization & Risk: Mean-variance, Kelly criterion, factor models (Barra), maximum drawdown limits, and Value-at-Risk (VaR).",
+        "4. Mathematical & Machine Learning Depth: Stochastic calculus, linear algebra, reinforcement learning, and high-frequency statistical arbitrage."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "id": "meta",
+  "version": 1,
+  "displayNames": ["Meta", "Facebook", "Instagram", "WhatsApp"],
+  "method": [
+    "Move Fast: high engineering velocity, pragmatic execution over academic perfection, and bias for shipping",
+    "Focus on Long-Term Impact: building tools and architectures that scale to billions of daily active users",
+    "Be Direct and Respectful: crisp, transparent communication with high accountability for shipped software"
+  ],
+  "signalsByLevel": {
+    "entry-level": [
+      "Speed and correctness: writing bug-free code quickly under time constraints",
+      "Hands-on full-stack or systems fundamentals with rapid debugging instincts",
+      "Proactive collaboration and enthusiasm for high-impact social product features"
+    ],
+    "mid-level": [
+      "End-to-end execution on product features from database schema to client UI",
+      "Managing high-concurrency real-time feeds, fan-out architectures, and GraphQL APIs",
+      "Balancing rapid delivery with performance telemetry and automated regression testing"
+    ],
+    "senior": [
+      "Designing high-throughput asynchronous infrastructure (Tao/Memcached graph caching, RocksDB, LogDevice)",
+      "Cross-functional alignment across product, data science, infrastructure, and privacy engineering",
+      "Driving org-wide reliability through load testing, shadow traffic, and fast rollback mechanisms"
+    ],
+    "staff-plus": [
+      "Strategic direction for multi-product infrastructure supporting billions of users",
+      "Pioneering company-wide architectural shifts (e.g. unified graph platforms, AI infrastructure scale)",
+      "Unifying conflicting team priorities into coherent platforms with massive leverage"
+    ]
+  },
+  "signalsByRoleFamily": {
+    "swe": [
+      "Fast API design, GraphQL / REST contracts, efficient graph queries, and distributed cache invalidation",
+      "React/Web performance (hydration, bundle size) or iOS/Android native performance (memory, battery)"
+    ],
+    "ml-data": [
+      "Ranking & Recommendation engines, real-time CTR prediction, embeddings caching, PyTorch scaling"
+    ],
+    "sre-infra": [
+      "Edge caching, global load balancing, custom hardware efficiency, and automated remediation"
+    ],
+    "pm-design": [
+      "A/B testing experimentation discipline, growth funnels, network effects, and intuitive UI craftsmanship"
+    ],
+    "em-lead": [
+      "Unblocking engineers, setting high execution velocity, and managing performance with radical candor"
+    ]
+  },
+  "frequentThemes": [
+    {
+      "id": "feed-fanout",
+      "shape": "Design a real-time activity feed or messaging system with billions of updates and fan-out on write vs read trade-offs",
+      "types": ["system-design"]
+    },
+    {
+      "id": "move-fast-reliability",
+      "shape": "A time you shipped a critical feature under tight deadlines while protecting production stability and performance",
+      "types": ["behavioral-leadership", "hiring-manager"]
+    }
+  ],
+  "sourcesNote": "Curated from public Meta engineering culture and system design interview guidelines"
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -12,9 +12,8 @@ import {
   ROLES,
   COMPANIES,
 } from "@/data/constants";
-import type { Difficulty, InterviewPersona, InterviewType } from "@/lib/interview/domain";
+import type { InterviewPersona, InterviewType } from "@/lib/interview/domain";
 import {
-  getDefaultDifficultyForOnboardingLevel,
   normalizeOnboardingFormValues,
 } from "@/lib/onboarding/preferences";
 import type { OnboardingPreferencesFormValues } from "@/lib/onboarding/preferences";
@@ -23,9 +22,10 @@ import { extractResumeHighlights } from "@/lib/interview/resume-highlights";
 import { IconPlay, IconSpinner, IconXMark } from "@/components/ui/icons";
 import { isLocalTtsEnabled } from "@/lib/tts/browser-tts";
 import { getSharedKokoroWorkerClient } from "@/lib/tts/kokoro-worker-client";
+import ResumeDocumentModal from "@/components/resume/ResumeDocumentModal";
 import {
   MAX_RESUME_PDF_LABEL,
-  parseResumeUploadResponse,
+  uploadResumeFile,
   validateResumeFile,
 } from "@/lib/resume-upload";
 
@@ -37,16 +37,21 @@ type PracticePageClientProps = {
   };
 };
 
-const DIFFICULTY_OPTIONS: { value: Difficulty; label: string }[] = [
-  { value: "easy", label: "Easy" },
-  { value: "medium", label: "Medium" },
-  { value: "hard", label: "Hard" },
+const LEVEL_OPTIONS: { value: string; label: string; description: string }[] = [
+  { value: "entry-level", label: "Intern / Entry Level", description: "CS fundamentals, code clarity & learning agility" },
+  { value: "mid-level", label: "Mid Level", description: "Independent execution, design patterns & debugging" },
+  { value: "senior", label: "Senior", description: "Scalability, failure modes, trade-offs & edge cases" },
+  { value: "staff-plus", label: "Staff+ / Lead", description: "Ambiguous architecture, organizational strategy & risk" },
+  // Backward compatibility options
+  { value: "easy", label: "Entry Level", description: "CS fundamentals & code clarity" },
+  { value: "medium", label: "Mid / Senior Level", description: "Core architecture & edge cases" },
+  { value: "hard", label: "Staff+ / Expert", description: "Complex scaling & failure modes" },
 ];
 
-const LENGTH_OPTIONS: { value: 5 | 10 | 15; label: string }[] = [
-  { value: 5, label: "5 questions" },
-  { value: 10, label: "10 questions" },
-  { value: 15, label: "15 questions" },
+const FORMAT_OPTIONS: { value: 15 | 30 | 45; label: string; shortLabel: string; description: string }[] = [
+  { value: 15, label: "Quick Screen (15 min)", shortLabel: "15 min", description: "15 minutes · Baseline alignment & initial technical probe" },
+  { value: 30, label: "Technical Round (30 min)", shortLabel: "30 min", description: "30 minutes · 2 cohesive topic pillars with deep follow-ups" },
+  { value: 45, label: "Onsite Deep Dive (45 min)", shortLabel: "45 min", description: "45 minutes · Multi-pillar architecture & scaling stress tests" },
 ];
 
 export default function PracticePageClient({
@@ -65,26 +70,30 @@ export default function PracticePageClient({
   const [type, setType] = useState<InterviewType>(
     retakeType ?? onboardingDefaults?.preferredInterviewType ?? "behavioral-leadership",
   );
-  const [difficulty, setDifficulty] = useState<Difficulty>(
-    retakeDifficulty ?? getDefaultDifficultyForOnboardingLevel(onboardingDefaults?.onboardingLevel),
+  const [difficulty, setDifficulty] = useState<string>(
+    retakeDifficulty ?? onboardingDefaults?.onboardingLevel ?? "mid-level",
   );
   const [persona, setPersona] = useState<InterviewPersona>("balanced");
-  const [interviewLength, setInterviewLength] = useState<5 | 10 | 15>(10);
+  const [durationMinutes, setDurationMinutes] = useState<15 | 30 | 45>(30);
   const [jobDescription, setJobDescription] = useState("");
   const [resumeName, setResumeName] = useState(initialDefaults?.resumeText ? "Saved resume" : "");
   const [resumeText, setResumeText] = useState(initialDefaults?.resumeText ?? "");
+  const [resumeModalOpen, setResumeModalOpen] = useState(false);
   const [resumeUploading, setResumeUploading] = useState(false);
   const [resumeError, setResumeError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [companyRequestMessage, setCompanyRequestMessage] = useState<string | null>(null);
   const [step, setStep] = useState(1);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
   // Skip the first entrance animation so real content replaces the route skeleton in place.
   const [animateStepTransitions, setAnimateStepTransitions] = useState(false);
 
   const resumeHighlights = useMemo(() => extractResumeHighlights(resumeText), [resumeText]);
   const selectedKind = INTERVIEW_KINDS.find((kind) => kind.value === type);
   const selectedPersona = INTERVIEW_PERSONAS.find((item) => item.value === persona);
+  const selectedLevel = LEVEL_OPTIONS.find((item) => item.value === difficulty) ?? LEVEL_OPTIONS[1];
+  const selectedFormat = FORMAT_OPTIONS.find((item) => item.value === durationMinutes) ?? FORMAT_OPTIONS[1];
   const trimmedRole = role.trim();
   const jdChars = jobDescription.length;
   const hasResume = Boolean(resumeName && resumeText);
@@ -94,10 +103,10 @@ export default function PracticePageClient({
     if (trimmedRole) parts.push(trimmedRole);
     if (company.trim()) parts.push(company.trim());
     parts.push(selectedKind?.shortLabel ?? selectedKind?.label ?? type);
-    parts.push(difficulty.charAt(0).toUpperCase() + difficulty.slice(1));
-    parts.push(`${interviewLength}Q`);
+    parts.push(selectedLevel?.label ?? difficulty);
+    parts.push(selectedFormat?.shortLabel ?? `${durationMinutes} min`);
     return parts.join(" · ");
-  }, [trimmedRole, company, selectedKind, type, difficulty, interviewLength]);
+  }, [trimmedRole, company, selectedKind, type, selectedLevel, difficulty, selectedFormat, durationMinutes]);
 
   useEffect(() => {
     let cancelled = false;
@@ -137,8 +146,8 @@ export default function PracticePageClient({
             }
             if (!retakeDifficulty) {
               setDifficulty((previous) => {
-                if (previous !== "medium") return previous;
-                return getDefaultDifficultyForOnboardingLevel(data.onboardingLevel);
+                if (previous !== "mid-level" && previous !== "medium") return previous;
+                return data.onboardingLevel || "mid-level";
               });
             }
           }
@@ -169,7 +178,6 @@ export default function PracticePageClient({
     const fileError = validateResumeFile(file);
     if (fileError) {
       setResumeError(fileError);
-      setResumeName("");
       return;
     }
 
@@ -178,12 +186,8 @@ export default function PracticePageClient({
     setResumeError(null);
     setResumeText("");
 
-    const formData = new FormData();
-    formData.append("resume", file);
-
     try {
-      const res = await fetch("/api/resume/parse", { method: "POST", body: formData });
-      setResumeText(await parseResumeUploadResponse(res));
+      setResumeText(await uploadResumeFile(file));
     } catch (err) {
       setResumeError(err instanceof Error ? err.message : "Failed to process resume");
       setResumeName("");
@@ -211,7 +215,8 @@ export default function PracticePageClient({
         difficulty,
         persona,
         jobDescription: jobDescription || undefined,
-        questionCount: interviewLength,
+        durationMinutes,
+        questionCount: durationMinutes === 15 ? 5 : durationMinutes === 45 ? 15 : 10,
         resumeText: resumeText || undefined,
       };
 
@@ -313,11 +318,17 @@ export default function PracticePageClient({
           {step === 1 ? (
             <div className="space-y-12">
               <div>
-                <h1 className="font-display text-[2.15rem] leading-[1.15] tracking-[-0.03em] text-[#F2F4F8] sm:text-[2.6rem] xl:text-[2.85rem]">
-                  Set up your interview
-                </h1>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h1 className="font-display text-[2.15rem] leading-[1.15] tracking-[-0.03em] text-[#F2F4F8] sm:text-[2.6rem] xl:text-[2.85rem]">
+                    Set up your interview
+                  </h1>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#3B82F6]/30 bg-[#3B82F6]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#93C5FD]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#3B82F6] animate-pulse" />
+                    Adaptive Calibration
+                  </span>
+                </div>
                 <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-[#B4BBC9] xl:text-base">
-                  Role and loop shape first. Context comes next.
+                  Target role, level, and format first. Context comes next.
                 </p>
               </div>
 
@@ -327,7 +338,7 @@ export default function PracticePageClient({
                   value={role}
                   onChange={setRole}
                   options={ROLES}
-                  placeholder="e.g. Frontend Engineer"
+                  placeholder="e.g. Software Engineer - Backend"
                   tone="dark"
                 />
                 <SearchableDropdown
@@ -335,7 +346,7 @@ export default function PracticePageClient({
                   value={company}
                   onChange={setCompany}
                   options={COMPANIES}
-                  placeholder="Optional"
+                  placeholder="e.g. Google, Stripe, or General"
                   isOptional
                   allowCustomValue={false}
                   onRequestOption={requestCompany}
@@ -365,28 +376,45 @@ export default function PracticePageClient({
                 </div>
 
                 <div className="grid gap-8 sm:grid-cols-2">
-                  <SelectDropdown
-                    label="Difficulty"
-                    value={difficulty}
-                    onChange={(value) => setDifficulty(value as Difficulty)}
-                    options={DIFFICULTY_OPTIONS.map((option) => ({
-                      value: option.value,
-                      label: option.label,
-                    }))}
-                    tone="dark"
-                  />
-                  <SelectDropdown
-                    label="Length"
-                    value={String(interviewLength)}
-                    onChange={(value) =>
-                      setInterviewLength(Number(value) as 5 | 10 | 15)
-                    }
-                    options={LENGTH_OPTIONS.map((option) => ({
-                      value: String(option.value),
-                      label: option.label,
-                    }))}
-                    tone="dark"
-                  />
+                  <div>
+                    <SelectDropdown
+                      label="Experience level"
+                      value={difficulty}
+                      onChange={(value) => setDifficulty(value)}
+                      options={LEVEL_OPTIONS.slice(0, 4).map((option) => ({
+                        value: option.value,
+                        label: option.label,
+                        description: option.description,
+                      }))}
+                      tone="dark"
+                    />
+                    {selectedLevel ? (
+                      <p className="mt-2.5 text-[13px] leading-relaxed text-[#8B93A7]">
+                        {selectedLevel.description}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <SelectDropdown
+                      label="Duration"
+                      value={String(durationMinutes)}
+                      onChange={(value) =>
+                        setDurationMinutes(Number(value) as 15 | 30 | 45)
+                      }
+                      options={FORMAT_OPTIONS.map((option) => ({
+                        value: String(option.value),
+                        label: option.label,
+                        description: option.description,
+                      }))}
+                      tone="dark"
+                    />
+                    {selectedFormat ? (
+                      <p className="mt-2.5 text-[13px] leading-relaxed text-[#8B93A7]">
+                        {selectedFormat.description}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </div>
@@ -446,7 +474,6 @@ export default function PracticePageClient({
                         type="button"
                         onClick={() => {
                           setResumeError(null);
-                          setResumeName("");
                         }}
                         className="cursor-pointer text-sm text-[#C5CBD8] hover:text-[#E8ECF4]"
                       >
@@ -455,29 +482,55 @@ export default function PracticePageClient({
                     </div>
                   ) : null}
 
-                  {!resumeUploading && !resumeError && hasResume ? (
+                  {!resumeUploading && hasResume ? (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between gap-3 border-b border-[#3B82F6]/40 py-2.5">
                         <div className="min-w-0">
-                          <p className="truncate text-[15px] text-[#F2F4F8]">{resumeName}</p>
-                          <p className="mt-0.5 text-[12px] text-[#93C5FD]">Parsed · ready</p>
+                          <p className="truncate text-[15px] font-medium text-[#F2F4F8]">{resumeName}</p>
+                          <div className="mt-0.5 flex items-center gap-2 text-[12px] text-[#93C5FD]">
+                            <button
+                              type="button"
+                              onClick={() => setResumeModalOpen(true)}
+                              className="cursor-pointer font-medium text-[#60A5FA] hover:text-[#93C5FD]"
+                            >
+                              📄 View document
+                            </button>
+                          </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setResumeName("");
-                            setResumeText("");
-                            setResumeError(null);
-                          }}
-                          className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center text-[#A8B0C2] hover:text-rose-300"
-                          aria-label="Remove resume"
-                        >
-                          <IconXMark className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <label className="cursor-pointer text-xs font-medium text-[#60A5FA] hover:text-[#93C5FD]">
+                            Replace
+                            <input
+                              ref={replaceInputRef}
+                              type="file"
+                              accept=".pdf"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) void handleResumeUpload(file);
+                              }}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setResumeName("");
+                              setResumeText("");
+                              setResumeError(null);
+                            }}
+                            className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center text-[#A8B0C2] hover:text-rose-300"
+                            aria-label="Remove resume"
+                          >
+                            <IconXMark className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
+
+
                       {resumeHighlights.skills.length > 0 ? (
                         <p className="text-[12px] leading-relaxed text-[#8B93A7]">
-                          {resumeHighlights.skills.slice(0, 6).join(" · ")}
+                          <span className="text-[#A8B0C2]">Detected skills: </span>
+                          {resumeHighlights.skills.slice(0, 8).join(" · ")}
                         </p>
                       ) : null}
                     </div>
@@ -588,6 +641,16 @@ export default function PracticePageClient({
           </button>
         </div>
       )}
+
+      {resumeText ? (
+        <ResumeDocumentModal
+          isOpen={resumeModalOpen}
+          onClose={() => setResumeModalOpen(false)}
+          resumeText={resumeText}
+          candidateName={trimmedRole || "Candidate"}
+          onReplace={() => replaceInputRef.current?.click()}
+        />
+      ) : null}
     </div>
   );
 }

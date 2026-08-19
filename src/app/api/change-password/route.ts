@@ -4,9 +4,10 @@ import { getCurrentSession } from "@/lib/server-auth";
 import { getServerAuthSession } from "@/lib/server-auth";
 import { hashCredentialPassword, verifyCredentialPassword } from "@/lib/password";
 import { z } from "zod/v4";
-import { apiJson, badRequestError, internalServerError, unauthorizedError } from "@/lib/api-response";
+import { apiJson, badRequestError, internalServerError, tooManyRequestsError, unauthorizedError } from "@/lib/api-response";
 import { createRateLimiter } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/route-security";
+import { parseJsonBody } from "@/lib/http/request-body";
 import { logger } from "@/utils/logger";
 
 const changePasswordSchema = z.object({
@@ -32,20 +33,17 @@ export const POST = withCsrfProtection(async (req: Request) => {
         }
 
         if (await changePasswordLimiter.isLimited(userId)) {
-            return badRequestError("Too many password change attempts. Please try again later.");
+            return tooManyRequestsError("Too many password change attempts. Please try again later.");
         }
 
         const currentSession = await getCurrentSession();
 
-        const body = await req.json();
-        const result = changePasswordSchema.safeParse(body);
-
-        if (!result.success) {
-            const firstError = result.error.issues[0]?.message || "Invalid input";
-            return badRequestError(firstError);
+        const parsed = await parseJsonBody(req, changePasswordSchema);
+        if (!parsed.ok) {
+            return parsed.response;
         }
 
-        const { currentPassword, newPassword } = result.data;
+        const { currentPassword, newPassword } = parsed.data;
 
         // In Better Auth, passwords are stored in the Account table
         const account = await prisma.account.findFirst({

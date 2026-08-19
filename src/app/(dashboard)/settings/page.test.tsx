@@ -36,18 +36,33 @@ describe("SettingsPage", () => {
       },
       session: { userId: "user-1" },
     });
-    mocks.findUnique.mockResolvedValue({ resumeText: "Built distributed systems." });
+    mocks.findUnique.mockResolvedValue({
+      resumeText: "Built distributed systems.",
+      onboardingRole: "Software Engineer - Backend",
+      onboardingLevel: "senior",
+      onboardingCompany: "Google",
+      onboardingGoal: "switch-companies",
+      preferredInterviewType: "system-design",
+    });
 
     const result = await SettingsPage();
 
     expect(mocks.getServerAuthSession).toHaveBeenCalledOnce();
     expect(mocks.findUnique).toHaveBeenCalledWith({
       where: { id: "user-1" },
-      select: { resumeText: true },
+      select: {
+        resumeText: true,
+        onboardingRole: true,
+        onboardingLevel: true,
+        onboardingCompany: true,
+        onboardingGoal: true,
+        preferredInterviewType: true,
+      },
     });
     expect((result as React.ReactElement<{
       user: unknown;
       initialResumeText: unknown;
+      initialOnboardingPrefs: unknown;
     }>).props).toEqual({
       user: {
         name: "Ada Lovelace",
@@ -55,6 +70,13 @@ describe("SettingsPage", () => {
         image: null,
       },
       initialResumeText: "Built distributed systems.",
+      initialOnboardingPrefs: {
+        onboardingRole: "Software Engineer - Backend",
+        onboardingLevel: "senior",
+        onboardingCompany: "Google",
+        onboardingGoal: "switch-companies",
+        preferredInterviewType: "system-design",
+      },
     });
   });
 });

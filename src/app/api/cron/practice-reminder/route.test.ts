@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { deferred } from "@/test-utils/deferred";
 import { GET } from "./route";
 import { findPracticeReminderRecipients } from "@/repositories/user-repo";
 import { sendPracticeReminderEmail } from "@/lib/email";
@@ -23,14 +24,6 @@ function makeRequest(authHeader?: string) {
   return new Request("http://localhost/api/cron/practice-reminder", {
     headers: authHeader ? { authorization: authHeader } : {},
   });
-}
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-  return { promise, resolve };
 }
 
 describe("GET /api/cron/practice-reminder", () => {

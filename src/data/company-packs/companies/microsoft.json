@@ -1,0 +1,55 @@
+{
+  "id": "microsoft",
+  "version": 1,
+  "displayNames": ["Microsoft", "Azure", "GitHub", "LinkedIn"],
+  "method": [
+    "Growth Mindset: continuous learning, learning from mistakes, and welcoming constructive feedback",
+    "Customer-centric enterprise scale: high security, compliance, backward compatibility, and reliable cloud execution",
+    "One Microsoft: cross-team collaboration, empowering others, and building inclusive platforms"
+  ],
+  "signalsByLevel": {
+    "entry-level": [
+      "Solid understanding of object-oriented design (SOLID principles), data structures, and testing",
+      "Curiosity, growth mindset, and ability to take guidance constructively"
+    ],
+    "mid-level": [
+      "Designing resilient microservices and distributed APIs with robust telemetry and error boundaries",
+      "Experience with cloud architectures (Azure/AWS), relational/NoSQL hybrid persistence, and async queues",
+      "Collaborative development with clean pull requests and clear technical documentation"
+    ],
+    "senior": [
+      "Architecting enterprise-grade SaaS/PaaS systems with strict compliance (GDPR, HIPAA), multi-tenancy, and high availability",
+      "Championing engineering best practices, CI/CD automation, and developer productivity across teams",
+      "Mentoring engineers and partnering effectively with product management and enterprise customers"
+    ],
+    "staff-plus": [
+      "Driving foundational Azure services or enterprise platform architectures across divisions",
+      "Unifying heterogeneous technology stacks and steering multi-year modernization programs"
+    ]
+  },
+  "signalsByRoleFamily": {
+    "swe": [
+      "Robust API contracts (REST, gRPC, OpenAPI), concurrency handling, asynchronous patterns (.NET/TypeScript/Java/Go)",
+      "Multi-tenant isolation, data partitioning, and disaster recovery"
+    ],
+    "ml-data": [
+      "Azure OpenAI integration, RAG architectures, Copilot application lifecycle, CosmosDB vector search"
+    ],
+    "sre-infra": [
+      "Infrastructure as Code (Bicep/Terraform), zero-downtime rolling deployments, chaos engineering"
+    ]
+  },
+  "frequentThemes": [
+    {
+      "id": "enterprise-multitenancy",
+      "shape": "Design a secure, multi-tenant SaaS service with custom SLAs, tenant isolation, and automated failover",
+      "types": ["system-design"]
+    },
+    {
+      "id": "growth-mindset-failure",
+      "shape": "A situation where a technical initiative failed or hit major roadblocks, what you learned, and how you iterated",
+      "types": ["behavioral-leadership", "hiring-manager"]
+    }
+  ],
+  "sourcesNote": "Curated from Microsoft Growth Mindset culture and Azure cloud engineering rubrics"
+}

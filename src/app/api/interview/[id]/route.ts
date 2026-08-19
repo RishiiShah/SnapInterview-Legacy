@@ -4,7 +4,7 @@ import { getSessionUserIdentity } from "@/lib/server-auth";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { logger } from "@/utils/logger";
 import { csrfRejectIfInvalid } from "@/lib/csrf";
-import { hardDeleteInterviewSessionForUser } from "@/lib/interview/hard-delete-session";
+import { softDeleteInterviewSession } from "@/repositories/interview-repo";
 import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 import { interviewIdSchema } from "@/lib/interview/domain";
 
@@ -23,8 +23,8 @@ export async function DELETE(
     if (!parsedId.success) return badRequestError("Invalid interview ID");
 
     try {
-        const deleted = await hardDeleteInterviewSessionForUser({
-            id: parsedId.data,
+        const deleted = await softDeleteInterviewSession({
+            interviewId: parsedId.data,
             userId: authUser.userId,
         });
         if (!deleted) return notFoundError("Interview session not found");
@@ -59,6 +59,7 @@ export async function GET(
             where: {
                 id: parsedId.data,
                 userId: authUser.userId,
+                deletedAt: null,
             },
             select: {
                 id: true,

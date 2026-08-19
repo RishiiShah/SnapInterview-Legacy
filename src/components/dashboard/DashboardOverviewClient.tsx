@@ -10,6 +10,12 @@ import { FlipDate } from "@/components/ui/FlipDate";
 import { CompanyMark } from "@/components/ui/CompanyMark";
 import { displayCompany } from "@/lib/company-brands";
 import { IconPractice } from "@/components/ui/icons";
+import { uploadResumeFile } from "@/lib/resume-upload";
+import {
+  interviewTypeBadgeClass,
+  interviewTypeDisplayLabel,
+} from "@/lib/interview/analytics-display";
+import { scoreToneClass } from "@/lib/interview/sub-score-dimensions";
 
 type StatItem = {
   label: string;
@@ -35,62 +41,16 @@ type DashboardOverviewClientProps = {
   userId: string;
   firstName: string;
   isFirstLogin: boolean;
+  initialHasResume?: boolean;
   stats: StatItem[];
   recentSessions: SessionItem[];
   topStrength: string | null;
   topFocus: string | null;
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  "recruiter-screen": "Recruiter / screen",
-  "behavioral-leadership": "Behavioral / leadership",
-  "coding-algorithms": "Coding / algorithms",
-  "system-design": "System design",
-  "domain-role": "Domain / role-specific",
-  "take-home": "Take-home / project",
-  "hiring-manager": "Hiring manager",
-  "bar-raiser": "Bar raiser / panel",
-  behavioral: "Behavioral",
-  technical: "Technical",
-  leadership: "Leadership",
-  coding: "Coding",
-};
-
-const TYPE_STYLES: Record<string, string> = {
-  "recruiter-screen": "text-sky-300/90 bg-sky-500/10 border-sky-500/20",
-  "behavioral-leadership": "text-sky-300/90 bg-sky-500/10 border-sky-500/20",
-  "coding-algorithms": "text-teal-300/90 bg-teal-500/10 border-teal-500/20",
-  "system-design": "text-cyan-300/90 bg-cyan-500/10 border-cyan-500/20",
-  "domain-role": "text-emerald-300/90 bg-emerald-500/10 border-emerald-500/20",
-  "take-home": "text-amber-300/90 bg-amber-500/10 border-amber-500/20",
-  "hiring-manager": "text-blue-300/90 bg-blue-500/10 border-blue-500/20",
-  "bar-raiser": "text-rose-300/90 bg-rose-500/10 border-rose-500/20",
-  behavioral: "text-sky-300/90 bg-sky-500/10 border-sky-500/20",
-  technical: "text-teal-300/90 bg-teal-500/10 border-teal-500/20",
-  leadership: "text-amber-300/90 bg-amber-500/10 border-amber-500/20",
-  coding: "text-emerald-300/90 bg-emerald-500/10 border-emerald-500/20",
-};
-
-function typeLabel(type: string | null | undefined): string | null {
-  if (!type) return null;
-  return TYPE_LABELS[type] ?? type.replace(/[_-]+/g, " ");
-}
-
-function typeStyle(type: string | null | undefined): string {
-  if (!type) return "text-[#B0B8C8] bg-white/[0.04] border-white/[0.08]";
-  return TYPE_STYLES[type] ?? "text-[#B0B8C8] bg-white/[0.04] border-white/[0.08]";
-}
-
 function difficultyLabel(difficulty: string | null | undefined): string | null {
   if (!difficulty) return null;
   return difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
-}
-
-function scoreTone(score: number | null): string {
-  if (score == null) return "text-[#A8B0C2]";
-  if (score >= 80) return "text-emerald-400";
-  if (score >= 70) return "text-amber-300";
-  return "text-rose-300";
 }
 
 function ScorePath({ points }: { points: { label: string; value: number }[] }) {
@@ -116,7 +76,6 @@ function ScorePath({ points }: { points: { label: string; value: number }[] }) {
           return { x, y, label: p.label, value: p.value };
         });
 
-  const plotCoords = points.length === 1 ? [coords[1]!] : coords;
   const line = coords.map((c) => `${c.x},${c.y}`).join(" ");
   const area = `${coords[0]!.x},${h} ${line} ${coords[coords.length - 1]!.x},${h}`;
 
@@ -151,31 +110,31 @@ function ScorePath({ points }: { points: { label: string; value: number }[] }) {
           x2={w - padX}
           y1={yForScore(50)}
           y2={yForScore(50)}
-          stroke="rgba(255,255,255,0.04)"
+          stroke="rgba(255,255,255,0.05)"
           strokeWidth="0.35"
-          strokeDasharray="1.5 1.5"
+          strokeDasharray="1.5,2"
+        />
+        <line
+          x1={padX}
+          x2={w - padX}
+          y1={yForScore(100)}
+          y2={yForScore(100)}
+          stroke="rgba(255,255,255,0.05)"
+          strokeWidth="0.35"
         />
         <polygon points={area} fill={`url(#${gradientId})`} />
         <polyline
-          points={line}
           fill="none"
-          stroke="#60A5FA"
-          strokeWidth="1.4"
-          strokeLinejoin="round"
+          stroke="#3B82F6"
+          strokeWidth="1.25"
           strokeLinecap="round"
-          vectorEffect="non-scaling-stroke"
+          strokeLinejoin="round"
+          points={line}
         />
-        {plotCoords.map((c, i) => (
-          <g key={`${c.label}-${i}`}>
-            <circle
-              cx={c.x}
-              cy={c.y}
-              r={points.length === 1 ? "2.8" : "2"}
-              fill="#0B0C10"
-              stroke="#93C5FD"
-              strokeWidth="1.1"
-              vectorEffect="non-scaling-stroke"
-            />
+        {coords.map((c, i) => (
+          <g key={i}>
+            <circle cx={c.x} cy={c.y} r={1.5} fill="#3B82F6" />
+            <circle cx={c.x} cy={c.y} r={0.7} fill="#FFFFFF" />
           </g>
         ))}
       </svg>
@@ -213,6 +172,7 @@ export default function DashboardOverviewClient({
   userId,
   firstName,
   isFirstLogin,
+  initialHasResume,
   stats,
   recentSessions,
   topStrength,
@@ -227,6 +187,9 @@ export default function DashboardOverviewClient({
   } | null>(null);
   const [isOpening, setIsOpening] = useState<string | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [hasResume, setHasResume] = useState(initialHasResume ?? false);
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const [resumeUploadError, setResumeUploadError] = useState<string | null>(null);
 
   const hasSessions = recentSessions.length > 0;
   const latest = recentSessions[0];
@@ -299,6 +262,20 @@ export default function DashboardOverviewClient({
     return () => document.removeEventListener("keydown", onKey);
   }, [showWelcome, dismissWelcome]);
 
+  async function handleDirectResumeUpload(file: File) {
+    setResumeUploading(true);
+    setResumeUploadError(null);
+    try {
+      await uploadResumeFile(file);
+      setHasResume(true);
+      router.refresh();
+    } catch (err) {
+      setResumeUploadError(err instanceof Error ? err.message : "Failed to process resume");
+    } finally {
+      setResumeUploading(false);
+    }
+  }
+
   async function openSession(session: SessionItem) {
     if (isOpening) return;
     setIsOpening(session.id);
@@ -344,6 +321,15 @@ export default function DashboardOverviewClient({
                 : "Mic, video, transcript, and a scored rubric in one practice."}
             </p>
             <div className="mt-6 flex flex-wrap gap-3 sm:justify-end">
+              {!hasSessions ? (
+                <button
+                  type="button"
+                  onClick={() => setShowWelcome(true)}
+                  className="inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-lg border border-white/[0.12] bg-white/[0.04] px-4 text-sm font-medium text-[#E8ECF4] transition-colors hover:bg-white/[0.08]"
+                >
+                  <span>🧭</span> Getting Started Guide
+                </button>
+              ) : null}
               <Link
                 href="/practice"
                 className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg bg-[#3B82F6] px-5 text-sm font-medium text-white transition-colors hover:bg-[#4B8FF7]"
@@ -473,22 +459,83 @@ export default function DashboardOverviewClient({
           </div>
 
           {!hasSessions ? (
-            <div className="rounded-xl border border-dashed border-white/[0.08] px-6 py-11 text-center">
-              <p className="font-display text-xl text-[#E8ECF4]">No sessions recorded yet</p>
-              <p className="mx-auto mt-2 max-w-sm text-sm text-[#A8B0C2]">
-                After your first mock interview, recordings and scores land here.
-              </p>
-              <Link
-                href="/practice"
-                className="mt-5 inline-flex h-10 cursor-pointer items-center rounded-lg bg-[#3B82F6] px-5 text-sm font-medium text-white transition-colors hover:bg-[#4B8FF7]"
-              >
-                Start an interview now
-              </Link>
+            <div className="rounded-xl border border-dashed border-white/[0.08] p-6 sm:p-8">
+              <div className="mx-auto max-w-2xl text-center">
+                <p className="font-display text-xl text-[#E8ECF4]">No sessions recorded yet</p>
+                <p className="mt-2 text-sm text-[#A8B0C2]">
+                  Follow these recommended steps, then start your first AI mock interview.
+                </p>
+              </div>
+
+              <div className="mt-8 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 text-left">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium uppercase tracking-wider text-[#8B93A7]">Step 1</span>
+                    {hasResume ? (
+                      <span className="text-xs font-medium text-emerald-400">✓ Uploaded</span>
+                    ) : (
+                      <span className="text-xs text-[#A8B0C2]">Recommended</span>
+                    )}
+                  </div>
+                  <p className="mt-2 text-[15px] font-medium text-[#F2F4F8]">Resume & Profile</p>
+                  <p className="mt-1 text-xs text-[#A8B0C2]">
+                    {hasResume
+                      ? "Resume parsed and active for personalized interview rounds."
+                      : "Upload your resume to tailor interview scenarios to your experience."}
+                  </p>
+                  <div className="mt-3 flex items-center gap-3">
+                    <label className="cursor-pointer text-xs font-medium text-[#60A5FA] hover:text-[#93C5FD]">
+                      {resumeUploading ? "Processing…" : hasResume ? "Replace resume PDF" : "Upload PDF directly"}
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) void handleDirectResumeUpload(file);
+                        }}
+                      />
+                    </label>
+                    {hasResume ? (
+                      <Link href="/settings?tab=profile" className="text-xs text-[#A8B0C2] hover:text-[#E8ECF4]">
+                        View text →
+                      </Link>
+                    ) : null}
+                  </div>
+                  {resumeUploadError ? (
+                    <p role="alert" className="mt-2 text-xs text-rose-300">
+                      {resumeUploadError}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="rounded-lg border border-white/[0.08] bg-white/[0.02] p-4 text-left">
+                  <span className="text-xs font-medium uppercase tracking-wider text-[#8B93A7]">Step 2</span>
+                  <p className="mt-2 text-[15px] font-medium text-[#F2F4F8]">Explore Question Bank</p>
+                  <p className="mt-1 text-xs text-[#A8B0C2]">
+                    Review curated behavioral and system design questions.
+                  </p>
+                  <div className="mt-3">
+                    <Link href="/questions" className="text-xs font-medium text-[#60A5FA] hover:text-[#93C5FD]">
+                      Browse question bank →
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 text-center">
+                <Link
+                  href="/practice"
+                  className="inline-flex h-10 cursor-pointer items-center rounded-lg bg-[#3B82F6] px-6 text-sm font-medium text-white transition-colors hover:bg-[#4B8FF7]"
+                >
+                  Start an interview now
+                </Link>
+              </div>
             </div>
           ) : (
             <FadeInStagger instant className="divide-y divide-white/[0.05]">
               {recentSessions.slice(0, 6).map((s) => {
-                const kind = typeLabel(s.type);
+                const kind = interviewTypeDisplayLabel(s.type, "full");
                 const level = difficultyLabel(s.difficulty);
                 return (
                   <FadeInStaggerItem instant key={s.id}>
@@ -506,7 +553,7 @@ export default function DashboardOverviewClient({
                           </p>
                           {kind ? (
                             <span
-                              className={`shrink-0 rounded border px-1.5 py-px text-[10px] font-medium leading-tight tracking-wide ${typeStyle(s.type)}`}
+                              className={`shrink-0 rounded border px-1.5 py-px text-[10px] font-medium leading-tight tracking-wide ${interviewTypeBadgeClass(s.type)}`}
                             >
                               {kind}
                             </span>
@@ -527,7 +574,7 @@ export default function DashboardOverviewClient({
                         </p>
                       </div>
                       <span
-                        className={`shrink-0 font-mono text-base tabular-nums leading-none ${scoreTone(s.score)}`}
+                        className={`shrink-0 font-mono text-base tabular-nums leading-none ${scoreToneClass(s.score)}`}
                       >
                         {s.score == null ? "—" : s.score}
                       </span>
@@ -595,7 +642,9 @@ export default function DashboardOverviewClient({
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-[#E8ECF4]">Upload your resume</p>
-                  <p className="text-xs text-[#A8B0C2]">Match questions to your stack</p>
+                  <p className="text-xs text-[#A8B0C2]">
+                    {hasResume ? "✓ Saved & ready for questions" : "Match questions to your stack"}
+                  </p>
                 </div>
                 <span className="text-[#A8B0C2]">→</span>
               </Link>

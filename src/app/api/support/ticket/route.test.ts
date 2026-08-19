@@ -1,105 +1,216 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
 import { POST } from "./route";
-import { getServerAuthSession } from "@/lib/server-auth";
 
-vi.mock("@/lib/server-auth", () => ({ getServerAuthSession: vi.fn() }));
-vi.mock("@/lib/csrf", () => ({ csrfRejectIfInvalid: vi.fn(() => null) }));
+const {
+  sendSupportTicketEmailMock,
+  getServerAuthSessionMock,
+  createSupportTicketMock,
+  isLimitedMock,
+} = vi.hoisted(() => ({
+  sendSupportTicketEmailMock: vi.fn(),
+  getServerAuthSessionMock: vi.fn(),
+  createSupportTicketMock: vi.fn(),
+  isLimitedMock: vi.fn().mockResolvedValue(false),
+}));
+
 vi.mock("@/lib/rate-limit", () => ({
-  createRateLimiter: vi.fn(() => ({ isLimited: vi.fn(() => false) })),
+  createRateLimiter: vi.fn(() => ({
+    isLimited: isLimitedMock,
+  })),
+}));
+
+vi.mock("@/lib/server-auth", () => ({
+  getServerAuthSession: getServerAuthSessionMock,
+}));
+
+vi.mock("@/lib/email", () => ({
+  sendSupportTicketEmail: sendSupportTicketEmailMock,
+}));
+
+vi.mock("@/repositories/support-ticket-repo", () => ({
+  createSupportTicket: createSupportTicketMock,
+}));
+
+vi.mock("@/lib/route-security", () => ({
+  withCsrfProtection: (handler: (req: NextRequest) => Promise<Response>) => handler,
+}));
+
+vi.mock("@/lib/env", () => ({
+  env: {
+    FORMSPREE_SUPPORT_URL: "https://formspree.io/f/test-endpoint",
+  },
 }));
 
 describe("POST /api/support/ticket", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal("fetch", vi.fn());
+    isLimitedMock.mockResolvedValue(false);
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ ok: true }),
+    });
   });
 
-  it("rejects an oversized support message before sending email", async () => {
-    vi.mocked(getServerAuthSession).mockResolvedValue({
-      user: { id: "user-1", email: "user@example.com", name: "User" },
-    } as never);
+  it("returns 401 if user is not authenticated", async () => {
+    getServerAuthSessionMock.mockResolvedValue(null);
 
-    const formData = new FormData();
-    formData.set("category", "technical");
-    formData.set("priority", "normal");
-    formData.set("subject", "Need help");
-    formData.set("description", "x".repeat(10_001));
-
-    const response = await POST(new Request("http://localhost/api/support/ticket", {
+    const req = new NextRequest("http://localhost:3000/api/support/ticket", {
       method: "POST",
-      headers: { origin: "http://localhost:3000" },
-      body: formData,
-    }) as never);
+      body: JSON.stringify({
+        subject: "Need help",
+        description: "Something is broken",
+      }),
+    });
 
-    expect(response.status).toBe(400);
-    expect(fetch).not.toHaveBeenCalled();
+    const res = await POST(req);
+    expect(res.status).toBe(401);
   });
 
-  it("rejects malformed JSON before sending email", async () => {
-    vi.mocked(getServerAuthSession).mockResolvedValue({
-      user: { id: "user-1", email: "user@example.com", name: "User" },
-    } as never);
+  it("returns 400 if subject or description is missing", async () => {
+    getServerAuthSessionMock.mockResolvedValue({
+      user: { id: "u1", email: "user@example.com", name: "User One" },
+    });
 
-    const response = await POST(new Request("http://localhost/api/support/ticket", {
+    const req = new NextRequest("http://localhost:3000/api/support/ticket", {
       method: "POST",
-      headers: { "content-type": "application/json", origin: "http://localhost:3000" },
-      body: "{",
-    }) as never);
+      body: JSON.stringify({
+        subject: "",
+        description: "Something is broken",
+      }),
+    });
 
-    expect(response.status).toBe(400);
-    expect(fetch).not.toHaveBeenCalled();
+    const res = await POST(req);
+    expect(res.status).toBe(400);
   });
 
-  it("rejects an attachment whose bytes are not an allowed image", async () => {
-    vi.mocked(getServerAuthSession).mockResolvedValue({
-      user: { id: "user-1", email: "user@example.com", name: "User" },
-    } as never);
+  it("forwards ticket to Formspree and sends confirmation email with sequential DB ticket code", async () => {
+    getServerAuthSessionMock.mockResolvedValue({
+      user: { id: "u1", email: "user@example.com", name: "User One" },
+    });
+    createSupportTicketMock.mockResolvedValue({
+      ticketNumber: 1042,
+      ticketCode: "SUP-1042",
+      id: "ticket-cuid-1",
+    });
 
-    const formData = new FormData();
-    formData.set("category", "technical");
-    formData.set("priority", "normal");
-    formData.set("subject", "Need help");
-    formData.set("description", "The attachment should be rejected.");
-    formData.set("attachment", new File([new Uint8Array([0x4d, 0x5a, 0x90, 0x00])], "screen.png", { type: "image/png" }));
-
-    const response = await POST(new Request("http://localhost/api/support/ticket", {
+    const req = new NextRequest("http://localhost:3000/api/support/ticket", {
       method: "POST",
-      headers: { origin: "http://localhost:3000" },
-      body: formData,
-    }) as never);
+      body: JSON.stringify({
+        category: "technical",
+        priority: "high",
+        subject: "Microphone permission issue",
+        description: "Cannot enable microphone in Safari",
+      }),
+    });
 
-    expect(response.status).toBe(400);
-    expect(fetch).not.toHaveBeenCalled();
-  });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
 
-  it("forwards a support ticket and image to Formspree as multipart data", async () => {
-    vi.mocked(getServerAuthSession).mockResolvedValue({
-      user: { id: "user-1", email: "user@example.com", name: "User Name" },
-    } as never);
-    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ id: "submission-1" }), { status: 200 }));
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(data.ticketId).toBe("SUP-1042");
 
-    const formData = new FormData();
-    formData.set("category", "technical");
-    formData.set("priority", "normal");
-    formData.set("subject", "Need help");
-    formData.set("description", "The screen is blank after I submit.");
-    formData.set("attachment", new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])], "screen.png", { type: "image/png" }));
-
-    const response = await POST(new Request("http://localhost/api/support/ticket", {
-      method: "POST",
-      headers: { origin: "http://localhost:3000" },
-      body: formData,
-    }) as never);
-
-    expect(response.status).toBe(200);
-    expect(fetch).toHaveBeenCalledWith(
-      "https://formspree.io/f/xwlebndz",
-      expect.objectContaining({ method: "POST", headers: { Accept: "application/json" } }),
+    // Verify Formspree fetch call with SUP-1042
+    expect(global.fetch).toHaveBeenCalledWith(
+      "https://formspree.io/f/test-endpoint",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+        }),
+        body: expect.stringContaining("SUP-1042"),
+      })
     );
-    const forwarded = vi.mocked(fetch).mock.calls[0]?.[1]?.body as FormData;
-    expect(forwarded.get("email")).toBe("user@example.com");
-    expect(forwarded.get("name")).toBe("User Name");
-    expect(forwarded.get("message")).toBe("The screen is blank after I submit.");
-    expect(forwarded.get("attachment")).toBeInstanceOf(File);
+
+    // Verify email call with SUP-1042
+    expect(sendSupportTicketEmailMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ticketId: "SUP-1042",
+        userEmail: "user@example.com",
+        subject: "Microphone permission issue",
+      })
+    );
+  });
+
+  it("uses collision-free fallback when database persistence returns null", async () => {
+    getServerAuthSessionMock.mockResolvedValue({
+      user: { id: "u1", email: "user@example.com", name: "User One" },
+    });
+    createSupportTicketMock.mockResolvedValue(null);
+
+    const req = new NextRequest("http://localhost:3000/api/support/ticket", {
+      method: "POST",
+      body: JSON.stringify({
+        category: "technical",
+        priority: "high",
+        subject: "Fallback test",
+        description: "Testing fallback ID generation",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(data.ticketId).toMatch(/^SUP-[A-Z0-9]+-[A-Z0-9]+$/);
+  });
+
+  it("returns 400 when request body is malformed JSON", async () => {
+    getServerAuthSessionMock.mockResolvedValue({
+      user: { id: "u1", email: "user@example.com", name: "User One" },
+    });
+
+    const req = new NextRequest("http://localhost:3000/api/support/ticket", {
+      method: "POST",
+      body: "not-json",
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({ error: "Invalid JSON body" });
+    expect(createSupportTicketMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 429 when support ticket rate limit is exceeded", async () => {
+    getServerAuthSessionMock.mockResolvedValue({
+      user: { id: "u1", email: "user@example.com", name: "User One" },
+    });
+    isLimitedMock.mockResolvedValue(true);
+
+    const req = new NextRequest("http://localhost:3000/api/support/ticket", {
+      method: "POST",
+      body: JSON.stringify({
+        subject: "Need help",
+        description: "Something is broken",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(429);
+    await expect(res.json()).resolves.toEqual({
+      error: "Too many support ticket requests. Please try again later.",
+    });
+  });
+
+  it("returns 400 when attachmentBase64 exceeds maximum allowed size", async () => {
+    getServerAuthSessionMock.mockResolvedValue({
+      user: { id: "u1", email: "user@example.com", name: "User One" },
+    });
+
+    const oversizedBase64 = "a".repeat(11 * 1024 * 1024);
+    const req = new NextRequest("http://localhost:3000/api/support/ticket", {
+      method: "POST",
+      body: JSON.stringify({
+        subject: "Need help",
+        description: "Something is broken",
+        attachmentBase64: oversizedBase64,
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
   });
 });
+

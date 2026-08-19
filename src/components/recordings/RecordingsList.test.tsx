@@ -2,6 +2,7 @@
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { deferred } from "@/test-utils/deferred";
 
 import RecordingsList from "./RecordingsList";
 
@@ -24,15 +25,6 @@ function jsonResponse(body: Record<string, unknown>) {
   });
 }
 
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-
-  return { promise, resolve };
-}
-
 describe("RecordingsList", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockSignedUrlResponse()));
@@ -40,7 +32,101 @@ describe("RecordingsList", () => {
 
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it("does not sort sessions again when only modal state changes", () => {
+    const sortSpy = vi.spyOn(Array.prototype, "sort");
+
+    render(
+      <RecordingsList
+        initialSessions={[
+          {
+            id: "session-a",
+            role: "Frontend Engineer",
+            company: "OpenAI",
+            type: "coding-algorithms",
+            videoKey: null,
+            score: 80,
+            createdAt: "2026-01-02T00:00:00.000Z",
+          },
+          {
+            id: "session-b",
+            role: "Backend Engineer",
+            company: "Stripe",
+            type: "domain-role",
+            videoKey: null,
+            score: 90,
+            createdAt: "2026-01-01T00:00:00.000Z",
+          },
+        ]}
+        initialHasMore={false}
+      />,
+    );
+
+    const sessionButton = screen.getByText("Frontend Engineer");
+    const callsAfterInitialRender = sortSpy.mock.calls.length;
+    fireEvent.click(sessionButton);
+
+    expect(sortSpy.mock.calls.length).toBe(callsAfterInitialRender);
+    expect(screen.getByTestId("recording-modal").textContent).toBe("session-a");
+  });
+
+  it("sorts sessions by newest date and then by top score", () => {
+    render(
+      <RecordingsList
+        initialSessions={[
+          {
+            id: "higher-score",
+            role: "Higher Score Engineer",
+            company: "OpenAI",
+            type: "coding-algorithms",
+            videoKey: null,
+            score: 95,
+            createdAt: "2026-01-01T00:00:00.000Z",
+          },
+          {
+            id: "newer-session",
+            role: "Newer Session Engineer",
+            company: "Stripe",
+            type: "domain-role",
+            videoKey: null,
+            score: 75,
+            createdAt: "2026-01-02T00:00:00.000Z",
+          },
+        ]}
+        initialHasMore={false}
+      />,
+    );
+
+    const sessionCards = () => screen.getAllByRole("button", { name: "Open session details" });
+
+    expect(sessionCards()[0]?.textContent).toContain("Newer Session Engineer");
+    fireEvent.click(screen.getByRole("button", { name: "Top score" }));
+    expect(sessionCards()[0]?.textContent).toContain("Higher Score Engineer");
+  });
+
+  it("uses the canonical domain badge and short label", () => {
+    render(
+      <RecordingsList
+        initialSessions={[
+          {
+            id: "domain-1",
+            role: "Database Engineer",
+            company: "OpenAI",
+            type: "domain-role",
+            videoKey: null,
+            score: 82,
+            createdAt: "2026-01-03T00:00:00.000Z",
+          },
+        ]}
+        initialHasMore={false}
+      />,
+    );
+
+    const badge = screen.getByText("Domain", { selector: "span" });
+    expect(badge.className).toContain("text-emerald-300/90");
   });
 
   it("opens the read-only recording modal for an initial deep-linked interview", async () => {

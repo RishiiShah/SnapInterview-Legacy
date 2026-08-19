@@ -21,12 +21,16 @@ export interface ChatSessionMessage {
   isSystem?: boolean;
 }
 
+import type { WhiteboardExport } from "@/components/interview/InterviewWhiteboard";
+import type { InterviewChatMessage } from "@/lib/interview/chat-messages";
+
 interface UseChatSessionOptions {
   interviewId: string;
   interviewStarted: boolean;
   interviewDone: boolean;
   finalTranscriptBlock: string;
   setInterviewDone: (done: boolean) => void;
+  getWhiteboardExport?: () => Promise<WhiteboardExport | null>;
 }
 
 export function shouldProcessFinalTranscriptBlock(options: {
@@ -46,6 +50,7 @@ export function useChatSession({
   interviewDone: externalInterviewDone,
   finalTranscriptBlock,
   setInterviewDone: externalSetInterviewDone,
+  getWhiteboardExport,
 }: UseChatSessionOptions) {
   const [messages, setMessages] = useState<ChatSessionMessage[]>([]);
   const [currentStreamedText, setCurrentStreamedText] = useState("");
@@ -66,6 +71,7 @@ export function useChatSession({
   const processedTranscriptRef = useRef<string>("");
   const activeRequestRef = useRef(false);
   const queuedTranscriptRef = useRef<string | null>(null);
+  const lastSentBoardHashRef = useRef<string | null>(null);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -80,7 +86,7 @@ export function useChatSession({
   }, []);
 
   const askGroq = useCallback(
-    async (chatHistory: ChatSessionMessage[]) => {
+    async (chatHistory: ChatSessionMessage[], overrideBoard?: WhiteboardExport) => {
       if (interviewDone || activeRequestRef.current) {
         return;
       }
@@ -92,12 +98,28 @@ export function useChatSession({
       setIsThinking(true);
       setCurrentStreamedText("");
 
-      const formattedMessages = chatHistory
+      let boardToAttach: WhiteboardExport | undefined = overrideBoard;
+      if (!boardToAttach && getWhiteboardExport) {
+        try {
+          const exported = await getWhiteboardExport();
+          if (exported && exported.scene.contentHash !== lastSentBoardHashRef.current) {
+            boardToAttach = exported;
+          }
+        } catch {
+          // ignore export errors
+        }
+      }
+
+      const formattedMessages: InterviewChatMessage[] = chatHistory
         .filter((message) => !message.isSystem)
-        .map((message) => ({
-          role: message.role === "ai" ? "assistant" : "user",
-          content: message.text,
-        }));
+        .map((message, idx, arr) => {
+          const isLatestUser = message.role === "user" && idx === arr.length - 1;
+          return {
+            role: message.role === "ai" ? "assistant" : "user",
+            content: message.text,
+            ...(isLatestUser && boardToAttach ? { board: boardToAttach } : {}),
+          };
+        });
       const expectedCurrentQuestion = formattedMessages.filter((message) => message.role === "assistant").length;
 
       try {
@@ -186,6 +208,10 @@ export function useChatSession({
 
         if (signal.aborted) throw new Error("AbortError");
 
+        if (boardToAttach) {
+          lastSentBoardHashRef.current = boardToAttach.scene.contentHash;
+        }
+
         let displayText = aiResponseText;
         if (!codingChallenge) {
           const parsed = parseCodingChallenge(aiResponseText);
@@ -211,7 +237,21 @@ export function useChatSession({
         setIsThinking(false);
       }
     },
-    [interviewId, interviewDone, setInterviewDone, codingChallenge]
+    [interviewId, interviewDone, setInterviewDone, codingChallenge, getWhiteboardExport]
+  );
+
+  const shareBoard = useCallback(
+    async (exported: WhiteboardExport) => {
+      if (interviewDone || activeRequestRef.current) return;
+      const shareMessage: ChatSessionMessage = {
+        role: "user",
+        text: "I'm sharing my current whiteboard architecture with you.",
+      };
+      const updatedHistory = [...messagesRef.current, shareMessage];
+      setMessages(updatedHistory);
+      await askGroq(updatedHistory, exported);
+    },
+    [askGroq, interviewDone]
   );
 
   useEffect(() => {
@@ -277,6 +317,7 @@ export function useChatSession({
     lastCompletedAiText,
     isThinking,
     sendMessage,
+    shareBoard,
     interviewDone,
     codingChallenge,
   };

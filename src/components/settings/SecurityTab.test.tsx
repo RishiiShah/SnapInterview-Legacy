@@ -3,6 +3,7 @@
 import { StrictMode } from "react";
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { deferred } from "@/test-utils/deferred";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn() }),
@@ -13,15 +14,6 @@ vi.mock("@/components/settings/PasswordTab", () => ({
 }));
 
 import SecurityTab from "./SecurityTab";
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-
-  return { promise, resolve };
-}
 
 describe("SecurityTab", () => {
   afterEach(() => {

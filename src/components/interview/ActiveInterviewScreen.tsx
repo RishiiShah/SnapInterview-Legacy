@@ -16,7 +16,11 @@ import {
 } from "@/components/ui/icons";
 import type { CodingChallenge } from "@/lib/interview/coding-challenge";
 import { InterviewCodingPanel } from "@/components/interview/InterviewCodingPanel";
-
+import {
+  InterviewWhiteboard,
+  type InterviewWhiteboardRef,
+  type WhiteboardExport,
+} from "@/components/interview/InterviewWhiteboard";
 type ChatMessage = {
   role: "ai" | "user";
   text: string;
@@ -27,6 +31,9 @@ type ActiveInterviewScreenProps = {
   answeredQuestions: number;
   totalQuestions: number;
   questionProgressPercent: number;
+  timeRemainingFormatted?: string | null;
+  timeProgressPercent?: number;
+  isGraceWarningActive?: boolean;
   isUploading: boolean;
   interviewDone: boolean;
   onExitInterview: () => void;
@@ -50,15 +57,22 @@ type ActiveInterviewScreenProps = {
   toggleCamera: () => void;
   toggleRecording: () => void;
   onSendTextAnswer: (text: string) => void;
+  interviewType?: string;
   codingInterview?: boolean;
   codingChallenge?: CodingChallenge | null;
   onSubmitCode?: (message: string) => void;
+  whiteboardRef?: RefObject<InterviewWhiteboardRef | null>;
+  onShareWhiteboard?: (exported: WhiteboardExport) => void;
+  isSharingWhiteboard?: boolean;
 };
 
 export default function ActiveInterviewScreen({
   answeredQuestions,
   totalQuestions,
   questionProgressPercent,
+  timeRemainingFormatted,
+  timeProgressPercent,
+  isGraceWarningActive,
   isUploading,
   interviewDone,
   onExitInterview,
@@ -82,13 +96,19 @@ export default function ActiveInterviewScreen({
   toggleCamera,
   toggleRecording,
   onSendTextAnswer,
+  interviewType,
   codingInterview = false,
   codingChallenge,
   onSubmitCode,
+  whiteboardRef,
+  onShareWhiteboard,
+  isSharingWhiteboard = false,
 }: ActiveInterviewScreenProps) {
   const reducedMotion = useReducedMotion() ?? false;
   const [textDraft, setTextDraft] = useState("");
   const codingLayout = shouldUseCodingLayout(codingInterview, codingChallenge);
+  const isSystemDesign = interviewType === "system-design";
+  const hasSidePanel = codingLayout || isSystemDesign;
 
   const handleTextSubmit = useCallback(() => {
     const trimmed = textDraft.trim();
@@ -116,7 +136,7 @@ export default function ActiveInterviewScreen({
       isThinking={isThinking}
       interimTranscript={interimTranscript}
       volatileTranscript={volatileTranscript}
-      compact={codingLayout}
+      compact={hasSidePanel}
     />
   );
 
@@ -135,16 +155,25 @@ export default function ActiveInterviewScreen({
           <div className="flex min-w-0 flex-1 flex-col gap-2 max-w-xs sm:max-w-sm">
             <div className="flex items-baseline justify-between gap-3">
               <span className="font-mono text-[11px] tabular-nums text-[#6B7385]">
-                Progress
+                {timeRemainingFormatted ? "Time Remaining" : "Progress"}
               </span>
-              <span className="font-mono text-[11px] tabular-nums text-[#8B93A7]">
-                {answeredQuestions} / {totalQuestions}
+              <span
+                className={`font-mono text-[11px] tabular-nums ${
+                  isGraceWarningActive
+                    ? "font-semibold text-amber-400 animate-pulse"
+                    : "text-[#8B93A7]"
+                }`}
+              >
+                {timeRemainingFormatted ?? `${answeredQuestions} / ${totalQuestions}`}
+                {isGraceWarningActive ? " (Ending Soon)" : ""}
               </span>
             </div>
             <div className="h-px w-full overflow-hidden bg-white/[0.08]">
               <div
-                className="h-full bg-[#3B82F6] transition-[width] duration-500 ease-out motion-reduce:transition-none"
-                style={{ width: `${questionProgressPercent}%` }}
+                className={`h-full transition-[width] duration-500 ease-out motion-reduce:transition-none ${
+                  isGraceWarningActive ? "bg-amber-400" : "bg-[#3B82F6]"
+                }`}
+                style={{ width: `${timeProgressPercent ?? questionProgressPercent}%` }}
               />
             </div>
           </div>
@@ -158,6 +187,12 @@ export default function ActiveInterviewScreen({
             {isUploading ? "Uploading…" : "Exit"}
           </button>
         </header>
+
+        {isGraceWarningActive && (
+          <div className="bg-amber-500/10 border-b border-amber-500/20 px-5 py-1.5 text-center text-xs font-medium text-amber-300">
+            Interview time is almost up. Wrap up your current response.
+          </div>
+        )}
 
         {/* Stage */}
         <div className="relative flex min-h-0 flex-1 gap-0">
@@ -189,6 +224,32 @@ export default function ActiveInterviewScreen({
                     <p className="text-sm text-[#8B93A7]">Preparing coding challenge…</p>
                   </div>
                 )}
+              </div>
+            </>
+          ) : isSystemDesign ? (
+            <>
+              <div className="flex w-[38%] min-w-[280px] max-w-md flex-col border-r border-white/[0.06]">
+                <div className="relative h-36 shrink-0 overflow-hidden border-b border-white/[0.06] bg-[#0B0C10] sm:h-40">
+                  <video
+                    ref={onVideoMount}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="h-full w-full object-cover"
+                    style={{ transform: "scaleX(-1)" }}
+                  />
+                  <RecordingBadge compact recording={isRecordingVideo} />
+                </div>
+                <div className="min-h-0 flex-1">{transcript}</div>
+              </div>
+
+              <div className="min-h-0 min-w-0 flex-1">
+                <InterviewWhiteboard
+                  ref={whiteboardRef}
+                  onShareBoard={onShareWhiteboard}
+                  isSharing={isSharingWhiteboard}
+                  disabled={interviewDone}
+                />
               </div>
             </>
           ) : (
@@ -487,20 +548,10 @@ function TranscriptPanel({
         {isThinking && !currentStreamedText ? (
           <div className="flex w-full justify-start">
             <div
-              className={`flex max-w-[92%] items-center gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-[#8B93A7] ${bubble}`}
+              className={`flex max-w-[92%] items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] text-[#8B93A7] ${bubble}`}
             >
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-[#6B7385] motion-safe:animate-bounce"
-                style={{ animationDelay: "0ms" }}
-              />
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-[#6B7385] motion-safe:animate-bounce"
-                style={{ animationDelay: "150ms" }}
-              />
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-[#6B7385] motion-safe:animate-bounce"
-                style={{ animationDelay: "300ms" }}
-              />
+              <span className="font-mono text-xs text-[#8B93A7]">Taking notes…</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-400 motion-safe:animate-pulse" />
             </div>
           </div>
         ) : null}

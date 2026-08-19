@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "id": "role-software-engineer-embedded-firmware",
+  "title": "Software Engineer - Embedded & Firmware Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Software Engineer - Embedded & Firmware."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Entry-level / New Grad: C/C++ bitwise manipulation, pointers, register programming, interrupts, and basic UART/I2C/SPI bus communication.",
+        "2. Mid-level: Real-Time Operating Systems (FreeRTOS, Zephyr), device driver development, memory constraints, power management, and DMA controllers.",
+        "3. Senior: Hard real-time determinism, board bring-up, bootloaders, secure boot, OTA firmware update pipelines, and hardware-in-the-loop (HIL) testing.",
+        "4. Staff-plus: Multi-core SoC architecture, system safety standards (ISO 26262, IEC 61508), and firmware platform evolution."
+      ]
+    }
+  ]
+}

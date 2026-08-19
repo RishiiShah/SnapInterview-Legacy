@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import DashboardOverviewClient from "./DashboardOverviewClient";
 
@@ -28,6 +28,7 @@ describe("DashboardOverviewClient", () => {
   afterEach(() => {
     cleanup();
     localStorage.clear();
+    vi.unstubAllGlobals();
   });
 
   const mockStats = [
@@ -144,5 +145,67 @@ describe("DashboardOverviewClient", () => {
     expect(screen.getByText("Read-only JavaScript previews and public samples")).toBeDefined();
     expect(screen.queryByText("Editor, test cases, and solutions")).toBeNull();
     expect(screen.getByText("Start your first interview")).toBeDefined();
+  });
+
+  it("shows the API error when direct resume upload fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ error: "Only PDF files are supported" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+
+    render(
+      <DashboardOverviewClient
+        {...defaultProps}
+        stats={[]}
+        recentSessions={[]}
+        topStrength={null}
+        topFocus={null}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/upload pdf directly/i), {
+      target: {
+        files: [new File(["not-pdf"], "resume.txt", { type: "text/plain" })],
+      },
+    });
+
+    expect(
+      await screen.findByText("Only PDF files are supported"),
+    ).toBeDefined();
+    expect(screen.queryByText("✓ Uploaded")).toBeNull();
+  });
+
+  it("shows uploaded status after a successful direct resume upload", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ resumeText: "Built distributed systems." }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <DashboardOverviewClient
+        {...defaultProps}
+        stats={[]}
+        recentSessions={[]}
+        topStrength={null}
+        topFocus={null}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/upload pdf directly/i), {
+      target: {
+        files: [new File(["pdf"], "resume.pdf", { type: "application/pdf" })],
+      },
+    });
+
+    expect(await screen.findByText("✓ Uploaded")).toBeDefined();
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 });

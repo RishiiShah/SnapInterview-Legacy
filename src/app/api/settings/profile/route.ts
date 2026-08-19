@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { apiJson, badRequestError, internalServerError, notFoundError, unauthorizedError } from "@/lib/api-response";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { withCsrfProtection } from "@/lib/route-security";
+import { parseJsonBody } from "@/lib/http/request-body";
 import { logger } from "@/utils/logger";
 
 const profileSchema = z.object({
@@ -16,10 +17,9 @@ export const PUT = withCsrfProtection(async (req: Request) => {
       return unauthorizedError();
     }
 
-    const body = await req.json();
-    const parsed = profileSchema.safeParse(body);
-    if (!parsed.success) {
-      return badRequestError(parsed.error.issues[0]?.message || "Invalid profile details");
+    const parsed = await parseJsonBody(req, profileSchema);
+    if (!parsed.ok) {
+      return parsed.response;
     }
 
     const updated = await prisma.user.update({

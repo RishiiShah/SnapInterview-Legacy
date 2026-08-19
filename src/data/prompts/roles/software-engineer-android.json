@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "role-software-engineer-android",
+  "title": "Software Engineer - Android Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Software Engineer - Android."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Entry-level / New Grad: Kotlin fundamentals, Jetpack Compose / XML layouts, Activity/Fragment lifecycle, and Retrofit network requests.",
+        "2. Mid-level: Android Architecture Components (ViewModel, LiveData/StateFlow), Coroutines & Flow, Room DB, WorkManager background processing, and dependency injection (Hilt/Dagger).",
+        "3. Senior: Performance profiling (Android Studio Profiler: memory, CPU, jank detection), baseline profiles, multi-module architecture, ProGuard/R8 rules, and NDK/JNI when applicable.",
+        "4. Staff-plus: Android core foundation architecture, design system platformization, and developer tooling at scale."
+      ]
+    },
+    {
+      "heading": "Question Strategy & Guidance",
+      "lines": [
+        "- PREFER BRIEF PILLARS: Focus on Jetpack Compose, Kotlin Coroutines, and Android platform design patterns.",
+        "- Assess handling of process death, configuration changes, and background execution limits (Doze mode)."
+      ]
+    }
+  ]
+}

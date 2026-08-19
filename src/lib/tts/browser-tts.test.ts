@@ -15,9 +15,21 @@ import {
   SYNTH_TIMEOUT_MS,
 } from "./kokoro-worker-client";
 
+const clients = new Set<ReturnType<typeof createKokoroWorkerClient>>();
+
 afterEach(() => {
+  for (const client of clients) client.dispose();
+  clients.clear();
+  disposeSharedKokoroWorkerClient();
+  vi.clearAllTimers();
   vi.useRealTimers();
 });
+
+function createTestClient(createWorker: () => Worker) {
+  const client = createKokoroWorkerClient(createWorker);
+  clients.add(client);
+  return client;
+}
 
 describe("browser TTS helpers", () => {
   it("bounds merged pending speech while keeping the newest text", () => {
@@ -75,7 +87,7 @@ describe("browser TTS helpers", () => {
 describe("createKokoroWorkerClient", () => {
   it("dedupes preload calls and publishes loading then ready", async () => {
     const worker = createMockWorker();
-    const client = createKokoroWorkerClient(() => worker);
+    const client = createTestClient(() => worker);
     const statuses: string[] = [];
     client.subscribe((status) => statuses.push(status));
 
@@ -94,7 +106,7 @@ describe("createKokoroWorkerClient", () => {
 
   it("keeps model preload alive when speech cancellation occurs", async () => {
     const worker = createMockWorker();
-    const client = createKokoroWorkerClient(() => worker);
+    const client = createTestClient(() => worker);
     const preload = client.preload();
 
     client.cancel();
@@ -105,7 +117,7 @@ describe("createKokoroWorkerClient", () => {
 
   it("rejects pending preload when the client is disposed", async () => {
     const worker = createMockWorker();
-    const client = createKokoroWorkerClient(() => worker);
+    const client = createTestClient(() => worker);
     const preload = client.preload();
 
     client.dispose();
@@ -123,9 +135,21 @@ describe("createKokoroWorkerClient", () => {
     disposeSharedKokoroWorkerClient();
   });
 
+  it("disposes the shared client when the page is hidden", async () => {
+    const worker = createMockWorker();
+    const client = getSharedKokoroWorkerClient(() => worker);
+    const preload = client.preload();
+    const rejection = expect(preload).rejects.toThrow("disposed");
+
+    window.dispatchEvent(new Event("pagehide"));
+
+    await rejection;
+    expect(worker.terminate).toHaveBeenCalledOnce();
+  });
+
   it("ignores late synth responses after cancellation generation changes", async () => {
     const worker = createMockWorker();
-    const client = createKokoroWorkerClient(() => worker);
+    const client = createTestClient(() => worker);
 
     const synth = client.synthesize("Hello", { persona: "friendly" });
     client.cancel();
@@ -144,7 +168,7 @@ describe("createKokoroWorkerClient", () => {
   it("keeps one worker instance for preload and synthesize", async () => {
     const worker = createMockWorker();
     const createWorker = vi.fn(() => worker);
-    const client = createKokoroWorkerClient(createWorker);
+    const client = createTestClient(createWorker);
 
     const preload = client.preload();
     worker.emit({ type: "ready", requestId: "preload-1", status: "ready" });
@@ -173,7 +197,7 @@ describe("createKokoroWorkerClient", () => {
   it("fails a hung model preload and terminates the worker", async () => {
     vi.useFakeTimers();
     const worker = createMockWorker();
-    const client = createKokoroWorkerClient(() => worker);
+    const client = createTestClient(() => worker);
 
     const preload = client.preload();
     const rejection = expect(preload).rejects.toThrow("timed out");
@@ -187,7 +211,7 @@ describe("createKokoroWorkerClient", () => {
   it("fails a hung synthesis and terminates the worker", async () => {
     vi.useFakeTimers();
     const worker = createMockWorker();
-    const client = createKokoroWorkerClient(() => worker);
+    const client = createTestClient(() => worker);
 
     const synth = client.synthesize("Hello");
     const rejection = expect(synth).rejects.toThrow("timed out");
@@ -197,22 +221,75 @@ describe("createKokoroWorkerClient", () => {
     await rejection;
     expect(worker.terminate).toHaveBeenCalledTimes(1);
   });
+
+  it("terminates and ignores late results after synthesis timeout", async () => {
+    vi.useFakeTimers();
+    const worker = createMockWorker();
+    const client = createTestClient(() => worker);
+    const synth = client.synthesize("Hello");
+    const rejection = expect(synth).rejects.toThrow(
+      `Browser TTS synthesis timed out after ${SYNTH_TIMEOUT_MS}ms`,
+    );
+
+    await vi.advanceTimersByTimeAsync(SYNTH_TIMEOUT_MS);
+    await rejection;
+    expect(worker.terminate).toHaveBeenCalledOnce();
+    worker.emit({
+      type: "audio",
+      requestId: "synth-1",
+      generation: 0,
+      pcm: new Float32Array([0.5]).buffer,
+      sampleRate: 24_000,
+    });
+  });
+
+  it("rejects and terminates on a native worker error event", async () => {
+    const worker = createMockWorker();
+    const client = createTestClient(() => worker);
+    const statuses: string[] = [];
+    client.subscribe((status) => statuses.push(status));
+
+    const synth = client.synthesize("Hello");
+    const rejection = expect(synth).rejects.toThrow("native worker exploded");
+    worker.emitError("native worker exploded");
+
+    await rejection;
+    expect(statuses.at(-1)).toBe("error");
+    expect(worker.terminate).toHaveBeenCalledOnce();
+  });
 });
 
 function createMockWorker() {
-  let onMessage: ((event: MessageEvent) => void) | null = null;
-  return {
-    postMessage: vi.fn(),
-    terminate: vi.fn(),
-    addEventListener: vi.fn((event: string, listener: (event: MessageEvent) => void) => {
-      if (event === "message") onMessage = listener;
-    }),
-    removeEventListener: vi.fn(),
-    emit(message: unknown) {
-      onMessage?.({ data: message } as MessageEvent);
-    },
-  } as unknown as Worker & {
+  return new FakeWorker() as unknown as Worker & {
     postMessage: ReturnType<typeof vi.fn>;
+    terminate: ReturnType<typeof vi.fn>;
     emit(message: unknown): void;
+    emitError(message: string): void;
   };
+}
+
+class FakeWorker {
+  readonly postMessage = vi.fn();
+  readonly terminate = vi.fn();
+  private messageListener: ((event: Event) => void) | null = null;
+  private errorListener: ((event: Event) => void) | null = null;
+
+  addEventListener(event: string, listener: EventListenerOrEventListenerObject) {
+    if (typeof listener !== "function") return;
+    if (event === "message") this.messageListener = listener;
+    if (event === "error") this.errorListener = listener;
+  }
+
+  removeEventListener(event: string) {
+    if (event === "message") this.messageListener = null;
+    if (event === "error") this.errorListener = null;
+  }
+
+  emit(message: unknown) {
+    this.messageListener?.(new MessageEvent("message", { data: message }));
+  }
+
+  emitError(message: string) {
+    this.errorListener?.(new ErrorEvent("error", { message }));
+  }
 }

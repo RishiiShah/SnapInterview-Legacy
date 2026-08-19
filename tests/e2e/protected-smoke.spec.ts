@@ -6,10 +6,15 @@ const requestOrigin = "http://127.0.0.1:3000";
 test.describe("Protected smoke flows", () => {
   test.skip(!supportsProtectedFlows, "Protected E2E smoke tests require E2E_PROTECTED_FLOWS=1 with a real database-backed test environment.");
 
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page }, testInfo) => {
+    const suffix = `${testInfo.workerIndex}-${testInfo.retry}-${testInfo.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")}`;
+
     await page.goto(requestOrigin);
 
-    const ok = await page.evaluate(async (reqOrigin) => {
+    const ok = await page.evaluate(async ({ reqOrigin, suffix }) => {
       const res = await fetch("/api/test-auth/session", {
         method: "POST",
         headers: {
@@ -17,14 +22,15 @@ test.describe("Protected smoke flows", () => {
           origin: reqOrigin,
         },
         body: JSON.stringify({
-          email: "e2e@example.com",
+          userId: `e2e-${suffix}`,
+          email: `e2e+${suffix}@example.com`,
           name: "E2E User",
           onboardingCompleted: true,
         }),
         credentials: "include",
       });
       return res.ok;
-    }, requestOrigin);
+    }, { reqOrigin: requestOrigin, suffix });
 
     expect(ok).toBeTruthy();
   });
@@ -44,8 +50,8 @@ test.describe("Protected smoke flows", () => {
   test("practice page loads for an authenticated test user", async ({ page }) => {
     await page.goto("/practice");
 
-    await expect(page.getByRole("heading", { name: /practice interview/i, level: 1 })).toBeVisible();
-    await expect(page.getByPlaceholder(/search or type your target role/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /set up your interview|practice/i, level: 1 })).toBeVisible();
+    await expect(page.getByPlaceholder(/software engineer|search or type/i)).toBeVisible();
     await expect(page.getByRole("button", { name: /continue|start interview/i })).toBeVisible();
   });
 
@@ -75,14 +81,10 @@ test.describe("Protected smoke flows", () => {
   });
 
   test("settings page loads profile settings", async ({ page }) => {
-    await page.goto("/dashboard");
+    await page.goto("/settings");
 
-    // Open account drop-up and click Settings (target the button with the user's name)
-    await page.locator('aside button').last().click();
-    await page.locator('a:has-text("Settings")').first().click();
-    await page.waitForURL('**/settings', { timeout: 10000 });
-
-    // Confirm the page actually rendered (not just a blank route).
-    await expect(page.getByRole("heading", { name: /settings/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: /settings/i, level: 1 })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: /^profile$/i, level: 2 })).toBeVisible();
+    await expect(page.getByRole("button", { name: /save profile changes/i })).toBeVisible();
   });
 });

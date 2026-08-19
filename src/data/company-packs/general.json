@@ -1,0 +1,71 @@
+{
+  "id": "general",
+  "version": 1,
+  "displayNames": ["General", "Industry Standard"],
+  "method": [
+    "Practical engineering fundamentals and sound software lifecycle execution",
+    "Evidence of clear reasoning, structured communication, and technical depth",
+    "Balanced focus on domain competence, trade-off analysis, and team collaboration"
+  ],
+  "signalsByLevel": {
+    "entry-level": [
+      "Grasp of core data structures, basic algorithms, and clean syntax",
+      "Ability to articulate logic, ask clarifying questions, and receive feedback openly",
+      "Hands-on familiarity with modern frameworks and version control through projects or internships"
+    ],
+    "mid-level": [
+      "Autonomous delivery of production features and reliable bug diagnosis",
+      "Clear design of modular, maintainable, and well-tested services",
+      "Familiarity with common distributed systems primitives (caching, databases, message queues)"
+    ],
+    "senior": [
+      "End-to-end architectural leadership across complex, ambiguous problem spaces",
+      "Rigorous trade-off evaluation between performance, maintainability, and delivery speed",
+      "Proactive identification of scaling bottlenecks, security risks, and cross-team dependencies"
+    ],
+    "staff-plus": [
+      "Strategic technical vision aligning system architecture with business initiatives",
+      "Proven ability to guide technical strategy, de-risk multi-year migrations, and elevate standards across teams",
+      "Deep organizational influence and exemplary judgment under extreme ambiguity"
+    ]
+  },
+  "signalsByRoleFamily": {
+    "swe": [
+      "Clean modular code design, idiomatic language patterns, and pragmatic testing",
+      "Strong intuition for runtime complexity and data access latency"
+    ],
+    "ml-data": [
+      "Rigorous understanding of model evaluation, data pipelines, and feature stores",
+      "Production awareness of inference latency, drift monitoring, and batch vs stream trade-offs"
+    ],
+    "sre-infra": [
+      "High availability, automated failover, disaster recovery, and infrastructure as code",
+      "Deep observability (SLOs/SLAs, metrics, logs, tracing) and incident postmortem discipline"
+    ],
+    "pm-design": [
+      "User empathy, crisp problem definition, hypothesis testing, and product metrics",
+      "Seamless alignment of design fidelity with engineering feasibility"
+    ],
+    "em-lead": [
+      "High-trust team leadership, continuous coaching, and clear career pathing",
+      "Balancing technical debt reduction with product roadmap delivery"
+    ],
+    "quant": [
+      "Mathematical precision, high-throughput low-latency execution, and statistical validation",
+      "Deep understanding of concurrency, memory layout, and risk-adjusted return"
+    ]
+  },
+  "frequentThemes": [
+    {
+      "id": "general-tradeoffs",
+      "shape": "Analyze trade-offs between consistency, latency, and operational simplicity in a real-world scenario",
+      "types": ["system-design", "domain-role"]
+    },
+    {
+      "id": "general-ownership",
+      "shape": "Past experience where candidate took end-to-end ownership of a challenging technical delivery",
+      "types": ["behavioral-leadership", "hiring-manager", "bar-raiser"]
+    }
+  ],
+  "sourcesNote": "General standard software engineering competency rubric"
+}

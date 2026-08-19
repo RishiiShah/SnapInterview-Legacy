@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 
 import { requireAdminSession } from "@/lib/admin-auth";
 import { parsePracticeQuestionForm, parsePracticeQuestionInput } from "@/lib/admin/practice-question";
+import { parseCsvRecords } from "@/lib/csv";
 import { prisma } from "@/lib/prisma";
 import { PRACTICE_QUESTION_CATALOG_CACHE_TAG } from "@/repositories/question-repo";
 
@@ -47,55 +48,7 @@ function isPracticeQuestionSlugConflict(error: unknown) {
   );
 }
 
-// Record-aware CSV tokenizer: walks the whole text so newlines inside quoted fields
-// (e.g. multi-paragraph sample answers from our own CSV export) stay within the field
-// instead of being split into bogus rows.
-function parseCsvRecords(text: string): string[][] {
-  const records: string[][] = [];
-  let field = "";
-  let record: string[] = [];
-  let inQuotes = false;
-
-  for (let i = 0; i < text.length; i += 1) {
-    const char = text[i];
-
-    if (inQuotes) {
-      if (char === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
-          i += 1;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        field += char;
-      }
-      continue;
-    }
-
-    if (char === '"') {
-      inQuotes = true;
-    } else if (char === ",") {
-      record.push(field);
-      field = "";
-    } else if (char === "\n") {
-      record.push(field);
-      records.push(record);
-      field = "";
-      record = [];
-    } else if (char !== "\r") {
-      field += char;
-    }
-  }
-
-  record.push(field);
-  records.push(record);
-
-  // Drop blank records (blank lines / a trailing newline yield a single empty field).
-  return records.filter((cells) => !(cells.length === 1 && cells[0].trim() === ""));
-}
-
-function parseCsvQuestions(text: string) {
+function parseQuestionCsv(text: string) {
   const records = parseCsvRecords(text).map((cells) => cells.map((value) => value.trim()));
 
   if (records.length < 2) {
@@ -264,7 +217,7 @@ export async function importPracticeQuestionsAction(formData: FormData) {
       input: (entry ?? {}) as Record<string, unknown>,
     }));
   } else {
-    const parsedCsv = parseCsvQuestions(text);
+    const parsedCsv = parseQuestionCsv(text);
     if (!parsedCsv.success) {
       redirectWithError("/admin/questions", parsedCsv.error);
     }

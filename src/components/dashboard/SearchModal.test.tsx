@@ -2,6 +2,7 @@
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { deferred } from "@/test-utils/deferred";
 import { SearchModal } from "./SearchModal";
 
 vi.mock("next/link", () => ({
@@ -22,14 +23,6 @@ function mockSearchResponse(body: Record<string, unknown>) {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
-}
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-  return { promise, resolve };
 }
 
 describe("SearchModal", () => {

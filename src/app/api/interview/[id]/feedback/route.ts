@@ -6,6 +6,7 @@ import { upsertQuestionFeedback } from "@/repositories/interview-repo";
 import { getInterviewSession } from "@/repositories/interview-repo";
 import { interviewIdSchema } from "@/lib/interview/domain";
 import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
+import { parseJsonBody } from "@/lib/http/request-body";
 import { logger } from "@/utils/logger";
 
 const feedbackBodySchema = z.object({
@@ -27,15 +28,8 @@ export async function POST(
   const parsedId = interviewIdSchema.safeParse(id);
   if (!parsedId.success) return badRequestError("Invalid interview ID");
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return badRequestError("Invalid JSON body");
-  }
-
-  const parsed = feedbackBodySchema.safeParse(body);
-  if (!parsed.success) return badRequestError("Invalid feedback payload");
+  const parsed = await parseJsonBody(request, feedbackBodySchema, { invalidMessage: "Invalid feedback payload" });
+  if (!parsed.ok) return parsed.response;
 
   try {
     const session = await getInterviewSession({ interviewId: parsedId.data, userId: authUser.userId, view: "state" });

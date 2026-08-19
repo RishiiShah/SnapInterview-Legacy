@@ -16,6 +16,11 @@ export interface RagTraceCandidate {
   /** Score used for ranking, including the role bonus. */
   similarity: number;
   roleMatched: boolean;
+  denseRank?: number;
+  sparseRank?: number;
+  rrfScore?: number;
+  rerankScore?: number;
+  fusedScore?: number;
   /** Why this question was not used, or null if it was. */
   rejectedBy: "similarity_floor" | "already_retrieved" | "mmr_redundant" | "not_selected" | null;
 }
@@ -30,16 +35,19 @@ export interface RagTraceRecord {
     company: string | null;
     currentQuestion: number;
     questionCount: number;
+    durationMinutes?: number;
   };
   query: {
     /** The full text of each piece of context, not shortened. */
     parts: { source: string; weight: number; effectiveWeight: number; text: string }[];
     omitted: string[];
+    synthesized?: string;
+    sparseKeywords?: string;
   };
   resume: {
     chunksConsidered: number;
     /** Every resume slice with its score, best first. */
-    chunkScores: { score: number; selected: boolean; text: string }[];
+    chunkScores: { score: number; selected: boolean; text: string; section?: string }[];
   } | null;
   exclusion: {
     /** Questions this candidate has already been shown. */
@@ -53,8 +61,8 @@ export interface RagTraceRecord {
     /** Every question the database returned, and what happened to it. */
     all: RagTraceCandidate[];
   };
-  returned: { question: string; category: string; similarity: number; hasReferenceAnswer: boolean }[];
-  timings: { embedMs: number; queryMs: number; totalMs: number };
+  returned: { question: string; category: string; similarity: number; hasReferenceAnswer: boolean; rerankScore?: number }[];
+  timings: { embedMs: number; queryMs: number; rerankMs?: number; totalMs: number };
   /** The settings used for this run, so older logs still make sense. */
   config: Record<string, number>;
 }

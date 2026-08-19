@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   MAX_RESUME_PDF_BYTES,
   getResumeUploadError,
   parseResumeUploadResponse,
+  uploadResumeFile,
   validateResumeFile,
 } from "./resume-upload";
 
@@ -50,5 +51,63 @@ describe("getResumeUploadError", () => {
     });
 
     await expect(getResumeUploadError(response)).resolves.toBe("Only PDF files are supported");
+  });
+});
+
+describe("uploadResumeFile", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects an oversized file without sending a request", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const file = new File(
+      [new Uint8Array(MAX_RESUME_PDF_BYTES + 1)],
+      "oversized.pdf",
+      { type: "application/pdf" },
+    );
+
+    await expect(uploadResumeFile(file)).rejects.toThrow(
+      "File too large. Choose a PDF smaller than 4 MB.",
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("posts the file once and returns validated resume text", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ resumeText: "Built distributed systems." }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const file = new File(["pdf"], "resume.pdf", { type: "application/pdf" });
+
+    await expect(uploadResumeFile(file)).resolves.toBe(
+      "Built distributed systems.",
+    );
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/resume/parse");
+    expect(init.method).toBe("POST");
+    expect((init.body as FormData).get("resume")).toBe(file);
+  });
+
+  it("rejects a malformed successful payload", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ accepted: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+
+    await expect(
+      uploadResumeFile(new File(["pdf"], "resume.pdf", { type: "application/pdf" })),
+    ).rejects.toThrow("Failed to process resume. Please try again.");
   });
 });

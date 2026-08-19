@@ -24,6 +24,9 @@ export default function InterviewPageClient() {
     interviewStarted,
     interviewDone,
     isUploading,
+    timeRemainingFormatted,
+    timeProgressPercent,
+    isGraceWarningActive,
     totalQuestions,
     interviewType,
     joinBlockedReason,
@@ -43,6 +46,7 @@ export default function InterviewPageClient() {
     handleExitInterview,
     handleVideoMount,
     codingChallenge,
+    whiteboardRef,
     modal,
     closeModal,
   } = useInterviewPageController({ interviewId });
@@ -89,6 +93,9 @@ export default function InterviewPageClient() {
           answeredQuestions={answeredQuestions}
           totalQuestions={totalQuestions}
           questionProgressPercent={questionProgressPercent}
+          timeRemainingFormatted={timeRemainingFormatted}
+          timeProgressPercent={timeProgressPercent}
+          isGraceWarningActive={isGraceWarningActive}
           isUploading={isUploading}
           interviewDone={interviewDone}
           onExitInterview={() => {
@@ -122,6 +129,12 @@ export default function InterviewPageClient() {
           }}
           codingChallenge={codingChallenge}
           codingInterview={interviewType === "coding-algorithms"}
+          interviewType={interviewType ?? undefined}
+          whiteboardRef={whiteboardRef}
+          onShareWhiteboard={(exported) => {
+            tts.cancel();
+            void chat.shareBoard(exported);
+          }}
           onSubmitCode={(message) => {
             tts.cancel();
             void chat.sendMessage(message);
@@ -132,7 +145,11 @@ export default function InterviewPageClient() {
 
     <Modal
       isOpen={modal.isOpen}
-      onClose={closeModal}
+      onClose={() => {
+        const onCancel = modal.onCancel;
+        closeModal();
+        onCancel?.();
+      }}
       onConfirm={modal.onConfirm}
       title={modal.title}
       description={modal.description}

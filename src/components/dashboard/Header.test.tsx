@@ -2,6 +2,7 @@
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { deferred } from "@/test-utils/deferred";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/dashboard",
@@ -21,15 +22,6 @@ vi.mock("@/components/ui/animated-icons", () => ({
 }));
 
 import { Header } from "./Header";
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-
-  return { promise, resolve };
-}
 
 describe("Header notifications", () => {
   afterEach(() => {

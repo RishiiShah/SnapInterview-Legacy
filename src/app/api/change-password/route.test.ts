@@ -7,6 +7,10 @@ import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { getServerAuthSession, getCurrentSession } from "@/lib/server-auth";
 import { recordSecurityEvent, revokeUserSessions } from "@/lib/account-security";
 
+const { isLimitedMock } = vi.hoisted(() => ({
+  isLimitedMock: vi.fn().mockResolvedValue(false),
+}));
+
 vi.mock("@/lib/csrf", () => ({
   csrfRejectIfInvalid: vi.fn(() => null),
 }));
@@ -26,6 +30,10 @@ vi.mock("@/lib/account-security", () => ({
   revokeUserSessions: vi.fn(),
 }));
 
+vi.mock("@/lib/rate-limit", () => ({
+  createRateLimiter: vi.fn(() => ({ isLimited: isLimitedMock })),
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: {
@@ -43,6 +51,7 @@ vi.mock("@/lib/prisma", () => ({
 describe("POST /api/change-password", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    isLimitedMock.mockResolvedValue(false);
     vi.mocked(prisma.$transaction).mockImplementation(async (callback) => callback({
       account: { update: prisma.account.update },
       user: { update: prisma.user.update },
@@ -83,6 +92,34 @@ describe("POST /api/change-password", () => {
 
     const res = await POST(req);
     expect(res.status).toBe(401);
+  });
+
+  it("returns 429 when password changes are rate limited", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+    vi.mocked(getServerAuthSession).mockResolvedValue({
+      user: { id: "user-1", email: "user@example.com" },
+    } as never);
+    isLimitedMock.mockResolvedValueOnce(true);
+
+    const req = new Request("http://localhost/api/change-password", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: JSON.stringify({
+        currentPassword: "OldPassword1!",
+        newPassword: "NewPassword1!",
+      }),
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(429);
+    await expect(res.json()).resolves.toEqual({
+      error: "Too many password change attempts. Please try again later.",
+    });
+    expect(getCurrentSession).not.toHaveBeenCalled();
   });
 
   it("rejects weak new password", async () => {
@@ -225,5 +262,25 @@ describe("POST /api/change-password", () => {
     expect(recordSecurityEvent).toHaveBeenCalledWith(
       expect.objectContaining({ type: "PASSWORD_CHANGED" }),
     );
+  });
+
+  it("returns 400 when request body is malformed JSON", async () => {
+    vi.mocked(csrfRejectIfInvalid).mockReturnValue(null);
+    vi.mocked(getServerAuthSession).mockResolvedValue({
+      user: { id: "user-1", email: "user@example.com" },
+    } as never);
+
+    const req = new Request("http://localhost/api/change-password", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: "not-json",
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    await expect(res.json()).resolves.toEqual({ error: "Invalid JSON body" });
   });
 });

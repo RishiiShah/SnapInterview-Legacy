@@ -11,6 +11,7 @@ const mockEnv = vi.hoisted(() => ({
 vi.mock("@/lib/env", () => ({ env: mockEnv }));
 
 import { proxy } from "./proxy";
+import { STATIC_SECURITY_HEADERS } from "./lib/security-headers";
 
 function getSetCookieHeaders(response: Response) {
   const headers = response.headers as Headers & { getSetCookie?: () => string[] };
@@ -172,6 +173,15 @@ describe("proxy security headers", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
+
+  it.each(STATIC_SECURITY_HEADERS)(
+    "applies $key from the canonical header set",
+    async ({ key, value }) => {
+      const response = await proxy(new NextRequest("https://snapinterview.app/"));
+
+      expect(response.headers.get(key)).toBe(value);
+    },
+  );
 
   it("uses nonce-based script CSP without unsafe-inline JavaScript", async () => {
     const request = new NextRequest("https://snapinterview.app/");

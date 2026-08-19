@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "role-software-engineer-ios",
+  "title": "Software Engineer - iOS Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Software Engineer - iOS."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Entry-level / New Grad: Swift syntax, Optionals, UIViewController / SwiftUI lifecycle, AutoLayout, and URLSession basics.",
+        "2. Mid-level: SwiftUI / UIKit architecture, concurrency (async/await, Actors, GCD), CoreData / SwiftData persistence, custom animations, and unit testing.",
+        "3. Senior: Performance profiling (Instruments: Time Profiler, Allocations, Leaks), app launch optimization, dynamic frameworks, modular SPM architecture, and security (Keychain, Secure Enclave).",
+        "4. Staff-plus: Multi-app iOS platform architecture, build system acceleration, and cross-team iOS engineering excellence."
+      ]
+    },
+    {
+      "heading": "Question Strategy & Guidance",
+      "lines": [
+        "- PREFER BRIEF PILLARS: Target the candidate's iOS portfolio and architectural choices.",
+        "- Probe Swift concurrency, memory safety (retain cycles, weak/unowned), and Apple HIG alignment."
+      ]
+    }
+  ]
+}

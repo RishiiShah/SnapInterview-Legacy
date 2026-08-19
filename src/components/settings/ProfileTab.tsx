@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import ResumeDocumentModal from "@/components/resume/ResumeDocumentModal";
 import {
   MAX_RESUME_PDF_LABEL,
-  parseResumeUploadResponse,
-  validateResumeFile,
+  uploadResumeFile,
 } from "@/lib/resume-upload";
 
 type ProfileTabProps = {
@@ -37,7 +37,7 @@ export default function ProfileTab({
   const [profileError, setProfileError] = useState<string | null>(null);
 
   const [resumeText, setResumeText] = useState<string | null>(initialResumeText ?? null);
-  const [resumeExpanded, setResumeExpanded] = useState(false);
+  const [resumeModalOpen, setResumeModalOpen] = useState(false);
   const [resumeLoading, setResumeLoading] = useState(initialResumeText === undefined);
   const [resumeUploading, setResumeUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -45,6 +45,7 @@ export default function ProfileTab({
   const [resumeClearing, setResumeClearing] = useState(false);
   const [resumeError, setResumeError] = useState<string | null>(null);
   const resumeRequestRef = useRef<Promise<{ resumeText: string | null } | null> | null>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (initialResumeText !== undefined) {
@@ -117,20 +118,10 @@ export default function ProfileTab({
   }
 
   async function handleResumeUpload(file: File) {
-    const fileError = validateResumeFile(file);
-    if (fileError) {
-      setUploadError(fileError);
-      return;
-    }
-
     setResumeUploading(true);
     setUploadError(null);
-    const formData = new FormData();
-    formData.append("resume", file);
     try {
-      const res = await fetch("/api/resume/parse", { method: "POST", body: formData });
-      setResumeText(await parseResumeUploadResponse(res));
-      setResumeExpanded(false);
+      setResumeText(await uploadResumeFile(file));
       setConfirmingClear(false);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Failed to process resume");
@@ -149,7 +140,6 @@ export default function ProfileTab({
         return;
       }
       setResumeText(null);
-      setResumeExpanded(false);
       setConfirmingClear(false);
     } catch {
       setResumeError("Failed to clear resume. Please try again.");
@@ -157,8 +147,6 @@ export default function ProfileTab({
       setResumeClearing(false);
     }
   }
-
-  const wordCount = resumeText ? resumeText.trim().split(/\s+/).filter(Boolean).length : 0;
 
   return (
     <div className="space-y-10">
@@ -205,9 +193,10 @@ export default function ProfileTab({
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-[12px] font-medium text-[#A8B0C2]">Email</label>
+          <label className="mb-1.5 block text-[12px] font-medium text-[#A8B0C2]">
+            Email <span className="font-normal text-[#6B7385]">(cannot be changed)</span>
+          </label>
           <input type="email" value={userEmail} disabled className={darkInput} />
-          <p className="mt-1.5 text-xs text-[#6B7385]">Email cannot be changed.</p>
         </div>
       </div>
       {profileError && <p className="text-sm text-rose-400">{profileError}</p>}
@@ -220,15 +209,6 @@ export default function ProfileTab({
               Used to personalize AI interview questions. PDF only, max {MAX_RESUME_PDF_LABEL}.
             </p>
           </div>
-          {!resumeLoading && !resumeUploading && resumeText && (
-            <button
-              type="button"
-              onClick={() => setResumeExpanded((v) => !v)}
-              className="cursor-pointer shrink-0 text-xs text-[#A8B0C2] transition-colors hover:text-[#C5CBD8]"
-            >
-              {resumeExpanded ? "Collapse" : "View"}
-            </button>
-          )}
         </div>
 
         <div className="mt-5">
@@ -243,31 +223,37 @@ export default function ProfileTab({
             </div>
           ) : resumeText ? (
             <div className="space-y-3">
-              <div className="flex items-center justify-between gap-3 border-b border-white/[0.12] pb-2.5">
+              <div className="flex items-center justify-between gap-3 border-b border-[#3B82F6]/30 pb-3">
                 <div>
-                  <p className="text-[15px] text-[#F2F4F8]">Resume saved</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[15px] font-medium text-[#F2F4F8]">Resume saved</p>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
+                      ✓ Auto-saved & synced
+                    </span>
+                  </div>
                   <p className="mt-0.5 text-[12px] text-[#93C5FD]">
-                    Parsed · {wordCount.toLocaleString()} words
+                    Ready for interviews
                   </p>
                 </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setResumeModalOpen(true)}
+                    className="cursor-pointer rounded border border-[#3B82F6]/40 bg-[#3B82F6]/10 px-3 py-1 text-xs font-medium text-[#60A5FA] transition-colors hover:bg-[#3B82F6]/20"
+                  >
+                    📄 View document
+                  </button>
+                </div>
               </div>
-
-              {resumeExpanded && (
-                <textarea
-                  readOnly
-                  value={resumeText}
-                  rows={12}
-                  className="w-full resize-none border border-white/[0.08] bg-white/[0.02] px-4 py-3 font-mono text-xs leading-relaxed text-[#C5CBD8] focus:outline-none"
-                />
-              )}
 
               {uploadError && <p className="text-xs text-rose-400">{uploadError}</p>}
               {resumeError && <p className="text-xs text-rose-400">{resumeError}</p>}
 
-              <div className="flex items-center gap-4">
-                <label className="cursor-pointer text-xs text-[#60A5FA] transition-colors hover:text-[#93C5FD]">
+              <div className="flex items-center gap-4 pt-1">
+                <label className="cursor-pointer text-xs font-medium text-[#60A5FA] transition-colors hover:text-[#93C5FD]">
                   Replace PDF
                   <input
+                    ref={replaceInputRef}
                     type="file"
                     accept=".pdf"
                     className="hidden"
@@ -319,7 +305,7 @@ export default function ProfileTab({
                   <p className="text-[15px] text-[#E8ECF4] transition-colors group-hover:text-[#F2F4F8]">
                     Upload resume
                   </p>
-                  <p className="mt-0.5 text-[12px] text-[#A8B0C2]">PDF only · max {MAX_RESUME_PDF_LABEL}</p>
+                  <p className="mt-0.5 text-[12px] text-[#A8B0C2]">PDF only · max {MAX_RESUME_PDF_LABEL} · Auto-saves on upload</p>
                 </div>
                 <span className="text-sm text-[#60A5FA] transition-colors group-hover:text-[#93C5FD]">
                   Browse
@@ -342,24 +328,39 @@ export default function ProfileTab({
         </div>
       </div>
 
-      <div className="flex items-center gap-3 pt-4">
-        <Button
-          onClick={handleSaveProfile}
-          disabled={name.trim() === savedName.trim()}
-          loading={profileSaving}
-          className="!bg-[#3B82F6] hover:!bg-[#4B8FF7] !shadow-none"
-        >
-          {profileSaving ? "Saving…" : "Save changes"}
-        </Button>
-        {profileSaved && (
-          <span className="flex items-center gap-1.5 text-sm text-emerald-400">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
-            Saved
-          </span>
-        )}
+      <div className="space-y-2 pt-4">
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={handleSaveProfile}
+            disabled={name.trim() === savedName.trim()}
+            loading={profileSaving}
+            className="!bg-[#3B82F6] hover:!bg-[#4B8FF7] !shadow-none"
+          >
+            {profileSaving ? "Saving…" : "Save profile changes"}
+          </Button>
+          {profileSaved && (
+            <span className="flex items-center gap-1.5 text-sm text-emerald-400">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+              Saved
+            </span>
+          )}
+        </div>
+        <p className="text-[12px] text-[#8B93A7]">
+          Display name changes require saving. Uploaded resumes save automatically.
+        </p>
       </div>
+
+      {resumeText ? (
+        <ResumeDocumentModal
+          isOpen={resumeModalOpen}
+          onClose={() => setResumeModalOpen(false)}
+          resumeText={resumeText}
+          candidateName={savedName || userName}
+          onReplace={() => replaceInputRef.current?.click()}
+        />
+      ) : null}
     </div>
   );
 }

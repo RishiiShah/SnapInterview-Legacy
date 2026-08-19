@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "id": "role-analytics-engineer",
+  "title": "Analytics Engineer Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Analytics Engineer."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Dimensional Modeling: Star schema, Snowflake schema, Slowly Changing Dimensions (SCD Type 1/2), and entity-relationship design.",
+        "2. Data Transformation & Orchestration: dbt models, DAG dependencies, testing (schema tests, custom data tests), and Airflow/Dagster scheduling.",
+        "3. Cloud Data Warehousing: Query execution planning on Snowflake/BigQuery/Redshift, partitioning, clustering, and compute cost optimization.",
+        "4. Semantic Layer & Business Metrics: Defining unified metric layers, data governance, lineage tracking, and data reliability."
+      ]
+    }
+  ]
+}

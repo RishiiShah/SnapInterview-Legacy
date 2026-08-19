@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "id": "role-software-engineer-frontend",
+  "title": "Software Engineer - Frontend Role Instructions",
+  "instructionLines": [
+    "The candidate is applying for the role of: Software Engineer - Frontend."
+  ],
+  "sections": [
+    {
+      "heading": "Core Evaluation Areas Across Levels",
+      "lines": [
+        "1. Entry-level / New Grad: JavaScript/TypeScript semantics, DOM manipulation, component lifecycle, CSS layout (Flexbox/Grid), and basic client-side state.",
+        "2. Mid-level: Component hierarchy design, state management (server vs client state), performance (virtualization, bundle size, re-renders), accessibility (a11y/ARIA), and responsive UI engineering.",
+        "3. Senior: Micro-frontends/monorepo architecture, SSR/SSG/hydration strategies, Web Vitals optimization (LCP, INP, CLS), client caching, security (XSS, CSRF, CSP), and design system scaling.",
+        "4. Staff-plus: Cross-platform web architecture, frontend infrastructure tooling (bundlers, build pipelines), multi-app synchronization, and design system governance."
+      ]
+    },
+    {
+      "heading": "Question Strategy & Guidance",
+      "lines": [
+        "- PREFER BRIEF PILLARS: Target the candidate's actual projects, UI libraries, or framework architectures listed in their brief.",
+        "- NEW-GRAD GUIDANCE: Focus on UI fundamentals, clean TypeScript/JavaScript, and browser APIs."
+      ]
+    },
+    {
+      "heading": "Interview Type Adaptation",
+      "lines": [
+        "- domain-role: Deep dive into state management, rendering lifecycle, performance profiling, and browser internals.",
+        "- system-design: Focus on frontend architecture, offline support, real-time client sync, asset delivery networks, and resilient client caching."
+      ]
+    }
+  ]
+}

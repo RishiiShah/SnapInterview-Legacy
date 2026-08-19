@@ -1,0 +1,55 @@
+{
+  "id": "airbnb",
+  "version": 1,
+  "displayNames": ["Airbnb"],
+  "method": [
+    "Core Values: Champion the Mission, Be a Host, Embrace the Adventure, Be a 'Cereal' Entrepreneur",
+    "High Craftsmanship & Simplicity: thoughtful product design, clean service interfaces, and rigorous service-oriented architecture (SOA)",
+    "Data-informed decision making and structured technical trade-off evaluation"
+  ],
+  "signalsByLevel": {
+    "entry-level": [
+      "Craftsmanship in code design, clear documentation, and thoughtful testing",
+      "Empathy for the end user and curiosity about end-to-end product flows"
+    ],
+    "mid-level": [
+      "Designing clean microservices, GraphQL federated schemas, and idempotent booking pipelines",
+      "Managing complex search indexing, calendar availability sync, and relational state machines",
+      "Proactive collaboration with product, design, and data science partners"
+    ],
+    "senior": [
+      "Architecting distributed inventory availability engines with high search read-throughput and atomic write locks",
+      "Driving architectural simplification and deprecating legacy monoliths into clean SOA domains",
+      "Exemplifying Airbnb host hospitality and mentorship within engineering"
+    ],
+    "staff-plus": [
+      "Setting long-term platform vision across search infrastructure, payment trust, and guest/host experience",
+      "Guiding multi-year architectural evolution and standardizing engineering frameworks"
+    ]
+  },
+  "signalsByRoleFamily": {
+    "swe": [
+      "GraphQL federation, search indexing (Elasticsearch), inventory calendar state machines, payment orchestration",
+      "High design fidelity, server-driven UI, and web/mobile performance"
+    ],
+    "ml-data": [
+      "Personalized search ranking, dynamic pricing algorithms, listing photo quality scoring"
+    ],
+    "sre-infra": [
+      "Kubernetes deployment infrastructure, automated canary analysis, observability with OpenTelemetry"
+    ]
+  },
+  "frequentThemes": [
+    {
+      "id": "airbnb-search-booking",
+      "shape": "Design an accommodation search and booking reservation system with calendar availability and atomic locking",
+      "types": ["system-design"]
+    },
+    {
+      "id": "be-a-host",
+      "shape": "A situation where you went above and beyond to support a team or partner, resolving conflict with empathy and high standards",
+      "types": ["behavioral-leadership", "hiring-manager"]
+    }
+  ],
+  "sourcesNote": "Curated from Airbnb engineering blog, Core Values, and service-oriented architecture evolution"
+}

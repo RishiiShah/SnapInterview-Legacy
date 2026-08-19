@@ -2,6 +2,7 @@
 
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { deferred } from "@/test-utils/deferred";
 
 const mocks = vi.hoisted(() => ({
   clearPendingInterviewFinalize: vi.fn(),
@@ -19,14 +20,6 @@ vi.mock("@/lib/interview/finalize-pending-client", () => ({
 }));
 
 import InterviewFinalizeSync from "./InterviewFinalizeSync";
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-  return { promise, resolve };
-}
 
 describe("InterviewFinalizeSync", () => {
   beforeEach(() => {

@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { GET, PATCH, POST } from "./route";
+import { DELETE, GET, PATCH, POST } from "./route";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { verifyMultipartCompletionToken } from "@/lib/s3/multipart-upload-token";
 import { getResumableInterviewSessionState, startInterviewSession, updateSessionStatusIfOwned } from "@/services/interview-service";
 import { warmEmbeddingModel } from "@/lib/rag/embeddings";
+import { softDeleteInterviewSession } from "@/repositories/interview-repo";
 
 const { mockRateLimitState } = vi.hoisted(() => ({
   mockRateLimitState: {
@@ -34,7 +35,10 @@ vi.mock("@/services/interview-service", () => ({
   getResumableInterviewSessionState: vi.fn(),
   updateSessionStatusIfOwned: vi.fn(),
   ALLOWED_STATUSES: ["COMPLETED", "ABORTED"],
-  ALLOWED_QUESTION_COUNTS: [5, 10, 15],
+}));
+
+vi.mock("@/repositories/interview-repo", () => ({
+  softDeleteInterviewSession: vi.fn(),
 }));
 
 describe("GET /api/interview/session", () => {
@@ -53,6 +57,10 @@ describe("GET /api/interview/session", () => {
 
 vi.mock("@/lib/rag/embeddings", () => ({
   warmEmbeddingModel: vi.fn(),
+}));
+
+vi.mock("@/lib/rag/reranker", () => ({
+  warmRerankerModel: vi.fn(),
 }));
 
 describe("POST /api/interview/session", () => {
@@ -169,6 +177,25 @@ describe("POST /api/interview/session", () => {
     const response = await POST(request);
 
     expect(response.status).toBe(429);
+    expect(startInterviewSession).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when request body is malformed JSON", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
+
+    const request = new Request("http://localhost/api/interview/session", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: "not-json",
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid JSON body" });
     expect(startInterviewSession).not.toHaveBeenCalled();
   });
 });
@@ -347,6 +374,51 @@ describe("PATCH /api/interview/session", () => {
     expect(response.status).toBe(409);
     await expect(response.json()).resolves.toEqual({
       error: "Video recording is already linked to another interview session.",
+    });
+  });
+
+  it("returns 400 when request body is malformed JSON", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
+
+    const request = new Request("http://localhost/api/interview/session", {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: "not-json",
+    });
+
+    const response = await PATCH(request);
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid JSON body" });
+    expect(updateSessionStatusIfOwned).not.toHaveBeenCalled();
+  });
+});
+
+describe("DELETE /api/interview/session", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRateLimitState.limitedNamespaces.clear();
+  });
+
+  it("soft deletes the owned active session without invoking the legacy hard delete", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
+    vi.mocked(softDeleteInterviewSession).mockResolvedValue(true);
+    const interviewId = "11111111-1111-4111-8111-111111111111";
+
+    const response = await DELETE(
+      new Request(`http://localhost/api/interview/session?interviewId=${interviewId}`, {
+        method: "DELETE",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ success: true });
+    expect(softDeleteInterviewSession).toHaveBeenCalledWith({
+      interviewId,
+      userId: "user-1",
     });
   });
 });

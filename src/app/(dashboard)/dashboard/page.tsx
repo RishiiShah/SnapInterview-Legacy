@@ -19,7 +19,10 @@ export default async function DashboardPage() {
   const [onboardingUser, overview] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { onboardingCompletedAt: true },
+      select: {
+        onboardingCompletedAt: true,
+        resumeText: true,
+      },
     }),
     getDashboardOverviewData(userId),
   ]);
@@ -36,6 +39,7 @@ export default async function DashboardPage() {
         userId={userId}
         firstName={firstName}
         isFirstLogin={isFirstLogin}
+        initialHasResume={Boolean(onboardingUser?.resumeText)}
         stats={overview.stats}
         recentSessions={overview.recentSessions}
         topStrength={overview.topStrength}

@@ -132,4 +132,30 @@ describe("importPracticeQuestionsAction", () => {
     });
     expect(mocks.outerCreate).not.toHaveBeenCalled();
   });
+
+  it("imports quoted multiline CSV through one transaction", async () => {
+    const formData = new FormData();
+    formData.set(
+      "file",
+      new File(
+        [[
+          "slug,text,category,difficulty,tags,sampleAnswer",
+          'csv-question,"Explain queues, stacks, and tradeoffs",technical,medium,"queue,stack","line one',
+          'line two"',
+        ].join("\n")],
+        "questions.csv",
+        { type: "text/csv" },
+      ),
+    );
+
+    await importPracticeQuestionsAction(formData);
+
+    expect(mocks.transaction).toHaveBeenCalledTimes(1);
+    expect(mocks.txCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        slug: "csv-question",
+        sampleAnswer: "line one\nline two",
+      }),
+    });
+  });
 });

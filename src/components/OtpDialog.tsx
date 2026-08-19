@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import {
+  OtpCodeInput,
+  type OtpCodeInputHandle,
+} from "@/components/auth/OtpCodeInput";
 import { IconArrowLeft } from "@/components/ui/icons";
+import { useCountdown } from "@/hooks/useCountdown";
 
 interface OtpDialogProps {
   email: string;
@@ -23,47 +28,19 @@ export default function OtpDialog({
   onResend,
   variant = "modal",
 }: OtpDialogProps) {
-  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
+  const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [verified, setVerified] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(OTP_EXPIRY_SECONDS);
-  const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN_SECONDS);
+  const { seconds: timeLeft, reset: resetExpiry } = useCountdown(OTP_EXPIRY_SECONDS);
+  const { seconds: resendCooldown, reset: resetResend } = useCountdown(RESEND_COOLDOWN_SECONDS);
   const [resending, setResending] = useState(false);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const otpInputRef = useRef<OtpCodeInputHandle>(null);
   const verifyingRef = useRef(false);
 
   useEffect(() => {
-    inputRefs.current[0]?.focus();
+    otpInputRef.current?.focusFirst();
   }, []);
-
-  useEffect(() => {
-    if (timeLeft <= 0) return;
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [timeLeft]);
-
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const timer = setInterval(() => {
-      setResendCooldown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [resendCooldown]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -72,8 +49,8 @@ export default function OtpDialog({
   };
 
   const handleVerify = useCallback(
-    async (otpOverride?: string[]) => {
-      const code = (otpOverride ?? otp).join("");
+    async (codeOverride?: string) => {
+      const code = codeOverride ?? otp;
       if (code.length !== OTP_LENGTH) {
         setError("Please enter all 6 digits.");
         return;
@@ -101,8 +78,8 @@ export default function OtpDialog({
 
         if (!res.ok) {
           setError(data.error || "Verification failed.");
-          setOtp(Array(OTP_LENGTH).fill(""));
-          inputRefs.current[0]?.focus();
+          setOtp("");
+          otpInputRef.current?.focusFirst();
           setLoading(false);
           verifyingRef.current = false;
         } else {
@@ -111,6 +88,8 @@ export default function OtpDialog({
         }
       } catch {
         setError("Something went wrong. Please try again.");
+        setOtp("");
+        otpInputRef.current?.focusFirst();
         setLoading(false);
         verifyingRef.current = false;
       }
@@ -118,61 +97,20 @@ export default function OtpDialog({
     [otp, email, timeLeft, onVerified],
   );
 
-  const handleChange = (index: number, value: string) => {
-    if (value && !/^\d$/.test(value)) return;
-
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-    setError("");
-
-    if (value && index < OTP_LENGTH - 1) {
-      inputRefs.current[index + 1]?.focus();
-    }
-
-    if (newOtp.every((d) => d !== "")) {
-      void handleVerify(newOtp);
-    }
-  };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH);
-    if (!pasted) return;
-
-    const newOtp = [...otp];
-    for (let i = 0; i < pasted.length; i++) {
-      newOtp[i] = pasted[i];
-    }
-    setOtp(newOtp);
-    setError("");
-
-    const nextEmpty = newOtp.findIndex((v) => !v);
-    inputRefs.current[nextEmpty === -1 ? OTP_LENGTH - 1 : nextEmpty]?.focus();
-
-    if (newOtp.every((d) => d !== "")) {
-      void handleVerify(newOtp);
-    }
-  };
-
   const handleResend = async () => {
     if (resendCooldown > 0 || resending) return;
     setResending(true);
     setError("");
     try {
       await onResend();
-      setTimeLeft(OTP_EXPIRY_SECONDS);
-      setResendCooldown(RESEND_COOLDOWN_SECONDS);
-      setOtp(Array(OTP_LENGTH).fill(""));
-      inputRefs.current[0]?.focus();
+      resetExpiry(OTP_EXPIRY_SECONDS);
+      resetResend(RESEND_COOLDOWN_SECONDS);
+      setOtp("");
+      otpInputRef.current?.focusFirst();
     } catch {
       setError("Failed to resend OTP.");
+      setOtp("");
+      otpInputRef.current?.focusFirst();
     } finally {
       setResending(false);
     }
@@ -229,30 +167,16 @@ export default function OtpDialog({
         </p>
       </div>
 
-      <div className="flex justify-start gap-2" onPaste={handlePaste}>
-        {otp.map((digit, i) => (
-          <input
-            key={i}
-            ref={(el) => {
-              inputRefs.current[i] = el;
-            }}
-            type="text"
-            inputMode="numeric"
-            maxLength={1}
-            value={digit}
-            onChange={(e) => handleChange(i, e.target.value)}
-            onKeyDown={(e) => handleKeyDown(i, e)}
-            className={`h-12 w-10 rounded-xl border bg-[#0C0F1A]/80 text-center text-lg font-semibold text-white outline-none transition-colors sm:w-11 ${
-              error
-                ? "border-red-500/50"
-                : digit
-                  ? "border-blue-500/50"
-                  : "border-white/[0.1]"
-            } focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15`}
-            aria-label={`Digit ${i + 1}`}
-          />
-        ))}
-      </div>
+      <OtpCodeInput
+        ref={otpInputRef}
+        value={otp}
+        onChange={(value) => {
+          setOtp(value);
+          setError("");
+        }}
+        onComplete={handleVerify}
+        invalid={Boolean(error)}
+      />
 
       <div className="mt-4">
         {timeLeft > 0 ? (
@@ -280,7 +204,7 @@ export default function OtpDialog({
       <button
         type="button"
         onClick={() => void handleVerify()}
-        disabled={loading || otp.some((d) => !d)}
+        disabled={loading || otp.length !== OTP_LENGTH}
         className="mt-6 inline-flex h-12 w-full cursor-pointer items-center justify-center rounded-xl bg-[#2563EB] text-base font-semibold text-white shadow-lg shadow-blue-600/25 transition-all duration-200 hover:bg-[#1D4ED8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {loading ? (

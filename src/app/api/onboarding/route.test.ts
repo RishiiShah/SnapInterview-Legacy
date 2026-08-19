@@ -43,7 +43,7 @@ describe("/api/onboarding", () => {
       onboardingCompany: null,
       onboardingGoal: null,
       preferredInterviewType: null,
-    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+    } as any);
 
     const response = await GET();
 
@@ -63,7 +63,7 @@ describe("/api/onboarding", () => {
 
   it("PUT validates and persists onboarding preferences", async () => {
     vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     vi.mocked(prisma.user.update).mockResolvedValue({ id: "user-1" } as any);
 
     const request = new Request("http://localhost/api/onboarding", {
@@ -174,5 +174,24 @@ describe("/api/onboarding", () => {
 
     expect(prisma.user.update).not.toHaveBeenCalled();
     expect(response.status).toBe(400);
+  });
+
+  it("PUT returns 400 when request body is malformed JSON", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
+
+    const request = new Request("http://localhost/api/onboarding", {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: "not-json",
+    });
+
+    const response = await PUT(request);
+
+    expect(prisma.user.update).not.toHaveBeenCalled();
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid JSON body" });
   });
 });

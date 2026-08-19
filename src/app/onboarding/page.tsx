@@ -12,19 +12,22 @@ export default async function OnboardingPage() {
     redirect("/login");
   }
 
-  const user = session.user.email
-    ? await prisma.user.findUnique({
-        where: { email: session.user.email.toLowerCase() },
-        select: {
-          onboardingCompletedAt: true,
-          onboardingRole: true,
-          onboardingLevel: true,
-          onboardingCompany: true,
-          onboardingGoal: true,
-          preferredInterviewType: true,
-        },
-      })
-    : null;
+  const userId = session.user.id ?? session.session?.userId;
+  if (!userId) {
+    redirect("/login");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      onboardingCompletedAt: true,
+      onboardingRole: true,
+      onboardingLevel: true,
+      onboardingCompany: true,
+      onboardingGoal: true,
+      preferredInterviewType: true,
+    },
+  });
 
   if (user?.onboardingCompletedAt) {
     redirect("/dashboard");

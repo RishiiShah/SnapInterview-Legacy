@@ -12,7 +12,9 @@
 import { createHash, randomUUID } from "crypto";
 import { readFile } from "fs/promises";
 import path from "path";
+import { parseCsvRecords } from "../src/lib/csv";
 import { prisma } from "../src/lib/prisma";
+import { dedupeByNormalizedQuestion, normalizeCorpusQuestion } from "../src/lib/rag/corpus-normalization";
 import { localEmbedder, toVectorLiteral } from "../src/lib/rag/embeddings";
 import { CORPUS_SOURCES, mapHrCategory, mapSoftwareCategory, normalizeCategory } from "../src/lib/rag/taxonomy";
 
@@ -40,59 +42,7 @@ interface CorpusRecord {
  * fuzzy deduplication would delete real content.
  */
 function hashQuestion(question: string): string {
-  const normalized = question
-    .toLowerCase()
-    .replace(/[^a-z0-9 ]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return createHash("sha256").update(normalized).digest("hex");
-}
-
-/** Minimal RFC 4180 parser -- enough for these files, no dependency needed. */
-function parseCsv(text: string): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let field = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
-
-    if (inQuotes) {
-      if (char === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        field += char;
-      }
-      continue;
-    }
-
-    if (char === '"') {
-      inQuotes = true;
-    } else if (char === ",") {
-      row.push(field);
-      field = "";
-    } else if (char === "\n") {
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = "";
-    } else if (char !== "\r") {
-      field += char;
-    }
-  }
-
-  if (field.length > 0 || row.length > 0) {
-    row.push(field);
-    rows.push(row);
-  }
-
-  return rows.filter((r) => r.some((cell) => cell.trim().length > 0));
+  return createHash("sha256").update(normalizeCorpusQuestion(question)).digest("hex");
 }
 
 /**
@@ -111,7 +61,7 @@ function decodeCsvBytes(raw: Buffer): string {
 
 async function loadSoftwareRecords(csvPath: string): Promise<CorpusRecord[]> {
   const raw = await readFile(csvPath);
-  const rows = parseCsv(decodeCsvBytes(raw));
+  const rows = parseCsvRecords(decodeCsvBytes(raw));
   const [header, ...body] = rows;
 
   const columnIndex = (name: string) => header.findIndex((h) => h.trim().toLowerCase() === name);
@@ -177,26 +127,6 @@ async function loadHrRecords(): Promise<CorpusRecord[]> {
   });
 }
 
-function dedupe(records: CorpusRecord[]): { unique: CorpusRecord[]; dropped: number } {
-  const byHash = new Map<string, CorpusRecord>();
-  let dropped = 0;
-
-  for (const record of records) {
-    const existing = byHash.get(record.contentHash);
-    if (existing) {
-      dropped++;
-      // Keep whichever copy carries a reference answer.
-      if (!existing.answer && record.answer) {
-        byHash.set(record.contentHash, record);
-      }
-      continue;
-    }
-    byHash.set(record.contentHash, record);
-  }
-
-  return { unique: [...byHash.values()], dropped };
-}
-
 async function upsert(record: CorpusRecord, embedding: number[]): Promise<void> {
   await prisma.$executeRaw`
     INSERT INTO "QuestionCorpus" (
@@ -252,7 +182,7 @@ async function main() {
     throw new Error(`No records loaded (--source=${source})`);
   }
 
-  const { unique, dropped } = dedupe(records);
+  const { unique, dropped } = dedupeByNormalizedQuestion(records);
   console.log(`\ndeduped:  ${unique.length} unique (${dropped} duplicates dropped)`);
 
   console.log("embedding...");

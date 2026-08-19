@@ -31,19 +31,3 @@ export async function hardDeleteInterviewSessionById(interviewId: string): Promi
 
   return true;
 }
-
-export async function hardDeleteInterviewSessionForUser(params: {
-  id: string;
-  userId: string;
-}): Promise<boolean> {
-  const session = await prisma.interviewSession.findFirst({
-    where: { id: params.id, userId: params.userId },
-    select: { id: true },
-  });
-
-  if (!session) {
-    return false;
-  }
-
-  return hardDeleteInterviewSessionById(session.id);
-}

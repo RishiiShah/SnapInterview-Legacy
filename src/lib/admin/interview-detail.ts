@@ -15,6 +15,7 @@ export async function getAdminInterviewDetail(interviewId: string) {
       difficulty: true,
       persona: true,
       status: true,
+      durationMinutes: true,
       questionCount: true,
       currentQuestion: true,
       videoUrl: true,

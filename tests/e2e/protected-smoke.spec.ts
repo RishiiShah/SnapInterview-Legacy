@@ -84,6 +84,7 @@ test.describe("Protected smoke flows", () => {
     await page.goto("/settings");
 
     await expect(page.getByRole("heading", { name: /settings/i, level: 1 })).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText(/personal information/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^profile$/i, level: 2 })).toBeVisible();
+    await expect(page.getByRole("button", { name: /save profile changes/i })).toBeVisible();
   });
 });

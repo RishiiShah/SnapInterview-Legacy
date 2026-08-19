@@ -157,12 +157,12 @@ async function main() {
     SELECT "id", "question", "category"
     FROM "QuestionCorpus"
     WHERE to_tsvector('english', "question" || ' ' || COALESCE("answer", '') || ' ' || "category" || ' ' || array_to_string("keywords", ' '))
-          @@ plainto_tsquery('english', 'React Redux memoization')
+          @@ plainto_tsquery('english', 'React hooks')
     LIMIT 3
   `;
-  console.log(`  FTS text search matches for 'React Redux': ${hybridCheck.length}`);
+  console.log(`  FTS text search matches for 'React hooks': ${hybridCheck.length}`);
   if (hybridCheck.length === 0) {
-    fail("FTS text search matched 0 questions for 'React Redux'");
+    fail("FTS text search matched 0 questions for 'React hooks'");
   } else {
     console.log(`    top match: [${hybridCheck[0].category}] ${hybridCheck[0].question.slice(0, 60)}`);
   }

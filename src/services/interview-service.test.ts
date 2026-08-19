@@ -376,6 +376,28 @@ describe("startInterviewSession", () => {
     expect(result).toEqual({ id: "int-2" });
   });
 
+  it("does not copy a legacy uncurated onboarding company into a new session", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      onboardingGoal: "switch-companies",
+      onboardingLevel: "mid-level",
+      onboardingRole: "Frontend Engineer",
+      onboardingCompany: "Acme",
+    } as Awaited<ReturnType<typeof prisma.user.findUnique>>);
+    vi.mocked(createInterviewSession).mockResolvedValue({ id: "int-uncurated-company" });
+
+    await startInterviewSession({
+      userId: "user-1",
+      role: "Frontend Engineer",
+      company: null,
+      type: "coding-algorithms",
+      difficulty: "medium",
+    });
+
+    expect(createInterviewSession).toHaveBeenCalledWith(
+      expect.objectContaining({ company: null }),
+    );
+  });
+
   it("falls back to balanced persona and user inputs when onboarding is missing", async () => {
     vi.mocked(getUserOnboardingContext).mockResolvedValue(null);
     vi.mocked(createInterviewSession).mockResolvedValue({ id: "int-3" });

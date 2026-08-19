@@ -94,4 +94,28 @@ describe("email templates", () => {
     expect(userConfirmationHtml).toContain("logo.png");
     expect(userConfirmationHtml).toContain("SnapInterview Support");
   });
+
+  it("uses the public app URL and identifies automated notification emails", async () => {
+    await sendWeeklyReportEmail({
+      to: "user@example.com",
+      name: "User",
+      sessionsCount: 1,
+      avgScore: 70,
+      bestRole: "Frontend Engineer",
+      bestScore: 70,
+    });
+
+    const message = sendMailMock.mock.calls[0]?.[0];
+    const html = message?.html as string;
+
+    expect(message?.subject).toBe("Your SnapInterview weekly progress report");
+    expect(html).toContain("https://snapinterview.app/analytics");
+    expect(html).not.toContain("localhost");
+    expect(html).toContain("This is an automated email. Please do not reply.");
+  });
+
+  it("does not use an IPv6 loopback app URL in notification links", async () => {
+    expect(publicAppUrl("http://[::1]:3000")).toBe("https://snapinterview.app");
+    expect(publicAppUrl("http://localhost.:3000")).toBe("https://snapinterview.app");
+  });
 });

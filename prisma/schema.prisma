@@ -186,6 +186,23 @@ enum InterviewStatus {
   ABORTED
 }
 
+enum CompanyRequestStatus {
+  PENDING
+}
+
+model CompanyRequest {
+  id             String               @id @default(cuid())
+  userId         String
+  requestedName  String
+  normalizedName String               @unique
+  status         CompanyRequestStatus @default(PENDING)
+  createdAt      DateTime             @default(now())
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+}
+
 model InterviewSession {
   id              String          @id @default(dbgenerated("(gen_random_uuid())::text"))
   userId          String

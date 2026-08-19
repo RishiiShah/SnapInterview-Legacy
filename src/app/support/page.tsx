@@ -53,7 +53,8 @@ export default function HelpSupportPage() {
   const [attachment, setAttachment] = useState<{
     name: string;
     size: string;
-    base64: string;
+    previewUrl: string;
+    file: File;
   } | null>(null);
 
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -75,7 +76,7 @@ export default function HelpSupportPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
       setErrorMessage("Please select a valid image file (PNG, JPG, WebP)");
       return;
     }
@@ -87,19 +88,11 @@ export default function HelpSupportPage() {
 
     setErrorMessage(null);
     const sizeStr = (file.size / 1024).toFixed(1) + " KB";
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      setAttachment({
-        name: file.name,
-        size: sizeStr,
-        base64,
-      });
-    };
-    reader.readAsDataURL(file);
+    setAttachment({ name: file.name, size: sizeStr, previewUrl: URL.createObjectURL(file), file });
   };
 
   const removeAttachment = () => {
+    if (attachment) URL.revokeObjectURL(attachment.previewUrl);
     setAttachment(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -114,17 +107,16 @@ export default function HelpSupportPage() {
     setErrorMessage(null);
 
     try {
+      const formData = new FormData();
+      formData.set("category", category);
+      formData.set("priority", priority);
+      formData.set("subject", subject.trim());
+      formData.set("description", description.trim());
+      if (attachment) formData.set("attachment", attachment.file);
+
       const res = await fetch("/api/support/ticket", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          category,
-          priority,
-          subject: subject.trim(),
-          description: description.trim(),
-          attachmentName: attachment?.name,
-          attachmentBase64: attachment?.base64,
-        }),
+        body: formData,
       });
 
       const data = await res.json();
@@ -132,10 +124,10 @@ export default function HelpSupportPage() {
         throw new Error(data.error || "Failed to submit ticket");
       }
 
-      setSubmittedTicketId(data.ticketId);
+      setSubmittedTicketId("submitted");
       setSubject("");
       setDescription("");
-      setAttachment(null);
+      removeAttachment();
     } catch (err: unknown) {
       const errorStr = err instanceof Error ? err.message : "An unexpected error occurred";
       setErrorMessage(errorStr);
@@ -305,7 +297,7 @@ export default function HelpSupportPage() {
                   </div>
                   <h3 className="text-sm sm:text-base font-semibold text-white">Support Ticket Submitted</h3>
                   <p className="text-xs text-[#CBD5E1] max-w-md mx-auto leading-relaxed">
-                    Your ticket reference is <strong className="text-white font-mono">{submittedTicketId}</strong>. We dispatched a notification to our support team and emailed a confirmation to <span className="text-white font-medium">{session?.user?.email}</span>.
+                    Your ticket was sent to our support team. We will follow up at <span className="text-white font-medium">{session?.user?.email}</span>.
                   </p>
                   <button
                     type="button"
@@ -401,7 +393,7 @@ export default function HelpSupportPage() {
                             <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-white/[0.1] bg-black/40">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
-                                src={attachment.base64}
+                                src={attachment.previewUrl}
                                 alt="Attachment preview"
                                 className="h-full w-full object-cover"
                               />
@@ -425,7 +417,7 @@ export default function HelpSupportPage() {
                           <input
                             ref={fileInputRef}
                             type="file"
-                            accept="image/*"
+                            accept="image/png,image/jpeg,image/webp"
                             onChange={handleImageUpload}
                             className="hidden"
                             id="support-attachment-input"

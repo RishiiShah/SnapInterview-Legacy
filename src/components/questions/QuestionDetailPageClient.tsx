@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import type { Question } from "@/data/types";
 import { IconChevronLeft, IconChevronRight } from "@/components/ui/icons";
@@ -80,6 +80,7 @@ export default function QuestionDetailPageClient({
   const [solveError, setSolveError] = useState<string | null>(null);
   const [restoredDraftKey, setRestoredDraftKey] = useState<string | null>(null);
   const [isDraftSubmitted, setIsDraftSubmitted] = useState(false);
+  const answerTextRef = useRef(answerText);
   const answerDraftStorageKey = getAnswerDraftStorageKey(basePath, question.id);
 
   const {
@@ -116,6 +117,7 @@ export default function QuestionDetailPageClient({
       try {
         const draft = parseAnswerDraft(window.localStorage.getItem(answerDraftStorageKey));
         if (draft?.answerText.trim()) {
+          answerTextRef.current = draft.answerText;
           setAnswerText(draft.answerText);
           setTimeRemaining(draft.timeRemaining);
           setIsTimerStarted(true);
@@ -159,6 +161,7 @@ export default function QuestionDetailPageClient({
   }, [answerDraftStorageKey, answerText, isDraftSubmitted, isTimerStarted, removeSavedDraft, restoredDraftKey, timeRemaining]);
 
   const evaluateAnswer = useCallback(async () => {
+    const submittedAnswer = answerTextRef.current;
     setIsTimerRunning(false);
     setScore({ score: 0, feedback: "", state: "evaluating" });
     setRightTab("result");
@@ -167,12 +170,12 @@ export default function QuestionDetailPageClient({
       const res = await fetch("/api/questions/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questionId: question.id, answer: answerText }),
+        body: JSON.stringify({ questionId: question.id, answer: submittedAnswer }),
       });
 
       if (!res.ok) {
         const fallbackFeedback =
-          answerText.trim().length > 20
+          submittedAnswer.trim().length > 20
             ? "Your answer was captured, but evaluation failed. Please try submitting again."
             : "Please provide a more detailed answer and try again.";
 
@@ -202,7 +205,18 @@ export default function QuestionDetailPageClient({
         feedback: "Evaluation failed due to a network error. Please try again.",
       });
     }
-  }, [answerText, question.id, removeSavedDraft]);
+  }, [question.id, removeSavedDraft]);
+
+  const evaluateAnswerRef = useRef(evaluateAnswer);
+
+  useEffect(() => {
+    evaluateAnswerRef.current = evaluateAnswer;
+  }, [evaluateAnswer]);
+
+  const handleAnswerTextChange = useCallback((nextAnswerText: string) => {
+    answerTextRef.current = nextAnswerText;
+    setAnswerText(nextAnswerText);
+  }, []);
 
   const handleToggleSolved = useCallback(async () => {
     if (isSolveUpdating) return;
@@ -238,17 +252,18 @@ export default function QuestionDetailPageClient({
         const next = Math.max(0, previous - 1);
         if (next === 0) {
           setIsTimerRunning(false);
-          void evaluateAnswer();
+          void evaluateAnswerRef.current();
         }
         return next;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [evaluateAnswer, isTimerRunning, timeRemaining]);
+  }, [isTimerRunning, timeRemaining]);
 
   const handleStart = useCallback(() => {
     removeSavedDraft();
     setScore(null);
+    answerTextRef.current = "";
     setAnswerText("");
     setShowSample(false);
     setRightTab("answer");
@@ -340,7 +355,7 @@ export default function QuestionDetailPageClient({
           <QuestionRightPanel
             question={question}
             answerText={answerText}
-            setAnswerText={setAnswerText}
+            setAnswerText={handleAnswerTextChange}
             timeRemaining={timeRemaining}
             isTimerStarted={isTimerStarted}
             score={score}

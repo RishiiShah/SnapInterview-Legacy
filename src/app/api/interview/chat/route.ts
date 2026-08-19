@@ -15,6 +15,7 @@ import { parseJsonBody } from "@/lib/http/request-body";
 import { MAX_IMAGE_BASE64_LENGTH } from "@/lib/interview/chat-messages";
 import { z } from "zod/v4";
 import { logger } from "@/utils/logger";
+import { MAX_MESSAGE_LENGTH, MAX_MESSAGES } from "@/lib/interview/chat-messages";
 
 const chatSchema = z.object({
   interviewId: interviewIdSchema,
@@ -53,7 +54,7 @@ const chatSchema = z.object({
         })
         .optional(),
     })
-  ),
+  ).max(MAX_MESSAGES),
 });
 
 const interviewChatLimiter = createRateLimiter("interview-chat", 60 * 1000, 30);

@@ -7,11 +7,15 @@ import { getSessionUserIdentity } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/http/request-body";
 import { logger } from "@/utils/logger";
 import { interviewTypeSchema } from "@/lib/interview/domain";
+import { isCuratedCompany } from "@/lib/company-options";
 
 const onboardingSchema = z.object({
   onboardingRole: z.string().trim().min(1, "Target role is required").max(200, "Target role is too long"),
   onboardingLevel: z.string().trim().min(1, "Experience level is required").max(64, "Experience level is too long"),
-  onboardingCompany: z.string().trim().max(100).optional().default(""),
+  onboardingCompany: z.string().trim().max(100).refine(
+    (value) => value === "" || isCuratedCompany(value),
+    "Choose a company from the curated list",
+  ).optional().default(""),
   onboardingGoal: z.string().trim().min(1, "Primary goal is required").max(200, "Primary goal is too long"),
   preferredInterviewType: z.string().transform((value, ctx) => {
     const parsed = interviewTypeSchema.safeParse(value);

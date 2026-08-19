@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { isIP } from "node:net";
 import { env } from "@/lib/env";
 
 const transporter = nodemailer.createTransport({
@@ -46,12 +47,12 @@ function renderEmailBrandHeader(title = "SnapInterview") {
  * Send a 6-digit OTP verification email.
  */
 export async function sendOtpEmail(to: string, otp: string): Promise<void> {
-    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.app";
+    const from = notificationFrom();
 
     await transporter.sendMail({
         from,
         to,
-        subject: "SnapInterview — Verify your email",
+        subject: "Verify your SnapInterview email",
         html: `
 <!DOCTYPE html>
 <html>
@@ -89,6 +90,7 @@ export async function sendOtpEmail(to: string, otp: string): Promise<void> {
           <tr>
             <td style="padding:0 32px 32px;">
               <p style="margin:0;font-size:13px;line-height:1.5;color:#a1a1aa;">If you didn't create a SnapInterview account, you can safely ignore this email.</p>
+              ${automatedEmailFooter}
             </td>
           </tr>
         </table>
@@ -103,12 +105,13 @@ export async function sendOtpEmail(to: string, otp: string): Promise<void> {
 }
 
 export async function sendResetPasswordLinkEmail(to: string, resetUrl: string): Promise<void> {
-    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.app";
+    const from = notificationFrom();
+    const safeResetUrl = publicLink(resetUrl);
 
     await transporter.sendMail({
         from,
         to,
-        subject: "SnapInterview - Reset your password",
+        subject: "Reset your SnapInterview password",
         html: `
 <!DOCTYPE html>
 <html>
@@ -134,12 +137,13 @@ export async function sendResetPasswordLinkEmail(to: string, resetUrl: string): 
           </tr>
           <tr>
             <td align="center" style="padding:12px 32px 24px;">
-              <a href="${resetUrl}" style="display:inline-block;background:#18181b;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 20px;border-radius:10px;">Reset password</a>
+              <a href="${safeResetUrl}" style="display:inline-block;background:#18181b;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 20px;border-radius:10px;">Reset password</a>
             </td>
           </tr>
           <tr>
             <td style="padding:0 32px 32px;">
-              <p style="margin:0;font-size:12px;line-height:1.6;color:#a1a1aa;word-break:break-all;">If the button does not work, copy this link into your browser:<br/>${resetUrl}</p>
+              <p style="margin:0;font-size:12px;line-height:1.6;color:#a1a1aa;word-break:break-all;">If the button does not work, copy this link into your browser:<br/>${safeResetUrl}</p>
+              ${automatedEmailFooter}
             </td>
           </tr>
         </table>
@@ -161,7 +165,7 @@ export async function sendEvaluationEmail(params: {
     strengths: string[];
     improvements: string[];
 }): Promise<void> {
-    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.app";
+    const from = notificationFrom();
     const { to, role, score, feedback, strengths, improvements } = params;
 
     const scoreColor = score >= 80 ? "#10b981" : score >= 65 ? "#3b82f6" : "#f59e0b";
@@ -174,12 +178,12 @@ export async function sendEvaluationEmail(params: {
     const listItems = (items: string[]) =>
         items.map(item => `<li style="margin:6px 0;font-size:13px;color:#3f3f46;">${item}</li>`).join("");
 
-    const appUrl = env.NEXT_PUBLIC_APP_URL ?? env.APP_URL ?? "https://snapinterview.app";
+    const appUrl = publicAppUrl();
 
     await transporter.sendMail({
         from,
         to,
-        subject: `SnapInterview — Your ${escapeSubject(role)} evaluation is ready`,
+        subject: `Your ${escapeSubject(role)} interview evaluation is ready`,
         html: `
 <!DOCTYPE html>
 <html>
@@ -200,7 +204,7 @@ export async function sendEvaluationEmail(params: {
           <tr>
             <td style="padding:28px 32px 8px;">
               <h1 style="margin:0;font-size:20px;font-weight:700;color:#18181b;">Your evaluation is ready</h1>
-              <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:#71717a;">${safeRole} interview &mdash; here&apos;s how you did.</p>
+              <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:#71717a;">Here are the results from your ${safeRole} interview.</p>
             </td>
           </tr>
           <tr>
@@ -238,6 +242,7 @@ export async function sendEvaluationEmail(params: {
           <tr>
             <td style="padding:0 32px 32px;border-top:1px solid #f4f4f5;">
               <p style="margin:16px 0 0;font-size:12px;color:#a1a1aa;">Keep practicing to improve your score over time.</p>
+              ${automatedEmailFooter}
             </td>
           </tr>
         </table>
@@ -259,10 +264,10 @@ export async function sendWeeklyReportEmail(params: {
     bestRole: string | null;
     bestScore: number | null;
 }): Promise<void> {
-    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.app";
+    const from = notificationFrom();
     const { to, name, sessionsCount, avgScore, bestRole, bestScore } = params;
-    const appUrl = env.NEXT_PUBLIC_APP_URL ?? env.APP_URL ?? "https://snapinterview.app";
-    const avgDisplay = avgScore !== null ? Math.round(avgScore).toString() : "—";
+    const appUrl = publicAppUrl();
+    const avgDisplay = avgScore !== null ? Math.round(avgScore).toString() : "Not available";
     const headline = sessionsCount === 1 ? "1 mock interview this week" : `${sessionsCount} mock interviews this week`;
     const safeName = escapeHtml(name);
     const safeBestRole = bestRole ? escapeHtml(bestRole) : null;
@@ -270,7 +275,7 @@ export async function sendWeeklyReportEmail(params: {
     await transporter.sendMail({
         from,
         to,
-        subject: "SnapInterview — Your weekly progress report",
+        subject: "Your SnapInterview weekly progress report",
         html: `
 <!DOCTYPE html>
 <html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
@@ -299,6 +304,7 @@ export async function sendWeeklyReportEmail(params: {
       </td></tr>
       <tr><td style="padding:0 32px 32px;border-top:1px solid #f4f4f5;">
         <p style="margin:16px 0 0;font-size:12px;color:#a1a1aa;">You&apos;re receiving this because weekly reports are enabled. <a href="${appUrl}/settings" style="color:#a1a1aa;">Manage notifications</a>.</p>
+        ${automatedEmailFooter}
       </td></tr>
     </table>
     <p style="margin:24px 0 0;font-size:12px;color:#a1a1aa;">&copy; ${new Date().getFullYear()} SnapInterview</p>
@@ -313,15 +319,15 @@ export async function sendPracticeReminderEmail(params: {
     name: string;
     daysSinceLast: number;
 }): Promise<void> {
-    const from = env.SMTP_FROM || env.SMTP_USER || "noreply@snapinterview.app";
+    const from = notificationFrom();
     const { to, name, daysSinceLast } = params;
-    const appUrl = env.NEXT_PUBLIC_APP_URL ?? env.APP_URL ?? "https://snapinterview.app";
+    const appUrl = publicAppUrl();
     const safeName = escapeHtml(name);
 
     await transporter.sendMail({
         from,
         to,
-        subject: "SnapInterview — Time for a quick practice round?",
+        subject: "Ready for another practice session?",
         html: `
 <!DOCTYPE html>
 <html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /></head>

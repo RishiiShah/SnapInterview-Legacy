@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { z } from "zod/v4";
 import { getServerAuthSession } from "@/lib/server-auth";
-import { sendSupportTicketEmail } from "@/lib/email";
 import { withCsrfProtection } from "@/lib/route-security";
 import { parseJsonBody } from "@/lib/http/request-body";
 import { createRateLimiter } from "@/lib/rate-limit";
@@ -21,7 +20,36 @@ const supportTicketSchema = z.object({
   attachmentBase64: z.string().max(10 * 1024 * 1024, "Attachment is too large").optional(),
 });
 
-export const POST = withCsrfProtection(async (request: NextRequest) => {
+const FORMSPREE_SUPPORT_ENDPOINT = "https://formspree.io/f/xwlebndz";
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const supportTicketSchema = z.object({
+  category: z.enum(["technical", "coding", "billing", "account", "feedback"]).default("technical"),
+  priority: z.enum(["low", "normal", "high"]).default("normal"),
+  subject: z.string().trim().min(1, "Subject line is required").max(200, "Subject line is too long"),
+  description: z.string().trim().min(1, "Description is required").max(10_000, "Description is too long"),
+});
+const supportTicketLimiter = createRateLimiter("support-ticket", 60 * 60 * 1000, 5);
+
+function getAttachmentType(bytes: Uint8Array): "png" | "jpeg" | "webp" | null {
+  const matches = (...signature: number[]) => signature.every((byte, index) => bytes[index] === byte);
+  if (bytes.length >= 8 && matches(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) return "png";
+  if (bytes.length >= 3 && matches(0xff, 0xd8, 0xff)) return "jpeg";
+  if (bytes.length >= 12 && String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" && String.fromCharCode(...bytes.slice(8, 12)) === "WEBP") return "webp";
+  return null;
+}
+
+async function validateAttachment(file: File): Promise<File | null> {
+  if (file.size === 0 || file.size > MAX_ATTACHMENT_BYTES) return null;
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const type = getAttachmentType(bytes);
+  if (!type) return null;
+
+  const extension = type === "jpeg" ? "jpg" : type;
+  const contentType = type === "jpeg" ? "image/jpeg" : `image/${type}`;
+  return new File([bytes], `support-attachment.${extension}`, { type: contentType });
+}
+
+export const POST = withCsrfProtection(async (request: Request) => {
   try {
     const session = await getServerAuthSession();
     if (!session?.user?.id || !session?.user?.email) {
@@ -116,18 +144,11 @@ export const POST = withCsrfProtection(async (request: NextRequest) => {
       });
     }
 
-    return NextResponse.json({
-      success: true,
-      ticketId,
-      message: "Ticket submitted successfully",
+    return NextResponse.json({ success: true, message: "Ticket submitted successfully" });
+  } catch (error) {
+    logger.error("Error submitting Formspree support ticket", {
+      error: error instanceof Error ? error.message : String(error),
     });
-  } catch (err) {
-    logger.error("Error processing support ticket", {
-      error: err instanceof Error ? err.message : String(err),
-    });
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 });

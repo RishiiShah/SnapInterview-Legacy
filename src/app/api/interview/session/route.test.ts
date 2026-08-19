@@ -106,7 +106,7 @@ describe("POST /api/interview/session", () => {
       },
       body: JSON.stringify({
         role: "Frontend Engineer",
-        company: "Acme",
+        company: "Google",
         type: "coding-algorithms",
         difficulty: "medium",
         persona: "balanced",
@@ -121,7 +121,7 @@ describe("POST /api/interview/session", () => {
       userId: "user-1",
       id: undefined,
       role: "Frontend Engineer",
-      company: "Acme",
+      company: "Google",
       type: "coding-algorithms",
       difficulty: "medium",
       persona: "balanced",
@@ -132,6 +132,29 @@ describe("POST /api/interview/session", () => {
     });
     expect(warmEmbeddingModel).toHaveBeenCalledOnce();
     await expect(response.json()).resolves.toEqual({ id: "session-1" });
+  });
+
+  it("rejects companies outside the curated list", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
+
+    const request = new Request("http://localhost/api/interview/session", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: JSON.stringify({
+        role: "Frontend Engineer",
+        company: "Pornhub",
+        type: "coding-algorithms",
+        difficulty: "medium",
+      }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    expect(startInterviewSession).not.toHaveBeenCalled();
   });
 
   it("rate limits repeated session creation for one user", async () => {

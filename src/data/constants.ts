@@ -1,5 +1,6 @@
 import { NavItem, SearchItem, Difficulty, InterviewType, InterviewPersona, QuestionCategory } from "./types";
 import { INTERVIEW_TYPE_META, INTERVIEW_TYPE_VALUES } from "@/lib/interview/domain";
+export { COMPANIES } from "@/lib/company-options";
 
 /* ─────────────── Navigation Items ─────────────── */
 export const NAV_ITEMS: NavItem[] = [
@@ -125,52 +126,4 @@ export const ROLES: string[] = [
     // Engineering Leadership
     "Engineering Manager",
     "Tech Lead / Staff Engineer",
-];
-
-/* ─────────────── Companies ─────────────── */
-export const COMPANIES: string[] = [
-    "General",
-    "Google",
-    "Meta",
-    "Amazon",
-    "Apple",
-    "Microsoft",
-    "Netflix",
-    "Tesla",
-    "Twitter/X",
-    "Discord",
-    "Stripe",
-    "Airbnb",
-    "Uber",
-    "Lyft",
-    "Spotify",
-    "Dropbox",
-    "Slack",
-    "GitHub",
-    "GitLab",
-    "MongoDB",
-    "Redis",
-    "Shopify",
-    "Square",
-    "PayPal",
-    "Twilio",
-    "Figma",
-    "Notion",
-    "Linear",
-    "Retool",
-    "Vercel",
-    "Netlify",
-    "IBM",
-    "Oracle",
-    "Salesforce",
-    "SAP",
-    "Cisco",
-    "Intel",
-    "Adobe",
-    "Zoom",
-    "Atlassian",
-    "JetBrains",
-    "HashiCorp",
-    "Datadog",
-    "Elastic",
 ];

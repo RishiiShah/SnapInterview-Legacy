@@ -81,22 +81,9 @@ test.describe("Protected smoke flows", () => {
   });
 
   test("settings page loads profile settings", async ({ page }) => {
-    await page.goto("/dashboard");
+    await page.goto("/settings");
 
-    // Click Settings link from sidebar or header user menu
-    const settingsLink = page.locator('a[href*="/settings"]').first();
-    if (await settingsLink.isVisible()) {
-      await settingsLink.click();
-    } else {
-      const userMenu = page.getByRole("button", { name: /user profile menu/i });
-      if (await userMenu.isVisible()) {
-        await userMenu.click();
-      }
-      await page.locator('a[href*="/settings"]').first().click();
-    }
-    await page.waitForURL('**/settings**', { timeout: 10000 });
-
-    // Confirm the page actually rendered (not just a blank route).
-    await expect(page.getByRole("heading", { name: /settings/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: /settings/i, level: 1 })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/personal information/i)).toBeVisible();
   });
 });

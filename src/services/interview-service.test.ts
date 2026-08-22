@@ -338,7 +338,7 @@ describe("startInterviewSession", () => {
     vi.mocked(getUserOnboardingContext).mockResolvedValue({
       onboardingGoal: "prepare-for-promo",
       onboardingLevel: "staff-plus",
-      onboardingRole: "Staff Engineer",
+      onboardingRole: "Tech Lead / Staff Engineer",
       onboardingCompany: "Stripe",
     });
     vi.mocked(createInterviewSession).mockResolvedValue({ id: "int-2" });
@@ -356,7 +356,7 @@ describe("startInterviewSession", () => {
     expect(createInterviewSession).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: "user-1",
-        role: "Staff Engineer",
+        role: "Tech Lead / Staff Engineer",
         company: "Stripe",
         persona: "strict",
         questionCount: 15,
@@ -404,7 +404,7 @@ describe("startInterviewSession", () => {
 
     await startInterviewSession({
       userId: "user-2",
-      role: "Frontend Engineer",
+      role: "Software Engineer - Frontend",
       company: "Acme",
       type: "behavioral-leadership",
       difficulty: "medium",
@@ -412,7 +412,7 @@ describe("startInterviewSession", () => {
 
     expect(createInterviewSession).toHaveBeenCalledWith(
       expect.objectContaining({
-        role: "Frontend Engineer",
+        role: "Software Engineer - Frontend",
         company: "Acme",
         persona: "balanced",
         questionCount: 10,
@@ -421,7 +421,7 @@ describe("startInterviewSession", () => {
           brief: expect.objectContaining({
             company: expect.objectContaining({ packId: "general" }),
             profile: expect.objectContaining({
-              role: "Frontend Engineer",
+              role: "Software Engineer - Frontend",
               type: "behavioral-leadership",
               difficulty: "medium",
             }),

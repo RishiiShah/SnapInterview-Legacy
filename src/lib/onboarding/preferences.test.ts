@@ -11,15 +11,15 @@ describe("onboarding preferences helpers", () => {
     expect(normalizeOnboardingFormValues(null)).toEqual(DEFAULT_ONBOARDING_FORM_VALUES);
   });
 
-  it("preserves valid interview types and falls back for invalid ones", () => {
+  it("trims roles and keeps canonical taxonomy values intact", () => {
     expect(
       normalizeOnboardingFormValues({
-        onboardingRole: "Frontend Engineer",
+        onboardingRole: "  Software Engineer - Backend  ",
         preferredInterviewType: "technical",
       })
     ).toEqual({
       ...DEFAULT_ONBOARDING_FORM_VALUES,
-      onboardingRole: "Frontend Engineer",
+      onboardingRole: "Software Engineer - Backend",
       preferredInterviewType: "coding-algorithms",
     });
 
@@ -30,7 +30,7 @@ describe("onboarding preferences helpers", () => {
     ).toEqual(DEFAULT_ONBOARDING_FORM_VALUES);
   });
 
-  it("normalizes response payloads with onboarding completion", () => {
+  it("preserves response payloads without legacy alias remapping", () => {
     expect(
       normalizeOnboardingResponse({
         onboardingCompleted: true,

@@ -115,6 +115,8 @@ const SOFTWARE_CATEGORY_MAP: Record<string, CategoryMapping> = {
   "Version Control": { types: ["domain-role"], roleTags: ALL_ENGINEERING },
   Networking: { types: ["domain-role", "system-design"], roleTags: [...CLOUD_SRE_ROLES, "security-engineer"] },
   "Low-level Systems": { types: ["domain-role"], roleTags: ["software-engineer-systems-infrastructure", "software-engineer-embedded-firmware", ...QUANT_ROLES] },
+  "Hardware and Architecture": { types: ["domain-role"], roleTags: ["software-engineer-systems-infrastructure", "software-engineer-embedded-firmware"] },
+  Mobile: { types: ["domain-role"], roleTags: MOBILE_ROLES },
 };
 
 export function mapSoftwareCategory(category: string): CategoryMapping {
@@ -139,6 +141,10 @@ const HR_CATEGORY_MAP: Record<string, InterviewType[]> = {
   "Team Collaboration": ["behavioral-leadership"],
   "Career Goals": ["behavioral-leadership", "recruiter-screen"],
   "Conflict Resolution": ["behavioral-leadership", "hiring-manager"],
+  "Customer Obsession": ["behavioral-leadership", "hiring-manager"],
+  Communication: ["behavioral-leadership"],
+  "Ethics & Integrity": ["behavioral-leadership"],
+  "Diversity & Inclusion": ["behavioral-leadership", "hiring-manager"],
 };
 
 export const HR_CATEGORIES = Object.keys(HR_CATEGORY_MAP);
@@ -147,54 +153,20 @@ export function mapHrCategory(category: string): CategoryMapping {
   return { types: HR_CATEGORY_MAP[category.trim()] ?? ["behavioral-leadership"], roleTags: [] };
 }
 
-const LEGACY_ROLE_SLUG_ALIASES: Record<string, string> = {
-  "backend-developer": "software-engineer-backend",
-  "backend-engineer": "software-engineer-backend",
-  "frontend-developer": "software-engineer-frontend",
-  "frontend-engineer": "software-engineer-frontend",
-  "full-stack-developer": "software-engineer-full-stack",
-  "full-stack-engineer": "software-engineer-full-stack",
-  "fullstack-developer": "software-engineer-full-stack",
-  "fullstack-engineer": "software-engineer-full-stack",
-  "mobile-developer": "software-engineer-mobile-ios-android",
-  "mobile-engineer": "software-engineer-mobile-ios-android",
-  "ios-developer": "software-engineer-ios",
-  "android-developer": "software-engineer-android",
-  "devops-engineer": "devops-cloud-engineer",
-  "cloud-engineer": "devops-cloud-engineer",
-  "sre": "site-reliability-engineer-sre",
-  "site-reliability-engineer": "site-reliability-engineer-sre",
-  "sdet": "software-engineer-in-test-sdet",
-  "qa-engineer": "software-engineer-in-test-sdet",
-  "software-engineer-in-test": "software-engineer-in-test-sdet",
-  "ml-engineer": "machine-learning-engineer",
-  "machine-learning": "machine-learning-engineer",
-  "systems-engineer": "software-engineer-systems-infrastructure",
-  "systems-infrastructure-engineer": "software-engineer-systems-infrastructure",
-  "embedded-engineer": "software-engineer-embedded-firmware",
-  "firmware-engineer": "software-engineer-embedded-firmware",
-  "tech-lead": "tech-lead-staff-engineer",
-  "staff-engineer": "tech-lead-staff-engineer",
-  "tpm": "technical-product-manager-tpm",
-  "technical-program-manager": "technical-product-manager-tpm",
-};
-
 /**
- * Turns a display role ("Software Engineer - Backend") into the slug used by `roleTags`
- * and the role packs in `src/data/prompts/roles/` ("software-engineer-backend").
- * Mirrors the normalization in `src/lib/interview/prompts.ts`.
+ * Turns a canonical role title into the slug used by `roleTags`
+ * and the role packs in `src/data/prompts/roles/`.
+ * Returns "" when role is null, undefined, or empty.
  */
-export function normalizeRoleSlug(role: string): string {
-  const baseSlug = role
+export function normalizeRoleSlug(role: string | null | undefined): string {
+  if (!role) return "";
+  const trimmed = role.trim();
+  if (!trimmed) return "";
+
+  return trimmed
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
-
-  return LEGACY_ROLE_SLUG_ALIASES[baseSlug] ?? baseSlug;
 }
 
-export const CORPUS_SOURCES = {
-  software: "software-questions-csv",
-  hr: "hr-dataset-40",
-} as const;

@@ -24,7 +24,7 @@ describe("PracticePage", () => {
   it("hydrates Practice setup from one authenticated server-side user read", async () => {
     vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
     vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      onboardingRole: "Backend Engineer",
+      onboardingRole: "Software Engineer - Backend",
       onboardingLevel: "senior",
       onboardingCompany: "OpenAI",
       onboardingGoal: "switch-companies",
@@ -51,7 +51,7 @@ describe("PracticePage", () => {
       retakeDefaults: { type: "system-design" },
       initialDefaults: {
         onboarding: {
-          onboardingRole: "Backend Engineer",
+          onboardingRole: "Software Engineer - Backend",
           onboardingCompany: "OpenAI",
           onboardingLevel: "senior",
           onboardingGoal: "switch-companies",

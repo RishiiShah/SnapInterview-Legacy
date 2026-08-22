@@ -7,6 +7,7 @@ export interface RetrievedQuestion {
   answer: string | null;
   category: string;
   difficulty: string | null;
+  level: string | null;
   similarity: number;
 }
 
@@ -50,8 +51,9 @@ export function formatRetrievedQuestions(
 
   const lines = questions.map((entry, index) => {
     const why = explainRetrievedMatch(entry, session);
+    const meta = [entry.level, entry.difficulty, entry.category].filter(Boolean).join(" | ");
     const parts = [
-      `[Reference Question ${index + 1} | ${entry.category}] "${entry.question}"`,
+      `[Reference Question ${index + 1} | ${meta}] "${entry.question}"`,
       `  - Why selected: ${why}`,
     ];
     if (entry.answer) {

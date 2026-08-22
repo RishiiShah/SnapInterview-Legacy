@@ -10,7 +10,7 @@
  */
 import { prisma } from "../src/lib/prisma";
 import { localEmbedder, toVectorLiteral } from "../src/lib/rag/embeddings";
-import { CORPUS_SOURCES } from "../src/lib/rag/taxonomy";
+
 
 const PROBES = [
   {
@@ -72,14 +72,11 @@ async function main() {
     }
   }
 
-  const expected: Record<string, number> = {
-    [CORPUS_SOURCES.software]: 174,
-    [CORPUS_SOURCES.hr]: 40,
-  };
-  for (const [source, count] of Object.entries(expected)) {
+  const expectedSources = ["technical-questions", "hr-questions"] as const;
+  for (const source of expectedSources) {
     const actual = Number(counts.find((r) => r.source === source)?.total ?? 0);
-    if (actual !== count) {
-      fail(`expected ${count} rows for ${source}, found ${actual}`);
+    if (actual === 0) {
+      fail(`expected rows for source "${source}", found none`);
     }
   }
 

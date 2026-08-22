@@ -29,7 +29,7 @@ describe("useSettingsBootstrap", () => {
 
       if (String(url) === "/api/onboarding") {
         return Promise.resolve(jsonResponse({
-          onboardingRole: "Backend Engineer",
+          onboardingRole: "Software Engineer - Backend",
           onboardingCompany: "Acme",
           onboardingLevel: "senior",
           onboardingGoal: "new-role",
@@ -67,7 +67,7 @@ describe("useSettingsBootstrap", () => {
     await waitFor(() => expect(result.current.onboardingLoaded).toBe(true));
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(fetch).toHaveBeenLastCalledWith("/api/onboarding", { method: "GET" });
-    expect(result.current.onboardingPrefs.onboardingRole).toBe("Backend Engineer");
+    expect(result.current.onboardingPrefs.onboardingRole).toBe("Software Engineer - Backend");
   });
 
   it("applies a tab response after Strict Mode replays the mount lifecycle", async () => {

@@ -1,5 +1,6 @@
 import { logger } from "@/utils/logger";
 import { extractKeyTechnicalTerms } from "./chunker";
+import { categoryMatchesPreferred } from "./retrieval-categories";
 
 export interface RerankerCandidate {
   id: string;
@@ -7,6 +8,7 @@ export interface RerankerCandidate {
   answer: string | null;
   category: string;
   difficulty: string | null;
+  level: string | null;
   roleTags: string[];
   types?: string[];
   baseScore: number;
@@ -75,14 +77,57 @@ export function warmRerankerModel(): void {
 }
 
 /**
+ * Normalizes difficulty level string to 1 (easy), 2 (medium), or 3 (hard).
+ */
+export function difficultyToNumeric(difficulty?: string | null): number | null {
+  if (!difficulty) return null;
+  const normalized = difficulty.trim().toLowerCase();
+  if (["easy", "junior", "entry", "entry-level", "intern"].includes(normalized)) return 1;
+  if (["medium", "mid", "mid-level", "intermediate"].includes(normalized)) return 2;
+  if (["hard", "senior", "staff", "staff-plus", "principal", "lead"].includes(normalized)) return 3;
+  return null;
+}
+
+/**
+ * Maps corpus / onboarding level labels onto a 1–4 seniority scale.
+ */
+export function levelToNumeric(level?: string | null): number | null {
+  if (!level) return null;
+  const normalized = level.trim().toLowerCase().replace(/_/g, "-");
+  if (["intern", "junior", "early", "entry", "entry-level", "new-grad"].includes(normalized)) return 1;
+  if (["mid", "mid-level", "intermediate"].includes(normalized)) return 2;
+  if (["senior"].includes(normalized)) return 3;
+  if (["staff", "staff-plus", "principal", "em", "director", "lead"].includes(normalized)) return 4;
+  return null;
+}
+
+export type HeuristicRerankOptions = {
+  targetRoleSlug?: string;
+  targetDifficulty?: string;
+  targetLevel?: string;
+  preferredCategories?: string[];
+  /** When true, off-preferred categories take a hard penalty (technical rounds). */
+  strictCategoryPreference?: boolean;
+};
+
+/**
  * Calibrated Heuristic Cross-Scorer (zero-latency resilient scoring engine).
- * Evaluates technical keyword overlap, n-gram matching, role alignment, and difficulty match.
+ * Evaluates technical keyword overlap, n-gram matching, role alignment, difficulty,
+ * level, and preferred-category affinity.
  */
 export function computeHeuristicRerankScore(
   query: string,
   candidate: RerankerCandidate,
-  targetRoleSlug?: string
+  options: HeuristicRerankOptions = {}
 ): number {
+  const {
+    targetRoleSlug,
+    targetDifficulty,
+    targetLevel,
+    preferredCategories = [],
+    strictCategoryPreference = false,
+  } = options;
+
   const queryLower = query.toLowerCase();
   const questionLower = candidate.question.toLowerCase();
   const answerLower = (candidate.answer ?? "").toLowerCase();
@@ -133,16 +178,71 @@ export function computeHeuristicRerankScore(
   // 3. Role Tag & Category Match Boost (Behavioral questions are role-agnostic so give equal baseline)
   let roleBoost = 0;
   if (targetRoleSlug && candidate.roleTags?.includes(targetRoleSlug)) {
-    roleBoost = 0.15;
+    roleBoost = 0.12;
   } else if (!candidate.roleTags || candidate.roleTags.length === 0) {
-    roleBoost = 0.12; // Fair baseline for role-agnostic behavioral questions
+    roleBoost = 0.08; // Fair baseline for role-agnostic behavioral questions
   }
 
-  // 4. Base Vector / RRF Score influence
+  // 4. Difficulty Alignment Calibration
+  let difficultyAdjustment = 0;
+  const targetDiffNum = difficultyToNumeric(targetDifficulty);
+  const candDiffNum = difficultyToNumeric(candidate.difficulty);
+
+  if (targetDiffNum !== null && candDiffNum !== null) {
+    const diffDelta = Math.abs(targetDiffNum - candDiffNum);
+    if (diffDelta === 0) {
+      difficultyAdjustment = 0.07;
+    } else if (diffDelta >= 2) {
+      difficultyAdjustment = -0.11;
+    }
+  }
+
+  // 5. Level alignment (corpus Level vs session profile / mapped difficulty)
+  let levelAdjustment = 0;
+  const targetLevelNum = levelToNumeric(targetLevel) ?? difficultyToNumeric(targetDifficulty);
+  const candLevelNum = levelToNumeric(candidate.level);
+  if (targetLevelNum !== null && candLevelNum !== null) {
+    const levelDelta = Math.abs(targetLevelNum - candLevelNum);
+    if (levelDelta === 0) {
+      levelAdjustment = 0.06;
+    } else if (levelDelta >= 2) {
+      levelAdjustment = -0.08;
+    }
+  }
+
+  // 6. Preferred category affinity (and mismatch penalty when preferences are strong)
+  let categoryBoost = 0;
+  if (preferredCategories.length > 0) {
+    const match = categoryMatchesPreferred(candidate.category, preferredCategories);
+    if (match === "exact") {
+      categoryBoost = 0.14;
+    } else if (match === "soft") {
+      categoryBoost = 0.06;
+    } else if (strictCategoryPreference) {
+      // Off-topic category in a large corpus (e.g. Security during a Kafka/DB round)
+      categoryBoost = -0.16;
+    } else {
+      categoryBoost = -0.04;
+    }
+  } else {
+    // Fallback: boost when category tokens appear in the query itself
+    const catTokens = categoryLower.split(/[^a-z0-9]+/).filter((t) => t.length > 3);
+    const hits = catTokens.filter((token) => queryLower.includes(token)).length;
+    if (hits >= 2) categoryBoost = 0.08;
+    else if (hits === 1) categoryBoost = 0.04;
+  }
+
+  // 7. Base Vector / RRF Score influence
   const baseNorm = Math.min(Math.max(candidate.baseScore, 0), 1.0);
 
-  // Combine into calibrated [0, 1] range
-  const rawScore = 0.20 * baseNorm + 0.40 * termScore + 0.28 * phraseScore + roleBoost;
+  // Core weighted score: coefficients sum to 0.80 so there is always room for the
+  // combined adjustments (capped below) without exceeding 1.0.
+  const coreScore = 0.16 * baseNorm + 0.36 * termScore + 0.28 * phraseScore;
+
+  const adjustmentRaw = roleBoost + difficultyAdjustment + levelAdjustment + categoryBoost;
+  const adjustment = Math.min(Math.max(adjustmentRaw, -0.28), 0.28);
+
+  const rawScore = coreScore + adjustment;
   return Number(Math.min(Math.max(rawScore, 0), 1.0).toFixed(4));
 }
 
@@ -164,6 +264,10 @@ export async function rerankCandidates(
   candidates: RerankerCandidate[],
   options: {
     targetRoleSlug?: string;
+    targetDifficulty?: string;
+    targetLevel?: string;
+    preferredCategories?: string[];
+    strictCategoryPreference?: boolean;
     topK?: number;
     timeoutMs?: number;
     useModel?: boolean;
@@ -174,11 +278,18 @@ export async function rerankCandidates(
   const topK = options.topK ?? candidates.length;
   const timeoutMs = options.timeoutMs ?? RERANK_TIMEOUT_MS;
   const useModel = options.useModel ?? (process.env.NODE_ENV !== "test" && !process.env.DISABLE_RERANKER_MODEL);
+  const heuristicOptions: HeuristicRerankOptions = {
+    targetRoleSlug: options.targetRoleSlug,
+    targetDifficulty: options.targetDifficulty,
+    targetLevel: options.targetLevel,
+    preferredCategories: options.preferredCategories,
+    strictCategoryPreference: options.strictCategoryPreference,
+  };
 
   if (!useModel) {
     return candidates
       .map((cand) => {
-        const rerankScore = computeHeuristicRerankScore(query, cand, options.targetRoleSlug);
+        const rerankScore = computeHeuristicRerankScore(query, cand, heuristicOptions);
         // Cross-attention / heuristic rerank score provides authoritative precision ranking
         const fusedScore = Number((0.20 * cand.baseScore + 0.80 * rerankScore).toFixed(4));
         return {
@@ -196,7 +307,7 @@ export async function rerankCandidates(
       const classifier = await getRerankerPipeline();
       const inputs = candidates.map((c) => ({
         text: query,
-        text_pair: c.answer ? `${c.question} — Answer: ${c.answer}` : c.question,
+        text_pair: c.answer ? `${c.question}\n${c.answer}` : c.question,
       }));
 
       const outputs = await classifier(inputs);
@@ -213,7 +324,7 @@ export async function rerankCandidates(
           modelScore = (out as { score: number }).score;
         }
 
-        const heuristic = computeHeuristicRerankScore(query, cand, options.targetRoleSlug);
+        const heuristic = computeHeuristicRerankScore(query, cand, heuristicOptions);
         // Blend model score (70%) with heuristic keyword validation (30%)
         const rerankScore = Number((0.7 * modelScore + 0.3 * heuristic).toFixed(4));
         const fusedScore = Number((0.20 * cand.baseScore + 0.80 * rerankScore).toFixed(4));
@@ -237,7 +348,7 @@ export async function rerankCandidates(
         });
         const fallbackResults = candidates
           .map((cand) => {
-            const rerankScore = computeHeuristicRerankScore(query, cand, options.targetRoleSlug);
+            const rerankScore = computeHeuristicRerankScore(query, cand, heuristicOptions);
             const fusedScore = Number((0.20 * cand.baseScore + 0.80 * rerankScore).toFixed(4));
             return { ...cand, rerankScore, fusedScore };
           })
@@ -259,7 +370,7 @@ export async function rerankCandidates(
 
     return candidates
       .map((cand) => {
-        const rerankScore = computeHeuristicRerankScore(query, cand, options.targetRoleSlug);
+        const rerankScore = computeHeuristicRerankScore(query, cand, heuristicOptions);
         const fusedScore = Number((0.20 * cand.baseScore + 0.80 * rerankScore).toFixed(4));
         return { ...cand, rerankScore, fusedScore };
       })

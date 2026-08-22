@@ -16,7 +16,7 @@ import { prisma } from "../src/lib/prisma";
 import { dedupeByNormalizedQuestion } from "../src/lib/rag/corpus-normalization";
 import { runProductionRetrieval, type RagBenchmarkScenario } from "../src/lib/rag/benchmark-session";
 import { localEmbedder, cosineSimilarity } from "../src/lib/rag/embeddings";
-import { mapSoftwareCategory, mapHrCategory, normalizeRoleSlug } from "../src/lib/rag/taxonomy";
+import { mapSoftwareCategory, mapHrCategory, normalizeRoleSlug, normalizeCategory } from "../src/lib/rag/taxonomy";
 import { extractKeyTechnicalTerms } from "../src/lib/rag/chunker";
 
 interface QuestionRecord {
@@ -30,6 +30,8 @@ interface QuestionRecord {
   keywords: string[];
   vector: number[];
 }
+
+type QuestionRecordWithoutVector = Omit<QuestionRecord, "vector">;
 
 const BENCHMARK_SCENARIOS: RagBenchmarkScenario[] = [
   {
@@ -135,64 +137,138 @@ Engineering Manager | TechScale (2020 - Present)
     expectedKeywords: ["conflict", "team", "disagreement", "decision", "leadership", "collaboration", "resolution", "feedback", "stakeholder"],
     targetCategories: ["Conflict Resolution", "Leadership", "Team Collaboration", "Adaptability", "Work Style"],
   },
+  {
+    id: "frontend-multiturn-gapfill",
+    title: "6. Multi-turn Frontend (gap-fill: Redux / virtualization)",
+    role: "Frontend Developer",
+    type: "domain-role",
+    difficulty: "medium",
+    focusAreas: ["React Performance", "State Management", "List Virtualization"],
+    resume: `
+## TECHNICAL SKILLS
+- Languages: TypeScript, JavaScript (ES6+)
+- Frameworks & Libs: React 18, Next.js, Redux Toolkit, React Window, Vite
+
+## WORK EXPERIENCE
+Senior Frontend Engineer | MarketData Co (2021 - Present)
+- Owned trading blotter UI with virtualized grids and normalized Redux state.
+- Cut re-render cost with memoization and selector-based subscriptions.
+    `.trim(),
+    transcriptTurns: [
+      {
+        question: "How do you stop cascading re-renders when websocket ticks update a large React tree?",
+        answer:
+          "I memoized leaf rows with React.memo and useCallback, and moved hot state down so parent layout components stay stable during ticks.",
+      },
+      {
+        question: "What comes next after memoization when the screen still feels heavy?",
+        answer:
+          "I would look at how we subscribe to updates and how large collections are rendered. We have not talked through global store design or windowing yet.",
+      },
+    ],
+    latestAnswer:
+      "I would look at how we subscribe to updates and how large collections are rendered. We have not talked through global store design or windowing yet.",
+    // Gap terms intentionally under-covered in the latest answer so gap-fill / coverage should help.
+    expectedKeywords: ["redux", "virtual", "state", "selector", "window", "list", "performance", "react", "typescript", "memo"],
+    targetCategories: ["Front-end", "Web Development", "Languages and Frameworks"],
+  },
+  {
+    id: "behavioral-multiturn-gapfill",
+    title: "7. Multi-turn Behavioral (gap-fill: collaboration / feedback)",
+    role: "Engineering Manager",
+    type: "behavioral-leadership",
+    difficulty: "hard",
+    focusAreas: ["Conflict Resolution", "Team Collaboration", "Feedback"],
+    resume: `
+## PROFESSIONAL SUMMARY
+Engineering Manager leading cross-functional platform teams.
+
+## WORK EXPERIENCE
+Engineering Manager | TechScale (2019 - Present)
+- Mediated architectural conflicts and coached seniors through stakeholder alignment.
+    `.trim(),
+    transcriptTurns: [
+      {
+        question: "Tell me about a time two senior engineers strongly disagreed on a technical direction.",
+        answer:
+          "When two senior leads disagreed on GraphQL versus gRPC, I had each build a two-day proof of concept against shared latency criteria so we could decide with data instead of opinions.",
+      },
+      {
+        question: "After the decision, how did you keep the team healthy and aligned?",
+        answer:
+          "I made the decision explicit in writing and owned the rollout plan, but I still need to dig into how we handled ongoing peer feedback and cross-team collaboration afterward.",
+      },
+    ],
+    latestAnswer:
+      "I made the decision explicit in writing and owned the rollout plan, but I still need to dig into how we handled ongoing peer feedback and cross-team collaboration afterward.",
+    expectedKeywords: ["feedback", "collaboration", "stakeholder", "team", "conflict", "leadership", "resolution", "decision"],
+    targetCategories: ["Conflict Resolution", "Leadership", "Team Collaboration", "Work Style"],
+  },
 ];
 
 async function loadDataset(): Promise<QuestionRecord[]> {
-  const softwareCsvPath = path.join(process.cwd(), "src/data/corpus/software-questions.csv");
-  const hrJsonPath = path.join(process.cwd(), "src/data/corpus/hr-questions.json");
+  const softwareCsvPath = path.join(process.cwd(), "src/data/corpus/technical-questions.csv");
+  const hrCsvPath = path.join(process.cwd(), "src/data/corpus/hr-questions.csv");
 
   const [softwareRaw, hrRaw] = await Promise.all([
     readFile(softwareCsvPath, "utf-8"),
-    readFile(hrJsonPath, "utf-8"),
+    readFile(hrCsvPath, "utf-8"),
   ]);
 
-  const softwareRows = parseCsvRecords(softwareRaw);
-  const [header, ...body] = softwareRows;
-  const col = (name: string) => header.findIndex((h) => h.trim().toLowerCase() === name);
-  const qIdx = col("question");
-  const aIdx = col("answer");
-  const cIdx = col("category");
-  const dIdx = col("difficulty");
+  function loadCsvQuestions(
+    raw: string,
+    source: "software" | "hr",
+    mapCategory: (cat: string) => { types: string[]; roleTags: string[] },
+  ): QuestionRecordWithoutVector[] {
+    const rows = parseCsvRecords(raw);
+    const [header, ...body] = rows;
+    const col = (name: string) => header.findIndex((h) => h.trim().toLowerCase() === name);
+    const qIdx = col("question");
+    const aIdx = col("answer");
+    const cIdx = col("category");
+    const dIdx = col("difficulty");
 
-  const softwareQuestions = body.map((row, idx) => {
-    const category = row[cIdx]?.trim() ?? "General";
-    const { types, roleTags } = mapSoftwareCategory(category);
-    const question = row[qIdx]?.trim() ?? "";
-    const answer = row[aIdx]?.trim() || null;
+    return body
+      .map((row, idx) => {
+        const category = source === "software"
+          ? normalizeCategory(row[cIdx]?.trim() ?? "General")
+          : (row[cIdx]?.trim() ?? "General");
+        const { types, roleTags } = mapCategory(category);
+        const question = row[qIdx]?.trim() ?? "";
+        const answer = row[aIdx]?.trim() || null;
 
-    return {
-      id: `sw_${idx}`,
-      question,
-      answer,
-      category,
-      difficulty: row[dIdx]?.trim() || "medium",
-      roleTags,
-      types,
-      keywords: extractKeyTechnicalTerms(`${question} ${answer || ""}`),
-    };
-  }).filter((q) => q.question.length > 0);
+        return {
+          id: `${source}_${idx}`,
+          question,
+          answer,
+          category,
+          difficulty: row[dIdx]?.trim() || "medium",
+          roleTags,
+          types,
+          keywords: extractKeyTechnicalTerms(`${question} ${answer || ""}`),
+        };
+      })
+      .filter((q) => q.question.length > 0);
+  }
 
-  const hrEntries = JSON.parse(hrRaw) as Array<{ question: string; category: string; keywords?: string[] }>;
-  const hrQuestions = hrEntries.map((item, idx) => {
-    const { types, roleTags } = mapHrCategory(item.category);
-    return {
-      id: `hr_${idx}`,
-      question: item.question.trim(),
-      answer: null,
-      category: item.category.trim(),
-      difficulty: "medium",
-      roleTags,
-      types,
-      keywords: item.keywords ?? extractKeyTechnicalTerms(item.question),
-    };
-  });
+  const softwareQuestions = loadCsvQuestions(softwareRaw, "software", mapSoftwareCategory);
+  const hrQuestions = loadCsvQuestions(hrRaw, "hr", mapHrCategory);
 
   const all = dedupeByNormalizedQuestion([...softwareQuestions, ...hrQuestions]).unique;
 
   // Batch embed all corpus questions
-  console.log(`Loading and embedding ${all.length} normalized corpus questions with Xenova/all-MiniLM-L6-v2...`);
+  console.log(`Loading and embedding ${all.length} normalized corpus questions with Xenova/all-MiniLM-L6-v2 in batches...`);
   const texts = all.map((q) => (q.answer ? `${q.question}\n${q.answer}` : q.question));
-  const vectors = await localEmbedder.embed(texts);
+  
+  const vectors: number[][] = [];
+  const BATCH_SIZE = 250;
+  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
+    if (i % 1000 === 0) console.log(`  Embedded ${i}/${texts.length}...`);
+    const batch = texts.slice(i, i + BATCH_SIZE);
+    const batchVectors = await localEmbedder.embed(batch);
+    vectors.push(...batchVectors);
+  }
+  console.log(`  Embedded ${texts.length}/${texts.length}`);
 
   return all.map((q, i) => ({
     ...q,
@@ -360,6 +436,9 @@ async function main() {
     console.log(`Scenario: ${scenario.title}`);
     console.log(`Role: ${scenario.role} (${scenario.type}) | Difficulty: ${scenario.difficulty}`);
     console.log(`Candidate Latest Answer: "${scenario.latestAnswer.slice(0, 90)}..."`);
+    if (scenario.transcriptTurns && scenario.transcriptTurns.length > 1) {
+      console.log(`Transcript turns: ${scenario.transcriptTurns.length} (multi-turn gap-fill path)`);
+    }
     console.log(`Target Topics: ${scenario.targetCategories.join(", ")}`);
     console.log(`--------------------------------------------------------------------------------`);
 
@@ -434,7 +513,7 @@ async function main() {
   const pAvg = avg(summary.production);
 
   console.log("================================================================================");
-  console.log("  AGGREGATE BENCHMARK RESULTS (Across all 5 Scenarios)");
+  console.log(`  AGGREGATE BENCHMARK RESULTS (Across all ${N} Scenarios)`);
   console.log("================================================================================");
   console.log(`  Metric                     | Baseline RAG | Production retrieval | Accuracy Gain`);
   console.log(`  ---------------------------+--------------+----------------------+----------------`);

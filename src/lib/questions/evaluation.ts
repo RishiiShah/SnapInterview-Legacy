@@ -29,7 +29,7 @@ function inferPracticeRole(question: Question): string {
     );
 
     if (hasFrontendSignal) {
-      return "Frontend Developer";
+      return "Software Engineer - Frontend";
     }
   }
 

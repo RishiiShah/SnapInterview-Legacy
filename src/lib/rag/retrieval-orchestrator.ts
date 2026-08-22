@@ -10,19 +10,32 @@ import { executeHybridRetrieval, type HybridCandidateRow } from "@/lib/rag/hybri
 import { rerankCandidates, type ScoredRerankedCandidate } from "@/lib/rag/reranker";
 import { logger } from "@/utils/logger";
 import {
+  answerWithTopicSignal,
   buildRetrievalQuery,
   buildSynthesizedDenseQuery,
   buildWeightedQueryParts,
   explainRetrievalQuery,
+  extractProfileLevel,
   getRetrievalStrategy,
   QUERY_WEIGHTS,
+  RECENT_DIALOGUE_TURNS,
+  type RetrievalQueryExtras,
 } from "./retrieval-query";
+import { recentTranscriptEntries } from "@/lib/interview/domain";
 import {
   MMR_LAMBDA,
   parseVector,
   REDUNDANCY_THRESHOLD,
   selectWithMmr,
 } from "./retrieval-selection";
+import { inferPreferredCategories } from "./retrieval-categories";
+import {
+  buildGapFillQueries,
+  buildInterviewCoverage,
+  collectTargetTerms,
+  fuseMultiQueryPools,
+  type MultiQueryBranch,
+} from "./retrieval-coverage";
 import {
   loadExcludedQuestionIds,
   scheduleRetrievalSideEffects,
@@ -52,11 +65,88 @@ export function emptyRetrievalComputation(): RetrievalComputation {
 /** How many questions end up in the prompt. */
 export const DEFAULT_LIMIT = 6;
 /** Questions fetched from the database before reranking and filtering. */
-export const CANDIDATE_POOL = 40;
+export const CANDIDATE_POOL = 60;
+/** Per multi-query branch pool size before fusion. */
+export const BRANCH_POOL = 24;
 /** Questions below this score threshold are dropped. */
 export const MIN_SIMILARITY = 0.20;
-/** Longest retrieval may delay a turn before it gives up. */
-export const RETRIEVAL_TIMEOUT_MS = 2500;
+/**
+ * Retrieval budget. Multi-query + cold reranker can exceed 2.5s on first turn;
+ * keep headroom so we return results instead of emptying the prompt.
+ */
+export const RETRIEVAL_TIMEOUT_MS = 3500;
+
+function preferredCategoriesFromSession(
+  focusAreas: string,
+  activePillar: string
+): string[] {
+  const raw = [focusAreas, activePillar]
+    .filter(Boolean)
+    .flatMap((value) => value.split(/[,/|]/))
+    .map((value) => value.trim())
+    .filter((value) => value.length > 2);
+  return [...new Set(raw)].slice(0, 8);
+}
+
+/** Prefer relevance over variety for keyword-heavy technical rounds. */
+function mmrLambdaForInterviewType(interviewType: string): number {
+  switch (interviewType) {
+    case "system-design":
+    case "coding-algorithms":
+    case "domain-role":
+      return 0.86;
+    case "bar-raiser":
+      return 0.8;
+    default:
+      return MMR_LAMBDA;
+  }
+}
+
+function isTechnicalInterviewType(interviewType: string): boolean {
+  return (
+    interviewType === "system-design" ||
+    interviewType === "coding-algorithms" ||
+    interviewType === "domain-role" ||
+    interviewType === "bar-raiser"
+  );
+}
+
+async function resolveCompanySignals(
+  session: PromptInterviewSession,
+  roleSlug: string
+): Promise<string> {
+  if (!session.company?.trim()) return "";
+  try {
+    const { resolveCompanyPack } = await import("@/data/company-packs");
+    const level =
+      extractProfileLevel(session.sessionPlan) ||
+      (session.difficulty === "easy"
+        ? "entry-level"
+        : session.difficulty === "hard"
+          ? "senior"
+          : "mid-level");
+    const resolved = await resolveCompanyPack(session.company, roleSlug, level);
+    const themeShapes = resolved.filteredThemes
+      .filter((theme) => theme.types.length === 0 || theme.types.includes(session.type))
+      .map((theme) => theme.shape)
+      .slice(0, 2);
+    return [
+      resolved.methodSummary,
+      ...resolved.levelSignals.slice(0, 2),
+      ...resolved.roleFamilySignals.slice(0, 2),
+      ...themeShapes,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .slice(0, 500);
+  } catch (error) {
+    logger.warn("Company pack resolution for retrieval failed", {
+      company: session.company,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return "";
+  }
+}
 
 /**
  * Core Two-Stage Retrieval & Reranking Workflow.
@@ -66,7 +156,13 @@ export async function retrieve(
   limit: number,
   context: RetrievalExecutionContext
 ): Promise<RetrievalComputation> {
-  const query = buildRetrievalQuery(session);
+  const roleSlug = normalizeRoleSlug(session.role);
+  const companySignals = await resolveCompanySignals(session, roleSlug);
+  const queryExtras: RetrievalQueryExtras = companySignals
+    ? { companySignals }
+    : {};
+
+  const query = buildRetrievalQuery(session, queryExtras);
   if (!query) {
     return emptyRetrievalComputation();
   }
@@ -76,8 +172,7 @@ export async function retrieve(
   if (!context.isActive()) return emptyRetrievalComputation();
 
   const excludedIdsPromise = loadExcludedQuestionIds(session, prisma);
-  const parts = explainRetrievalQuery(session);
-  const roleSlug = normalizeRoleSlug(session.role);
+  const parts = explainRetrievalQuery(session, queryExtras);
 
   // 1. Semantic Chunking & Initial Active Chunk
   const allResumeChunks = session.resumeText ? chunkResumeSemantic(session.resumeText) : [];
@@ -89,21 +184,96 @@ export async function retrieve(
   );
 
   // 2. Formulate Synthesized Dense and Sparse Query
-  const denseQueryText = buildSynthesizedDenseQuery(session, initialActiveResumeChunk);
+  const denseQueryText = buildSynthesizedDenseQuery(
+    session,
+    initialActiveResumeChunk,
+    queryExtras
+  );
+  const resumeSkillKeywords = allResumeChunks
+    .filter((chunk) => chunk.section === "skills" || chunk.priority >= 1.0)
+    .flatMap((chunk) => chunk.keywords)
+    .slice(0, 30);
+  const recentTurns = recentTranscriptEntries(session.transcript, RECENT_DIALOGUE_TURNS);
+  const dialogueTerms = [
+    ...recentTurns.flatMap((turn) => [
+      ...extractKeyTechnicalTerms(turn.question),
+      ...extractKeyTechnicalTerms(answerWithTopicSignal(turn.answer) || turn.answer),
+    ]),
+    ...resumeSkillKeywords,
+    ...(initialActiveResumeChunk?.keywords ?? []),
+  ];
   const sparseKeywords = [
     session.role,
     session.type,
     parts.focusAreas,
-    parts.latestAnswer ? extractKeyTechnicalTerms(parts.latestAnswer).join(" ") : "",
-    initialActiveResumeChunk ? initialActiveResumeChunk.keywords.join(" ") : "",
+    parts.activePillar,
+    parts.levelHint,
+    parts.companySignals,
+    dialogueTerms.join(" "),
   ]
     .filter(Boolean)
     .join(" ");
 
-  // 3. Dense Embedding started concurrently with exclusions loading
+  const focusPillars = preferredCategoriesFromSession(parts.focusAreas, parts.activePillar);
+  const preferredCategories = inferPreferredCategories({
+    interviewType: session.type,
+    focusAreas: parts.focusAreas,
+    activePillar: parts.activePillar,
+    technicalTerms: dialogueTerms,
+  });
+  for (const label of focusPillars) {
+    if (!preferredCategories.includes(label)) preferredCategories.push(label);
+  }
+
+  const targetTerms = collectTargetTerms([
+    parts.latestAnswer,
+    parts.latestQuestion,
+    parts.focusAreas,
+    parts.activePillar,
+    resumeSkillKeywords.join(" "),
+    parts.companySignals,
+  ]);
+  const targetPillars = [
+    ...focusPillars,
+    ...(parts.activePillar ? [parts.activePillar] : []),
+  ].filter((value, index, arr) => arr.findIndex((v) => v.toLowerCase() === value.toLowerCase()) === index);
+
+  const coverage = buildInterviewCoverage({
+    transcript: session.transcript,
+    targetTerms,
+    targetCategories: preferredCategories.slice(0, 10),
+    targetPillars,
+    activePillar: parts.activePillar,
+  });
+
+  // Prefer still-missing categories at the front of the preference list.
+  for (const missing of [...coverage.missingCategories].reverse()) {
+    const idx = preferredCategories.indexOf(missing);
+    if (idx >= 0) preferredCategories.splice(idx, 1);
+    preferredCategories.unshift(missing);
+  }
+
+  // Gap-fill only after we have real interview history. On the first answered turn,
+  // "missing" ≈ everything not in that one answer, which duplicates conversational
+  // retrieval and regularly blows the cold-start latency budget.
+  const transcriptLen = Array.isArray(session.transcript) ? session.transcript.length : 0;
+  const gapFillQueries =
+    transcriptLen >= 2
+      ? buildGapFillQueries(coverage, {
+          role: session.role || session.type,
+          interviewType: session.type,
+        })
+      : null;
+
+  // Conversational query already includes active pillar / focus areas — a separate
+  // agenda branch was redundant cost. Only add gap-fill when it earns its keep.
+  const denseTexts = [denseQueryText];
+  if (gapFillQueries) denseTexts.push(gapFillQueries.denseQuery);
+
+  // 3. Dense Embedding (batch all branches) started concurrently with exclusions loading
   const embedStartedAt = Date.now();
   const embeddingPromise = localEmbedder
-    .embed([denseQueryText])
+    .embed(denseTexts)
     .then((vectors) => ({ vectors, embedMs: Date.now() - embedStartedAt }));
 
   const [{ vectors, embedMs }, excludedIds] = await Promise.all([
@@ -113,43 +283,89 @@ export async function retrieve(
   if (!context.isActive()) return emptyRetrievalComputation();
 
   const excludedSet = new Set(excludedIds);
-  const queryVector = vectors[0] ?? [];
-  const vectorLiteral = toVectorLiteral(queryVector);
 
-  // 4. Stage 1: Hybrid Retrieval (pgvector + FTS with RRF & Query Routing)
+  // 4. Stage 1: Hybrid retrieval — conversational (+ optional gap-fill), then RRF fuse
   const queryStartedAt = Date.now();
   const { denseWeight, sparseWeight } = getRetrievalStrategy(session.type);
-  const hybridPool: HybridCandidateRow[] = await executeHybridRetrieval(prisma, {
-    queryVectorLiteral: vectorLiteral,
-    sparseKeywords,
-    roleSlug,
-    interviewType: session.type,
-    poolLimit: CANDIDATE_POOL,
-    denseWeight,
-    sparseWeight,
-  });
+
+  const branchSpecs: Array<{
+    label: MultiQueryBranch["label"];
+    weight: number;
+    denseIndex: number;
+    sparse: string;
+  }> = [{ label: "conversational", weight: 1, denseIndex: 0, sparse: sparseKeywords }];
+
+  if (gapFillQueries) {
+    branchSpecs[0].weight = 0.6;
+    branchSpecs.push({
+      label: "gapFill",
+      weight: 0.4,
+      denseIndex: 1,
+      sparse: gapFillQueries.sparseKeywords,
+    });
+  }
+
+  const branchPools = await Promise.all(
+    branchSpecs.map(async (spec) => {
+      const queryVector = vectors[spec.denseIndex] ?? vectors[0] ?? [];
+      const rows = await executeHybridRetrieval(prisma, {
+        queryVectorLiteral: toVectorLiteral(queryVector),
+        sparseKeywords: spec.sparse,
+        roleSlug,
+        interviewType: session.type,
+        poolLimit: BRANCH_POOL,
+        denseWeight,
+        sparseWeight,
+      });
+      return { label: spec.label, weight: spec.weight, rows };
+    })
+  );
+
+  const hybridPool: HybridCandidateRow[] = fuseMultiQueryPools(branchPools, CANDIDATE_POOL);
   if (!context.isActive()) return emptyRetrievalComputation();
 
   const queryMs = Date.now() - queryStartedAt;
 
   // 5. Stage 2: High-Precision Cross-Encoder Reranking
   const rerankStartedAt = Date.now();
+  // Normalize baseScore to [0, 1]:
+  // - `similarity` from dense pgvector is already a cosine similarity in [0, 1] ✅
+  // - `rrfScore` is in [0, ~0.016] range (denseWeight+sparseWeight)/(60+1) at rank 1.
+  //   Sparse-only candidates have null similarity and fall back to rrfScore, which is
+  //   near-zero and would be treated as irrelevant by the heuristic formula.
+  //   We normalize it by the theoretical max RRF score so all candidates get a fair baseScore.
+  const MAX_RRF_SCORE = 1.0 / (60 + 1); // ≈ 0.0164 with weights summing to 1
   const rerankableCandidates = hybridPool.map((c) => ({
     id: c.id,
     question: c.question,
     answer: c.answer,
     category: c.category,
     difficulty: c.difficulty,
+    level: c.level,
     roleTags: c.roleTags,
     types: c.types,
-    baseScore: c.similarity ?? c.rrfScore,
+    baseScore: c.similarity != null
+      ? Math.min(Math.max(c.similarity, 0), 1)
+      : Math.min(c.rrfScore / MAX_RRF_SCORE, 1),
   }));
+
+  const targetLevel =
+    extractProfileLevel(session.sessionPlan) ||
+    (session.difficulty === "easy"
+      ? "entry-level"
+      : session.difficulty === "hard"
+        ? "senior"
+        : "mid-level");
 
   const rerankedPool: ScoredRerankedCandidate[] = await rerankCandidates(
     denseQueryText,
     rerankableCandidates,
     {
       targetRoleSlug: roleSlug,
+      targetDifficulty: session.difficulty ?? undefined,
+      targetLevel,
+      preferredCategories: preferredCategories.slice(0, 10),
+      strictCategoryPreference: isTechnicalInterviewType(session.type),
       topK: CANDIDATE_POOL,
     }
   );
@@ -186,11 +402,24 @@ export async function retrieve(
 
   const survivedCount = fresh.length;
 
-  // Prioritize unseen questions with MMR
-  const chosen = selectWithMmr([...fresh], limit, cosineSimilarity);
+  // Prioritize unseen questions with MMR; bias later picks toward uncovered terms/categories.
+  const mmrLambda = mmrLambdaForInterviewType(session.type);
+  const coverageTerms = [
+    ...dialogueTerms.map((term) => term.toLowerCase()),
+    ...coverage.missingTerms,
+  ].filter((term) => term.length >= 3);
+  const mmrOptions = {
+    mmrLambda,
+    coverageTerms: [...new Set(coverageTerms)].slice(0, 40),
+    gapCategories: coverage.missingCategories.slice(0, 8),
+    // Behavioral benefits most from later-slot gap fill without moving #1/#2 off the story.
+    continuitySlots: session.type === "behavioral-leadership" ? 2 : 2,
+    gapCategoryWeight: session.type === "behavioral-leadership" ? 0.3 : 0.22,
+  };
+  const chosen = selectWithMmr([...fresh], limit, cosineSimilarity, mmrOptions);
   let backfilledCount = 0;
   if (chosen.length < limit && seen.length > 0) {
-    const backfill = selectWithMmr([...seen], limit - chosen.length, cosineSimilarity);
+    const backfill = selectWithMmr([...seen], limit - chosen.length, cosineSimilarity, mmrOptions);
     backfilledCount = backfill.length;
     for (const row of backfill) {
       rejections.delete(row.question);
@@ -204,6 +433,7 @@ export async function retrieve(
     answer: row.answer,
     category: row.category,
     difficulty: row.difficulty,
+    level: row.level,
     similarity: row.fusedScore,
   }));
 
@@ -213,7 +443,7 @@ export async function retrieve(
   let trace: RagTraceRecord | null = null;
   if (ragTracePath()) {
     const selectedQuestions = new Set(selected.map((entry) => entry.question));
-    const weightedParts = buildWeightedQueryParts(session);
+    const weightedParts = buildWeightedQueryParts(session, queryExtras);
     const weightTotal = weightedParts.reduce((sum, p) => sum + p.weight, 0) || 1;
 
     trace = {
@@ -284,7 +514,7 @@ export async function retrieve(
       timings: { embedMs, queryMs, rerankMs, totalMs: Date.now() - startedAt },
       config: {
         minSimilarity: MIN_SIMILARITY,
-        mmrLambda: MMR_LAMBDA,
+        mmrLambda,
         redundancyThreshold: REDUNDANCY_THRESHOLD,
         candidatePool: CANDIDATE_POOL,
         limit,

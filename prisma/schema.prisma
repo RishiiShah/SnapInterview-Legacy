@@ -426,6 +426,7 @@ model QuestionCorpus {
   // A hint, not a filter. The behavioural source labelled difficulty at random,
   // so use it to order results, never to exclude them.
   difficulty  String?
+  level       String?
   // Interview types this question suits.
   types       String[]
   // Roles this question suits. Empty means it suits any role, which is true of

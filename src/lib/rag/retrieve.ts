@@ -8,6 +8,8 @@ export {
   buildRetrievalQuery,
   buildSynthesizedDenseQuery,
   getRetrievalStrategy,
+  resolveQueryWeights,
+  QUERY_WEIGHTS,
 } from "./retrieval-query";
 
 export type {

@@ -58,6 +58,11 @@ export async function recordRetrievedQuestions(
     return;
   }
 
+  // Benchmark / preview sessions use synthetic IDs that are not in InterviewSession.
+  if (session.id.startsWith("benchmark-") || session.id.startsWith("preview-")) {
+    return;
+  }
+
   try {
     if (!context.isActive()) return;
     await prisma.retrievedQuestion.createMany({

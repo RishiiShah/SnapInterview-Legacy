@@ -168,6 +168,23 @@ export function latestTranscriptEntry(
   return transcript.reduce((latest, entry) => (entry.order > latest.order ? entry : latest));
 }
 
+/**
+ * Most recent N transcript turns by `order` (oldest → newest within the window).
+ * Used for short-term interview memory without embedding the full session.
+ */
+export function recentTranscriptEntries(
+  transcript: PromptInterviewSession["transcript"],
+  limit = 2
+): Array<{ question: string; answer: string; order: number }> {
+  if (!Array.isArray(transcript) || transcript.length === 0 || limit <= 0) {
+    return [];
+  }
+
+  return [...transcript]
+    .sort((a, b) => a.order - b.order)
+    .slice(-limit);
+}
+
 export function normalizePromptInterviewSession(session: {
   role: string;
   company: string | null;

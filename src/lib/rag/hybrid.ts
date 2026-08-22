@@ -9,6 +9,7 @@ export interface HybridCandidateRow {
   answer: string | null;
   category: string;
   difficulty: string | null;
+  level: string | null;
   roleTags: string[];
   types?: string[];
   embedding: string | null;
@@ -78,15 +79,18 @@ export async function executeHybridRetrieval(
         answer: string | null;
         category: string;
         difficulty: string | null;
+  level: string | null;
         roleTags: string[];
         types: string[];
         similarity: number;
         embedding: string;
       }>
     >`
-      SELECT "id", "question", "answer", "category", "difficulty", "roleTags", "types",
-             (1 - ("embedding" OPERATOR(extensions.<=>) ${queryVectorLiteral}::extensions.vector))
-               + CASE WHEN ${roleSlug} = ANY("roleTags") THEN 0.1::double precision ELSE 0 END AS similarity,
+      SELECT "id", "question", "answer", "category", "difficulty", "level", "roleTags", "types",
+             -- Pure cosine similarity in [0, 1]. Role-tag boost is applied later in
+             -- the cross-encoder reranker (computeHeuristicRerankScore) to keep this
+             -- value semantically correct and avoid scale confusion with rrfScore.
+             (1 - ("embedding" OPERATOR(extensions.<=>) ${queryVectorLiteral}::extensions.vector)) AS similarity,
              "embedding"::text AS embedding
       FROM "QuestionCorpus"
       WHERE "embedding" IS NOT NULL
@@ -107,13 +111,14 @@ export async function executeHybridRetrieval(
             answer: string | null;
             category: string;
             difficulty: string | null;
+  level: string | null;
             roleTags: string[];
             types: string[];
             rank_score: number;
             embedding: string;
           }>
         >`
-          SELECT "id", "question", "answer", "category", "difficulty", "roleTags", "types",
+          SELECT "id", "question", "answer", "category", "difficulty", "level", "roleTags", "types",
                  ts_rank(
                    to_tsvector('english', "question" || ' ' || COALESCE("answer", '') || ' ' || "category" || ' ' || array_to_string("keywords", ' ')),
                    plainto_tsquery('english', ${cleanSparseQuery})
@@ -142,6 +147,7 @@ export async function executeHybridRetrieval(
         answer: string | null;
         category: string;
         difficulty: string | null;
+  level: string | null;
         roleTags: string[];
         types: string[];
         embedding: string | null;
@@ -166,6 +172,7 @@ export async function executeHybridRetrieval(
         answer: item.answer,
         category: item.category,
         difficulty: item.difficulty,
+          level: item.level,
         roleTags: item.roleTags,
         types: item.types,
         embedding: item.embedding,
@@ -194,6 +201,7 @@ export async function executeHybridRetrieval(
           answer: item.answer,
           category: item.category,
           difficulty: item.difficulty,
+          level: item.level,
           roleTags: item.roleTags,
           types: item.types,
           embedding: item.embedding,

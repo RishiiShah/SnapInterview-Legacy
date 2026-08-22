@@ -38,8 +38,9 @@ function resolvePreferredType(value: string | null | undefined): InterviewType {
 export function normalizeOnboardingFormValues(
   value: OnboardingPreferenceSource | null | undefined
 ): OnboardingPreferencesFormValues {
+  const rawRole = value?.onboardingRole?.trim();
   return {
-    onboardingRole: value?.onboardingRole ?? DEFAULT_ONBOARDING_FORM_VALUES.onboardingRole,
+    onboardingRole: rawRole || DEFAULT_ONBOARDING_FORM_VALUES.onboardingRole,
     onboardingLevel: value?.onboardingLevel ?? DEFAULT_ONBOARDING_FORM_VALUES.onboardingLevel,
     onboardingCompany: value?.onboardingCompany ?? DEFAULT_ONBOARDING_FORM_VALUES.onboardingCompany,
     onboardingGoal: value?.onboardingGoal ?? DEFAULT_ONBOARDING_FORM_VALUES.onboardingGoal,

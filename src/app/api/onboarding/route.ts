@@ -83,6 +83,7 @@ export const PUT = withCsrfProtection(async (req: Request) => {
     }
 
     const values = parsed.data;
+    const onboardingRole = values.onboardingRole.trim();
 
     const where = { id: authUser.userId };
 
@@ -91,7 +92,7 @@ export const PUT = withCsrfProtection(async (req: Request) => {
         where,
         data: {
           onboardingCompletedAt: new Date(),
-          onboardingRole: values.onboardingRole,
+          onboardingRole,
           onboardingLevel: values.onboardingLevel,
           onboardingCompany: values.onboardingCompany || null,
           onboardingGoal: values.onboardingGoal,

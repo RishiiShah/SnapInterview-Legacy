@@ -24,7 +24,8 @@
     "corpus:preview": "tsx scripts/preview-retrieval.ts",
     "cleanup:evaluations:preview": "npx prisma db execute --file src/lib/maintenance/sql/preview-invalid-evaluations.sql",
     "cleanup:evaluations": "npx prisma db execute --file src/lib/maintenance/sql/cleanup-invalid-evaluations.sql",
-    "rag:benchmark": "tsx scripts/benchmark-rag.ts"
+    "rag:benchmark": "tsx scripts/benchmark-rag.ts",
+    "rag:tune": "tsx scripts/tune-rag-selection.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1106.0",

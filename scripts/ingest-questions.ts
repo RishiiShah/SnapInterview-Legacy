@@ -1,25 +1,15 @@
-/**
- * Ingests the question corpora into `QuestionCorpus`, embedding each question
- * so retrieval only ever has to embed the (short) query at runtime.
- *
- * Idempotent: rows are keyed on `contentHash`, so re-running updates in place.
- *
- * Usage (requires `npx prisma migrate deploy` first):
- *   npx tsx scripts/ingest-questions.ts                       # both sources
- *   npx tsx scripts/ingest-questions.ts --source=software
- *   npx tsx scripts/ingest-questions.ts --software-csv=/path/to/questions.csv
- */
-import { createHash, randomUUID } from "crypto";
 import { readFile } from "fs/promises";
+import { createHash, randomUUID } from "crypto";
 import path from "path";
-import { parseCsvRecords } from "../src/lib/csv";
-import { prisma } from "../src/lib/prisma";
-import { dedupeByNormalizedQuestion, normalizeCorpusQuestion } from "../src/lib/rag/corpus-normalization";
-import { localEmbedder, toVectorLiteral } from "../src/lib/rag/embeddings";
-import { CORPUS_SOURCES, mapHrCategory, mapSoftwareCategory, normalizeCategory } from "../src/lib/rag/taxonomy";
 
-const HR_CORPUS_PATH = path.join(process.cwd(), "src/data/corpus/hr-questions.json");
-const DEFAULT_SOFTWARE_CSV = path.join(process.cwd(), "src/data/corpus/software-questions.csv");
+import { prisma } from "../src/lib/prisma";
+import { dedupeByNormalizedQuestion, dropNearDuplicateQuestions, normalizeCorpusQuestion, parseCorpusTags } from "../src/lib/rag/corpus-normalization";
+import { localEmbedder, toVectorLiteral } from "../src/lib/rag/embeddings";
+import { mapHrCategory, mapSoftwareCategory, normalizeCategory } from "../src/lib/rag/taxonomy";
+import { parseCsvRecords } from "../src/lib/csv";
+
+const DEFAULT_SOFTWARE_CSV = path.join(process.cwd(), "src/data/corpus/technical-questions.csv");
+const DEFAULT_HR_CSV = path.join(process.cwd(), "src/data/corpus/hr-questions.csv");
 const EMBED_BATCH_SIZE = 64;
 
 interface CorpusRecord {
@@ -27,6 +17,7 @@ interface CorpusRecord {
   answer: string | null;
   category: string;
   difficulty: string | null;
+  level: string | null;
   types: string[];
   roleTags: string[];
   keywords: string[];
@@ -34,23 +25,10 @@ interface CorpusRecord {
   contentHash: string;
 }
 
-/**
- * The dedupe key. Exact-match on normalized text only: measured against the
- * software corpus, every lexical near-match (Jaccard 0.6-0.99) was a shared
- * phrasing template between genuinely different questions -- "What is OAuth,
- * and how does it work?" vs "What is Docker, and how does it work?" -- so
- * fuzzy deduplication would delete real content.
- */
 function hashQuestion(question: string): string {
   return createHash("sha256").update(normalizeCorpusQuestion(question)).digest("hex");
 }
 
-/**
- * The original download is windows-1252, not UTF-8 (it carries 0x97 em-dashes),
- * while the committed copy is UTF-8. Decoding either one wrongly yields mojibake
- * that would end up verbatim in an interview prompt, so detect rather than
- * assume: strict UTF-8 first, windows-1252 only when that rejects the bytes.
- */
 function decodeCsvBytes(raw: Buffer): string {
   try {
     return new TextDecoder("utf-8", { fatal: true }).decode(raw);
@@ -69,6 +47,8 @@ async function loadSoftwareRecords(csvPath: string): Promise<CorpusRecord[]> {
   const answerAt = columnIndex("answer");
   const categoryAt = columnIndex("category");
   const difficultyAt = columnIndex("difficulty");
+  const levelAt = columnIndex("level");
+  const tagsAt = columnIndex("tags");
 
   if (questionAt === -1 || categoryAt === -1) {
     throw new Error(`Unexpected CSV header: ${header.join(", ")}`);
@@ -87,55 +67,73 @@ async function loadSoftwareRecords(csvPath: string): Promise<CorpusRecord[]> {
     return [
       {
         question,
-        // Reference answers here are human-written and usable for grounding
-        // evaluation, unlike the HR set's.
         answer: answer || null,
         category,
         difficulty: row[difficultyAt]?.trim() || null,
+        level: levelAt !== -1 ? (row[levelAt]?.trim() || null) : null,
         types,
         roleTags,
-        keywords: [],
-        source: CORPUS_SOURCES.software,
+        keywords: tagsAt !== -1 ? parseCorpusTags(row[tagsAt]) : [],
+        source: path.parse(csvPath).name,
         contentHash: hashQuestion(question),
       },
     ];
   });
 }
 
-async function loadHrRecords(): Promise<CorpusRecord[]> {
-  const raw = await readFile(HR_CORPUS_PATH, "utf8");
-  const entries = JSON.parse(raw) as { question: string; category: string; keywords: string[] }[];
+async function loadHrRecords(csvPath: string): Promise<CorpusRecord[]> {
+  const raw = await readFile(csvPath);
+  const rows = parseCsvRecords(decodeCsvBytes(raw));
+  const [header, ...body] = rows;
 
-  return entries.map((entry) => {
-    const { types, roleTags } = mapHrCategory(entry.category);
-    return {
-      question: entry.question,
-      // Deliberately null: the source's `ideal_answer` is generic, identical
-      // across seniority levels, and echoes its own question. Behavioural
-      // answers are graded on STAR structure instead.
-      answer: null,
-      category: entry.category,
-      // Also deliberately null: the source labels every question Easy, Medium
-      // AND Hard, so any value here would be noise.
-      difficulty: null,
-      types,
-      roleTags,
-      keywords: entry.keywords ?? [],
-      source: CORPUS_SOURCES.hr,
-      contentHash: hashQuestion(entry.question),
-    };
+  const columnIndex = (name: string) => header.findIndex((h) => h.trim().toLowerCase() === name);
+  const questionAt = columnIndex("question");
+  const answerAt = columnIndex("answer");
+  const categoryAt = columnIndex("category");
+  const difficultyAt = columnIndex("difficulty");
+  const levelAt = columnIndex("level");
+  const tagsAt = columnIndex("tags");
+
+  if (questionAt === -1 || categoryAt === -1) {
+    throw new Error(`Unexpected CSV header: ${header.join(", ")}`);
+  }
+
+  return body.flatMap((row) => {
+    const question = row[questionAt]?.trim();
+    if (!question) {
+      return [];
+    }
+
+    const category = row[categoryAt] ?? "";
+    const { types, roleTags } = mapHrCategory(category);
+    const answer = row[answerAt]?.trim();
+
+    return [
+      {
+        question,
+        answer: answer || null,
+        category,
+        difficulty: row[difficultyAt]?.trim() || null,
+        level: levelAt !== -1 ? (row[levelAt]?.trim() || null) : null,
+        types,
+        roleTags,
+        keywords: tagsAt !== -1 ? parseCorpusTags(row[tagsAt]) : [],
+        source: path.parse(csvPath).name,
+        contentHash: hashQuestion(question),
+      },
+    ];
   });
 }
 
 async function upsert(record: CorpusRecord, embedding: number[]): Promise<void> {
   await prisma.$executeRaw`
     INSERT INTO "QuestionCorpus" (
-      "id", "question", "answer", "category", "difficulty",
+      "id", "question", "answer", "category", "difficulty", "level",
       "types", "roleTags", "keywords", "source", "contentHash",
       "embedding", "createdAt", "updatedAt"
     )
     VALUES (
-      ${randomUUID()}, ${record.question}, ${record.answer}, ${record.category}, ${record.difficulty},
+      ${randomUUID()}, ${record.question}, ${record.answer}, ${record.category}, ${record.difficulty}, ${record.level},
       ${record.types}::text[], ${record.roleTags}::text[], ${record.keywords}::text[],
       ${record.source}, ${record.contentHash},
       ${toVectorLiteral(embedding)}::extensions.vector, NOW(), NOW()
@@ -145,6 +143,7 @@ async function upsert(record: CorpusRecord, embedding: number[]): Promise<void> 
       "answer"     = COALESCE(EXCLUDED."answer", "QuestionCorpus"."answer"),
       "category"   = EXCLUDED."category",
       "difficulty" = EXCLUDED."difficulty",
+      "level"      = EXCLUDED."level",
       "types"      = EXCLUDED."types",
       "roleTags"   = EXCLUDED."roleTags",
       "keywords"   = EXCLUDED."keywords",
@@ -160,8 +159,7 @@ async function main() {
 
   const source = flag("source") ?? "all";
   const softwareCsv = flag("software-csv") ?? DEFAULT_SOFTWARE_CSV;
-  // Exercises parsing, mapping, dedupe and embedding without touching the
-  // database — safe to run before the migration has been applied.
+  const hrCsv = flag("hr-csv") ?? DEFAULT_HR_CSV;
   const dryRun = args.includes("--dry-run");
 
   const records: CorpusRecord[] = [];
@@ -173,8 +171,8 @@ async function main() {
   }
 
   if (source === "all" || source === "hr") {
-    const hr = await loadHrRecords();
-    console.log(`hr:       ${hr.length} rows read from ${HR_CORPUS_PATH}`);
+    const hr = await loadHrRecords(hrCsv);
+    console.log(`hr:       ${hr.length} rows read from ${hrCsv}`);
     records.push(...hr);
   }
 
@@ -182,16 +180,15 @@ async function main() {
     throw new Error(`No records loaded (--source=${source})`);
   }
 
-  const { unique, dropped } = dedupeByNormalizedQuestion(records);
-  console.log(`\ndeduped:  ${unique.length} unique (${dropped} duplicates dropped)`);
+  const { unique: exactUnique, dropped } = dedupeByNormalizedQuestion(records);
+  const { unique, dropped: nearDropped } = dropNearDuplicateQuestions(exactUnique);
+  console.log(`\ndeduped:  ${exactUnique.length} unique (${dropped} exact duplicates dropped)`);
+  console.log(`near-dupe: ${unique.length} kept (${nearDropped} near-duplicates dropped)`);
 
   console.log("embedding...");
   const embeddings: number[][] = [];
   for (let i = 0; i < unique.length; i += EMBED_BATCH_SIZE) {
     const batch = unique.slice(i, i + EMBED_BATCH_SIZE);
-    // Embed question and reference answer together where one exists: retrieval
-    // matches on topic, and the answer text carries topic vocabulary the
-    // (median 54-character) question often omits.
     const texts = batch.map((r) => (r.answer ? `${r.question}\n${r.answer}` : r.question));
     embeddings.push(...(await localEmbedder.embed(texts)));
     console.log(`  ${Math.min(i + EMBED_BATCH_SIZE, unique.length)}/${unique.length}`);

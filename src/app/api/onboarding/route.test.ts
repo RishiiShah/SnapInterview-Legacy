@@ -89,7 +89,7 @@ describe("/api/onboarding", () => {
         select: { id: true },
         data: expect.objectContaining({
           onboardingCompletedAt: expect.any(Date),
-          onboardingRole: "Frontend Engineer",
+          onboardingRole: "Software Engineer - Frontend",
           onboardingLevel: "mid-level",
           onboardingCompany: null,
           onboardingGoal: "switch-companies",

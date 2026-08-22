@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  buildScenarioTranscript,
   runProductionRetrieval,
   toPromptInterviewSession,
   type ProductionRetrievalRunner,
@@ -26,6 +27,7 @@ const retrieved: RetrievedQuestion = {
   answer: "Cache invalidation strategies include TTL, write-through, and cache-aside.",
   category: "System Design",
   difficulty: "medium",
+  level: null,
   similarity: 0.85,
 };
 
@@ -43,6 +45,45 @@ describe("benchmark-session", () => {
     expect(session.transcript).toEqual([
       { question: "(previous question)", answer: scenario.latestAnswer, order: 0 },
     ]);
+  });
+
+  it("builds multi-turn transcripts with focus areas for gap-fill context", () => {
+    const multi: RagBenchmarkScenario = {
+      ...scenario,
+      id: "multi",
+      latestAnswer: "Second answer about Redux gaps.",
+      focusAreas: ["React Performance", "State Management"],
+      transcriptTurns: [
+        {
+          question: "How do you stop re-renders?",
+          answer: "I use React.memo and useCallback.",
+        },
+        {
+          question: "What next?",
+          answer: "Second answer about Redux gaps.",
+        },
+      ],
+    };
+
+    const transcript = buildScenarioTranscript(multi);
+    expect(transcript).toHaveLength(2);
+    expect(transcript[1].answer).toBe(multi.latestAnswer);
+
+    const session = toPromptInterviewSession(multi);
+    expect(session.transcript).toHaveLength(2);
+    expect(session.currentQuestion).toBe(2);
+    expect(session.focusAreas).toEqual(["React Performance", "State Management"]);
+    expect(session.sessionPlan).toEqual(
+      expect.objectContaining({
+        brief: expect.objectContaining({
+          agenda: expect.objectContaining({
+            pillars: expect.arrayContaining([
+              expect.objectContaining({ title: "React Performance" }),
+            ]),
+          }),
+        }),
+      })
+    );
   });
 
   it("runs the production retrieval contract with a production-shaped session", async () => {

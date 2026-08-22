@@ -67,8 +67,10 @@ export async function startInterviewSession(params: StartInterviewSessionInput) 
     params.questionCount ??
     (durationMinutes === 15 ? 5 : durationMinutes === 45 ? 15 : 10);
   const persona: InterviewPersona = params.persona ?? "balanced";
-  const rawRole = params.role ?? user?.onboardingRole ?? "Software Engineer";
-  const role = typeof rawRole === "string" ? rawRole.trim() || "Software Engineer" : "Software Engineer";
+  const requestedRole = typeof params.role === "string" ? params.role.trim() : "";
+  const onboardingRole =
+    typeof user?.onboardingRole === "string" ? user.onboardingRole.trim() : "";
+  const role = requestedRole || onboardingRole || "Software Engineer";
   const onboardingCompany =
     user?.onboardingCompany && isCuratedCompany(user.onboardingCompany)
       ? user.onboardingCompany

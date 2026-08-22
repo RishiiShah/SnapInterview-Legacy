@@ -73,7 +73,7 @@ describe("/api/onboarding", () => {
         origin: "http://localhost:3000",
       },
       body: JSON.stringify({
-        onboardingRole: "Frontend Engineer",
+        onboardingRole: "Software Engineer - Frontend",
         onboardingLevel: "mid-level",
         onboardingCompany: "",
         onboardingGoal: "switch-companies",

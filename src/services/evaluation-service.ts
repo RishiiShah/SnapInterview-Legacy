@@ -23,6 +23,7 @@ import {
   releaseInterviewEvaluationClaim,
 } from "@/repositories/interview-repo";
 import { getPracticeQuestionById } from "@/repositories/question-repo";
+import { formatMatchedEvaluationRubrics } from "@/lib/rag/evaluation-rubrics";
 
 const EVALUATION_CLAIM_TTL_MS = 10 * 60 * 1000;
 
@@ -87,6 +88,10 @@ export async function evaluateInterviewTranscript(params: {
     const formattedTranscript = transcript
       .map((entry, index) => `Q${index + 1}: ${entry.question}\nCandidate: ${entry.answer}`)
       .join("\n\n");
+    const matchedRubrics = formatMatchedEvaluationRubrics(
+      transcript,
+      interviewSession.retrievedQuestions ?? []
+    );
 
     const sessionPlan = interviewSession.sessionPlan as Record<string, unknown> | null;
     const brief = sessionPlan?.brief;
@@ -160,6 +165,7 @@ Here is the role context and criteria:
 ---
 ${roleContext}
 ---
+${matchedRubrics ? `\n${matchedRubrics}\n` : ""}
 
 HIRING COMMITTEE EVALUATION RUBRIC & INSTRUCTIONS:
 1. STRICTLY FORBIDDEN: Generic boilerplate. Every observation MUST be tied directly to specific claims and technical statements in the transcript.

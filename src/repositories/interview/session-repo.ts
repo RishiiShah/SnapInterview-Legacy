@@ -85,6 +85,22 @@ export const interviewSessionEvaluationSelect = {
       order: "asc",
     },
   },
+  retrievedQuestions: {
+    select: {
+      questionOrder: true,
+      question: {
+        select: {
+          sourceId: true,
+          question: true,
+          answer: true,
+          commonMistakes: true,
+        },
+      },
+    },
+    orderBy: {
+      questionOrder: "asc",
+    },
+  },
 } satisfies Prisma.InterviewSessionSelect;
 
 export const interviewSessionSelectByView = {

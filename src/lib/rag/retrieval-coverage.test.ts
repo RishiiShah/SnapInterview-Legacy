@@ -29,6 +29,47 @@ describe("buildInterviewCoverage", () => {
     expect(coverage.coveredPillars).toContain("React Performance");
     expect(coverage.missingPillars).toContain("State Management");
   });
+
+  it("keeps a multi-word category missing when the transcript mentions only one broad token", () => {
+    const coverage = buildInterviewCoverage({
+      transcript: [
+        {
+          question: "How did your team reach the architecture decision?",
+          answer: "I documented the decision and owned the rollout plan.",
+        },
+      ],
+      targetTerms: [],
+      targetCategories: ["Team Collaboration", "Conflict Resolution"],
+      targetPillars: [],
+      activePillar: "",
+    });
+
+    expect(coverage.coveredCategories).not.toContain("Team Collaboration");
+    expect(coverage.missingCategories).toContain("Team Collaboration");
+  });
+
+  it("keeps topics named as explicit gaps missing and prioritizes them", () => {
+    const coverage = buildInterviewCoverage({
+      transcript: [
+        {
+          question: "What should we cover next?",
+          answer:
+            "We made the decision, but I still need to dig into peer feedback and cross-team collaboration afterward.",
+        },
+      ],
+      targetTerms: ["decision", "feedback", "collaboration", "stakeholder"],
+      targetCategories: ["Team Collaboration", "Feedback"],
+      targetPillars: [],
+      activePillar: "",
+    });
+
+    expect(coverage.coveredTerms).toContain("decision");
+    expect(coverage.coveredTerms).not.toContain("feedback");
+    expect(coverage.missingTerms.slice(0, 2)).toEqual(["feedback", "collaboration"]);
+    expect(coverage.missingCategories).toEqual(
+      expect.arrayContaining(["Team Collaboration", "Feedback"])
+    );
+  });
 });
 
 describe("buildGapFillQueries", () => {
@@ -50,6 +91,7 @@ describe("buildGapFillQueries", () => {
     expect(gap!.denseQuery).toMatch(/kafka/i);
     expect(gap!.denseQuery).toMatch(/Distributed Systems|Database/i);
     expect(gap!.sparseKeywords.toLowerCase()).toContain("redis");
+    expect(gap!.sparseKeywords).not.toContain("Distributed Systems");
   });
 
   it("returns null when everything targetable is already covered", () => {

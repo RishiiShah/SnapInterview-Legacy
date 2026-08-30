@@ -266,9 +266,9 @@ export async function retrieve(
       : null;
 
   // Conversational query already includes active pillar / focus areas — a separate
-  // agenda branch was redundant cost. Only add gap-fill when it earns its keep.
+  // agenda branch was redundant cost. Gap-fill is sparse-only below, so it does not
+  // need a second embedding of broad conversational context.
   const denseTexts = [denseQueryText];
-  if (gapFillQueries) denseTexts.push(gapFillQueries.denseQuery);
 
   // 3. Dense Embedding (batch all branches) started concurrently with exclusions loading
   const embedStartedAt = Date.now();
@@ -293,15 +293,29 @@ export async function retrieve(
     weight: number;
     denseIndex: number;
     sparse: string;
-  }> = [{ label: "conversational", weight: 1, denseIndex: 0, sparse: sparseKeywords }];
+    denseWeight: number;
+    sparseWeight: number;
+    matchAnySparseTerm: boolean;
+  }> = [{
+    label: "conversational",
+    weight: 1,
+    denseIndex: 0,
+    sparse: sparseKeywords,
+    denseWeight,
+    sparseWeight,
+    matchAnySparseTerm: false,
+  }];
 
   if (gapFillQueries) {
     branchSpecs[0].weight = 0.6;
     branchSpecs.push({
       label: "gapFill",
       weight: 0.4,
-      denseIndex: 1,
+      denseIndex: 0,
       sparse: gapFillQueries.sparseKeywords,
+      denseWeight: 0,
+      sparseWeight: 1,
+      matchAnySparseTerm: true,
     });
   }
 
@@ -314,8 +328,9 @@ export async function retrieve(
         roleSlug,
         interviewType: session.type,
         poolLimit: BRANCH_POOL,
-        denseWeight,
-        sparseWeight,
+        denseWeight: spec.denseWeight,
+        sparseWeight: spec.sparseWeight,
+        matchAnySparseTerm: spec.matchAnySparseTerm,
       });
       return { label: spec.label, weight: spec.weight, rows };
     })
@@ -337,8 +352,10 @@ export async function retrieve(
   const MAX_RRF_SCORE = 1.0 / (60 + 1); // ≈ 0.0164 with weights summing to 1
   const rerankableCandidates = hybridPool.map((c) => ({
     id: c.id,
+    sourceId: c.sourceId,
     question: c.question,
     answer: c.answer,
+    commonMistakes: c.commonMistakes,
     category: c.category,
     difficulty: c.difficulty,
     level: c.level,
@@ -429,8 +446,10 @@ export async function retrieve(
 
   const selected = chosen.map((row) => ({
     id: row.id,
+    sourceId: row.sourceId ?? null,
     question: row.question,
     answer: row.answer,
+    commonMistakes: row.commonMistakes ?? null,
     category: row.category,
     difficulty: row.difficulty,
     level: row.level,

@@ -10,6 +10,13 @@
  */
 import { prisma } from "../src/lib/prisma";
 import { localEmbedder, toVectorLiteral } from "../src/lib/rag/embeddings";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import {
+  assertCorpusSourceCounts,
+  assertValidCorpusSource,
+  parseCorpusSource,
+} from "../src/lib/rag/corpus-quality";
 
 
 const PROBES = [
@@ -34,6 +41,8 @@ interface CountRow {
   source: string;
   total: bigint;
   embedded: bigint;
+  withSourceId: bigint;
+  withCommonMistakes: bigint;
 }
 
 interface MatchRow {
@@ -43,6 +52,11 @@ interface MatchRow {
   similarity: number;
 }
 
+interface HashRow {
+  source: string;
+  contentHash: string;
+}
+
 async function main() {
   let failures = 0;
   const fail = (message: string) => {
@@ -50,11 +64,24 @@ async function main() {
     failures++;
   };
 
+  const [technicalCsv, hrCsv] = await Promise.all([
+    readFile(path.join(process.cwd(), "src/data/corpus/technical-questions.csv"), "utf8"),
+    readFile(path.join(process.cwd(), "src/data/corpus/hr-questions.csv"), "utf8"),
+  ]);
+  const sourceRecords = [
+    ...parseCorpusSource(technicalCsv, "technical"),
+    ...parseCorpusSource(hrCsv, "hr"),
+  ];
+  assertValidCorpusSource(sourceRecords);
+  assertCorpusSourceCounts(sourceRecords);
+
   // ── 1. Rows landed, every row embedded ──────────────────────────────────
   const counts = await prisma.$queryRaw<CountRow[]>`
     SELECT "source",
            COUNT(*)                                        AS total,
-           COUNT(*) FILTER (WHERE "embedding" IS NOT NULL) AS embedded
+           COUNT(*) FILTER (WHERE "embedding" IS NOT NULL) AS embedded,
+           COUNT(*) FILTER (WHERE "sourceId" IS NOT NULL AND "sourceId" <> '') AS "withSourceId",
+           COUNT(*) FILTER (WHERE "commonMistakes" IS NOT NULL AND "commonMistakes" <> '') AS "withCommonMistakes"
     FROM "QuestionCorpus"
     GROUP BY "source"
     ORDER BY "source"
@@ -70,14 +97,42 @@ async function main() {
     if (row.total !== row.embedded) {
       fail(`${row.source} has ${row.total - row.embedded} rows without an embedding`);
     }
+    if (row.total !== row.withSourceId) {
+      fail(`${row.source} has ${row.total - row.withSourceId} rows without an original question number`);
+    }
+    if (row.total !== row.withCommonMistakes) {
+      fail(`${row.source} has ${row.total - row.withCommonMistakes} rows without common mistakes`);
+    }
   }
 
-  const expectedSources = ["technical-questions", "hr-questions"] as const;
-  for (const source of expectedSources) {
+  const expectedSources = {
+    "technical-questions": 3000,
+    "hr-questions": 1440,
+  } as const;
+  for (const [source, expected] of Object.entries(expectedSources)) {
     const actual = Number(counts.find((r) => r.source === source)?.total ?? 0);
-    if (actual === 0) {
-      fail(`expected rows for source "${source}", found none`);
+    if (actual !== expected) {
+      fail(`expected exactly ${expected} rows for source "${source}", found ${actual}`);
     }
+  }
+  const total = counts.reduce((sum, row) => sum + Number(row.total), 0);
+  if (total !== 4440) fail(`expected exactly 4440 corpus rows, found ${total}`);
+  const unexpectedSources = counts.filter((row) => !(row.source in expectedSources));
+  if (unexpectedSources.length > 0) {
+    fail(`found unexpected corpus sources: ${unexpectedSources.map(({ source }) => source).join(", ")}`);
+  }
+
+  const databaseHashes = await prisma.$queryRaw<HashRow[]>`
+    SELECT "source", "contentHash" FROM "QuestionCorpus"
+    ORDER BY "contentHash"
+  `;
+  const expectedHashes = sourceRecords.map(({ contentHash }) => contentHash).sort();
+  const actualHashes = databaseHashes.map(({ contentHash }) => contentHash).sort();
+  if (
+    expectedHashes.length !== actualHashes.length ||
+    expectedHashes.some((hash, index) => hash !== actualHashes[index])
+  ) {
+    fail("database content hashes do not exactly match the two validated CSV sources");
   }
 
   // ── 2. Stored vectors have the dimensions the column promises ───────────
@@ -153,8 +208,8 @@ async function main() {
   const hybridCheck = await prisma.$queryRaw<Array<{ id: string; question: string; category: string }>>`
     SELECT "id", "question", "category"
     FROM "QuestionCorpus"
-    WHERE to_tsvector('english', "question" || ' ' || COALESCE("answer", '') || ' ' || "category" || ' ' || array_to_string("keywords", ' '))
-          @@ plainto_tsquery('english', 'React hooks')
+    WHERE to_tsvector('english', "question" || ' ' || COALESCE("answer", '') || ' ' || "category")
+          @@ websearch_to_tsquery('english', 'React hooks')
     LIMIT 3
   `;
   console.log(`  FTS text search matches for 'React hooks': ${hybridCheck.length}`);
@@ -166,14 +221,14 @@ async function main() {
 
   console.log(failures === 0 ? "\nAll checks passed." : `\n${failures} check(s) FAILED.`);
   if (failures > 0) {
-    process.exit(1);
+    process.exitCode = 1;
   }
 }
 
 main()
   .catch((error) => {
     console.error(error);
-    process.exit(1);
+    process.exitCode = 1;
   })
   .finally(async () => {
     await prisma.$disconnect();

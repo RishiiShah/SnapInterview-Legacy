@@ -1,33 +1,26 @@
 import { readFile } from "fs/promises";
-import { createHash, randomUUID } from "crypto";
+import { randomUUID } from "crypto";
 import path from "path";
 
 import { prisma } from "../src/lib/prisma";
-import { dedupeByNormalizedQuestion, dropNearDuplicateQuestions, normalizeCorpusQuestion, parseCorpusTags } from "../src/lib/rag/corpus-normalization";
 import { localEmbedder, toVectorLiteral } from "../src/lib/rag/embeddings";
-import { mapHrCategory, mapSoftwareCategory, normalizeCategory } from "../src/lib/rag/taxonomy";
-import { parseCsvRecords } from "../src/lib/csv";
+import {
+  toCorpusRecord,
+  type CorpusRecord,
+} from "../src/lib/rag/corpus-ingest-record";
+import {
+  assertSafeCorpusSync,
+  assertCorpusSourceCounts,
+  assertValidCorpusSource,
+  parseCorpusSource,
+  type CorpusSourceKind,
+  type CorpusSourceRecord,
+} from "../src/lib/rag/corpus-quality";
+import type { Prisma } from "../src/generated/prisma/client";
 
 const DEFAULT_SOFTWARE_CSV = path.join(process.cwd(), "src/data/corpus/technical-questions.csv");
 const DEFAULT_HR_CSV = path.join(process.cwd(), "src/data/corpus/hr-questions.csv");
 const EMBED_BATCH_SIZE = 64;
-
-interface CorpusRecord {
-  question: string;
-  answer: string | null;
-  category: string;
-  difficulty: string | null;
-  level: string | null;
-  types: string[];
-  roleTags: string[];
-  keywords: string[];
-  source: string;
-  contentHash: string;
-}
-
-function hashQuestion(question: string): string {
-  return createHash("sha256").update(normalizeCorpusQuestion(question)).digest("hex");
-}
 
 function decodeCsvBytes(raw: Buffer): string {
   try {
@@ -37,110 +30,43 @@ function decodeCsvBytes(raw: Buffer): string {
   }
 }
 
-async function loadSoftwareRecords(csvPath: string): Promise<CorpusRecord[]> {
+async function loadSourceRecords(
+  csvPath: string,
+  sourceKind: CorpusSourceKind
+): Promise<{ sourceRecords: CorpusSourceRecord[]; corpusRecords: CorpusRecord[] }> {
   const raw = await readFile(csvPath);
-  const rows = parseCsvRecords(decodeCsvBytes(raw));
-  const [header, ...body] = rows;
-
-  const columnIndex = (name: string) => header.findIndex((h) => h.trim().toLowerCase() === name);
-  const questionAt = columnIndex("question");
-  const answerAt = columnIndex("answer");
-  const categoryAt = columnIndex("category");
-  const difficultyAt = columnIndex("difficulty");
-  const levelAt = columnIndex("level");
-  const tagsAt = columnIndex("tags");
-
-  if (questionAt === -1 || categoryAt === -1) {
-    throw new Error(`Unexpected CSV header: ${header.join(", ")}`);
-  }
-
-  return body.flatMap((row) => {
-    const question = row[questionAt]?.trim();
-    if (!question) {
-      return [];
-    }
-
-    const category = normalizeCategory(row[categoryAt] ?? "");
-    const { types, roleTags } = mapSoftwareCategory(category);
-    const answer = row[answerAt]?.trim();
-
-    return [
-      {
-        question,
-        answer: answer || null,
-        category,
-        difficulty: row[difficultyAt]?.trim() || null,
-        level: levelAt !== -1 ? (row[levelAt]?.trim() || null) : null,
-        types,
-        roleTags,
-        keywords: tagsAt !== -1 ? parseCorpusTags(row[tagsAt]) : [],
-        source: path.parse(csvPath).name,
-        contentHash: hashQuestion(question),
-      },
-    ];
-  });
+  const sourceRecords = parseCorpusSource(decodeCsvBytes(raw), sourceKind);
+  assertValidCorpusSource(sourceRecords);
+  return {
+    sourceRecords,
+    corpusRecords: sourceRecords.map((record) =>
+      toCorpusRecord(record, path.parse(csvPath).name)
+    ),
+  };
 }
 
-async function loadHrRecords(csvPath: string): Promise<CorpusRecord[]> {
-  const raw = await readFile(csvPath);
-  const rows = parseCsvRecords(decodeCsvBytes(raw));
-  const [header, ...body] = rows;
-
-  const columnIndex = (name: string) => header.findIndex((h) => h.trim().toLowerCase() === name);
-  const questionAt = columnIndex("question");
-  const answerAt = columnIndex("answer");
-  const categoryAt = columnIndex("category");
-  const difficultyAt = columnIndex("difficulty");
-  const levelAt = columnIndex("level");
-  const tagsAt = columnIndex("tags");
-
-  if (questionAt === -1 || categoryAt === -1) {
-    throw new Error(`Unexpected CSV header: ${header.join(", ")}`);
-  }
-
-  return body.flatMap((row) => {
-    const question = row[questionAt]?.trim();
-    if (!question) {
-      return [];
-    }
-
-    const category = row[categoryAt] ?? "";
-    const { types, roleTags } = mapHrCategory(category);
-    const answer = row[answerAt]?.trim();
-
-    return [
-      {
-        question,
-        answer: answer || null,
-        category,
-        difficulty: row[difficultyAt]?.trim() || null,
-        level: levelAt !== -1 ? (row[levelAt]?.trim() || null) : null,
-        types,
-        roleTags,
-        keywords: tagsAt !== -1 ? parseCorpusTags(row[tagsAt]) : [],
-        source: path.parse(csvPath).name,
-        contentHash: hashQuestion(question),
-      },
-    ];
-  });
-}
-
-async function upsert(record: CorpusRecord, embedding: number[]): Promise<void> {
-  await prisma.$executeRaw`
+async function upsert(
+  record: CorpusRecord,
+  embedding: number[],
+  client: Pick<Prisma.TransactionClient, "$executeRaw"> = prisma
+): Promise<void> {
+  await client.$executeRaw`
     INSERT INTO "QuestionCorpus" (
-      "id", "question", "answer", "category", "difficulty", "level",
+      "id", "sourceId", "question", "answer", "commonMistakes", "category", "difficulty", "level",
       "types", "roleTags", "keywords", "source", "contentHash",
       "embedding", "createdAt", "updatedAt"
     )
     VALUES (
-      ${randomUUID()}, ${record.question}, ${record.answer}, ${record.category}, ${record.difficulty}, ${record.level},
+      ${randomUUID()}, ${record.sourceId}, ${record.question}, ${record.answer}, ${record.commonMistakes}, ${record.category}, ${record.difficulty}, ${record.level},
       ${record.types}::text[], ${record.roleTags}::text[], ${record.keywords}::text[],
       ${record.source}, ${record.contentHash},
       ${toVectorLiteral(embedding)}::extensions.vector, NOW(), NOW()
     )
     ON CONFLICT ("contentHash") DO UPDATE SET
       "question"   = EXCLUDED."question",
+      "sourceId"   = EXCLUDED."sourceId",
       "answer"     = COALESCE(EXCLUDED."answer", "QuestionCorpus"."answer"),
+      "commonMistakes" = COALESCE(EXCLUDED."commonMistakes", "QuestionCorpus"."commonMistakes"),
       "category"   = EXCLUDED."category",
       "difficulty" = EXCLUDED."difficulty",
       "level"      = EXCLUDED."level",
@@ -163,27 +89,29 @@ async function main() {
   const dryRun = args.includes("--dry-run");
 
   const records: CorpusRecord[] = [];
+  const sourceRecords: CorpusSourceRecord[] = [];
 
   if (source === "all" || source === "software") {
-    const software = await loadSoftwareRecords(softwareCsv);
-    console.log(`software: ${software.length} rows read from ${softwareCsv}`);
-    records.push(...software);
+    const software = await loadSourceRecords(softwareCsv, "technical");
+    console.log(`software: ${software.corpusRecords.length} rows read from ${softwareCsv}`);
+    sourceRecords.push(...software.sourceRecords);
+    records.push(...software.corpusRecords);
   }
 
   if (source === "all" || source === "hr") {
-    const hr = await loadHrRecords(hrCsv);
-    console.log(`hr:       ${hr.length} rows read from ${hrCsv}`);
-    records.push(...hr);
+    const hr = await loadSourceRecords(hrCsv, "hr");
+    console.log(`hr:       ${hr.corpusRecords.length} rows read from ${hrCsv}`);
+    sourceRecords.push(...hr.sourceRecords);
+    records.push(...hr.corpusRecords);
   }
 
   if (records.length === 0) {
     throw new Error(`No records loaded (--source=${source})`);
   }
 
-  const { unique: exactUnique, dropped } = dedupeByNormalizedQuestion(records);
-  const { unique, dropped: nearDropped } = dropNearDuplicateQuestions(exactUnique);
-  console.log(`\ndeduped:  ${exactUnique.length} unique (${dropped} exact duplicates dropped)`);
-  console.log(`near-dupe: ${unique.length} kept (${nearDropped} near-duplicates dropped)`);
+  if (source === "all") assertCorpusSourceCounts(sourceRecords);
+  const unique = records;
+  console.log(`\nvalidated: ${unique.length} unique source rows`);
 
   console.log("embedding...");
   const embeddings: number[][] = [];
@@ -197,8 +125,29 @@ async function main() {
   let written = 0;
   if (dryRun) {
     console.log("dry run — skipping database writes");
+  } else if (source === "all") {
+    const retrievedQuestionCount = await prisma.retrievedQuestion.count();
+    assertSafeCorpusSync({
+      sourceRecords,
+      stagedRecords: sourceRecords.map((record, index) => ({
+        sourceKind: record.sourceKind,
+        sourceId: record.sourceId,
+        contentHash: record.contentHash,
+        embedding: embeddings[index],
+      })),
+    });
+    console.log(
+      `replacing complete corpus (${retrievedQuestionCount} old retrieval-history links will be deleted)...`
+    );
+    await prisma.$transaction(async (transaction) => {
+      await transaction.questionCorpus.deleteMany();
+      for (let index = 0; index < unique.length; index += 1) {
+        await upsert(unique[index], embeddings[index], transaction);
+        written += 1;
+      }
+    }, { isolationLevel: "Serializable", timeout: 600_000 });
   } else {
-    console.log("writing...");
+    console.log("upserting custom source without removing unrelated rows...");
     for (let i = 0; i < unique.length; i++) {
       await upsert(unique[i], embeddings[i]);
       written++;
@@ -219,7 +168,7 @@ async function main() {
     if (record.answer) withAnswer++;
   }
 
-  console.log(dryRun ? `\nDry run: ${unique.length} rows ready` : `\nDone: ${written} rows upserted`);
+  console.log(dryRun ? `\nDry run: ${unique.length} rows ready` : `\nDone: ${written} rows written`);
   for (const [name, count] of bySource) {
     console.log(`  source ${name}: ${count}`);
   }

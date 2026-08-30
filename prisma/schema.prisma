@@ -418,10 +418,14 @@ model SupportTicket {
 
 model QuestionCorpus {
   id          String   @id @default(cuid())
+  // Original CSV question number. Kept stable so corpus counts and reviews can
+  // refer back to the exact source row.
+  sourceId    String?
   question    String   @db.Text
   // Model answer, used to help grade the candidate. Present for the technical
   // questions; the behavioural set shipped without usable ones.
   answer      String?  @db.Text
+  commonMistakes String? @db.Text
   category    String
   // A hint, not a filter. The behavioural source labelled difficulty at random,
   // so use it to order results, never to exclude them.

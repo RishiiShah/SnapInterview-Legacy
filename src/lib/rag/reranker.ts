@@ -4,8 +4,10 @@ import { categoryMatchesPreferred } from "./retrieval-categories";
 
 export interface RerankerCandidate {
   id: string;
+  sourceId?: string | null;
   question: string;
   answer: string | null;
+  commonMistakes?: string | null;
   category: string;
   difficulty: string | null;
   level: string | null;

@@ -1,4 +1,4 @@
-import type { Difficulty, InterviewType } from "@/data/types";
+import type { InterviewType } from "@/data/types";
 import { interviewTypeSchema } from "@/lib/interview/domain";
 
 export type OnboardingPreferencesFormValues = {
@@ -55,16 +55,4 @@ export function normalizeOnboardingResponse(
     onboardingCompleted: Boolean(value?.onboardingCompleted),
     ...normalizeOnboardingFormValues(value),
   };
-}
-
-export function getDefaultDifficultyForOnboardingLevel(level: string | null | undefined): Difficulty {
-  if (level === "entry-level") {
-    return "easy";
-  }
-
-  if (level === "senior" || level === "staff-plus") {
-    return "hard";
-  }
-
-  return "medium";
 }

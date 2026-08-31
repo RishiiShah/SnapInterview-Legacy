@@ -22,15 +22,7 @@ import {
 type OnboardingPreferencesFormProps = {
   initialValues?: Partial<OnboardingPreferencesFormValues>;
   submitLabel: string;
-  title?: string;
-  description?: string;
-  showInterviewTypeField?: boolean;
   redirectTo?: string;
-  onSaved?: () => void;
-  /** Settings uses dark card; onboarding auth shell uses plain. */
-  tone?: "light" | "dark";
-  chrome?: "card" | "plain";
-  /** Persist unsaved edits across reloads (settings). Cleared after successful save. */
   draftStorageKey?: string;
 };
 
@@ -48,49 +40,30 @@ function readDraft(key: string): Partial<OnboardingPreferencesFormValues> | null
 }
 
 function writeDraft(key: string, values: OnboardingPreferencesFormValues) {
-  if (typeof window === "undefined") return;
   window.localStorage.setItem(key, JSON.stringify(values));
-}
-
-function clearDraft(key: string) {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(key);
 }
 
 export default function OnboardingPreferencesForm({
   initialValues,
   submitLabel,
-  title,
-  description,
-  showInterviewTypeField = true,
   redirectTo,
-  onSaved,
-  tone = "light",
-  chrome = "card",
   draftStorageKey,
 }: OnboardingPreferencesFormProps) {
   const router = useRouter();
-  const dark = tone === "dark";
-  const plain = chrome === "plain";
-  const [values, setValues] = useState<OnboardingPreferencesFormValues>(() => {
-    const draft = draftStorageKey ? readDraft(draftStorageKey) : null;
-    return {
-      ...DEFAULT_ONBOARDING_FORM_VALUES,
-      ...normalizeOnboardingFormValues(initialValues),
-      ...draft,
-    };
-  });
+  const [values, setValues] = useState<OnboardingPreferencesFormValues>(() => ({
+    ...DEFAULT_ONBOARDING_FORM_VALUES,
+    ...normalizeOnboardingFormValues(initialValues),
+    ...(draftStorageKey ? readDraft(draftStorageKey) : null),
+  }));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [companyRequestMessage, setCompanyRequestMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!initialValues) return;
-    const draft = draftStorageKey ? readDraft(draftStorageKey) : null;
     setValues({
       ...DEFAULT_ONBOARDING_FORM_VALUES,
       ...normalizeOnboardingFormValues(initialValues),
-      ...draft,
+      ...(draftStorageKey ? readDraft(draftStorageKey) : null),
     });
   }, [initialValues, draftStorageKey]);
 
@@ -99,32 +72,9 @@ export default function OnboardingPreferencesForm({
   ) {
     setValues((previous) => {
       const next = updater(previous);
-      if (draftStorageKey) {
-        writeDraft(draftStorageKey, next);
-      }
+      if (draftStorageKey) writeDraft(draftStorageKey, next);
       return next;
     });
-  }
-
-  async function requestCompany(company: string) {
-    setCompanyRequestMessage(null);
-    try {
-      const response = await fetch("/api/company-requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ company }),
-      });
-      const payload = await response.json().catch(() => ({}));
-      setCompanyRequestMessage(
-        typeof payload?.message === "string"
-          ? payload.message
-          : typeof payload?.error === "string"
-            ? payload.error
-            : "Unable to submit the company request.",
-      );
-    } catch {
-      setCompanyRequestMessage("Unable to submit the company request.");
-    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -144,38 +94,28 @@ export default function OnboardingPreferencesForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...values,
-          // Blank company stores as null → UI shows General
-          onboardingCompany: values.onboardingCompany.trim() === "General"
-            ? ""
-            : values.onboardingCompany.trim(),
+          onboardingCompany:
+            values.onboardingCompany.trim() === "General"
+              ? ""
+              : values.onboardingCompany.trim(),
         }),
       });
-
       const payload = await response.json().catch(() => ({}));
+
       if (!response.ok) {
         setError(typeof payload?.error === "string" ? payload.error : "Failed to save preferences.");
         return;
       }
 
-      if (draftStorageKey) {
-        clearDraft(draftStorageKey);
-      }
-
-      onSaved?.();
+      if (draftStorageKey) localStorage.removeItem(draftStorageKey);
 
       if (redirectTo) {
         const safePath =
-          typeof redirectTo === "string" &&
-          redirectTo.startsWith("/") &&
-          !redirectTo.startsWith("//") &&
-          !redirectTo.includes(":")
+          redirectTo.startsWith("/") && !redirectTo.startsWith("//") && !redirectTo.includes(":")
             ? redirectTo
             : "/dashboard";
         router.push(safePath);
-        router.refresh();
-        return;
       }
-
       router.refresh();
     } catch {
       setError("Failed to save preferences.");
@@ -184,8 +124,8 @@ export default function OnboardingPreferencesForm({
     }
   }
 
-  const form = (
-    <form onSubmit={handleSubmit} className={plain ? "space-y-5" : "space-y-6 px-8 py-6"}>
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid gap-5 md:grid-cols-2">
         <SearchableDropdown
           label="Target role"
@@ -193,15 +133,12 @@ export default function OnboardingPreferencesForm({
           onChange={(onboardingRole) => updateValues((previous) => ({ ...previous, onboardingRole }))}
           options={ROLES}
           placeholder="e.g. Software Engineer - Backend"
-          tone={tone}
         />
-
         <SelectDropdown
           label="Experience level"
           value={values.onboardingLevel}
           onChange={(onboardingLevel) => updateValues((previous) => ({ ...previous, onboardingLevel }))}
           options={EXPERIENCE_LEVELS}
-          tone={tone}
         />
       </div>
 
@@ -214,91 +151,43 @@ export default function OnboardingPreferencesForm({
           }
           options={COMPANIES}
           placeholder="e.g. Google, Stripe, or General"
-          tone={tone}
         />
-        {companyRequestMessage ? (
-          <p className={`text-xs ${dark ? "text-[#A8B0C2]" : "text-zinc-600"}`}>{companyRequestMessage}</p>
-        ) : null}
-
         <SelectDropdown
           label="Primary goal"
           value={values.onboardingGoal}
           onChange={(onboardingGoal) => updateValues((previous) => ({ ...previous, onboardingGoal }))}
           options={INTERVIEW_GOALS}
-          tone={tone}
         />
       </div>
 
-
-      {showInterviewTypeField ? (
-        <SelectDropdown
-          label="Default interview type"
-          value={values.preferredInterviewType}
-          onChange={(preferredInterviewType) =>
-            updateValues((previous) => ({
-              ...previous,
-              preferredInterviewType: preferredInterviewType as InterviewType,
-            }))
-          }
-          options={INTERVIEW_KINDS.map((kind) => ({
-            value: kind.value,
-            label: kind.label,
-            description: kind.description,
-          }))}
-          tone={tone}
-        />
-      ) : null}
-
-      {error ? (
-        <p className={`text-sm ${dark ? "text-rose-400" : "text-red-600"}`}>{error}</p>
-      ) : null}
-
-      <div
-        className={
-          plain
-            ? "flex flex-col items-stretch gap-3 pt-2"
-            : `flex items-center gap-3 border-t pt-5 ${dark ? "border-white/[0.06]" : "border-zinc-100"}`
+      <SelectDropdown
+        label="Default interview type"
+        value={values.preferredInterviewType}
+        onChange={(preferredInterviewType) =>
+          updateValues((previous) => ({
+            ...previous,
+            preferredInterviewType: preferredInterviewType as InterviewType,
+          }))
         }
-      >
+        options={INTERVIEW_KINDS.map((kind) => ({
+          value: kind.value,
+          label: kind.label,
+          description: kind.description,
+        }))}
+      />
+
+      {error ? <p className="text-sm text-rose-400">{error}</p> : null}
+
+      <div className="flex flex-col items-stretch gap-3 pt-2">
         <SendActionButton
           type="submit"
           label={isSaving ? "Saving" : submitLabel}
           sentLabel="Saved"
           loading={isSaving}
           disabled={isSaving}
-          fullWidth={plain}
+          fullWidth
         />
       </div>
     </form>
-  );
-
-  if (plain) {
-    return form;
-  }
-
-  return (
-    <div
-      className={
-        dark
-          ? "rounded-2xl border border-white/[0.08] bg-white/[0.02]"
-          : "rounded-2xl border border-zinc-200 bg-white shadow-sm"
-      }
-    >
-      {title || description ? (
-        <div className={`border-b px-8 py-6 ${dark ? "border-white/[0.06]" : "border-zinc-100"}`}>
-          {title ? (
-            <h2 className={`text-xl font-semibold ${dark ? "text-[#F2F4F8]" : "text-zinc-900"}`}>
-              {title}
-            </h2>
-          ) : null}
-          {description ? (
-            <p className={`mt-1 text-sm leading-relaxed ${dark ? "text-[#A8B0C2]" : "text-zinc-700"}`}>
-              {description}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-      {form}
-    </div>
   );
 }

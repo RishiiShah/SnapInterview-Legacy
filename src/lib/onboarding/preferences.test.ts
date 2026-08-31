@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ONBOARDING_FORM_VALUES,
-  getDefaultDifficultyForOnboardingLevel,
   normalizeOnboardingFormValues,
   normalizeOnboardingResponse,
 } from "./preferences";
@@ -50,11 +49,4 @@ describe("onboarding preferences helpers", () => {
     });
   });
 
-  it("derives default difficulty from onboarding level", () => {
-    expect(getDefaultDifficultyForOnboardingLevel("entry-level")).toBe("easy");
-    expect(getDefaultDifficultyForOnboardingLevel("mid-level")).toBe("medium");
-    expect(getDefaultDifficultyForOnboardingLevel("senior")).toBe("hard");
-    expect(getDefaultDifficultyForOnboardingLevel("staff-plus")).toBe("hard");
-    expect(getDefaultDifficultyForOnboardingLevel(undefined)).toBe("medium");
-  });
 });

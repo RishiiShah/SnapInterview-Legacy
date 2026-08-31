@@ -5,10 +5,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import PerformanceTrendChart from "./PerformanceTrendChart";
 
-vi.mock("@/components/ui/motion", () => ({
-  FadeIn: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
 vi.mock("framer-motion", () => ({
   motion: {
     div: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

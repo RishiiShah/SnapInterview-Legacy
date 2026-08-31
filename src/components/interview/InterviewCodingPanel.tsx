@@ -3,12 +3,7 @@
 import { useState, useCallback } from "react";
 import Editor from "@monaco-editor/react";
 import type { CodingChallenge } from "@/lib/interview/coding-challenge";
-import {
-  runTestCases,
-  SUPPORTED_LANGUAGES,
-  type SupportedLanguage,
-  type RunResult,
-} from "@/lib/code-runner";
+import { runTestCases, type RunResult } from "@/lib/code-runner";
 import { TestCasePanel } from "@/components/questions/TestCasePanel";
 import { TestResultPanel } from "@/components/questions/TestResultPanel";
 import {
@@ -25,87 +20,51 @@ type InterviewCodingPanelProps = {
   onSubmitCode: (message: string) => void;
 };
 
-const MONACO_LANGUAGE_MAP: Record<SupportedLanguage, string> = { javascript: "javascript" };
-
 export function InterviewCodingPanel({ challenge, onSubmitCode }: InterviewCodingPanelProps) {
-  const availableLanguages = SUPPORTED_LANGUAGES.filter(
-    (l) => challenge.starterCode[l.value],
-  );
-  const [language, setLanguage] = useState<SupportedLanguage>(
-    availableLanguages[0]?.value ?? "javascript",
-  );
-
-  const [codeMap, setCodeMap] = useState<Record<string, string>>(() => {
-    const initial: Record<string, string> = {};
-    for (const lang of availableLanguages) {
-      initial[lang.value] = challenge.starterCode[lang.value] ?? "";
-    }
-    return initial;
-  });
-
+  const [code, setCode] = useState(challenge.starterCode.javascript);
   const [bottomTab, setBottomTab] = useState<BottomTab>("testcase");
   const [runResult, setRunResult] = useState<RunResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
-  const currentCode = codeMap[language] ?? "";
-
-  const handleCodeChange = useCallback(
-    (value: string | undefined) => {
-      setCodeMap((prev) => ({ ...prev, [language]: value ?? "" }));
-    },
-    [language],
-  );
+  const handleCodeChange = useCallback((value: string | undefined) => {
+    setCode(value ?? "");
+  }, []);
 
   const handleReset = useCallback(() => {
-    setCodeMap((prev) => ({
-      ...prev,
-      [language]: challenge.starterCode[language] ?? "",
-    }));
+    setCode(challenge.starterCode.javascript);
     setRunResult(null);
-  }, [language, challenge.starterCode]);
+  }, [challenge.starterCode.javascript]);
 
   const handleRun = useCallback(async () => {
     if (!challenge.testCases || isRunning) return;
     setIsRunning(true);
     setBottomTab("result");
-    const result = await runTestCases(currentCode, language, challenge.testCases);
+    const result = await runTestCases(code, challenge.testCases);
     setRunResult(result);
     setIsRunning(false);
-  }, [currentCode, language, challenge.testCases, isRunning]);
+  }, [code, challenge.testCases, isRunning]);
 
   const handleSubmit = useCallback(async () => {
     if (!challenge.testCases || isRunning || hasSubmitted) return;
     setIsRunning(true);
     setBottomTab("result");
-    const result = await runTestCases(currentCode, language, challenge.testCases);
+    const result = await runTestCases(code, challenge.testCases);
     setRunResult(result);
     setIsRunning(false);
     setHasSubmitted(true);
 
     const passed = result.results.filter((r) => r.passed).length;
     const total = result.results.length;
-    const langLabel = availableLanguages.find((l) => l.value === language)?.label ?? language;
-
-    const message = `Here is my solution in ${langLabel}:\n\n\`\`\`${language}\n${currentCode}\n\`\`\`\n\nTest results: ${passed}/${total} passed`;
+    const message = `Here is my solution in JavaScript:\n\n\`\`\`javascript\n${code}\n\`\`\`\n\nTest results: ${passed}/${total} passed`;
     onSubmitCode(message);
-  }, [currentCode, language, challenge.testCases, isRunning, hasSubmitted, onSubmitCode, availableLanguages]);
+  }, [code, challenge.testCases, isRunning, hasSubmitted, onSubmitCode]);
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-white/[0.08] bg-[#12141A]/90">
       {/* Editor chrome */}
       <div className="flex h-10 shrink-0 items-center justify-between border-b border-white/[0.06] px-3">
-        <select
-          value={language}
-          onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
-          className="cursor-pointer rounded-md border-0 bg-transparent px-2 py-1 text-xs font-medium text-[#E8ECF4] outline-none hover:bg-white/[0.05]"
-        >
-          {availableLanguages.map((l) => (
-            <option key={l.value} value={l.value} className="bg-[#12141A] text-[#E8ECF4]">
-              {l.label}
-            </option>
-          ))}
-        </select>
+        <span className="px-2 py-1 text-xs font-medium text-[#E8ECF4]">JavaScript</span>
 
         <div className="flex items-center gap-2">
           <button
@@ -144,8 +103,8 @@ export function InterviewCodingPanel({ challenge, onSubmitCode }: InterviewCodin
       <div className="min-h-0 flex-1">
         <Editor
           height="100%"
-          language={MONACO_LANGUAGE_MAP[language] ?? "plaintext"}
-          value={currentCode}
+          language="javascript"
+          value={code}
           onChange={handleCodeChange}
           theme="vs-dark"
           options={{

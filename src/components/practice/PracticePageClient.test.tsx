@@ -112,6 +112,7 @@ describe("PracticePageClient", () => {
       role: "Frontend Developer",
       type: "behavioral-leadership",
       difficulty: "medium",
+      level: "mid-level",
       persona: "balanced",
       durationMinutes: 30,
       questionCount: 10,
@@ -140,7 +141,8 @@ describe("PracticePageClient", () => {
 
     expect((screen.getByPlaceholderText("e.g. Software Engineer - Backend") as HTMLInputElement).value)
       .toBe("Platform Engineer");
-    expect((screen.getByPlaceholderText("e.g. Google, Stripe, or General") as HTMLInputElement).value).toBe("OpenAI");
+    expect((screen.getByRole("combobox", { name: /company/i }) as HTMLSelectElement).value)
+      .toBe("OpenAI");
     expect(fetch).not.toHaveBeenCalled();
   });
 

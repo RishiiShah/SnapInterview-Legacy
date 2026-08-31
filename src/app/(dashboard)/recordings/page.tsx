@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { SlideIn } from "@/components/ui/motion";
 import RecordingsList from "@/components/recordings/RecordingsList";
 import { interviewIdSchema } from "@/lib/interview/domain";
 import { getServerAuthSession } from "@/lib/server-auth";
@@ -18,7 +17,7 @@ export default async function RecordingsPage({ searchParams }: RecordingsPagePro
   if (!session?.user?.email) {
     return (
       <div className="mx-auto max-w-7xl space-y-8 pb-16 pt-2 xl:max-w-[88rem]">
-        <SlideIn instant>
+        <div>
           <div>
             <h1 className="font-display text-[2rem] leading-[1.15] tracking-[-0.02em] text-[#F2F4F8] sm:text-[2.35rem]">
               Recordings
@@ -27,7 +26,7 @@ export default async function RecordingsPage({ searchParams }: RecordingsPagePro
               Review and manage your saved interview sessions.
             </p>
           </div>
-        </SlideIn>
+        </div>
         <p className="py-12 text-center text-sm text-[#A8B0C2]">Please sign in to view recordings.</p>
       </div>
     );
@@ -51,7 +50,7 @@ export default async function RecordingsPage({ searchParams }: RecordingsPagePro
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 pb-16 pt-2 xl:max-w-[88rem]">
-      <SlideIn instant>
+      <div>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="font-display text-[2rem] leading-[1.15] tracking-[-0.02em] text-[#F2F4F8] sm:text-[2.35rem]">
@@ -70,7 +69,7 @@ export default async function RecordingsPage({ searchParams }: RecordingsPagePro
             </p>
           </div>
         </div>
-      </SlideIn>
+      </div>
 
       <RecordingsList
         initialSessions={initialSessions}

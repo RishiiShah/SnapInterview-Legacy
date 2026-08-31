@@ -43,8 +43,6 @@ vi.mock("framer-motion", () => ({
 
 import {
   LandingClipReveal,
-  LandingClipStaggerItem,
-  LandingFadeInStagger,
   LandingScaleIn,
 } from "./LandingMotion";
 
@@ -65,21 +63,6 @@ describe("landing motion", () => {
       animate: { clipPath: "inset(0 0% 0 0)" },
     });
     expect(screen.getByText("Wipe")).toBeTruthy();
-  });
-
-  it("uses clip variants on stagger items", () => {
-    render(
-      <LandingFadeInStagger triggerOnView>
-        <LandingClipStaggerItem mode="leftRight">Visible step</LandingClipStaggerItem>
-      </LandingFadeInStagger>,
-    );
-
-    const clipNode = motionPropsLog.find((props) => {
-      const variants = props.variants as { hidden?: { clipPath?: string } } | undefined;
-      return variants?.hidden?.clipPath === "inset(0 100% 0 0)";
-    });
-    expect(clipNode).toBeTruthy();
-    expect(screen.getByText("Visible step")).toBeTruthy();
   });
 
   it("supports soft scale settle", () => {

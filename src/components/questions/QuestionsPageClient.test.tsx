@@ -3,11 +3,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@/components/ui/motion", () => ({
-  FadeIn: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  SlideIn: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
 vi.mock("@/components/questions/QuestionsFilterBar", () => ({
   default: (props: {
     activeFilterCount: number;

@@ -13,8 +13,6 @@ interface OtpDialogProps {
   onVerified: () => void;
   onCancel: () => void;
   onResend: () => Promise<void>;
-  /** Inline renders inside AuthShell; modal is the legacy overlay. */
-  variant?: "modal" | "inline";
 }
 
 const OTP_LENGTH = 6;
@@ -26,7 +24,6 @@ export default function OtpDialog({
   onVerified,
   onCancel,
   onResend,
-  variant = "modal",
 }: OtpDialogProps) {
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
@@ -144,19 +141,6 @@ export default function OtpDialog({
     </div>
   ) : (
     <>
-      {variant === "modal" ? (
-        <button
-          type="button"
-          onClick={onCancel}
-          className="absolute right-4 top-4 cursor-pointer text-[#B4C0D0] transition-colors hover:text-white"
-          aria-label="Close"
-        >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      ) : null}
-
       <div className="mb-8">
         <h2 className="text-[clamp(1.75rem,4vw,2.15rem)] font-bold leading-[1.1] tracking-[-0.035em] text-white">
           Check your inbox
@@ -245,28 +229,16 @@ export default function OtpDialog({
         )}
       </div>
 
-      {variant === "inline" ? (
-        <button
-          type="button"
-          onClick={onCancel}
-          className="mt-6 flex w-full cursor-pointer items-center justify-center gap-1.5 text-xs text-[#B4C0D0] transition-colors hover:text-[#CBD5E1]"
-        >
-          <IconArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-          Use a different email
-        </button>
-      ) : null}
+      <button
+        type="button"
+        onClick={onCancel}
+        className="mt-6 flex w-full cursor-pointer items-center justify-center gap-1.5 text-xs text-[#B4C0D0] transition-colors hover:text-[#CBD5E1]"
+      >
+        <IconArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+        Use a different email
+      </button>
     </>
   );
 
-  if (variant === "inline") {
-    return <div className="relative">{content}</div>;
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#090A0F]/85 backdrop-blur-md">
-      <div className="relative mx-4 w-full max-w-[26rem] rounded-2xl border border-white/[0.08] bg-[#0C0F1A]/95 p-7 text-white backdrop-blur-md sm:p-8">
-        {content}
-      </div>
-    </div>
-  );
+  return <div className="relative">{content}</div>;
 }

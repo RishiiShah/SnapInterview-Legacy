@@ -5,11 +5,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import DimensionAnalytics from "./DimensionAnalytics";
 
-vi.mock("@/components/ui/motion", () => ({
-  FadeInStagger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  FadeInStaggerItem: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
 vi.mock("framer-motion", () => ({
   motion: {
     div: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

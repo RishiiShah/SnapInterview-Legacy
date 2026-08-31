@@ -7,9 +7,8 @@ import SearchableDropdown from "./SearchableDropdown";
 describe("SearchableDropdown", () => {
   afterEach(cleanup);
 
-  it("offers a request action without accepting an unlisted value", () => {
+  it("uses a native select when only listed values are accepted", () => {
     const onChange = vi.fn();
-    const onRequestOption = vi.fn();
 
     render(
       <SearchableDropdown
@@ -18,15 +17,14 @@ describe("SearchableDropdown", () => {
         onChange={onChange}
         options={["General", "Google"]}
         allowCustomValue={false}
-        onRequestOption={onRequestOption}
       />,
     );
 
-    fireEvent.focus(screen.getByRole("textbox"));
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Acme" } });
-    fireEvent.click(screen.getByRole("button", { name: /request acme/i }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Company" }), {
+      target: { value: "Google" },
+    });
 
-    expect(onRequestOption).toHaveBeenCalledWith("Acme");
-    expect(onChange).not.toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalledWith("Google");
+    expect(screen.queryByRole("textbox")).toBeNull();
   });
 });

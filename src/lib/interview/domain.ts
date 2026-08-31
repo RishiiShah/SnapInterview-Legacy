@@ -81,6 +81,7 @@ export const QUESTION_CATEGORY_VALUES = [
 ] as const;
 
 export const INTERVIEW_DIFFICULTY_VALUES = ["easy", "medium", "hard"] as const;
+export const INTERVIEW_LEVEL_VALUES = ["entry-level", "mid-level", "senior", "staff-plus"] as const;
 export const INTERVIEW_PERSONA_VALUES = ["friendly", "balanced", "strict"] as const;
 export const INTERVIEW_QUESTION_COUNT_VALUES = [5, 10, 15] as const;
 export const INTERVIEW_DURATION_VALUES = [15, 30, 45] as const;
@@ -102,6 +103,42 @@ export const interviewTypeSchema = z.preprocess(
 
 export const questionCategorySchema = z.enum(QUESTION_CATEGORY_VALUES);
 export const interviewDifficultySchema = z.enum(INTERVIEW_DIFFICULTY_VALUES);
+const LEGACY_INTERVIEW_LEVEL_MAP: Record<string, (typeof INTERVIEW_LEVEL_VALUES)[number]> = {
+  intern: "entry-level",
+  junior: "entry-level",
+  early: "entry-level",
+  entry: "entry-level",
+  mid: "mid-level",
+  intermediate: "mid-level",
+  staff: "staff-plus",
+  principal: "staff-plus",
+};
+
+export function coerceInterviewLevel(value: unknown): (typeof INTERVIEW_LEVEL_VALUES)[number] | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toLowerCase();
+  if ((INTERVIEW_LEVEL_VALUES as readonly string[]).includes(normalized)) {
+    return normalized as (typeof INTERVIEW_LEVEL_VALUES)[number];
+  }
+  return LEGACY_INTERVIEW_LEVEL_MAP[normalized] ?? null;
+}
+
+export const interviewLevelSchema = z.preprocess(
+  (value) => coerceInterviewLevel(value) ?? value,
+  z.enum(INTERVIEW_LEVEL_VALUES),
+);
+
+export function getDefaultInterviewLevelForDifficulty(difficulty: Difficulty): InterviewLevel {
+  if (difficulty === "easy") return "entry-level";
+  if (difficulty === "hard") return "senior";
+  return "mid-level";
+}
+
+export function getDefaultInterviewDifficultyForLevel(level: InterviewLevel): Difficulty {
+  if (level === "entry-level") return "easy";
+  if (level === "senior" || level === "staff-plus") return "hard";
+  return "medium";
+}
 export const interviewPersonaSchema = z.enum(INTERVIEW_PERSONA_VALUES);
 export const interviewQuestionCountSchema = z.union([
   z.literal(5),
@@ -118,6 +155,7 @@ export const interviewDurationSchema = z.union([
 export type InterviewType = (typeof INTERVIEW_TYPE_VALUES)[number];
 export type QuestionCategory = (typeof QUESTION_CATEGORY_VALUES)[number];
 export type Difficulty = z.infer<typeof interviewDifficultySchema>;
+export type InterviewLevel = z.infer<typeof interviewLevelSchema>;
 export type InterviewPersona = z.infer<typeof interviewPersonaSchema>;
 export type InterviewQuestionCount = z.infer<typeof interviewQuestionCountSchema>;
 export type InterviewDuration = z.infer<typeof interviewDurationSchema>;
@@ -132,6 +170,7 @@ export type PromptInterviewSession = {
   id?: string | null;
   type: InterviewType;
   difficulty: Difficulty;
+  level?: InterviewLevel | null;
   persona?: InterviewPersona | null;
   jobDescription: string | null;
   resumeUrl: string | null;
@@ -192,6 +231,7 @@ export function normalizePromptInterviewSession(session: {
   id?: string | null;
   type: string;
   difficulty: string;
+  level?: string | null;
   persona?: string | null;
   jobDescription: string | null;
   resumeUrl: string | null;
@@ -210,12 +250,15 @@ export function normalizePromptInterviewSession(session: {
 }): PromptInterviewSession | null {
   const typeResult = interviewTypeSchema.safeParse(session.type);
   const difficultyResult = interviewDifficultySchema.safeParse(session.difficulty);
+  const levelResult = session.level == null
+    ? { success: true as const, data: null }
+    : interviewLevelSchema.safeParse(session.level);
   const personaResult =
     session.persona == null
       ? { success: true as const, data: null }
       : interviewPersonaSchema.safeParse(session.persona);
 
-  if (!typeResult.success || !difficultyResult.success || !personaResult.success) {
+  if (!typeResult.success || !difficultyResult.success || !levelResult.success || !personaResult.success) {
     return null;
   }
 
@@ -223,6 +266,7 @@ export function normalizePromptInterviewSession(session: {
     ...session,
     type: typeResult.data,
     difficulty: difficultyResult.data,
+    level: levelResult.data,
     persona: personaResult.data,
     durationMinutes: session.durationMinutes,
     startedAt: session.startedAt instanceof Date ? session.startedAt.toISOString() : session.startedAt,
@@ -236,6 +280,7 @@ export type StartInterviewSessionInput = {
   company?: string | null;
   type: InterviewType;
   difficulty: Difficulty;
+  level?: InterviewLevel;
   persona?: InterviewPersona;
   jobDescription?: string | null;
   resumeUrl?: string | null;

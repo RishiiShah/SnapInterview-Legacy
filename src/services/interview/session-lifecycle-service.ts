@@ -2,6 +2,8 @@ import { Prisma, type InterviewStatus } from "@/generated/prisma/client";
 import { INTERVIEW_RESUME_WINDOW_MS } from "@/lib/interview/constants";
 import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 import {
+  coerceInterviewLevel,
+  getDefaultInterviewLevelForDifficulty,
   type InterviewDuration,
   type InterviewPersona,
   type StartInterviewSessionInput,
@@ -76,6 +78,10 @@ export async function startInterviewSession(params: StartInterviewSessionInput) 
       ? user.onboardingCompany
       : null;
   const company = params.company ?? onboardingCompany ?? null;
+  const level =
+    params.level ??
+    coerceInterviewLevel(user?.onboardingLevel) ??
+    getDefaultInterviewLevelForDifficulty(params.difficulty);
 
   const brief = await buildInterviewBrief({
     role,
@@ -84,7 +90,7 @@ export async function startInterviewSession(params: StartInterviewSessionInput) 
     difficulty: params.difficulty,
     durationMinutes,
     persona,
-    onboardingLevel: user?.onboardingLevel,
+    level,
     onboardingGoal: user?.onboardingGoal,
     jobDescription: params.jobDescription,
     resumeText: params.resumeText,
@@ -101,6 +107,7 @@ export async function startInterviewSession(params: StartInterviewSessionInput) 
     ...params,
     role,
     company,
+    level,
     persona,
     durationMinutes,
     questionCount,

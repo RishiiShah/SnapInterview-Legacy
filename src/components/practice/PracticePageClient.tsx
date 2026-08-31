@@ -12,7 +12,14 @@ import {
   ROLES,
   COMPANIES,
 } from "@/data/constants";
-import type { InterviewPersona, InterviewType } from "@/lib/interview/domain";
+import {
+  coerceInterviewLevel,
+  getDefaultInterviewDifficultyForLevel,
+  getDefaultInterviewLevelForDifficulty,
+  type InterviewLevel,
+  type InterviewPersona,
+  type InterviewType,
+} from "@/lib/interview/domain";
 import {
   normalizeOnboardingFormValues,
 } from "@/lib/onboarding/preferences";
@@ -42,10 +49,6 @@ const LEVEL_OPTIONS: { value: string; label: string; description: string }[] = [
   { value: "mid-level", label: "Mid Level", description: "Independent execution, design patterns & debugging" },
   { value: "senior", label: "Senior", description: "Scalability, failure modes, trade-offs & edge cases" },
   { value: "staff-plus", label: "Staff+ / Lead", description: "Ambiguous architecture, organizational strategy & risk" },
-  // Backward compatibility options
-  { value: "easy", label: "Entry Level", description: "CS fundamentals & code clarity" },
-  { value: "medium", label: "Mid / Senior Level", description: "Core architecture & edge cases" },
-  { value: "hard", label: "Staff+ / Expert", description: "Complex scaling & failure modes" },
 ];
 
 const FORMAT_OPTIONS: { value: 15 | 30 | 45; label: string; shortLabel: string; description: string }[] = [
@@ -62,6 +65,7 @@ export default function PracticePageClient({
   const retakeRole = retakeDefaults?.role ?? "";
   const retakeType = retakeDefaults?.type;
   const retakeDifficulty = retakeDefaults?.difficulty;
+  const retakeLevel = retakeDifficulty && getDefaultInterviewLevelForDifficulty(retakeDifficulty);
   const onboardingDefaults = initialDefaults?.onboarding;
   const [role, setRole] = useState(retakeRole || onboardingDefaults?.onboardingRole || "");
   const [company, setCompany] = useState(
@@ -70,8 +74,8 @@ export default function PracticePageClient({
   const [type, setType] = useState<InterviewType>(
     retakeType ?? onboardingDefaults?.preferredInterviewType ?? "behavioral-leadership",
   );
-  const [difficulty, setDifficulty] = useState<string>(
-    retakeDifficulty ?? onboardingDefaults?.onboardingLevel ?? "mid-level",
+  const [level, setLevel] = useState<InterviewLevel>(
+    retakeLevel ?? coerceInterviewLevel(onboardingDefaults?.onboardingLevel) ?? "mid-level",
   );
   const [persona, setPersona] = useState<InterviewPersona>("balanced");
   const [durationMinutes, setDurationMinutes] = useState<15 | 30 | 45>(30);
@@ -83,7 +87,6 @@ export default function PracticePageClient({
   const [resumeError, setResumeError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [companyRequestMessage, setCompanyRequestMessage] = useState<string | null>(null);
   const [step, setStep] = useState(1);
   const replaceInputRef = useRef<HTMLInputElement>(null);
   // Skip the first entrance animation so real content replaces the route skeleton in place.
@@ -92,7 +95,7 @@ export default function PracticePageClient({
   const resumeHighlights = useMemo(() => extractResumeHighlights(resumeText), [resumeText]);
   const selectedKind = INTERVIEW_KINDS.find((kind) => kind.value === type);
   const selectedPersona = INTERVIEW_PERSONAS.find((item) => item.value === persona);
-  const selectedLevel = LEVEL_OPTIONS.find((item) => item.value === difficulty) ?? LEVEL_OPTIONS[1];
+  const selectedLevel = LEVEL_OPTIONS.find((item) => item.value === level) ?? LEVEL_OPTIONS[1];
   const selectedFormat = FORMAT_OPTIONS.find((item) => item.value === durationMinutes) ?? FORMAT_OPTIONS[1];
   const trimmedRole = role.trim();
   const jdChars = jobDescription.length;
@@ -103,10 +106,10 @@ export default function PracticePageClient({
     if (trimmedRole) parts.push(trimmedRole);
     if (company.trim()) parts.push(company.trim());
     parts.push(selectedKind?.shortLabel ?? selectedKind?.label ?? type);
-    parts.push(selectedLevel?.label ?? difficulty);
+    parts.push(selectedLevel?.label ?? level);
     parts.push(selectedFormat?.shortLabel ?? `${durationMinutes} min`);
     return parts.join(" · ");
-  }, [trimmedRole, company, selectedKind, type, selectedLevel, difficulty, selectedFormat, durationMinutes]);
+  }, [trimmedRole, company, selectedKind, type, selectedLevel, level, selectedFormat, durationMinutes]);
 
   useEffect(() => {
     let cancelled = false;
@@ -145,9 +148,9 @@ export default function PracticePageClient({
               );
             }
             if (!retakeDifficulty) {
-              setDifficulty((previous) => {
-                if (previous !== "mid-level" && previous !== "medium") return previous;
-                return data.onboardingLevel || "mid-level";
+              setLevel((previous) => {
+                if (previous !== "mid-level") return previous;
+                return coerceInterviewLevel(data.onboardingLevel) ?? "mid-level";
               });
             }
           }
@@ -212,7 +215,8 @@ export default function PracticePageClient({
         role,
         company: company || undefined,
         type,
-        difficulty,
+        difficulty: getDefaultInterviewDifficultyForLevel(level),
+        level,
         persona,
         jobDescription: jobDescription || undefined,
         durationMinutes,
@@ -226,27 +230,6 @@ export default function PracticePageClient({
       console.error("Error creating interview session:", err);
       setCreateError("Something went wrong while creating your interview. Please try again.");
       setStarted(false);
-    }
-  }
-
-  async function requestCompany(companyName: string) {
-    setCompanyRequestMessage(null);
-    try {
-      const response = await fetch("/api/company-requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ company: companyName }),
-      });
-      const payload = await response.json().catch(() => ({}));
-      setCompanyRequestMessage(
-        typeof payload?.message === "string"
-          ? payload.message
-          : typeof payload?.error === "string"
-            ? payload.error
-            : "Unable to submit the company request.",
-      );
-    } catch {
-      setCompanyRequestMessage("Unable to submit the company request.");
     }
   }
 
@@ -339,7 +322,6 @@ export default function PracticePageClient({
                   onChange={setRole}
                   options={ROLES}
                   placeholder="e.g. Software Engineer - Backend"
-                  tone="dark"
                 />
                 <SearchableDropdown
                   label="Company"
@@ -349,12 +331,7 @@ export default function PracticePageClient({
                   placeholder="e.g. Google, Stripe, or General"
                   isOptional
                   allowCustomValue={false}
-                  onRequestOption={requestCompany}
-                  tone="dark"
                 />
-                {companyRequestMessage ? (
-                  <p className="text-xs text-[#A8B0C2]">{companyRequestMessage}</p>
-                ) : null}
 
                 <div>
                   <SelectDropdown
@@ -366,7 +343,6 @@ export default function PracticePageClient({
                       label: kind.label,
                       description: kind.description,
                     }))}
-                    tone="dark"
                   />
                   {selectedKind ? (
                     <p className="mt-3 text-[14px] leading-relaxed text-[#B4BBC9]">
@@ -379,14 +355,16 @@ export default function PracticePageClient({
                   <div>
                     <SelectDropdown
                       label="Experience level"
-                      value={difficulty}
-                      onChange={(value) => setDifficulty(value)}
-                      options={LEVEL_OPTIONS.slice(0, 4).map((option) => ({
+                      value={level}
+                      onChange={(value) => {
+                        const nextLevel = coerceInterviewLevel(value);
+                        if (nextLevel) setLevel(nextLevel);
+                      }}
+                      options={LEVEL_OPTIONS.map((option) => ({
                         value: option.value,
                         label: option.label,
                         description: option.description,
                       }))}
-                      tone="dark"
                     />
                     {selectedLevel ? (
                       <p className="mt-2.5 text-[13px] leading-relaxed text-[#8B93A7]">
@@ -407,7 +385,6 @@ export default function PracticePageClient({
                         label: option.label,
                         description: option.description,
                       }))}
-                      tone="dark"
                     />
                     {selectedFormat ? (
                       <p className="mt-2.5 text-[13px] leading-relaxed text-[#8B93A7]">
@@ -448,7 +425,6 @@ export default function PracticePageClient({
                       label: item.label.replace(/ Interviewer| Coach| Panel/g, ""),
                       description: item.description,
                     }))}
-                    tone="dark"
                   />
                   {selectedPersona ? (
                     <p className="mt-3 text-[14px] leading-relaxed text-[#B4BBC9]">

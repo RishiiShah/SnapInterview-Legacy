@@ -66,6 +66,7 @@ export async function GET(
                 role: true,
                 type: true,
                 difficulty: true,
+                level: true,
                 evaluation: true,
                 createdAt: true,
                 transcript: {

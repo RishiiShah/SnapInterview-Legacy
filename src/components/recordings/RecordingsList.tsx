@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { FadeIn } from "@/components/ui/motion";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 import Modal from "@/components/ui/Modal";
 import RecordingModal from "./RecordingModal";
@@ -373,17 +372,14 @@ export default function RecordingsList({
         </div>
       ) : (
         <div className="divide-y divide-white/[0.05]">
-          {displayedSessions.map((session, idx) => {
+          {displayedSessions.map((session) => {
             const date = formatSessionDate(session.createdAt);
             const hasVideo = Boolean(session.videoKey);
             const isProcessing = isOpening === session.id;
 
             return (
-              <FadeIn
-                instant
+              <div
                 key={session.id}
-                delay={idx * 0.03}
-                direction="up"
                 className="group flex w-full cursor-pointer items-center gap-3.5 py-3.5 text-left transition-colors hover:bg-white/[0.02] sm:gap-5"
                 role="button"
                 tabIndex={0}
@@ -472,7 +468,7 @@ export default function RecordingsList({
                     </svg>
                   )}
                 </button>
-              </FadeIn>
+              </div>
             );
           })}
         </div>

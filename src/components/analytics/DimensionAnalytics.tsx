@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 
-import { FadeInStagger, FadeInStaggerItem } from "@/components/ui/motion";
 import type { SubScoreTrendSets, SubScores } from "@/lib/interview/metrics";
 import {
   SUB_SCORE_DIMENSIONS,
@@ -69,12 +68,12 @@ export default function DimensionAnalytics({
         </div>
       </div>
 
-      <FadeInStagger instant triggerOnView={false}>
+      <div>
         <dl className="grid gap-4 sm:grid-cols-3 sm:gap-5">
           {SUB_SCORE_DIMENSIONS.map(({ key, label, summary, barClass }) => {
             const value = subScores[key];
             return (
-              <FadeInStaggerItem instant key={key}>
+              <div key={key}>
                 <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
                   <dt className="text-sm font-medium text-[#E8ECF4]">{label}</dt>
                   <p className="mt-1 text-xs leading-relaxed text-[#A8B0C2]">{summary}</p>
@@ -99,11 +98,11 @@ export default function DimensionAnalytics({
                     </dd>
                   )}
                 </div>
-              </FadeInStaggerItem>
+              </div>
             );
           })}
         </dl>
-      </FadeInStagger>
+      </div>
 
       <div className="mt-10">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">

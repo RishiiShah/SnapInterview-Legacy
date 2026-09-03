@@ -2,19 +2,19 @@ import { useRef, useState, useCallback, useEffect } from "react";
 
 type UseVideoRecordingOptions = {
     interviewId: string;
-    onScreenShareEnded?: () => void;
+    onRecordingEnded?: () => void;
 };
 
 /** S3 multipart parts (except the last) must be ≥ 5 MiB. */
 const MIN_PART_BYTES = 5 * 1024 * 1024;
-/** Target screen-recording bitrate (lower = smaller uploads, still readable for review). */
+/** Target recording bitrate (lower = smaller uploads, still readable for review). */
 const VIDEO_BITS_PER_SECOND = 1_250_000;
 const AUDIO_BITS_PER_SECOND = 96_000;
 
-export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoRecordingOptions) {
+export function useVideoRecording({ interviewId, onRecordingEnded }: UseVideoRecordingOptions) {
     const [isRecordingVideo, setIsRecordingVideo] = useState(false);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const screenStreamRef = useRef<MediaStream | null>(null);
+    const recordingStreamRef = useRef<MediaStream | null>(null);
 
     // Multipart upload state
     const multipartStateRef = useRef<{
@@ -133,28 +133,8 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
         }
     }, [schedulePartUpload]);
 
-    const startScreenRecording = useCallback(async (micStream?: MediaStream, sessionPromise?: Promise<void>) => {
+    const startRecording = useCallback(async (cameraStream: MediaStream) => {
         try {
-            // Request screen share first to ensure it is triggered by user gesture
-            const screenStream = await navigator.mediaDevices.getDisplayMedia({
-                video: {
-                    displaySurface: "monitor",
-                    frameRate: { ideal: 15, max: 24 },
-                    width: { ideal: 1920, max: 1920 },
-                    height: { ideal: 1080, max: 1080 },
-                },
-                audio: false,
-                // @ts-expect-error - Chrome-specific options
-                selfBrowserSurface: "include",
-                surfaceSwitching: "include",
-            });
-
-            // Wait for interview session creation in DB before creating multipart upload
-            if (sessionPromise) {
-                await sessionPromise;
-            }
-
-            // Initialize multipart upload after getting stream
             const initRes = await fetch("/api/s3/multipart/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -163,7 +143,6 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
 
             if (!initRes.ok) {
                 console.error("Failed to initialize multipart upload");
-                screenStream.getTracks().forEach(track => track.stop());
                 return false;
             }
 
@@ -182,13 +161,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
             multipartStateRef.current.hasPartFailure = false;
             multipartStateRef.current.uploadQueue = Promise.resolve();
 
-            const combinedStream = new MediaStream();
-            screenStream.getVideoTracks().forEach(track => combinedStream.addTrack(track));
-            if (micStream) {
-                micStream.getAudioTracks().forEach(track => combinedStream.addTrack(track));
-            }
-
-            screenStreamRef.current = screenStream;
+            recordingStreamRef.current = cameraStream;
 
             let mimeType = "video/webm;codecs=vp8,opus";
             if (typeof MediaRecorder.isTypeSupported === "function" && !MediaRecorder.isTypeSupported(mimeType)) {
@@ -197,7 +170,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
                 } else if (MediaRecorder.isTypeSupported("video/mp4")) {
                     mimeType = "video/mp4";
                 } else {
-                    mimeType = ""; // Fallback to browser default
+                    mimeType = "";
                 }
             }
 
@@ -207,33 +180,30 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
                 audioBitsPerSecond: AUDIO_BITS_PER_SECOND,
             };
 
-            const mediaRecorder = new MediaRecorder(combinedStream, recorderOptions);
-
+            const mediaRecorder = new MediaRecorder(cameraStream, recorderOptions);
             mediaRecorder.ondataavailable = handleDataAvailable;
 
-            const screenVideoTrack = screenStream.getVideoTracks()[0];
-            screenVideoTrack.onended = () => {
-                setIsRecordingVideo(false);
-                onScreenShareEnded?.();
-                if (mediaRecorder.state !== "inactive") {
-                    mediaRecorder.stop();
-                }
-            };
+            const videoTrack = cameraStream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.onended = () => {
+                    setIsRecordingVideo(false);
+                    onRecordingEnded?.();
+                    if (mediaRecorder.state !== "inactive") {
+                        mediaRecorder.stop();
+                    }
+                };
+            }
 
-            mediaRecorder.start(1000); // 1-second chunks
+            mediaRecorder.start(1000);
             mediaRecorderRef.current = mediaRecorder;
             setIsRecordingVideo(true);
 
             return true;
         } catch (err: unknown) {
-            if (err instanceof DOMException && err.name === "NotAllowedError") {
-                console.warn("Screen recording was cancelled by the user.");
-            } else {
-                console.error("Failed to start screen recording:", err);
-            }
+            console.error("Failed to start recording:", err);
             return false;
         }
-    }, [interviewId, onScreenShareEnded, handleDataAvailable]);
+    }, [interviewId, onRecordingEnded, handleDataAvailable]);
 
     const stopVideoRecording = useCallback((): Promise<{ videoKey: string; videoCompletionToken: string } | null> => {
         return new Promise((resolve) => {
@@ -252,11 +222,10 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
             mediaRecorder.onstop = () => {
                 setIsRecordingVideo(false);
 
-                // Stop tracks
-                if (screenStreamRef.current) {
-                    screenStreamRef.current.getVideoTracks().forEach(track => { track.onended = null; });
-                    screenStreamRef.current.getTracks().forEach(track => track.stop());
-                    screenStreamRef.current = null;
+                // Clean up track listeners (don't stop tracks — they belong to the media hook)
+                if (recordingStreamRef.current) {
+                    recordingStreamRef.current.getVideoTracks().forEach(track => { track.onended = null; });
+                    recordingStreamRef.current = null;
                 }
 
                 const finalBlob = state.buffer.length > 0 ? new Blob(state.buffer, { type: "video/webm" }) : null;
@@ -336,7 +305,7 @@ export function useVideoRecording({ interviewId, onScreenShareEnded }: UseVideoR
 
     return {
         isRecordingVideo,
-        startScreenRecording,
+        startRecording,
         stopVideoRecording,
     };
 }

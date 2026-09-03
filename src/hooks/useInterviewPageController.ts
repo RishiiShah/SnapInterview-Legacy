@@ -26,7 +26,7 @@ export function useInterviewPageController({
   const [showPreJoin, setShowPreJoin] = useState(true);
   const [interviewStarted, setInterviewStarted] = useState(false);
   const [interviewDone, setInterviewDone] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploading] = useState(false);
   const [durationMinutes, setDurationMinutes] = useState(30);
   const [sessionCreatedAt, setSessionCreatedAt] = useState<string | null>(null);
   const [totalQuestions, setTotalQuestions] = useState(10);
@@ -61,7 +61,7 @@ export function useInterviewPageController({
   const sessionMetaPromiseRef = useRef<Promise<void> | null>(null);
   const chatMessagesRef = useRef<typeof chat.messages>([]);
   const handleExitInterviewRef = useRef<(opts?: { skipConfirmation?: boolean }) => Promise<void>>(async () => {});
-  const onScreenShareEndedRef = useRef<() => void>(() => {});
+  const onRecordingEndedRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     if (typeof window === "undefined" || hasCheckedResumeRef.current) return;
@@ -106,11 +106,11 @@ export function useInterviewPageController({
 
   const videoRecording = useVideoRecording({
     interviewId,
-    onScreenShareEnded: () => {
-      onScreenShareEndedRef.current();
+    onRecordingEnded: () => {
+      onRecordingEndedRef.current();
     },
   });
-  const { startScreenRecording, stopVideoRecording } = videoRecording;
+  const { startRecording, stopVideoRecording } = videoRecording;
   const pendingVideoStopRef = useRef<ReturnType<typeof stopVideoRecording> | null>(null);
 
   const stopVideoRecordingForFinalize = useCallback(() => {
@@ -249,6 +249,7 @@ export function useInterviewPageController({
 
   const handlePermissionsGranted = useCallback(async () => {
     if (resumeExpiredRef.current) return;
+    if (!media.stream) return;
 
     const pendingRaw = sessionStorage.getItem(`pending_interview_${interviewId}`);
     let sessionPromise: Promise<void>;
@@ -277,18 +278,6 @@ export function useInterviewPageController({
       sessionPromise = loadSessionMeta();
     }
 
-    const started = await startScreenRecording(media.stream || undefined, sessionPromise);
-    if (!started) {
-      if (resumeExpiredRef.current) return;
-      setModal({
-        isOpen: true,
-        title: "Screen Recording Required",
-        description: "Please allow screen recording to start the interview. This is used to capture your session for analysis.",
-        variant: "warning",
-      });
-      return;
-    }
-
     try {
       await sessionPromise;
     } catch (err) {
@@ -299,13 +288,24 @@ export function useInterviewPageController({
         description: "Failed to establish interview session. Please try again.",
         variant: "danger",
       });
-      void stopVideoRecording();
+      return;
+    }
+
+    const started = await startRecording(media.stream);
+    if (!started) {
+      if (resumeExpiredRef.current) return;
+      setModal({
+        isOpen: true,
+        title: "Recording Failed",
+        description: "Could not start recording. Please check your camera/mic permissions and try again.",
+        variant: "warning",
+      });
       return;
     }
 
     setShowPreJoin(false);
     setInterviewStarted(true);
-  }, [media.stream, startScreenRecording, stopVideoRecording, interviewId, loadSessionMeta]);
+  }, [media.stream, startRecording, interviewId, loadSessionMeta]);
 
   const handleExitInterview = useCallback(
     async ({ skipConfirmation = false }: { skipConfirmation?: boolean } = {}) => {
@@ -327,72 +327,23 @@ export function useInterviewPageController({
       if (isExitingRef.current) return;
       isExitingRef.current = true;
 
-      // Clear active ID immediately to prevent accidental deletion on practice page
       localStorage.removeItem("active_interview_id");
-
       speech.stopRecording();
-      setIsUploading(true);
 
       const userAnswerCount = chatMessagesRef.current.filter((m) => m.role === "user").length;
       const interviewStatus: InterviewCompletionStatus =
         interviewDoneRef.current || userAnswerCount > 0 ? "COMPLETED" : "ABORTED";
 
       addPendingInterviewFinalize(interviewId);
-      try {
-        const finalizeResult = await scheduleInterviewFinalize({
-          interviewId,
-          status: interviewStatus,
-          stopVideoRecording: stopVideoRecordingForFinalize,
-        });
 
-        if (finalizeResult && finalizeResult.type === "error") {
-          setIsUploading(false);
-          isExitingRef.current = false;
-          setModal({
-            isOpen: true,
-            title: "Recording Save Failed",
-            description:
-              finalizeResult.message ||
-              "Failed to finalize and save your interview recording. You can retry or proceed to analytics.",
-            confirmLabel: "Proceed to Analytics",
-            cancelLabel: "Retry",
-            variant: "warning",
-            onConfirm: () => {
-              closeModal();
-              media.stopStream();
-              router.push("/analytics");
-            },
-            onCancel: () => {
-              closeModal();
-              void handleExitInterviewRef.current({ skipConfirmation: true });
-            },
-          });
-          return;
-        }
-      } catch (error) {
-        console.error("Error finalizing interview upload:", error);
-        setIsUploading(false);
-        isExitingRef.current = false;
-        setModal({
-          isOpen: true,
-          title: "Recording Save Failed",
-          description:
-            "An unexpected error occurred while saving your interview recording. You can retry or proceed to analytics.",
-          confirmLabel: "Proceed to Analytics",
-          cancelLabel: "Retry",
-          variant: "warning",
-          onConfirm: () => {
-            closeModal();
-            media.stopStream();
-            router.push("/analytics");
-          },
-          onCancel: () => {
-            closeModal();
-            void handleExitInterviewRef.current({ skipConfirmation: true });
-          },
-        });
-        return;
-      }
+      // Fire-and-forget: upload finishes in background via scheduleInterviewFinalize
+      void scheduleInterviewFinalize({
+        interviewId,
+        status: interviewStatus,
+        stopVideoRecording: stopVideoRecordingForFinalize,
+      }).catch((error) => {
+        console.error("Background interview finalize failed:", error);
+      });
 
       media.stopStream();
       router.push("/analytics");
@@ -464,11 +415,11 @@ export function useInterviewPageController({
   }, [loadSessionMeta]);
 
   useEffect(() => {
-    onScreenShareEndedRef.current = () => {
+    onRecordingEndedRef.current = () => {
       setModal({
         isOpen: true,
         title: "Recording Stopped",
-        description: "Screen sharing was stopped manually. The interview will now exit and save what was recorded.",
+        description: "Camera recording was stopped. The interview will now exit and save what was recorded.",
         onConfirm: () => {
           closeModal();
           void handleExitInterviewRef.current({ skipConfirmation: true });

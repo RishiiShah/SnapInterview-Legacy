@@ -44,14 +44,16 @@ export default function PreJoinScreen({
   stream,
 }: PreJoinScreenProps) {
   const [showCompatibilityPopup, setShowCompatibilityPopup] = useState(false);
-  const canJoin = hasPermission === true && !resumeExpired;
+  const [isJoining, setIsJoining] = useState(false);
+  const canJoin = hasPermission === true && !resumeExpired && !isJoining;
 
   function handleJoin() {
-    if (resumeExpired) return;
+    if (resumeExpired || isJoining) return;
     if (joinBlockedReason?.severity === "block") {
       setShowCompatibilityPopup(true);
       return;
     }
+    setIsJoining(true);
     onPermissionsGranted();
   }
 
@@ -198,10 +200,19 @@ export default function PreJoinScreen({
             type="button"
             onClick={handleJoin}
             disabled={!canJoin}
-            className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-[#3B82F6] px-5 text-sm font-medium text-white transition-colors hover:bg-[#4B8FF7] disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-lg bg-[#3B82F6] px-5 text-sm font-medium text-white transition-all hover:bg-[#4B8FF7] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <IconPlay className="h-4 w-4 fill-current" />
-            Join now
+            {isJoining ? (
+              <>
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Joining…
+              </>
+            ) : (
+              <>
+                <IconPlay className="h-4 w-4 fill-current" />
+                Join now
+              </>
+            )}
           </button>
         </div>
       </div>

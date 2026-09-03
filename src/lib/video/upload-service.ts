@@ -44,18 +44,13 @@ export async function finalizeInterviewUpload({
 
   try {
     const recordingResult = await stopVideoRecording();
-    if (recordingResult?.videoKey) {
+    if (recordingResult?.videoKey && recordingResult.videoCompletionToken) {
       videoKey = recordingResult.videoKey;
       videoCompletionToken = recordingResult.videoCompletionToken;
     }
   } catch (error) {
     logger.error("Failed to stop video recording or finalize multipart upload", { error, interviewId });
-    return { type: "error", message: "Failed to finalize video upload", stage: "upload" };
-  }
-
-  if (videoKey && !videoCompletionToken) {
-    logger.error("Failed to finalize video upload: missing completion token", { interviewId });
-    return { type: "error", message: "Failed to finalize video upload", stage: "upload" };
+    // Continue — still need to PATCH session status to COMPLETED/ABORTED
   }
 
   try {

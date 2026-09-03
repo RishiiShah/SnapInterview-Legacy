@@ -58,8 +58,6 @@ export default function InterviewPreferencesTab({
             key={JSON.stringify(initialValues)}
             initialValues={initialValues}
             submitLabel="Save interview preferences"
-            tone="dark"
-            chrome="plain"
             draftStorageKey={PREFS_DRAFT_STORAGE_KEY}
           />
         ) : (

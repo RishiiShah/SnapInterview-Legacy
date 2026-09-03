@@ -20,12 +20,21 @@ export default function InterviewFinalizeSync() {
 
   useEffect(() => {
     isMountedRef.current = true;
+    const startTime = Date.now();
+    const MAX_POLL_MS = 60_000;
 
     const sync = async () => {
       if (syncInFlightRef.current) return;
 
       const pendingIds = getPendingInterviewFinalizeIds();
       if (pendingIds.length === 0) {
+        if (isMountedRef.current) setBanner(null);
+        return;
+      }
+
+      // Give up after 60s — stale entries shouldn't block the dashboard forever
+      if (Date.now() - startTime > MAX_POLL_MS) {
+        for (const id of pendingIds) clearPendingInterviewFinalize(id);
         if (isMountedRef.current) setBanner(null);
         return;
       }
@@ -37,6 +46,7 @@ export default function InterviewFinalizeSync() {
         const completedIds = (await Promise.all(pendingIds.map(async (interviewId) => {
           try {
           const response = await fetch(`/api/interview/session?interviewId=${encodeURIComponent(interviewId)}`);
+            if (response.status === 404 || response.status === 410) return interviewId;
             if (!response.ok) return null;
           const payload = (await response.json()) as SessionStatusResponse;
           if (payload.status === "COMPLETED" || payload.status === "ABORTED") {

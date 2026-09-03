@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { getInitials } from "@/utils/helpers";
-import { FadeIn, SlideIn } from "@/components/ui/motion";
 import ProfileTab from "@/components/settings/ProfileTab";
 import SecurityTab from "@/components/settings/SecurityTab";
 import NotificationsTab from "@/components/settings/NotificationsTab";
@@ -48,7 +47,7 @@ export default function SettingsPageClient({
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 pb-16 pt-2 xl:max-w-[88rem]">
-      <SlideIn instant>
+      <div>
         <div>
           <h1 className="font-display text-[2rem] leading-[1.15] tracking-[-0.02em] text-[#F2F4F8] sm:text-[2.35rem]">
             Settings
@@ -57,9 +56,9 @@ export default function SettingsPageClient({
             Manage your account and preferences.
           </p>
         </div>
-      </SlideIn>
+      </div>
 
-      <FadeIn instant delay={0.08} direction="up">
+      <div>
         <div className="flex flex-col gap-10 lg:flex-row lg:gap-14">
           <nav className="w-full shrink-0 lg:w-48">
             <div className="flex gap-1 overflow-x-auto lg:sticky lg:top-6 lg:flex-col lg:gap-0.5 lg:overflow-visible">
@@ -127,7 +126,7 @@ export default function SettingsPageClient({
             {activeTab === "danger" && <DangerZoneTab />}
           </div>
         </div>
-      </FadeIn>
+      </div>
     </div>
   );
 }

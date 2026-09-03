@@ -3,8 +3,10 @@ import type { PromptInterviewSession } from "@/lib/interview/domain";
 export interface RetrievedQuestion {
   /** Corpus row id, recorded so the question is not injected again. */
   id: string;
+  sourceId?: string | null;
   question: string;
   answer: string | null;
+  commonMistakes?: string | null;
   category: string;
   difficulty: string | null;
   level: string | null;
@@ -59,6 +61,9 @@ export function formatRetrievedQuestions(
     if (entry.answer) {
       parts.push(`  - Evaluation key points: ${entry.answer}`);
     }
+    if (entry.commonMistakes) {
+      parts.push(`  - Common mistakes to probe for: ${entry.commonMistakes}`);
+    }
     return parts.join("\n");
   });
 
@@ -68,6 +73,7 @@ export function formatRetrievedQuestions(
     "- Do NOT read these questions verbatim or follow them like a checklist.",
     "- Adapt the core concepts into natural scenario-based questions connected to what the candidate just said.",
     "- Use the evaluation key points to assess technical accuracy and formulate probing follow-ups.",
+    "- Do not assume or penalize a mistake unless the candidate actually demonstrates it.",
     "",
     ...lines,
   ].join("\n");

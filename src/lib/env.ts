@@ -10,10 +10,6 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
   GROQ_API_KEY: z.string().min(1).optional(),
-  ELEVENLABS_API_KEY: z.string().min(1).optional(),
-  ELEVENLABS_VOICE_FRIENDLY: z.string().min(1).optional(),
-  ELEVENLABS_VOICE_BALANCED: z.string().min(1).optional(),
-  ELEVENLABS_VOICE_STRICT: z.string().min(1).optional(),
   AWS_REGION: z.string().min(1).optional(),
   AWS_ACCESS_KEY_ID: z.string().min(1).optional(),
   AWS_SECRET_ACCESS_KEY: z.string().min(1).optional(),
@@ -38,10 +34,6 @@ const testEnvSchema = envSchema.extend({
   GOOGLE_CLIENT_ID: true,
   GOOGLE_CLIENT_SECRET: true,
   GROQ_API_KEY: true,
-  ELEVENLABS_API_KEY: true,
-  ELEVENLABS_VOICE_FRIENDLY: true,
-  ELEVENLABS_VOICE_BALANCED: true,
-  ELEVENLABS_VOICE_STRICT: true,
   AWS_REGION: true,
   AWS_ACCESS_KEY_ID: true,
   AWS_SECRET_ACCESS_KEY: true,
@@ -159,4 +151,3 @@ export function requireGroqApiKey(currentEnv = env): string {
   }
   return currentEnv.GROQ_API_KEY;
 }
-

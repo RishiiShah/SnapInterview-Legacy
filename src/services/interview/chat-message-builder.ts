@@ -28,9 +28,7 @@ export function buildProviderMessages(params: {
   isSystemDesignRound: boolean;
 }): InterviewProviderMessage[] {
   const { systemInstruction, messages, isSystemDesignRound } = params;
-  return [
-    { role: "system" as const, content: systemInstruction },
-    ...messages.map((message, idx) => {
+  const mapped: InterviewProviderMessage[] = messages.map((message, idx) => {
       if (
         isSystemDesignRound &&
         idx === messages.length - 1 &&
@@ -70,7 +68,13 @@ export function buildProviderMessages(params: {
       }
 
       return { role: message.role, content: message.content };
-    }),
-  ];
+    });
+
+  // ponytail: qwen models require at least one user message; inject a greeting trigger on the initial turn
+  if (!mapped.some((m) => m.role === "user")) {
+    mapped.push({ role: "user", content: "Begin the interview." });
+  }
+
+  return [{ role: "system" as const, content: systemInstruction }, ...mapped];
 }
 

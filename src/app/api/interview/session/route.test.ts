@@ -134,6 +134,52 @@ describe("POST /api/interview/session", () => {
     await expect(response.json()).resolves.toEqual({ id: "session-1" });
   });
 
+  it("passes the selected corpus level through when creating a session", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
+    vi.mocked(startInterviewSession).mockResolvedValue({ id: "session-level" });
+
+    const request = new Request("http://localhost/api/interview/session", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3000",
+      },
+      body: JSON.stringify({
+        role: "Frontend Engineer",
+        type: "coding-algorithms",
+        difficulty: "medium",
+        level: "mid-level",
+      }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(201);
+    expect(startInterviewSession).toHaveBeenCalledWith(expect.objectContaining({
+      difficulty: "medium",
+      level: "mid-level",
+    }));
+  });
+
+  it("normalizes corpus level labels", async () => {
+    vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
+    vi.mocked(startInterviewSession).mockResolvedValue({ id: "session-staff" });
+
+    const response = await POST(new Request("http://localhost/api/interview/session", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "http://localhost:3000" },
+      body: JSON.stringify({
+        role: "Staff Engineer",
+        type: "system-design",
+        difficulty: "hard",
+        level: "Staff",
+      }),
+    }));
+
+    expect(response.status).toBe(201);
+    expect(startInterviewSession).toHaveBeenCalledWith(expect.objectContaining({ level: "staff-plus" }));
+  });
+
   it("rejects companies outside the curated list", async () => {
     vi.mocked(getSessionUserIdentity).mockResolvedValue({ userId: "user-1", email: "user@example.com" });
 

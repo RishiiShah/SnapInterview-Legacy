@@ -32,6 +32,46 @@ function pillarKey(value: string): string {
   return normalizeToken(value);
 }
 
+const EXPLICIT_GAP_MARKERS = [
+  "still need to",
+  "have not talked",
+  "havent talked",
+  "not talked",
+  "not covered",
+  "not discussed",
+  "not addressed",
+  "not explored",
+  "yet to",
+];
+
+const GAP_CONTEXT_WORDS = new Set([
+  "still",
+  "need",
+  "dig",
+  "handled",
+  "ongoing",
+  "afterward",
+  "talked",
+  "yet",
+]);
+
+/** Text after phrases where a candidate explicitly says a topic remains uncovered. */
+function explicitGapText(transcript: Array<{ question: string; answer: string }>): string {
+  const gaps: string[] = [];
+  for (const entry of transcript) {
+    for (const sentence of entry.answer.split(/[.!?]+/)) {
+      const normalized = sentence.toLowerCase().replace(/['’]/g, "");
+      const markerIndexes = EXPLICIT_GAP_MARKERS
+        .map((marker) => normalized.indexOf(marker))
+        .filter((index) => index >= 0);
+      if (markerIndexes.length > 0) {
+        gaps.push(normalized.slice(Math.min(...markerIndexes)));
+      }
+    }
+  }
+  return gaps.join(" ");
+}
+
 /**
  * Builds target technical terms from resume/dialogue seeds plus known domain hints
  * that appear in those seeds (so we don't target the entire synonym dictionary).
@@ -61,11 +101,25 @@ export function buildInterviewCoverage(input: {
     .map((entry) => `${entry.question} ${entry.answer}`)
     .join(" ")
     .toLowerCase();
+  const explicitGaps = explicitGapText(input.transcript ?? []);
+  const explicitGapTerms = input.targetTerms
+    .map(normalizeToken)
+    .filter(
+      (term) =>
+        term.length >= 3 &&
+        !GAP_CONTEXT_WORDS.has(term) &&
+        explicitGaps.includes(term)
+    );
+  const explicitGapSet = new Set(explicitGapTerms);
 
   const coveredTermSet = new Set<string>();
   for (const term of input.targetTerms) {
     const normalized = normalizeToken(term);
-    if (normalized.length >= 3 && transcriptText.includes(normalized)) {
+    if (
+      normalized.length >= 3 &&
+      transcriptText.includes(normalized) &&
+      !explicitGapSet.has(normalized)
+    ) {
       coveredTermSet.add(normalized);
     }
   }
@@ -75,7 +129,13 @@ export function buildInterviewCoverage(input: {
     const tokens = normalizeToken(category)
       .split(/[^a-z0-9]+/)
       .filter((t) => t.length > 3);
-    if (tokens.some((token) => transcriptText.includes(token))) {
+    const namedAsGap =
+      tokens.length > 0 && tokens.every((token) => explicitGaps.includes(token));
+    if (
+      tokens.length > 0 &&
+      tokens.every((token) => transcriptText.includes(token)) &&
+      !namedAsGap
+    ) {
       coveredCategorySet.add(category);
     }
   }
@@ -91,9 +151,12 @@ export function buildInterviewCoverage(input: {
     }
   }
 
-  const missingTerms = input.targetTerms
-    .map(normalizeToken)
-    .filter((term) => term.length >= 3 && !coveredTermSet.has(term));
+  const missingTerms = [
+    ...explicitGapTerms,
+    ...input.targetTerms
+      .map(normalizeToken)
+      .filter((term) => term.length >= 3 && !coveredTermSet.has(term)),
+  ];
   const missingCategories = input.targetCategories.filter(
     (category) => !coveredCategorySet.has(category)
   );
@@ -137,7 +200,12 @@ export function buildGapFillQueries(
 
   return {
     denseQuery: denseParts.join(" ").slice(0, 900),
-    sparseKeywords: [...terms, ...categories, ...pillars].join(" "),
+    // Sparse search is the exact-match recall branch. Keep it focused on the
+    // highest-priority missing terms instead of diluting it with broad labels.
+    sparseKeywords:
+      terms.length > 0
+        ? terms.slice(0, 6).join(" ")
+        : [...categories, ...pillars].join(" "),
   };
 }
 

@@ -1,5 +1,5 @@
 import type { InterviewStatus, Prisma } from "@/generated/prisma/client";
-import type { Difficulty, InterviewPersona, InterviewType } from "@/lib/interview/domain";
+import type { Difficulty, InterviewLevel, InterviewPersona, InterviewType } from "@/lib/interview/domain";
 import { prisma } from "@/lib/prisma";
 
 export const TYPE_FILTER_ALIASES: Record<InterviewType, string[]> = {
@@ -23,6 +23,8 @@ export const interviewSessionStateSelect = {
   currentQuestion: true,
   persona: true,
   type: true,
+  difficulty: true,
+  level: true,
   createdAt: true,
 } satisfies Prisma.InterviewSessionSelect;
 
@@ -33,6 +35,7 @@ export const interviewSessionChatSelect = {
   company: true,
   type: true,
   difficulty: true,
+  level: true,
   persona: true,
   jobDescription: true,
   resumeUrl: true,
@@ -62,6 +65,7 @@ export const interviewSessionEvaluationSelect = {
   company: true,
   type: true,
   difficulty: true,
+  level: true,
   persona: true,
   jobDescription: true,
   resumeUrl: true,
@@ -83,6 +87,22 @@ export const interviewSessionEvaluationSelect = {
     },
     orderBy: {
       order: "asc",
+    },
+  },
+  retrievedQuestions: {
+    select: {
+      questionOrder: true,
+      question: {
+        select: {
+          sourceId: true,
+          question: true,
+          answer: true,
+          commonMistakes: true,
+        },
+      },
+    },
+    orderBy: {
+      questionOrder: "asc",
     },
   },
 } satisfies Prisma.InterviewSessionSelect;
@@ -123,6 +143,7 @@ export async function createInterviewSession(params: {
   company?: string | null;
   type: InterviewType;
   difficulty: Difficulty;
+  level?: InterviewLevel;
   persona?: InterviewPersona;
   jobDescription?: string | null;
   resumeUrl?: string | null;
@@ -139,6 +160,7 @@ export async function createInterviewSession(params: {
     company,
     type,
     difficulty,
+    level,
     persona,
     jobDescription,
     resumeUrl,
@@ -157,6 +179,7 @@ export async function createInterviewSession(params: {
       company: company ?? null,
       type,
       difficulty,
+      level: level ?? null,
       persona: persona ?? null,
       jobDescription: jobDescription ?? null,
       resumeUrl: resumeUrl ?? null,

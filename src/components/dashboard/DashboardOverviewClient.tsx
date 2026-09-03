@@ -4,7 +4,6 @@ import { useState, useEffect, useId, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getScoreLabel } from "@/utils/helpers";
-import { FadeIn, FadeInStagger, FadeInStaggerItem, SlideIn } from "@/components/ui/motion";
 import RecordingModal from "@/components/recordings/RecordingModal";
 import { FlipDate } from "@/components/ui/FlipDate";
 import { CompanyMark } from "@/components/ui/CompanyMark";
@@ -300,7 +299,7 @@ export default function DashboardOverviewClient({
 
   return (
     <div className="mx-auto max-w-7xl space-y-11 pb-16 pt-2 xl:max-w-[88rem]">
-      <SlideIn instant>
+      <div>
         <header className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
           <FlipDate size="lg" />
           <div className="min-w-0 sm:max-w-md sm:text-right">
@@ -346,10 +345,10 @@ export default function DashboardOverviewClient({
             </div>
           </div>
         </header>
-      </SlideIn>
+      </div>
 
       {hasSessions ? (
-        <FadeIn instant direction="up">
+        <div>
           <section className="py-1">
             <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
               <div className="min-w-0">
@@ -406,11 +405,11 @@ export default function DashboardOverviewClient({
               </div>
             ) : null}
           </section>
-        </FadeIn>
+        </div>
       ) : null}
 
       {hasRecommendations ? (
-        <FadeIn instant delay={0.04} direction="up">
+        <div>
           <section>
             <div className="mb-3.5 flex items-baseline justify-between gap-3">
               <h2 className="font-display text-xl tracking-tight text-[#F2F4F8] sm:text-2xl">
@@ -439,10 +438,10 @@ export default function DashboardOverviewClient({
               ) : null}
             </div>
           </section>
-        </FadeIn>
+        </div>
       ) : null}
 
-      <FadeIn instant delay={0.05} direction="up">
+      <div>
         <section>
           <div className="mb-3.5 flex items-baseline justify-between gap-3">
             <h2 className="font-display text-xl tracking-tight text-[#F2F4F8] sm:text-2xl">
@@ -533,12 +532,12 @@ export default function DashboardOverviewClient({
               </div>
             </div>
           ) : (
-            <FadeInStagger instant className="divide-y divide-white/[0.05]">
+            <div className="divide-y divide-white/[0.05]">
               {recentSessions.slice(0, 6).map((s) => {
                 const kind = interviewTypeDisplayLabel(s.type, "full");
                 const level = difficultyLabel(s.difficulty);
                 return (
-                  <FadeInStaggerItem instant key={s.id}>
+                  <div key={s.id}>
                     <button
                       type="button"
                       onClick={() => openSession(s)}
@@ -586,13 +585,13 @@ export default function DashboardOverviewClient({
                         </span>
                       )}
                     </button>
-                  </FadeInStaggerItem>
+                  </div>
                 );
               })}
-            </FadeInStagger>
+            </div>
           )}
         </section>
-      </FadeIn>
+      </div>
 
       <RecordingModal
         isOpen={selectedVideo !== null}

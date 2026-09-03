@@ -68,6 +68,7 @@ function evalSession(overrides: Record<string, unknown> = {}) {
     focusAreas: null,
     sessionPlan: null,
     transcript: [{ question: "Q1", answer: "A1", order: 0 }],
+    retrievedQuestions: [],
     evaluation: null,
     ...overrides,
   } as never;
@@ -286,6 +287,45 @@ describe("evaluateInterviewTranscript", () => {
     expect(buildSystemInstruction).toHaveBeenCalledWith(
       expect.objectContaining({ id: "int-1", role: "Frontend Engineer" }),
       { includeQuestionRetrieval: false },
+    );
+  });
+
+  it("uses matched corpus common mistakes as evidence-aware final-evaluation rubrics", async () => {
+    vi.mocked(getInterviewSession).mockResolvedValue(evalSession({
+      transcript: [
+        {
+          question: "How would you salt and hash user passwords securely?",
+          answer: "I would use bcrypt and a random salt per password.",
+          order: 0,
+        },
+      ],
+      retrievedQuestions: [
+        {
+          questionOrder: 0,
+          question: {
+            sourceId: "81",
+            question: "How should user passwords be salted and hashed?",
+            answer: "Use a password KDF with a unique random salt.",
+            commonMistakes: "Using one global salt.",
+          },
+        },
+      ],
+    }));
+    vi.mocked(groqClient.chat.completions.create).mockResolvedValue(
+      groqContent(JSON.stringify(LEGACY_EVAL))
+    );
+
+    await evaluateInterviewTranscript({ userId: "user-1", interviewId: "int-1" });
+
+    expect(groqClient.chat.completions.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            role: "system",
+            content: expect.stringContaining("Common mistakes: Using one global salt."),
+          }),
+        ]),
+      })
     );
   });
 

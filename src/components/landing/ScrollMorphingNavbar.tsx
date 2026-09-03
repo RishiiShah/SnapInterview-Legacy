@@ -1,6 +1,6 @@
 "use client";
 
-import { IconMenu2, IconX } from "@tabler/icons-react";
+import { Menu, X } from "lucide-react";
 import {
   AnimatePresence,
   motion,
@@ -267,7 +267,7 @@ export const MobileNavToggle = ({
       onClick={onClick}
       className="inline-flex size-9 items-center justify-center rounded-full text-[#F5F7FF] transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#67E8F9] cursor-pointer"
     >
-      {isOpen ? <IconX aria-hidden="true" size={20} /> : <IconMenu2 aria-hidden="true" size={20} />}
+      {isOpen ? <X aria-hidden="true" size={20} /> : <Menu aria-hidden="true" size={20} />}
     </button>
   );
 };

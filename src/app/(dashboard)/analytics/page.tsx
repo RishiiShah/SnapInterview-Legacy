@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { FadeIn, SlideIn } from "@/components/ui/motion";
 import PerformanceTrendChart from "@/components/analytics/PerformanceTrendChart";
 import CategoryBreakdown from "@/components/analytics/CategoryBreakdown";
 import DimensionAnalytics from "@/components/analytics/DimensionAnalytics";
@@ -76,7 +75,7 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-11 pb-16 pt-2 xl:max-w-[88rem]">
-      <SlideIn instant>
+      <div>
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="font-display text-[2rem] leading-[1.15] tracking-[-0.02em] text-[#F2F4F8] sm:text-[2.35rem]">
@@ -101,10 +100,10 @@ export default async function AnalyticsPage() {
             View recordings →
           </Link>
         </header>
-      </SlideIn>
+      </div>
 
       {!hasData ? (
-        <FadeIn instant triggerOnView={false} direction="up">
+        <div>
           <section className="py-16 text-center">
             <p className="font-display text-xl tracking-tight text-[#E8ECF4]">No interview data yet</p>
             <p className="mx-auto mt-2 max-w-sm text-sm text-[#A8B0C2]">
@@ -117,11 +116,11 @@ export default async function AnalyticsPage() {
               Start an interview
             </Link>
           </section>
-        </FadeIn>
+        </div>
       ) : (
         <>
           {/* Hero signal + instruments */}
-          <FadeIn instant triggerOnView={false} direction="up">
+          <div>
             <section className="py-1">
               <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
                 <div className="min-w-0">
@@ -205,7 +204,7 @@ export default async function AnalyticsPage() {
                 </dl>
               </div>
             </section>
-          </FadeIn>
+          </div>
 
           {/* Charts — no card chrome */}
           <div className="grid gap-10 border-t border-white/[0.06] pt-10 lg:grid-cols-2 lg:gap-14">
@@ -213,17 +212,16 @@ export default async function AnalyticsPage() {
               dailyTrend={dailyTrend}
               weeklyTrend={weeklyTrend}
               monthlyTrend={monthlyTrend}
-              delay={0.08}
             />
-            <CategoryBreakdown categories={categoryBreakdown} delay={0.12} />
+            <CategoryBreakdown categories={categoryBreakdown} />
           </div>
 
-          <FadeIn instant triggerOnView={false} delay={0.16} direction="up">
+          <div>
             <DimensionAnalytics subScores={subScores} subScoreTrends={subScoreTrends} />
-          </FadeIn>
+          </div>
 
           {/* Question feedback */}
-          <FadeIn instant triggerOnView={false} delay={0.24} direction="up">
+          <div>
             <section className="border-t border-white/[0.06] pt-10">
               <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
                 <h2 className="font-display text-xl tracking-tight text-[#F2F4F8] sm:text-2xl">
@@ -276,10 +274,10 @@ export default async function AnalyticsPage() {
                 </div>
               )}
             </section>
-          </FadeIn>
+          </div>
 
           {/* Strengths & focus — quiet recommendations style */}
-          <FadeIn instant triggerOnView={false} delay={0.28} direction="up">
+          <div>
             <section className="border-t border-white/[0.06] pt-10">
               <div className="mb-6 flex items-baseline justify-between gap-3">
                 <h2 className="font-display text-xl tracking-tight text-[#F2F4F8] sm:text-2xl">
@@ -332,7 +330,7 @@ export default async function AnalyticsPage() {
                 </div>
               </div>
             </section>
-          </FadeIn>
+          </div>
         </>
       )}
     </div>

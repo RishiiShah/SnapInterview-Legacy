@@ -41,13 +41,10 @@ model User {
   accounts             Account[]
   interviewSessions    InterviewSession[]
   solvedQuestions      SolvedQuestion[]
-  codingSubmissions    CodingSubmission[]
-  codingSolved         CodingSolved[]
   passwordResetCodes   PasswordResetCode[]
   securityEvents       SecurityEvent[]
   pendingRegistrations PendingUser[]
   supportTickets       SupportTicket[]
-  companyRequests      CompanyRequest[]
 }
 
 model Session {
@@ -187,23 +184,6 @@ enum InterviewStatus {
   ABORTED
 }
 
-enum CompanyRequestStatus {
-  PENDING
-}
-
-model CompanyRequest {
-  id             String               @id @default(cuid())
-  userId         String
-  requestedName  String
-  normalizedName String               @unique
-  status         CompanyRequestStatus @default(PENDING)
-  createdAt      DateTime             @default(now())
-  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([status, createdAt])
-  @@index([userId, createdAt])
-}
-
 model InterviewSession {
   id              String          @id @default(dbgenerated("(gen_random_uuid())::text"))
   userId          String
@@ -211,6 +191,7 @@ model InterviewSession {
   company         String?
   type            String
   difficulty      String
+  level           String?
   persona         String?
   jobDescription  String?         @db.Text
   resumeUrl       String?
@@ -330,8 +311,6 @@ model CodingQuestion {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   testCases   CodingTestCase[]
-  submissions CodingSubmission[]
-  solvedBy    CodingSolved[]
 
   @@index([isPublished, sortOrder, createdAt])
 }
@@ -346,36 +325,6 @@ model CodingTestCase {
   question       CodingQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([questionId, ordinal])
-}
-
-model CodingSubmission {
-  id                 String         @id @default(cuid())
-  clientSubmissionId String
-  userId             String
-  codingQuestionId   String
-  language           String
-  code               String
-  verdict            String
-  passedCount        Int
-  totalCount         Int
-  caseResults        Json?
-  executionTimeMs    Int?
-  createdAt          DateTime       @default(now())
-  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  question           CodingQuestion @relation(fields: [codingQuestionId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, clientSubmissionId])
-  @@index([userId, codingQuestionId, createdAt])
-}
-
-model CodingSolved {
-  userId           String
-  codingQuestionId String
-  solvedAt         DateTime       @default(now())
-  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  question         CodingQuestion @relation(fields: [codingQuestionId], references: [id], onDelete: Cascade)
-
-  @@id([userId, codingQuestionId])
 }
 
 // ─── App: Support Tickets ────────────────────────────────────────────────────
@@ -418,10 +367,14 @@ model SupportTicket {
 
 model QuestionCorpus {
   id          String   @id @default(cuid())
+  // Original CSV question number. Kept stable so corpus counts and reviews can
+  // refer back to the exact source row.
+  sourceId    String?
   question    String   @db.Text
   // Model answer, used to help grade the candidate. Present for the technical
   // questions; the behavioural set shipped without usable ones.
   answer      String?  @db.Text
+  commonMistakes String? @db.Text
   category    String
   // A hint, not a filter. The behavioural source labelled difficulty at random,
   // so use it to order results, never to exclude them.

@@ -143,6 +143,32 @@ describe("retrieveQuestionsForSession", () => {
     expect(formatted).toContain("Evaluation key points:");
   });
 
+  it("uses sparse-only gap fill instead of repeating the dense database search", async () => {
+    await retrieveQuestionsForSession({
+      ...session,
+      type: "domain-role",
+      role: "Frontend Developer",
+      focusAreas: ["React Performance", "State Management", "List Virtualization"],
+      resumeText: "React Redux Toolkit React Window TypeScript",
+      currentQuestion: 2,
+      transcript: [
+        {
+          question: "How did you reduce React re-renders?",
+          answer: "I used memoization and kept frequently changing state local.",
+          order: 0,
+        },
+        {
+          question: "What remains?",
+          answer: "We have not covered Redux state design or list windowing yet.",
+          order: 1,
+        },
+      ],
+    });
+
+    expect(mocks.embed.mock.calls[0]?.[0]).toHaveLength(1);
+    expect(mocks.queryRaw).toHaveBeenCalledTimes(3);
+  });
+
   it("does not record or trace results after the outer timeout wins", async () => {
     vi.useFakeTimers();
     const embedding = deferred<number[][]>();
@@ -534,4 +560,3 @@ describe("QUERY_WEIGHTS & resolveQueryWeights", () => {
     expect(sources).toEqual(expect.arrayContaining(["focusAreas", "companySignals", "levelHint"]));
   });
 });
-

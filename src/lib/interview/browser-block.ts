@@ -17,7 +17,7 @@ export async function getInterviewBlockReason(): Promise<BrowserBlockResult> {
   if (userAgent.includes("firefox")) {
     return {
       severity: "warning",
-      reason: "Firefox has limited support for speech recognition and screen recording. For the best experience, we recommend using Chrome or Edge.",
+      reason: "Firefox has limited support for speech recognition. For the best experience, we recommend using Chrome or Edge.",
     };
   }
 
@@ -34,7 +34,7 @@ export async function getInterviewBlockReason(): Promise<BrowserBlockResult> {
   if (isBrave || userAgent.includes("brave")) {
     return {
       severity: "warning",
-      reason: "Brave's aggressive privacy settings can sometimes interfere with microphone and screen recording permissions. If you encounter issues, please disable shields for this site or use Chrome.",
+      reason: "Brave's aggressive privacy settings can sometimes interfere with microphone and camera permissions. If you encounter issues, please disable shields for this site or use Chrome.",
     };
   }
 

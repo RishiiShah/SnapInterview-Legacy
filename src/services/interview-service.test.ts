@@ -376,6 +376,34 @@ describe("startInterviewSession", () => {
     expect(result).toEqual({ id: "int-2" });
   });
 
+  it("persists an explicitly selected corpus level instead of the onboarding default", async () => {
+    vi.mocked(getUserOnboardingContext).mockResolvedValue({
+      onboardingGoal: "switch-companies",
+      onboardingLevel: "mid-level",
+      onboardingRole: "Frontend Engineer",
+      onboardingCompany: "Google",
+    });
+    vi.mocked(createInterviewSession).mockResolvedValue({ id: "int-selected-level" });
+
+    await startInterviewSession({
+      userId: "user-1",
+      role: "Frontend Engineer",
+      company: "Google",
+      type: "coding-algorithms",
+      difficulty: "hard",
+      level: "staff-plus",
+    });
+
+    expect(createInterviewSession).toHaveBeenCalledWith(expect.objectContaining({
+      level: "staff-plus",
+      sessionPlan: expect.objectContaining({
+        brief: expect.objectContaining({
+          profile: expect.objectContaining({ level: "staff-plus" }),
+        }),
+      }),
+    }));
+  });
+
   it("does not copy a legacy uncurated onboarding company into a new session", async () => {
     vi.mocked(getUserOnboardingContext).mockResolvedValue({
       onboardingGoal: "switch-companies",
@@ -443,6 +471,8 @@ describe("updateSessionStatusIfOwned", () => {
       id: "int-4",
       status: "IN_PROGRESS",
       type: "coding-algorithms",
+      difficulty: "medium",
+      level: "mid-level",
       persona: null,
       videoUrl: null,
       videoKey: null,

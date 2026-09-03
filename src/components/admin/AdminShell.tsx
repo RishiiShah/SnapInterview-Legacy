@@ -1,9 +1,8 @@
 "use client";
 
-import { ReactNode, useEffect, useRef } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
-import { useSidebar } from "@/app/providers";
 import { adminInteractiveClass } from "./admin-styles";
 import { AdminHeader } from "./AdminHeader";
 import { AdminSidebar } from "./AdminSidebar";
@@ -21,9 +20,22 @@ export default function AdminShell({
   children: ReactNode;
   user: AdminUser;
 }) {
-  const { collapsed, setCollapsed } = useSidebar();
+  const [collapsed, setCollapsed] = useState(false);
+  const hasLoadedPreference = useRef(false);
   const mainRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
+
+  useEffect(() => {
+    const saved = localStorage.getItem("sidebar-collapsed");
+    hasLoadedPreference.current = true;
+    if (saved === "true") queueMicrotask(() => setCollapsed(true));
+  }, []);
+
+  useEffect(() => {
+    if (hasLoadedPreference.current) {
+      localStorage.setItem("sidebar-collapsed", String(collapsed));
+    }
+  }, [collapsed]);
 
   useEffect(() => {
     if (mainRef.current) {

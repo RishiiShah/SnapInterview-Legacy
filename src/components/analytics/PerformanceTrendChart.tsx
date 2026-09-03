@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 
-import { FadeIn } from "@/components/ui/motion";
 import type { AnalyticsTrendPoint } from "@/lib/interview/metrics";
 
 type TrendRange = "daily" | "weekly" | "monthly";
@@ -12,7 +11,6 @@ type PerformanceTrendChartProps = {
   dailyTrend: AnalyticsTrendPoint[];
   weeklyTrend: AnalyticsTrendPoint[];
   monthlyTrend: AnalyticsTrendPoint[];
-  delay?: number;
 };
 
 const RANGE_META: Record<TrendRange, { title: string; hint: string }> = {
@@ -34,7 +32,6 @@ export default function PerformanceTrendChart({
   dailyTrend = [],
   weeklyTrend = [],
   monthlyTrend = [],
-  delay = 0.2,
 }: PerformanceTrendChartProps) {
   const [range, setRange] = useState<TrendRange>("daily");
 
@@ -53,7 +50,7 @@ export default function PerformanceTrendChart({
   const meta = RANGE_META[range];
 
   return (
-    <FadeIn instant triggerOnView={false} delay={delay} direction="up" className="flex flex-col">
+    <div className="flex flex-col">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="font-display text-xl tracking-tight text-[#F2F4F8] sm:text-2xl">{meta.title}</h2>
@@ -129,6 +126,6 @@ export default function PerformanceTrendChart({
           })}
         </div>
       )}
-    </FadeIn>
+    </div>
   );
 }

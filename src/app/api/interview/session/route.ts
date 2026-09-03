@@ -3,6 +3,7 @@ import {
     interviewDifficultySchema,
     interviewDurationSchema,
     interviewIdSchema,
+    interviewLevelSchema,
     interviewPersonaSchema,
     interviewQuestionCountSchema,
     interviewTypeSchema,
@@ -35,6 +36,7 @@ const createSessionSchema = z.object({
     ).optional().default(""),
     type: interviewTypeSchema,
     difficulty: interviewDifficultySchema,
+    level: interviewLevelSchema.optional(),
     persona: interviewPersonaSchema.optional(),
     jobDescription: z.string().trim().max(10000).optional(),
     resumeUrl: z.string().url().optional(),
@@ -104,7 +106,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
             return parsed.response;
         }
 
-        const { id, role, company, type, difficulty, persona, jobDescription, resumeUrl, resumeText, durationMinutes, questionCount } = parsed.data;
+        const { id, role, company, type, difficulty, level, persona, jobDescription, resumeUrl, resumeText, durationMinutes, questionCount } = parsed.data;
 
         const interviewSession = await startInterviewSession({
             id,
@@ -113,6 +115,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
             company: company || null,
             type,
             difficulty,
+            level,
             persona,
             jobDescription,
             resumeUrl,

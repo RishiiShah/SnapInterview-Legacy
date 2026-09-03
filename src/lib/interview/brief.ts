@@ -1,4 +1,4 @@
-import type { Difficulty, InterviewPersona, InterviewType } from "./domain";
+import type { Difficulty, InterviewLevel, InterviewPersona, InterviewType } from "./domain";
 import { normalizeRoleSlug } from "@/lib/rag/taxonomy";
 import { resolveCompanyPack } from "@/data/company-packs";
 import { chunkResumeSemantic, chunkJobDescription } from "@/lib/rag/chunker";
@@ -71,7 +71,7 @@ export type BuildInterviewBriefInput = {
   difficulty: Difficulty;
   durationMinutes?: number;
   persona?: InterviewPersona | null;
-  onboardingLevel?: string | null;
+  level?: InterviewLevel | null;
   onboardingGoal?: string | null;
   jobDescription?: string | null;
   resumeText?: string | null;
@@ -396,7 +396,7 @@ export async function buildInterviewBrief(input: BuildInterviewBriefInput): Prom
   const roleSlug = normalizeRoleSlug(input.role);
   const validDuration: 15 | 30 | 45 =
     input.durationMinutes === 15 || input.durationMinutes === 45 ? input.durationMinutes : 30;
-  const level = input.onboardingLevel ?? (input.difficulty === "easy" ? "entry-level" : input.difficulty === "hard" ? "senior" : "mid-level");
+  const level = input.level ?? (input.difficulty === "easy" ? "entry-level" : input.difficulty === "hard" ? "senior" : "mid-level");
   const goal = input.onboardingGoal ?? "unknown";
   const persona: InterviewPersona = input.persona ?? "balanced";
 

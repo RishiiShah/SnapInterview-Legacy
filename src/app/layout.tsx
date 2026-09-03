@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { Geist, Geist_Mono, Newsreader } from "next/font/google";
-import Providers from "./providers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -57,7 +56,7 @@ export const metadata: Metadata = {
     },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
@@ -65,11 +64,9 @@ export default async function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning className="overflow-x-hidden bg-[#0B0C10]">
             <body className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} antialiased min-h-screen w-full flex flex-col overflow-x-hidden bg-[#0B0C10] text-[#F2F4F8]`}>
-                <Providers>
-                    <main className="flex-1 w-full flex flex-col">
-                        {children}
-                    </main>
-                </Providers>
+                <main className="flex-1 w-full flex flex-col">
+                    {children}
+                </main>
                 <Analytics />
             </body>
         </html>

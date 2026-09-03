@@ -44,7 +44,11 @@ export async function finalizeInterviewUpload({
 
   try {
     const recordingResult = await stopVideoRecording();
-    if (recordingResult?.videoKey) {
+    if (recordingResult?.videoKey || recordingResult?.videoCompletionToken) {
+      if (!recordingResult.videoKey || !recordingResult.videoCompletionToken) {
+        logger.error("Failed to finalize video upload: incomplete recording result", { interviewId });
+        return { type: "error", message: "Failed to finalize video upload", stage: "upload" };
+      }
       videoKey = recordingResult.videoKey;
       videoCompletionToken = recordingResult.videoCompletionToken;
     }

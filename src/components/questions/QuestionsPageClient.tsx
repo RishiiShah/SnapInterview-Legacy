@@ -4,7 +4,6 @@ import { useState, useMemo } from "react";
 
 import { CATEGORIES } from "@/data/constants";
 import type { Difficulty, Question, QuestionCategory } from "@/data/types";
-import { FadeIn, SlideIn } from "@/components/ui/motion";
 import QuestionsFilterBar from "@/components/questions/QuestionsFilterBar";
 import QuestionsTable from "@/components/questions/QuestionsTable";
 
@@ -95,7 +94,7 @@ export default function QuestionsPageClient({
 
   return (
     <div className="space-y-5 pb-8">
-      <SlideIn instant>
+      <div>
         <section className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#12141A]/90 px-5 py-5 sm:px-6">
           <div
             className="pointer-events-none absolute inset-0"
@@ -125,9 +124,9 @@ export default function QuestionsPageClient({
             </div>
           </div>
         </section>
-      </SlideIn>
+      </div>
 
-      <FadeIn instant delay={0.1} direction="up" className="relative z-30">
+      <div className="relative z-30">
         <QuestionsFilterBar
           search={search}
           setSearch={setSearch}
@@ -142,16 +141,16 @@ export default function QuestionsPageClient({
           setSolvedStatus={setSolvedStatus}
           stats={stats}
         />
-      </FadeIn>
+      </div>
 
-      <FadeIn instant delay={0.25} direction="up" className="relative z-10">
+      <div className="relative z-10">
         <p className="text-xs text-[#A8B0C2]">
           Showing {filtered.length} of {questions.length} question
           {filtered.length !== 1 ? "s" : ""}
         </p>
-      </FadeIn>
+      </div>
 
-      <FadeIn instant delay={0.3} direction="up" className="relative z-0">
+      <div className="relative z-0">
         <QuestionsTable
           filtered={filtered}
           totalQuestions={questions.length}
@@ -163,7 +162,7 @@ export default function QuestionsPageClient({
           sortDir={sortDir}
           toggleSort={toggleSort}
         />
-      </FadeIn>
+      </div>
     </div>
   );
 }

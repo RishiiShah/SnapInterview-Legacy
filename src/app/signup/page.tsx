@@ -205,7 +205,6 @@ function SignupForm() {
             transition={{ duration: 0.25, ease: AUTH_EASE }}
           >
             <OtpDialog
-              variant="inline"
               email={email}
               onVerified={handleVerifySuccess}
               onCancel={() => {

@@ -9,7 +9,7 @@ describe("buildInterviewBrief", () => {
       type: "system-design",
       difficulty: "easy",
       durationMinutes: 30,
-      onboardingLevel: "entry-level",
+      level: "entry-level",
       onboardingGoal: "land-first-role",
       resumeText: `## Education
 B.S. in Computer Science, 2026

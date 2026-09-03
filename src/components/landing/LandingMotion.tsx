@@ -23,7 +23,6 @@ type LandingMotionDivProps = Omit<
 export const LANDING_EASE = [0.16, 1, 0.3, 1] as const;
 
 const DEFAULT_DURATION = 1.33;
-const DEFAULT_STAGGER = 0.20;
 
 const IN_VIEW_OPTS = {
   once: true,
@@ -217,77 +216,6 @@ export function LandingFadeOnly({
   );
 }
 
-export function LandingFadeInStagger({
-  children,
-  className,
-  triggerOnView = false,
-  stagger = DEFAULT_STAGGER,
-  ...rest
-}: {
-  children: ReactNode;
-  className?: string;
-  triggerOnView?: boolean;
-  stagger?: number;
-} & LandingMotionDivProps) {
-  const reducedMotion = useReducedMotion() ?? false;
-  const { ref, show } = useRevealGate(triggerOnView, reducedMotion);
-
-  return (
-    <motion.div
-      ref={ref}
-      className={className}
-      initial={false}
-      animate={show ? "visible" : "hidden"}
-      variants={{
-        hidden: {},
-        visible: {
-          transition: {
-            staggerChildren: reducedMotion ? 0 : stagger,
-            delayChildren: reducedMotion ? 0 : 0.07,
-          },
-        },
-      }}
-      {...rest}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-export function LandingClipStaggerItem({
-  children,
-  className,
-  mode = "leftRight",
-  ...rest
-}: {
-  children: ReactNode;
-  className?: string;
-  mode?: ClipMode;
-} & LandingMotionDivProps) {
-  const reducedMotion = useReducedMotion() ?? false;
-
-  return (
-    <motion.div
-      className={className}
-      variants={{
-        hidden: reducedMotion
-          ? { clipPath: CLIP_VISIBLE[mode] }
-          : { clipPath: CLIP_HIDDEN[mode] },
-        visible: {
-          clipPath: CLIP_VISIBLE[mode],
-          transition: reducedMotion
-            ? { duration: 0 }
-            : { duration: DEFAULT_DURATION, ease: LANDING_EASE },
-        },
-      }}
-      style={{ willChange: reducedMotion ? "auto" : "clip-path" }}
-      {...rest}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
 export function LandingFadeIn({
   children,
   className,
@@ -340,49 +268,6 @@ export function LandingFadeIn({
           ? { duration: 0 }
           : { duration, delay: show ? delay : 0, ease: LANDING_EASE }
       }
-      style={{ willChange: reducedMotion ? "auto" : "transform, opacity" }}
-      {...rest}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-export function LandingFadeInStaggerItem({
-  children,
-  className,
-  direction = "up",
-  ...rest
-}: {
-  children: ReactNode;
-  className?: string;
-  direction?: "up" | "down" | "left" | "right" | "none";
-} & LandingMotionDivProps) {
-  const directions = {
-    up: { y: 16, x: 0 },
-    down: { y: -16, x: 0 },
-    left: { x: 20, y: 0 },
-    right: { x: -20, y: 0 },
-    none: { x: 0, y: 0 },
-  };
-  const reducedMotion = useReducedMotion() ?? false;
-
-  return (
-    <motion.div
-      variants={{
-        hidden: reducedMotion
-          ? { opacity: 1, x: 0, y: 0 }
-          : { opacity: 0, ...directions[direction] },
-        visible: {
-          opacity: 1,
-          x: 0,
-          y: 0,
-          transition: reducedMotion
-            ? { duration: 0 }
-            : { duration: DEFAULT_DURATION, ease: LANDING_EASE },
-        },
-      }}
-      className={className}
       style={{ willChange: reducedMotion ? "auto" : "transform, opacity" }}
       {...rest}
     >

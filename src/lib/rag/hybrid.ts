@@ -5,8 +5,10 @@ import { expandSynonyms } from "./synonyms";
 
 export interface HybridCandidateRow {
   id: string;
+  sourceId?: string | null;
   question: string;
   answer: string | null;
+  commonMistakes?: string | null;
   category: string;
   difficulty: string | null;
   level: string | null;
@@ -28,6 +30,7 @@ export interface HybridSearchParams {
   denseWeight?: number;
   sparseWeight?: number;
   rrfK?: number;
+  matchAnySparseTerm?: boolean;
 }
 
 const DEFAULT_POOL_LIMIT = 40;
@@ -36,16 +39,18 @@ const DEFAULT_SPARSE_WEIGHT = 0.4;
 const DEFAULT_RRF_K = 60;
 
 /**
- * Builds a clean search string for PostgreSQL plainto_tsquery from raw text.
- * Expands known technical abbreviations and acronyms with domain synonyms.
+ * Builds a clean PostgreSQL web-search query from raw text.
+ *
+ * Normal conversational retrieval stays conjunctive. Focused gap-fill can opt
+ * into OR semantics so any explicitly missing topic can enter the candidate pool.
  */
-export function buildTsQueryString(rawText: string): string {
+export function buildTsQueryString(rawText: string, matchAnyTerm = false): string {
   const expandedText = expandSynonyms(rawText);
   const terms = extractKeyTechnicalTerms(expandedText);
   if (terms.length === 0) {
     return rawText.replace(/[^a-zA-Z0-9\s]/g, " ").trim();
   }
-  return terms.slice(0, 20).join(" ");
+  return terms.slice(0, 20).join(matchAnyTerm ? " OR " : " ");
 }
 
 /**
@@ -64,19 +69,23 @@ export async function executeHybridRetrieval(
     denseWeight = DEFAULT_DENSE_WEIGHT,
     sparseWeight = DEFAULT_SPARSE_WEIGHT,
     rrfK = DEFAULT_RRF_K,
+    matchAnySparseTerm = false,
   } = params;
 
   const typesParam = interviewType ? [interviewType] : [];
-  const cleanSparseQuery = buildTsQueryString(sparseKeywords);
+  const cleanSparseQuery = buildTsQueryString(sparseKeywords, matchAnySparseTerm);
 
   // 1. Parallel execution of Dense Vector Search & Sparse FTS
   const [denseResults, sparseResults] = await Promise.all([
     // Dense Vector Search
-    prisma.$queryRaw<
+    denseWeight > 0
+      ? prisma.$queryRaw<
       Array<{
         id: string;
+        sourceId: string | null;
         question: string;
         answer: string | null;
+        commonMistakes: string | null;
         category: string;
         difficulty: string | null;
   level: string | null;
@@ -85,8 +94,8 @@ export async function executeHybridRetrieval(
         similarity: number;
         embedding: string;
       }>
-    >`
-      SELECT "id", "question", "answer", "category", "difficulty", "level", "roleTags", "types",
+        >`
+      SELECT "id", "sourceId", "question", "answer", "commonMistakes", "category", "difficulty", "level", "roleTags", "types",
              -- Pure cosine similarity in [0, 1]. Role-tag boost is applied later in
              -- the cross-encoder reranker (computeHeuristicRerankScore) to keep this
              -- value semantically correct and avoid scale confusion with rrfScore.
@@ -97,18 +106,21 @@ export async function executeHybridRetrieval(
         AND ("types" && ${typesParam}::text[] OR cardinality("types") = 0)
       ORDER BY similarity DESC
       LIMIT ${poolLimit}
-    `.catch((err) => {
-      logger.warn("Dense retrieval query failed", { error: err });
-      return [];
-    }),
+        `.catch((err) => {
+          logger.warn("Dense retrieval query failed", { error: err });
+          return [];
+        })
+      : Promise.resolve([]),
 
     // Sparse Full-Text Search
     cleanSparseQuery.trim().length > 0
       ? prisma.$queryRaw<
           Array<{
             id: string;
+            sourceId: string | null;
             question: string;
             answer: string | null;
+            commonMistakes: string | null;
             category: string;
             difficulty: string | null;
   level: string | null;
@@ -118,16 +130,16 @@ export async function executeHybridRetrieval(
             embedding: string;
           }>
         >`
-          SELECT "id", "question", "answer", "category", "difficulty", "level", "roleTags", "types",
+          SELECT "id", "sourceId", "question", "answer", "commonMistakes", "category", "difficulty", "level", "roleTags", "types",
                  ts_rank(
-                   to_tsvector('english', "question" || ' ' || COALESCE("answer", '') || ' ' || "category" || ' ' || array_to_string("keywords", ' ')),
-                   plainto_tsquery('english', ${cleanSparseQuery})
+                   to_tsvector('english', "question" || ' ' || COALESCE("answer", '') || ' ' || "category"),
+                   websearch_to_tsquery('english', ${cleanSparseQuery})
                  ) AS rank_score,
                  "embedding"::text AS embedding
           FROM "QuestionCorpus"
           WHERE ("types" && ${typesParam}::text[] OR cardinality("types") = 0)
-            AND to_tsvector('english', "question" || ' ' || COALESCE("answer", '') || ' ' || "category" || ' ' || array_to_string("keywords", ' '))
-                @@ plainto_tsquery('english', ${cleanSparseQuery})
+            AND to_tsvector('english', "question" || ' ' || COALESCE("answer", '') || ' ' || "category")
+                @@ websearch_to_tsquery('english', ${cleanSparseQuery})
           ORDER BY rank_score DESC
           LIMIT ${poolLimit}
         `.catch((err) => {
@@ -143,8 +155,10 @@ export async function executeHybridRetrieval(
     {
       row: {
         id: string;
+        sourceId: string | null;
         question: string;
         answer: string | null;
+        commonMistakes: string | null;
         category: string;
         difficulty: string | null;
   level: string | null;
@@ -168,8 +182,10 @@ export async function executeHybridRetrieval(
     candidateMap.set(item.id, {
       row: {
         id: item.id,
+        sourceId: item.sourceId,
         question: item.question,
         answer: item.answer,
+        commonMistakes: item.commonMistakes,
         category: item.category,
         difficulty: item.difficulty,
           level: item.level,
@@ -197,8 +213,10 @@ export async function executeHybridRetrieval(
       candidateMap.set(item.id, {
         row: {
           id: item.id,
+          sourceId: item.sourceId,
           question: item.question,
           answer: item.answer,
+          commonMistakes: item.commonMistakes,
           category: item.category,
           difficulty: item.difficulty,
           level: item.level,

@@ -1,7 +1,5 @@
 "use client";
 
-import { FadeIn } from "@/components/ui/motion";
-
 type CategoryScore = {
   category: string;
   score: number;
@@ -9,7 +7,6 @@ type CategoryScore = {
 
 type CategoryBreakdownProps = {
   categories: CategoryScore[];
-  delay?: number;
 };
 
 function scoreTone(score: number): string {
@@ -18,9 +15,9 @@ function scoreTone(score: number): string {
   return "text-[#C5CBD8]";
 }
 
-export default function CategoryBreakdown({ categories, delay = 0.3 }: CategoryBreakdownProps) {
+export default function CategoryBreakdown({ categories }: CategoryBreakdownProps) {
   return (
-    <FadeIn instant triggerOnView={false} delay={delay} direction="up">
+    <div>
       <div className="mb-5 flex items-baseline justify-between gap-3">
         <h2 className="font-display text-xl tracking-tight text-[#F2F4F8] sm:text-2xl">
           By category
@@ -49,6 +46,6 @@ export default function CategoryBreakdown({ categories, delay = 0.3 }: CategoryB
           ))
         )}
       </div>
-    </FadeIn>
+    </div>
   );
 }

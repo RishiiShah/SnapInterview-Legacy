@@ -67,11 +67,11 @@ function okJson(body: Record<string, unknown> = {}) {
 
 function setupHookMocks({
   chatMessages = [],
-  startScreenRecording = vi.fn().mockResolvedValue(true),
+  startRecording = vi.fn().mockResolvedValue(true),
   stopVideoRecording = vi.fn().mockResolvedValue(null),
 }: {
   chatMessages?: Array<{ role: "user" | "assistant" | "system"; content: string }>;
-  startScreenRecording?: ReturnType<typeof vi.fn>;
+  startRecording?: ReturnType<typeof vi.fn>;
   stopVideoRecording?: ReturnType<typeof vi.fn>;
 } = {}) {
   const stopRecording = vi.fn();
@@ -94,7 +94,7 @@ function setupHookMocks({
     stopRecording,
   });
   mocks.useVideoRecording.mockReturnValue({
-    startScreenRecording,
+    startRecording,
     stopVideoRecording,
   });
   mocks.useChatSession.mockReturnValue({
@@ -109,7 +109,7 @@ function setupHookMocks({
   mocks.scheduleInterviewFinalize.mockResolvedValue({ type: "ok" });
 
   return {
-    startScreenRecording,
+    startRecording,
     stopVideoRecording,
     stopRecording,
     stopStream,
@@ -282,16 +282,13 @@ describe("useInterviewPageController", () => {
     expect(result.current.interviewStarted).toBe(false);
   });
 
-  it("waits for existing-session metadata after screen-share begins before entering the interview", async () => {
+  it("waits for session metadata before starting recording and entering the interview", async () => {
     let resolveMetadata: ((response: Response) => void) | undefined;
     const metadata = new Promise<Response>((resolve) => {
       resolveMetadata = resolve;
     });
-    const startScreenRecording = vi.fn(async (_stream: MediaStream | undefined, sessionPromise?: Promise<void>) => {
-      await sessionPromise;
-      return true;
-    });
-    setupHookMocks({ startScreenRecording });
+    const startRecording = vi.fn().mockResolvedValue(true);
+    setupHookMocks({ startRecording });
     vi.mocked(fetch).mockReturnValue(metadata);
 
     const { result } = renderHook(() => useInterviewPageController({ interviewId: "interview-existing" }));
@@ -300,7 +297,6 @@ describe("useInterviewPageController", () => {
 
     void result.current.handlePermissionsGranted();
 
-    await waitFor(() => expect(startScreenRecording).toHaveBeenCalledOnce());
     await act(async () => {
       await Promise.resolve();
       await Promise.resolve();
@@ -317,7 +313,7 @@ describe("useInterviewPageController", () => {
   });
 
   it("persists pending interview config before entering the interview", async () => {
-    const { startScreenRecording } = setupHookMocks();
+    const { startRecording } = setupHookMocks();
     sessionStorage.setItem("pending_interview_interview-1", JSON.stringify({
       role: "Frontend Developer",
       type: "technical",
@@ -337,7 +333,7 @@ describe("useInterviewPageController", () => {
       await result.current.handlePermissionsGranted();
     });
 
-    expect(startScreenRecording).toHaveBeenCalledWith(expect.objectContaining({ id: "mock-stream" }), expect.any(Promise));
+    expect(startRecording).toHaveBeenCalledWith(expect.objectContaining({ id: "mock-stream" }));
     expect(fetch).toHaveBeenCalledWith("/api/interview/session", expect.objectContaining({
       method: "POST",
       body: JSON.stringify({

@@ -9,8 +9,8 @@ import {
   type WorkerClientEvent,
 } from "../workers/request-client";
 
-export const PRELOAD_TIMEOUT_MS = 30_000;
-export const SYNTH_TIMEOUT_MS = 20_000;
+export const PRELOAD_TIMEOUT_MS = 90_000;
+export const SYNTH_TIMEOUT_MS = 30_000;
 
 type WorkerMessage =
   | { type: "ready"; requestId: string; status: "ready" }

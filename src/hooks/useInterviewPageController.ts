@@ -282,6 +282,11 @@ export function useInterviewPageController({
       await sessionPromise;
     } catch (err) {
       console.error("Failed to persist session to DB", err);
+      try {
+        await stopVideoRecording();
+      } catch (stopError) {
+        console.error("Failed to stop recording after session persistence failure", stopError);
+      }
       setModal({
         isOpen: true,
         title: "Connection Error",
@@ -305,7 +310,7 @@ export function useInterviewPageController({
 
     setShowPreJoin(false);
     setInterviewStarted(true);
-  }, [media.stream, startRecording, interviewId, loadSessionMeta]);
+  }, [media.stream, startRecording, stopVideoRecording, interviewId, loadSessionMeta]);
 
   const handleExitInterview = useCallback(
     async ({ skipConfirmation = false }: { skipConfirmation?: boolean } = {}) => {
@@ -336,14 +341,60 @@ export function useInterviewPageController({
 
       addPendingInterviewFinalize(interviewId);
 
-      // Fire-and-forget: upload finishes in background via scheduleInterviewFinalize
-      void scheduleInterviewFinalize({
-        interviewId,
-        status: interviewStatus,
-        stopVideoRecording: stopVideoRecordingForFinalize,
-      }).catch((error) => {
-        console.error("Background interview finalize failed:", error);
-      });
+      try {
+        const finalizeResult = await scheduleInterviewFinalize({
+          interviewId,
+          status: interviewStatus,
+          stopVideoRecording: stopVideoRecordingForFinalize,
+        });
+
+        if (finalizeResult.type === "error") {
+          pendingVideoStopRef.current = null;
+          isExitingRef.current = false;
+          setModal({
+            isOpen: true,
+            title: "Recording Save Failed",
+            description:
+              finalizeResult.message ||
+              "Failed to finalize and save your interview recording. You can retry or proceed to analytics.",
+            confirmLabel: "Proceed to Analytics",
+            cancelLabel: "Retry",
+            variant: "warning",
+            onConfirm: () => {
+              closeModal();
+              media.stopStream();
+              router.push("/analytics");
+            },
+            onCancel: () => {
+              closeModal();
+              void handleExitInterviewRef.current({ skipConfirmation: true });
+            },
+          });
+          return;
+        }
+      } catch (error) {
+        console.error("Error finalizing interview upload:", error);
+        pendingVideoStopRef.current = null;
+        isExitingRef.current = false;
+        setModal({
+          isOpen: true,
+          title: "Recording Save Failed",
+          description: "An unexpected error occurred while saving your interview recording. You can retry or proceed to analytics.",
+          confirmLabel: "Proceed to Analytics",
+          cancelLabel: "Retry",
+          variant: "warning",
+          onConfirm: () => {
+            closeModal();
+            media.stopStream();
+            router.push("/analytics");
+          },
+          onCancel: () => {
+            closeModal();
+            void handleExitInterviewRef.current({ skipConfirmation: true });
+          },
+        });
+        return;
+      }
 
       media.stopStream();
       router.push("/analytics");

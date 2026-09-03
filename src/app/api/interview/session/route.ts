@@ -19,6 +19,7 @@ import {
     startInterviewSession,
     updateSessionStatusIfOwned,
 } from "@/services/interview-service";
+import { triggerAutoEvaluation } from "@/services/evaluation-service";
 import { softDeleteInterviewSession } from "@/repositories/interview-repo";
 import { withCsrfProtection } from "@/lib/route-security";
 import { verifyMultipartCompletionToken } from "@/lib/s3/multipart-upload-token";
@@ -200,6 +201,14 @@ export const PATCH = withCsrfProtection(async (req: Request) => {
 
         if (updated.type === "conflict") {
             return apiJson({ error: updated.message }, 409);
+        }
+
+        if (updated.data.status === "COMPLETED") {
+            void triggerAutoEvaluation({
+                userId: authUser.userId,
+                interviewId,
+                email: authUser.email,
+            });
         }
 
         return apiJson({

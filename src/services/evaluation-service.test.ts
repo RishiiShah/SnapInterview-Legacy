@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { evaluateInterviewTranscript, evaluatePracticeQuestion } from "./evaluation-service";
+import { evaluateInterviewTranscript, evaluatePracticeQuestion, triggerAutoEvaluation } from "./evaluation-service";
 import { groqClient } from "@/lib/ai/groq";
 import {
   claimInterviewEvaluation,
@@ -10,6 +10,16 @@ import {
 import { getPracticeQuestionById } from "@/repositories/question-repo";
 import { buildSystemInstruction } from "@/lib/interview/prompts";
 import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
+import { sendEvaluationEmail } from "@/lib/email";
+import { getNotificationPrefs } from "@/repositories/user-repo";
+
+vi.mock("@/lib/email", () => ({
+  sendEvaluationEmail: vi.fn(),
+}));
+
+vi.mock("@/repositories/user-repo", () => ({
+  getNotificationPrefs: vi.fn().mockResolvedValue({ emailNotifs: true }),
+}));
 
 vi.mock("@/repositories/interview-repo", () => ({
   claimInterviewEvaluation: vi.fn(),
@@ -390,5 +400,30 @@ describe("evaluateInterviewTranscript", () => {
         ]),
       }),
     );
+  });
+
+  describe("triggerAutoEvaluation", () => {
+    it("evaluates interview transcript and sends notification email on fresh completion", async () => {
+      vi.mocked(getInterviewSession).mockResolvedValue(evalSession({
+        transcript: [{ question: "Tell me about yourself.", answer: "I am an engineer.", order: 0 }],
+      }));
+      vi.mocked(claimInterviewEvaluation).mockResolvedValue(1);
+      vi.mocked(persistClaimedEvaluation).mockResolvedValue(true);
+      vi.mocked(groqClient.chat.completions.create).mockResolvedValue(groqContent(JSON.stringify(LEGACY_EVAL)));
+
+      await triggerAutoEvaluation({
+        userId: "user-1",
+        interviewId: "int-1",
+        email: "candidate@example.com",
+      });
+
+      expect(groqClient.chat.completions.create).toHaveBeenCalled();
+      expect(persistClaimedEvaluation).toHaveBeenCalled();
+      expect(sendEvaluationEmail).toHaveBeenCalledWith(expect.objectContaining({
+        to: "candidate@example.com",
+        role: "Frontend Engineer",
+        score: 82,
+      }));
+    });
   });
 });

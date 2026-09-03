@@ -42,6 +42,7 @@ type FeedbackEntry = {
 type InterviewData = {
   id: string;
   role: string;
+  company?: string | null;
   type: InterviewType;
   difficulty: Difficulty;
   transcript: TranscriptEntry[];
@@ -50,7 +51,7 @@ type InterviewData = {
   createdAt: string;
 };
 
-type LoadingStep = "idle" | "loadingSession" | "generatingEvaluation" | "deleting";
+type LoadingStep = "idle" | "loadingSession" | "deleting";
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
@@ -151,21 +152,10 @@ export default function RecordingModal({
       setError(null);
 
       try {
-        let data = await fetchJson<InterviewData>(`/api/interview/${interviewId}`, {
+        const data = await fetchJson<InterviewData>(`/api/interview/${interviewId}`, {
           signal: controller.signal,
-          cache: "force-cache",
+          cache: "no-store",
         });
-
-        if (!data.evaluation) {
-          setLoadingStep("generatingEvaluation");
-          const evaluation = await fetchJson<EvaluationResult>("/api/interview/evaluate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ interviewId }),
-            signal: controller.signal,
-          });
-          data = { ...data, evaluation };
-        }
 
         setInterviewData(data);
 
@@ -325,6 +315,7 @@ export default function RecordingModal({
                   </div>
                   <p className="mt-2 text-sm text-[#A8B0C2]" suppressHydrationWarning>
                     {videoDate}
+                    {interviewData?.company ? ` · ${interviewData.company}` : ""}
                     {interviewData
                       ? ` · ${interviewData.type.replace(/[_-]+/g, " ")} · ${interviewData.difficulty}`
                       : ""}
@@ -390,11 +381,9 @@ export default function RecordingModal({
                     <div className="flex h-full flex-col items-center justify-center space-y-4 text-center">
                       <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#3B82F6] border-t-transparent" />
                       <p className="text-sm text-[#A8B0C2]">
-                        {loadingStep === "generatingEvaluation"
-                          ? "Analyzing interview transcript…"
-                          : loadingStep === "deleting"
-                            ? "Deleting interview data…"
-                            : "Loading interview details…"}
+                        {loadingStep === "deleting"
+                          ? "Deleting interview data…"
+                          : "Loading interview details…"}
                       </p>
                     </div>
                   ) : displayError ? (

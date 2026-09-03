@@ -24,6 +24,9 @@ import {
 } from "@/repositories/interview-repo";
 import { getPracticeQuestionById } from "@/repositories/question-repo";
 import { formatMatchedEvaluationRubrics } from "@/lib/rag/evaluation-rubrics";
+import { prisma } from "@/lib/prisma";
+import { sendEvaluationEmail } from "@/lib/email";
+import { getNotificationPrefs } from "@/repositories/user-repo";
 
 const EVALUATION_CLAIM_TTL_MS = 10 * 60 * 1000;
 
@@ -222,9 +225,11 @@ Output MUST be valid JSON matching this exact structure:
               : evaluationUserContent,
           },
         ],
-        model: "qwen/qwen3.6-27b",
-        temperature: 0.1,
-        max_completion_tokens: maxTokens,
+        model: "qwen/qwen3.8-27b",
+        temperature: 0.4,
+        max_completion_tokens: 512,
+        seed: 42,
+        top_p: 0.9,
         response_format: { type: "json_object" },
         reasoning_effort: "none",
       });
@@ -339,9 +344,11 @@ Return your evaluation as a JSON object with exactly these two keys:
             content: `Candidate's Answer:\n"${trimmed}"`,
           },
         ],
-        model: "qwen/qwen3.6-27b",
-        temperature: 0.1,
-        max_completion_tokens: 2048,
+        model: "qwen/qwen3.8-27b",
+        temperature: 0.4,
+        max_completion_tokens: 512,
+        seed: 42,
+        top_p: 0.9,
         response_format: { type: "json_object" },
         reasoning_effort: "none",
       });
@@ -357,5 +364,60 @@ Return your evaluation as a JSON object with exactly these two keys:
   } catch (error) {
     logger.error("Practice question evaluation error", { error, questionId });
     return { type: "upstream_error", message: "Failed to generate answer evaluation" };
+  }
+}
+
+/**
+ * Automatically evaluates an interview session upon completion in the background
+ * and sends an email notification if configured.
+ */
+export async function triggerAutoEvaluation(params: {
+  userId: string;
+  interviewId: string;
+  email?: string | null;
+}): Promise<void> {
+  try {
+    const result = await evaluateInterviewTranscript({
+      userId: params.userId,
+      interviewId: params.interviewId,
+    });
+
+    if (result.type === "ok" && result.fresh) {
+      let recipientEmail = params.email;
+      if (!recipientEmail) {
+        const user = await prisma.user.findUnique({
+          where: { id: params.userId },
+          select: { email: true },
+        });
+        recipientEmail = user?.email ?? null;
+      }
+
+      if (recipientEmail) {
+        try {
+          const prefs = await getNotificationPrefs(params.userId);
+          if (prefs.emailNotifs) {
+            await sendEvaluationEmail({
+              to: recipientEmail,
+              role: result.role,
+              score: result.data.score,
+              feedback: result.data.feedback,
+              strengths: result.data.strengths,
+              improvements: result.data.areasForImprovement,
+            });
+          }
+        } catch (emailErr) {
+          logger.error("Failed to send evaluation email during auto-evaluation", {
+            error: emailErr instanceof Error ? emailErr.message : String(emailErr),
+            interviewId: params.interviewId,
+          });
+        }
+      }
+    }
+  } catch (err) {
+    logger.error("Auto-evaluation failed", {
+      error: err instanceof Error ? err.message : String(err),
+      interviewId: params.interviewId,
+      userId: params.userId,
+    });
   }
 }

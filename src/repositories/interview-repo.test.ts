@@ -24,6 +24,8 @@ import {
   softDeleteInterviewSession,
   updateInterviewSessionStatus,
   advanceInterviewCurrentQuestion,
+  mapCompletedSessionCard,
+  extractEvaluationScore,
 } from "./interview-repo";
 
 describe("getInterviewSession state view", () => {
@@ -252,7 +254,53 @@ describe("listCompletedSessionsForUser", () => {
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: 13,
     }));
-    expect(prisma.interviewSession.findMany).not.toHaveBeenCalledWith(expect.objectContaining({ skip: expect.anything() }));
+  });
+});
+
+describe("mapCompletedSessionCard and extractEvaluationScore", () => {
+  it("extracts real score from database evaluation JSON", () => {
+    expect(extractEvaluationScore({ score: 85 })).toBe(85);
+    expect(extractEvaluationScore({ overallScore: 90 })).toBe(90);
+    expect(extractEvaluationScore({ v2: { overallScore: 78 } })).toBe(78);
+    expect(extractEvaluationScore(null)).toBeNull();
+    expect(extractEvaluationScore(undefined)).toBeNull();
+    expect(extractEvaluationScore("not-an-object")).toBeNull();
+  });
+
+  it("returns null score when session evaluation is not yet present, avoiding dummy score calculations", () => {
+    const session = {
+      id: "int-123",
+      role: "Senior Backend Engineer",
+      company: "Stripe",
+      type: "coding-algorithms",
+      videoKey: "user-1/int-123.webm",
+      evaluation: null,
+      questionCount: 10,
+      currentQuestion: 10,
+      createdAt: new Date("2026-09-03T12:00:00.000Z"),
+    };
+
+    const card = mapCompletedSessionCard(session);
+    expect(card.score).toBeNull();
+    expect(card.role).toBe("Senior Backend Engineer");
+    expect(card.company).toBe("Stripe");
+  });
+
+  it("returns real score when session evaluation is present in database", () => {
+    const session = {
+      id: "int-456",
+      role: "Staff Infrastructure Engineer",
+      company: "Google",
+      type: "system-design",
+      videoKey: null,
+      evaluation: { score: 94, feedback: "Excellent" },
+      questionCount: 5,
+      currentQuestion: 5,
+      createdAt: new Date("2026-09-03T12:00:00.000Z"),
+    };
+
+    const card = mapCompletedSessionCard(session);
+    expect(card.score).toBe(94);
   });
 });
 

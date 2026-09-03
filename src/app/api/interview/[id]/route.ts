@@ -64,6 +64,7 @@ export async function GET(
             select: {
                 id: true,
                 role: true,
+                company: true,
                 type: true,
                 difficulty: true,
                 level: true,

@@ -225,4 +225,37 @@ describe("RecordingsList", () => {
     expect(screen.queryByText("Stale Result")).toBeNull();
     expect(screen.getByText("Behavioral Result")).toBeTruthy();
   });
+
+  it("renders pending when score is null instead of dummy values", () => {
+    render(
+      <RecordingsList
+        initialSessions={[
+          {
+            id: "pending-session",
+            role: "Distributed Systems Lead",
+            company: "Stripe",
+            type: "system-design",
+            videoKey: null,
+            score: null,
+            createdAt: "2026-01-04T00:00:00.000Z",
+          },
+          {
+            id: "scored-session",
+            role: "Frontend Architect",
+            company: "OpenAI",
+            type: "coding-algorithms",
+            videoKey: null,
+            score: 92,
+            createdAt: "2026-01-03T00:00:00.000Z",
+          },
+        ]}
+        initialHasMore={false}
+      />,
+    );
+
+    expect(screen.getByText("Pending")).toBeTruthy();
+    expect(screen.getByText("—")).toBeTruthy();
+    expect(screen.getByText("Great")).toBeTruthy();
+    expect(screen.getByText("92")).toBeTruthy();
+  });
 });

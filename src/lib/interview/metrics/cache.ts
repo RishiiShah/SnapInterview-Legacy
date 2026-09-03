@@ -1,4 +1,4 @@
-import { revalidateTag, unstable_cache } from "next/cache";
+import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import { env } from "@/lib/env";
 import { getDashboardOverviewDataUncached } from "./dashboard";
 import { getAnalyticsOverviewDataUncached } from "./analytics";
@@ -23,6 +23,8 @@ export function invalidateInterviewMetricsCache(userId: string): void {
   if (isTestEnv()) return;
   revalidateTag(getDashboardCacheTag(userId), "max");
   revalidateTag(getAnalyticsCacheTag(userId), "max");
+  revalidatePath("/dashboard");
+  revalidatePath("/analytics");
 }
 
 export function invalidateAllInterviewMetricsCaches(): void {

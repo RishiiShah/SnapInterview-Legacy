@@ -6,6 +6,7 @@ import { getResumableInterviewSessionState, startInterviewSession, updateSession
 import { warmEmbeddingModel } from "@/lib/rag/embeddings";
 import { softDeleteInterviewSession } from "@/repositories/interview-repo";
 import { triggerAutoEvaluation } from "@/services/evaluation-service";
+import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 
 const { mockRateLimitState } = vi.hoisted(() => ({
   mockRateLimitState: {
@@ -40,6 +41,10 @@ vi.mock("@/services/interview-service", () => ({
 
 vi.mock("@/repositories/interview-repo", () => ({
   softDeleteInterviewSession: vi.fn(),
+}));
+
+vi.mock("@/lib/interview/metrics", () => ({
+  invalidateInterviewMetricsCache: vi.fn(),
 }));
 
 vi.mock("@/services/evaluation-service", () => ({
@@ -476,5 +481,6 @@ describe("DELETE /api/interview/session", () => {
       interviewId,
       userId: "user-1",
     });
+    expect(invalidateInterviewMetricsCache).toHaveBeenCalledWith("user-1");
   });
 });

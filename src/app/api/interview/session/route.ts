@@ -21,6 +21,7 @@ import {
 } from "@/services/interview-service";
 import { triggerAutoEvaluation } from "@/services/evaluation-service";
 import { softDeleteInterviewSession } from "@/repositories/interview-repo";
+import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 import { withCsrfProtection } from "@/lib/route-security";
 import { verifyMultipartCompletionToken } from "@/lib/s3/multipart-upload-token";
 import { warmEmbeddingModel } from "@/lib/rag/embeddings";
@@ -250,10 +251,16 @@ export const DELETE = withCsrfProtection(async (req: Request) => {
         }
         const interviewId = parsedId.data;
 
-        await softDeleteInterviewSession({
+        const deleted = await softDeleteInterviewSession({
             interviewId,
             userId: authUser.userId,
         });
+
+        if (!deleted) {
+            return notFoundError("Interview session not found");
+        }
+
+        invalidateInterviewMetricsCache(authUser.userId);
 
         return apiJson({ success: true });
     } catch (error) {

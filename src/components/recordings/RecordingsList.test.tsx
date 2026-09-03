@@ -6,6 +6,15 @@ import { deferred } from "@/test-utils/deferred";
 
 import RecordingsList from "./RecordingsList";
 
+const mockRouter = {
+  refresh: vi.fn(),
+  push: vi.fn(),
+};
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => mockRouter,
+}));
+
 vi.mock("./RecordingModal", () => ({
   default: ({ isOpen, interviewId }: { isOpen: boolean; interviewId: string | null }) =>
     isOpen ? <div data-testid="recording-modal">{interviewId}</div> : null,

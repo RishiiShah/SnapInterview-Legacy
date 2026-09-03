@@ -27,6 +27,9 @@ describe("interview metrics cache invalidation", () => {
     expect(mocks.revalidateTag).toHaveBeenNthCalledWith(1, "interview-dashboard-metrics-v1:user-42", "max");
     expect(mocks.revalidateTag).toHaveBeenNthCalledWith(2, "interview-analytics-metrics-v2:user-42", "max");
     expect(mocks.revalidateTag).toHaveBeenCalledTimes(2);
+    expect(mocks.revalidatePath).toHaveBeenNthCalledWith(1, "/dashboard");
+    expect(mocks.revalidatePath).toHaveBeenNthCalledWith(2, "/analytics");
+    expect(mocks.revalidatePath).toHaveBeenCalledTimes(2);
   });
 
   it("uses the current analytics payload version for each user's cache entry", async () => {

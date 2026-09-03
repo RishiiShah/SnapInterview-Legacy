@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 import Modal from "@/components/ui/Modal";
 import RecordingModal from "./RecordingModal";
@@ -73,6 +74,7 @@ export default function RecordingsList({
   initialNextCursor = null,
   initialOpenInterviewId = null,
 }: RecordingsListProps) {
+  const router = useRouter();
   const [sessions, setSessions] = useState<SessionCard[]>(initialSessions);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [nextCursor, setNextCursor] = useState<SessionCursor | null>(initialNextCursor);
@@ -252,6 +254,7 @@ export default function RecordingsList({
           }
           setSessionToDelete(null);
           setDeleteInterviewData(false);
+          router.refresh();
         } else {
           setErrorModal({
             isOpen: true,
@@ -268,6 +271,7 @@ export default function RecordingsList({
           setSessions((prev) => prev.filter((s) => s.id !== sessionToDelete.id));
           setSessionToDelete(null);
           setDeleteInterviewData(false);
+          router.refresh();
         } else {
           setErrorModal({
             isOpen: true,
@@ -551,6 +555,7 @@ export default function RecordingsList({
           onDeleted={() => {
             setSelectedVideo(null);
             setSessions((prev) => prev.filter((s) => s.id !== selectedVideo.interviewId));
+            router.refresh();
           }}
         />
       )}

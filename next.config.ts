@@ -43,7 +43,41 @@ const nextConfig: NextConfig = {
     "@huggingface/transformers",
   ],
   outputFileTracingIncludes: {
-    "/api/**": ["./node_modules/onnxruntime-node/bin/**/*"],
+    "/api/interview/session": ["./node_modules/onnxruntime-node/bin/napi-v3/linux/x64/**/*"],
+    "/api/interview/chat": ["./node_modules/onnxruntime-node/bin/napi-v3/linux/x64/**/*"],
+    "/api/interview/evaluate": ["./node_modules/onnxruntime-node/bin/napi-v3/linux/x64/**/*"],
+  },
+  outputFileTracingExcludes: {
+    "**/*": [
+      "./node_modules/@huggingface/transformers/.cache/**/*",
+      "./node_modules/onnxruntime-node/bin/napi-v3/darwin/**/*",
+      "./node_modules/onnxruntime-node/bin/napi-v3/win32/**/*",
+      "./node_modules/onnxruntime-node/bin/napi-v3/linux/arm64/**/*",
+    ],
+    "/api/admin/**": [
+      "./node_modules/onnxruntime-node/**/*",
+      "./node_modules/@huggingface/transformers/**/*",
+    ],
+    "/api/auth/**": [
+      "./node_modules/onnxruntime-node/**/*",
+      "./node_modules/@huggingface/transformers/**/*",
+    ],
+    "/api/settings/**": [
+      "./node_modules/onnxruntime-node/**/*",
+      "./node_modules/@huggingface/transformers/**/*",
+    ],
+    "/api/cron/**": [
+      "./node_modules/onnxruntime-node/**/*",
+      "./node_modules/@huggingface/transformers/**/*",
+    ],
+    "/api/s3/**": [
+      "./node_modules/onnxruntime-node/**/*",
+      "./node_modules/@huggingface/transformers/**/*",
+    ],
+    "/api/questions/**": [
+      "./node_modules/onnxruntime-node/**/*",
+      "./node_modules/@huggingface/transformers/**/*",
+    ],
   },
 };
 

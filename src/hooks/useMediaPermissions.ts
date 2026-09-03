@@ -74,6 +74,7 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
 
   const attachStreamToVideo = (mediaStream: MediaStream | null) => {
     if (!videoRef.current) return;
+    if (!mediaStream) videoRef.current.pause();
     videoRef.current.srcObject = mediaStream;
     videoRef.current.style.opacity = isCameraEnabled ? "1" : "0";
   };
@@ -160,6 +161,8 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
   };
 
   const requestPermissions = async () => {
+    if (isLoading) return;
+
     // Must run in secure context (HTTPS or localhost) for getUserMedia to show prompts
     if (typeof window !== "undefined" && !window.isSecureContext) {
       setError(
@@ -194,12 +197,13 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
       setHasPermission(false);
       const isNotAllowed =
         err instanceof DOMException && (err.name === "NotAllowedError" || err.name === "PermissionDeniedError");
-      const errorMessage = isNotAllowed
-        ? "Browser didn't show the permission prompt. If you previously blocked this site, click the lock or info icon in the address bar → set Microphone to Allow → refresh and try again. Or try in a private/incognito window."
-        : err instanceof DOMException
-          ? err.message
-          : "Failed to get microphone access.";
-      setError(errorMessage);
+      setError(
+        isNotAllowed
+          ? "Microphone permission is necessary. Please refresh the page and allow access."
+          : err instanceof DOMException
+            ? err.message
+            : "Failed to get microphone access."
+      );
       console.error("Media permission error:", err);
     } finally {
       setIsLoading(false);
@@ -212,6 +216,7 @@ export function useMediaPermissions(): UseMediaPermissionsReturn {
     setStreamSafe(null);
 
     if (videoRef.current) {
+      videoRef.current.pause();
       if (videoRef.current.srcObject) {
         const mediaStream = videoRef.current.srcObject as MediaStream;
         stopTracks(mediaStream);

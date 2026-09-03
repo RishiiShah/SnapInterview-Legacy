@@ -98,10 +98,10 @@ export default function PermissionRequest({
                   <button
                     type="button"
                     onClick={() => requestPermissions()}
-                    disabled={isLoading}
+                    disabled={isLoading || !!error}
                     className="mt-6 inline-flex h-11 cursor-pointer items-center rounded-lg bg-[#3B82F6] px-5 text-sm font-medium text-white transition-colors hover:bg-[#4B8FF7] disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Allow microphone
+                    {error ? "Refresh page to retry" : "Allow microphone"}
                   </button>
                   {error ? <p className="mt-3 text-xs leading-relaxed text-rose-300">{error}</p> : null}
                 </>

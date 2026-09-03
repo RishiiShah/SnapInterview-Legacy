@@ -263,7 +263,7 @@ export default function RecordingModal({
                       crossOrigin="anonymous"
                       controls
                       autoPlay
-                      className="max-h-full w-full rounded-lg -scale-x-100"
+                      className="max-h-full w-full rounded-lg"
                     />
                   ) : (
                     <div className="text-center">

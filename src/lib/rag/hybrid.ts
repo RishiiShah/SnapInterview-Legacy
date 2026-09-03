@@ -31,6 +31,12 @@ export interface HybridSearchParams {
   sparseWeight?: number;
   rrfK?: number;
   matchAnySparseTerm?: boolean;
+  /**
+   * When provided, the dense search adds a `WHERE category = ANY(...)` filter.
+   * Use only for strict-category technical rounds with ≥3 preferred categories.
+   * A fallback re-query without the filter fires if too few results come back.
+   */
+  preferredCategories?: string[];
 }
 
 const DEFAULT_POOL_LIMIT = 40;
@@ -70,47 +76,69 @@ export async function executeHybridRetrieval(
     sparseWeight = DEFAULT_SPARSE_WEIGHT,
     rrfK = DEFAULT_RRF_K,
     matchAnySparseTerm = false,
+    preferredCategories,
   } = params;
 
   const typesParam = interviewType ? [interviewType] : [];
   const cleanSparseQuery = buildTsQueryString(sparseKeywords, matchAnySparseTerm);
 
+  // Decide whether to apply a SQL-level category filter on the dense branch.
+  // Only filter when the caller provides ≥3 preferred categories (enough to
+  // avoid starving the pool). If the filtered query returns too few results,
+  // re-run without the filter as a fallback.
+  const useCategoryFilter = (preferredCategories?.length ?? 0) >= 3;
+  const categoryFilterParam = preferredCategories ?? [];
+
+  type DenseRow = {
+    id: string;
+    sourceId: string | null;
+    question: string;
+    answer: string | null;
+    commonMistakes: string | null;
+    category: string;
+    difficulty: string | null;
+    level: string | null;
+    roleTags: string[];
+    types: string[];
+    similarity: number;
+    embedding: string;
+  };
+
+  async function denseSearch(withCategoryFilter: boolean): Promise<DenseRow[]> {
+    if (denseWeight <= 0) return [];
+    try {
+      if (withCategoryFilter) {
+        return await prisma.$queryRaw<DenseRow[]>`
+          SELECT "id", "sourceId", "question", "answer", "commonMistakes", "category", "difficulty", "level", "roleTags", "types",
+                 (1 - ("embedding" OPERATOR(extensions.<=>) ${queryVectorLiteral}::extensions.vector)) AS similarity,
+                 "embedding"::text AS embedding
+          FROM "QuestionCorpus"
+          WHERE "embedding" IS NOT NULL
+            AND ("types" && ${typesParam}::text[] OR cardinality("types") = 0)
+            AND "category" = ANY(${categoryFilterParam}::text[])
+          ORDER BY similarity DESC
+          LIMIT ${poolLimit}
+        `;
+      }
+      return await prisma.$queryRaw<DenseRow[]>`
+        SELECT "id", "sourceId", "question", "answer", "commonMistakes", "category", "difficulty", "level", "roleTags", "types",
+               (1 - ("embedding" OPERATOR(extensions.<=>) ${queryVectorLiteral}::extensions.vector)) AS similarity,
+               "embedding"::text AS embedding
+        FROM "QuestionCorpus"
+        WHERE "embedding" IS NOT NULL
+          AND ("types" && ${typesParam}::text[] OR cardinality("types") = 0)
+        ORDER BY similarity DESC
+        LIMIT ${poolLimit}
+      `;
+    } catch (err) {
+      logger.warn("Dense retrieval query failed", { error: err });
+      return [];
+    }
+  }
+
   // 1. Parallel execution of Dense Vector Search & Sparse FTS
-  const [denseResults, sparseResults] = await Promise.all([
-    // Dense Vector Search
-    denseWeight > 0
-      ? prisma.$queryRaw<
-      Array<{
-        id: string;
-        sourceId: string | null;
-        question: string;
-        answer: string | null;
-        commonMistakes: string | null;
-        category: string;
-        difficulty: string | null;
-  level: string | null;
-        roleTags: string[];
-        types: string[];
-        similarity: number;
-        embedding: string;
-      }>
-        >`
-      SELECT "id", "sourceId", "question", "answer", "commonMistakes", "category", "difficulty", "level", "roleTags", "types",
-             -- Pure cosine similarity in [0, 1]. Role-tag boost is applied later in
-             -- the cross-encoder reranker (computeHeuristicRerankScore) to keep this
-             -- value semantically correct and avoid scale confusion with rrfScore.
-             (1 - ("embedding" OPERATOR(extensions.<=>) ${queryVectorLiteral}::extensions.vector)) AS similarity,
-             "embedding"::text AS embedding
-      FROM "QuestionCorpus"
-      WHERE "embedding" IS NOT NULL
-        AND ("types" && ${typesParam}::text[] OR cardinality("types") = 0)
-      ORDER BY similarity DESC
-      LIMIT ${poolLimit}
-        `.catch((err) => {
-          logger.warn("Dense retrieval query failed", { error: err });
-          return [];
-        })
-      : Promise.resolve([]),
+  const [initialDenseResults, sparseResults] = await Promise.all([
+    denseSearch(useCategoryFilter),
 
     // Sparse Full-Text Search
     cleanSparseQuery.trim().length > 0
@@ -148,6 +176,14 @@ export async function executeHybridRetrieval(
         })
       : Promise.resolve([]),
   ]);
+
+  // Fallback: if the category-filtered dense search starved the pool, re-query
+  // without the filter so we don't lose recall.
+  const MIN_CATEGORY_RESULTS = Math.ceil(poolLimit / 2);
+  const denseResults =
+    useCategoryFilter && initialDenseResults.length < MIN_CATEGORY_RESULTS
+      ? await denseSearch(false)
+      : initialDenseResults;
 
   // 2. Compute Reciprocal Rank Fusion (RRF)
   const candidateMap = new Map<

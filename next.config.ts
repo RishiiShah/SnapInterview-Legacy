@@ -32,7 +32,19 @@ const nextConfig: NextConfig = {
   },
   // pdf-parse loads its canvas dependency dynamically in Node. Externalizing
   // both packages ensures Vercel traces the native module into the function.
-  serverExternalPackages: ["pdf-parse", "@napi-rs/canvas"],
+  // onnxruntime-node and @huggingface/transformers use native .so binaries
+  // that dlopen at runtime; without externalization the shared libraries are
+  // omitted from the lambda zip and we get:
+  //   "libonnxruntime.so.1: cannot open shared object file"
+  serverExternalPackages: [
+    "pdf-parse",
+    "@napi-rs/canvas",
+    "onnxruntime-node",
+    "@huggingface/transformers",
+  ],
+  outputFileTracingIncludes: {
+    "/api/**": ["./node_modules/onnxruntime-node/bin/**/*"],
+  },
 };
 
 export default nextConfig;

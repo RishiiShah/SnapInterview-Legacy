@@ -9,14 +9,10 @@
  *   npm run rag:benchmark
  */
 
-import { readFile } from "fs/promises";
-import path from "path";
-import { parseCsvRecords } from "../src/lib/csv";
 import { prisma } from "../src/lib/prisma";
-import { dedupeByNormalizedQuestion } from "../src/lib/rag/corpus-normalization";
 import { runProductionRetrieval, type RagBenchmarkScenario } from "../src/lib/rag/benchmark-session";
 import { localEmbedder, cosineSimilarity } from "../src/lib/rag/embeddings";
-import { mapSoftwareCategory, mapHrCategory, normalizeRoleSlug, normalizeCategory } from "../src/lib/rag/taxonomy";
+import { normalizeRoleSlug } from "../src/lib/rag/taxonomy";
 import { extractKeyTechnicalTerms } from "../src/lib/rag/chunker";
 
 interface QuestionRecord {
@@ -30,8 +26,6 @@ interface QuestionRecord {
   keywords: string[];
   vector: number[];
 }
-
-type QuestionRecordWithoutVector = Omit<QuestionRecord, "vector">;
 
 const BENCHMARK_SCENARIOS: RagBenchmarkScenario[] = [
   {
@@ -207,73 +201,54 @@ Engineering Manager | TechScale (2019 - Present)
 ];
 
 async function loadDataset(): Promise<QuestionRecord[]> {
-  const softwareCsvPath = path.join(process.cwd(), "src/data/corpus/technical-questions.csv");
-  const hrCsvPath = path.join(process.cwd(), "src/data/corpus/hr-questions.csv");
+  console.log("Loading pre-computed corpus vectors from PostgreSQL...");
 
-  const [softwareRaw, hrRaw] = await Promise.all([
-    readFile(softwareCsvPath, "utf-8"),
-    readFile(hrCsvPath, "utf-8"),
-  ]);
+  // Pull all questions with their pre-computed embeddings from the database,
+  // bypassing the expensive CSV parse + ONNX embedding pipeline (~30-60s).
+  const rows = await prisma.$queryRaw<
+    Array<{
+      id: string;
+      question: string;
+      answer: string | null;
+      category: string;
+      difficulty: string | null;
+      level: string | null;
+      roleTags: string[];
+      types: string[];
+      keywords: string[];
+      embedding: string;
+    }>
+  >`
+    SELECT "id", "question", "answer", "category", "difficulty", "level",
+           "roleTags", "types", "keywords", "embedding"::text AS embedding
+    FROM "QuestionCorpus"
+    WHERE "embedding" IS NOT NULL
+  `;
 
-  function loadCsvQuestions(
-    raw: string,
-    source: "software" | "hr",
-    mapCategory: (cat: string) => { types: string[]; roleTags: string[] },
-  ): QuestionRecordWithoutVector[] {
-    const rows = parseCsvRecords(raw);
-    const [header, ...body] = rows;
-    const col = (name: string) => header.findIndex((h) => h.trim().toLowerCase() === name);
-    const qIdx = col("question");
-    const aIdx = col("answer");
-    const cIdx = col("category");
-    const dIdx = col("difficulty");
+  const corpus: QuestionRecord[] = rows.map((row) => {
+    // Parse pgvector literal "[0.1,0.2,...]" → number[]
+    const vector = row.embedding
+      .slice(1, -1)
+      .split(",")
+      .map(Number);
 
-    return body
-      .map((row, idx) => {
-        const category = source === "software"
-          ? normalizeCategory(row[cIdx]?.trim() ?? "General")
-          : (row[cIdx]?.trim() ?? "General");
-        const { types, roleTags } = mapCategory(category);
-        const question = row[qIdx]?.trim() ?? "";
-        const answer = row[aIdx]?.trim() || null;
+    return {
+      id: row.id,
+      question: row.question,
+      answer: row.answer,
+      category: row.category,
+      difficulty: row.difficulty,
+      roleTags: row.roleTags ?? [],
+      types: row.types ?? [],
+      keywords: row.keywords?.length > 0
+        ? row.keywords
+        : extractKeyTechnicalTerms(`${row.question} ${row.answer || ""}`),
+      vector,
+    };
+  });
 
-        return {
-          id: `${source}_${idx}`,
-          question,
-          answer,
-          category,
-          difficulty: row[dIdx]?.trim() || "medium",
-          roleTags,
-          types,
-          keywords: extractKeyTechnicalTerms(`${question} ${answer || ""}`),
-        };
-      })
-      .filter((q) => q.question.length > 0);
-  }
-
-  const softwareQuestions = loadCsvQuestions(softwareRaw, "software", mapSoftwareCategory);
-  const hrQuestions = loadCsvQuestions(hrRaw, "hr", mapHrCategory);
-
-  const all = dedupeByNormalizedQuestion([...softwareQuestions, ...hrQuestions]).unique;
-
-  // Batch embed all corpus questions
-  console.log(`Loading and embedding ${all.length} normalized corpus questions with Xenova/all-MiniLM-L6-v2 in batches...`);
-  const texts = all.map((q) => (q.answer ? `${q.question}\n${q.answer}` : q.question));
-  
-  const vectors: number[][] = [];
-  const BATCH_SIZE = 250;
-  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
-    if (i % 1000 === 0) console.log(`  Embedded ${i}/${texts.length}...`);
-    const batch = texts.slice(i, i + BATCH_SIZE);
-    const batchVectors = await localEmbedder.embed(batch);
-    vectors.push(...batchVectors);
-  }
-  console.log(`  Embedded ${texts.length}/${texts.length}`);
-
-  return all.map((q, i) => ({
-    ...q,
-    vector: vectors[i],
-  }));
+  console.log(`Loaded ${corpus.length} corpus questions with pre-computed vectors from DB.`);
+  return corpus;
 }
 
 /**

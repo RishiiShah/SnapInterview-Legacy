@@ -115,8 +115,9 @@ describe("PracticePageClient", () => {
       level: "mid-level",
       persona: "balanced",
       durationMinutes: 30,
-      questionCount: 10,
     });
+    expect(payload.questionCount).toBeGreaterThanOrEqual(10);
+    expect(payload.questionCount).toBeLessThanOrEqual(13);
     expect(payload.company).toBeUndefined();
     expect(preloadKokoro).toHaveBeenCalledTimes(1);
     expect(preloadKokoro.mock.invocationCallOrder[0]).toBeLessThan(routerPush.mock.invocationCallOrder[0]!);

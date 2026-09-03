@@ -4,6 +4,7 @@ import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 import {
   coerceInterviewLevel,
   getDefaultInterviewLevelForDifficulty,
+  getRandomQuestionCountForDuration,
   type InterviewDuration,
   type InterviewPersona,
   type StartInterviewSessionInput,
@@ -66,8 +67,7 @@ export async function startInterviewSession(params: StartInterviewSessionInput) 
 
   const durationMinutes: InterviewDuration = params.durationMinutes ?? 30;
   const questionCount: number =
-    params.questionCount ??
-    (durationMinutes === 15 ? 5 : durationMinutes === 45 ? 15 : 10);
+    params.questionCount ?? getRandomQuestionCountForDuration(durationMinutes);
   const persona: InterviewPersona = params.persona ?? "balanced";
   const requestedRole = typeof params.role === "string" ? params.role.trim() : "";
   const onboardingRole =

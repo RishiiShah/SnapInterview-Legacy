@@ -65,9 +65,9 @@ export function emptyRetrievalComputation(): RetrievalComputation {
 /** How many questions end up in the prompt. */
 export const DEFAULT_LIMIT = 6;
 /** Questions fetched from the database before reranking and filtering. */
-export const CANDIDATE_POOL = 60;
+export const CANDIDATE_POOL = 20;
 /** Per multi-query branch pool size before fusion. */
-export const BRANCH_POOL = 24;
+export const BRANCH_POOL = 14;
 /** Questions below this score threshold are dropped. */
 export const MIN_SIMILARITY = 0.20;
 /**
@@ -94,9 +94,9 @@ function mmrLambdaForInterviewType(interviewType: string): number {
     case "system-design":
     case "coding-algorithms":
     case "domain-role":
-      return 0.86;
+      return 0.92;
     case "bar-raiser":
-      return 0.8;
+      return 0.86;
     default:
       return MMR_LAMBDA;
   }
@@ -331,6 +331,12 @@ export async function retrieve(
         denseWeight: spec.denseWeight,
         sparseWeight: spec.sparseWeight,
         matchAnySparseTerm: spec.matchAnySparseTerm,
+        // Push category filtering into the SQL dense search for technical rounds
+        // (conversational branch only — gapFill intentionally broadens scope).
+        preferredCategories:
+          spec.label === "conversational" && isTechnicalInterviewType(session.type)
+            ? preferredCategories.slice(0, 10)
+            : undefined,
       });
       return { label: spec.label, weight: spec.weight, rows };
     })
@@ -431,7 +437,7 @@ export async function retrieve(
     gapCategories: coverage.missingCategories.slice(0, 8),
     // Behavioral benefits most from later-slot gap fill without moving #1/#2 off the story.
     continuitySlots: session.type === "behavioral-leadership" ? 2 : 2,
-    gapCategoryWeight: session.type === "behavioral-leadership" ? 0.3 : 0.22,
+    gapCategoryWeight: session.type === "behavioral-leadership" ? 0.3 : 0.14,
   };
   const chosen = selectWithMmr([...fresh], limit, cosineSimilarity, mmrOptions);
   let backfilledCount = 0;

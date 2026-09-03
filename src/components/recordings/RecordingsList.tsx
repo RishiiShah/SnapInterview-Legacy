@@ -48,7 +48,7 @@ type SessionCard = {
   company: string | null;
   type: string;
   videoKey: string | null;
-  score: number;
+  score: number | null;
   createdAt: string;
 };
 
@@ -149,7 +149,7 @@ export default function RecordingsList({
     () =>
       [...sessions].sort((a, b) =>
         sortBy === "score"
-          ? b.score - a.score
+          ? (b.score ?? -1) - (a.score ?? -1)
           : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       ),
     [sessions, sortBy],
@@ -421,14 +421,14 @@ export default function RecordingsList({
 
                 <div className="hidden text-right sm:block">
                   <p className="text-xs leading-none text-[#B8C0CE]">
-                    {getScoreLabel(session.score)}
+                    {session.score !== null ? getScoreLabel(session.score) : "Pending"}
                   </p>
                 </div>
 
                 <span
                   className={`shrink-0 font-mono text-base tabular-nums leading-none ${scoreToneClass(session.score)}`}
                 >
-                  {session.score}
+                  {session.score !== null ? session.score : "—"}
                 </span>
 
                 {isProcessing ? (

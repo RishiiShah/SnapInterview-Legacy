@@ -16,6 +16,7 @@ import {
   coerceInterviewLevel,
   getDefaultInterviewDifficultyForLevel,
   getDefaultInterviewLevelForDifficulty,
+  getRandomQuestionCountForDuration,
   type InterviewLevel,
   type InterviewPersona,
   type InterviewType,
@@ -220,7 +221,7 @@ export default function PracticePageClient({
         persona,
         jobDescription: jobDescription || undefined,
         durationMinutes,
-        questionCount: durationMinutes === 15 ? 5 : durationMinutes === 45 ? 15 : 10,
+        questionCount: getRandomQuestionCountForDuration(durationMinutes),
         resumeText: resumeText || undefined,
       };
 

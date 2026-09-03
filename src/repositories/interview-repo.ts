@@ -32,6 +32,7 @@ export type {
 
 export {
   mapCompletedSessionCard,
+  extractEvaluationScore,
   listCompletedSessionsForUser,
   getCompletedSessionCardForUser,
 } from "./interview/recording-repo";

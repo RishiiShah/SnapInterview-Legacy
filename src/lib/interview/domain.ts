@@ -83,7 +83,11 @@ export const QUESTION_CATEGORY_VALUES = [
 export const INTERVIEW_DIFFICULTY_VALUES = ["easy", "medium", "hard"] as const;
 export const INTERVIEW_LEVEL_VALUES = ["entry-level", "mid-level", "senior", "staff-plus"] as const;
 export const INTERVIEW_PERSONA_VALUES = ["friendly", "balanced", "strict"] as const;
-export const INTERVIEW_QUESTION_COUNT_VALUES = [5, 10, 15] as const;
+export const INTERVIEW_QUESTION_COUNT_VALUES = [
+  5, 6, 7, 8,
+  10, 11, 12, 13,
+  15, 16, 17, 18,
+] as const;
 export const INTERVIEW_DURATION_VALUES = [15, 30, 45] as const;
 
 export const interviewIdSchema = z.string().uuid("interviewId must be a valid UUID");
@@ -139,11 +143,36 @@ export function getDefaultInterviewDifficultyForLevel(level: InterviewLevel): Di
   if (level === "senior" || level === "staff-plus") return "hard";
   return "medium";
 }
+
+export function getQuestionCountRangeForDuration(durationMinutes: number): { min: number; max: number } {
+  if (durationMinutes <= 15) {
+    return { min: 5, max: 8 };
+  }
+  if (durationMinutes >= 45) {
+    return { min: 15, max: 18 };
+  }
+  return { min: 10, max: 13 };
+}
+
+export function getRandomQuestionCountForDuration(durationMinutes: number): number {
+  const range = getQuestionCountRangeForDuration(durationMinutes);
+  return Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+}
+
 export const interviewPersonaSchema = z.enum(INTERVIEW_PERSONA_VALUES);
 export const interviewQuestionCountSchema = z.union([
   z.literal(5),
+  z.literal(6),
+  z.literal(7),
+  z.literal(8),
   z.literal(10),
+  z.literal(11),
+  z.literal(12),
+  z.literal(13),
   z.literal(15),
+  z.literal(16),
+  z.literal(17),
+  z.literal(18),
 ]);
 
 export const interviewDurationSchema = z.union([

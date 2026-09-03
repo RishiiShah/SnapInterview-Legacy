@@ -5,6 +5,7 @@ import { verifyMultipartCompletionToken } from "@/lib/s3/multipart-upload-token"
 import { getResumableInterviewSessionState, startInterviewSession, updateSessionStatusIfOwned } from "@/services/interview-service";
 import { warmEmbeddingModel } from "@/lib/rag/embeddings";
 import { softDeleteInterviewSession } from "@/repositories/interview-repo";
+import { triggerAutoEvaluation } from "@/services/evaluation-service";
 
 const { mockRateLimitState } = vi.hoisted(() => ({
   mockRateLimitState: {
@@ -39,6 +40,10 @@ vi.mock("@/services/interview-service", () => ({
 
 vi.mock("@/repositories/interview-repo", () => ({
   softDeleteInterviewSession: vi.fn(),
+}));
+
+vi.mock("@/services/evaluation-service", () => ({
+  triggerAutoEvaluation: vi.fn(),
 }));
 
 describe("GET /api/interview/session", () => {
@@ -338,6 +343,11 @@ describe("PATCH /api/interview/session", () => {
       videoUrl: undefined,
       videoKey: "user-1/interview-11111111-1111-4111-8111-111111111111.webm",
       status: "COMPLETED",
+    });
+    expect(triggerAutoEvaluation).toHaveBeenCalledWith({
+      userId: "user-1",
+      interviewId: "11111111-1111-4111-8111-111111111111",
+      email: "user@example.com",
     });
   });
 

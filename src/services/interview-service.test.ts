@@ -376,6 +376,53 @@ describe("startInterviewSession", () => {
     expect(result).toEqual({ id: "int-2" });
   });
 
+  it("randomly selects question count within duration range when not explicitly provided", async () => {
+    vi.mocked(getUserOnboardingContext).mockResolvedValue(null);
+    vi.mocked(createInterviewSession).mockResolvedValue({ id: "int-rand" });
+
+    // 15 min duration: 5..8
+    await startInterviewSession({
+      userId: "user-1",
+      role: "Backend Engineer",
+      company: null,
+      type: "coding-algorithms",
+      difficulty: "medium",
+      durationMinutes: 15,
+    });
+
+    const call15 = vi.mocked(createInterviewSession).mock.calls.at(-1)?.[0];
+    expect(call15?.questionCount).toBeGreaterThanOrEqual(5);
+    expect(call15?.questionCount).toBeLessThanOrEqual(8);
+
+    // 30 min duration: 10..13
+    await startInterviewSession({
+      userId: "user-1",
+      role: "Backend Engineer",
+      company: null,
+      type: "coding-algorithms",
+      difficulty: "medium",
+      durationMinutes: 30,
+    });
+
+    const call30 = vi.mocked(createInterviewSession).mock.calls.at(-1)?.[0];
+    expect(call30?.questionCount).toBeGreaterThanOrEqual(10);
+    expect(call30?.questionCount).toBeLessThanOrEqual(13);
+
+    // 45 min duration: 15..18
+    await startInterviewSession({
+      userId: "user-1",
+      role: "Backend Engineer",
+      company: null,
+      type: "coding-algorithms",
+      difficulty: "medium",
+      durationMinutes: 45,
+    });
+
+    const call45 = vi.mocked(createInterviewSession).mock.calls.at(-1)?.[0];
+    expect(call45?.questionCount).toBeGreaterThanOrEqual(15);
+    expect(call45?.questionCount).toBeLessThanOrEqual(18);
+  });
+
   it("persists an explicitly selected corpus level instead of the onboarding default", async () => {
     vi.mocked(getUserOnboardingContext).mockResolvedValue({
       onboardingGoal: "switch-companies",
@@ -443,7 +490,7 @@ describe("startInterviewSession", () => {
         role: "Software Engineer - Frontend",
         company: "Acme",
         persona: "balanced",
-        questionCount: 10,
+        questionCount: expect.any(Number),
         sessionPlan: expect.objectContaining({
           version: 1,
           brief: expect.objectContaining({

@@ -8,7 +8,7 @@ export type CompletedSessionCard = {
   company: string | null;
   type: InterviewType;
   videoKey: string | null;
-  score: number;
+  score: number | null;
   createdAt: Date;
 };
 
@@ -16,6 +16,28 @@ export type CompletedSessionCursor = {
   createdAt: Date;
   id: string;
 };
+
+export function extractEvaluationScore(evaluation: unknown): number | null {
+  if (!evaluation || typeof evaluation !== "object") return null;
+  const evalData = evaluation as {
+    score?: unknown;
+    overallScore?: unknown;
+    v2?: { overallScore?: unknown; score?: unknown };
+  };
+  if (typeof evalData.score === "number" && !Number.isNaN(evalData.score)) {
+    return evalData.score;
+  }
+  if (typeof evalData.overallScore === "number" && !Number.isNaN(evalData.overallScore)) {
+    return evalData.overallScore;
+  }
+  if (typeof evalData.v2?.overallScore === "number" && !Number.isNaN(evalData.v2.overallScore)) {
+    return evalData.v2.overallScore;
+  }
+  if (typeof evalData.v2?.score === "number" && !Number.isNaN(evalData.v2.score)) {
+    return evalData.v2.score;
+  }
+  return null;
+}
 
 export function mapCompletedSessionCard(s: {
   id: string;
@@ -28,10 +50,7 @@ export function mapCompletedSessionCard(s: {
   currentQuestion: number;
   createdAt: Date;
 }): CompletedSessionCard {
-  const evalData = s.evaluation as { score?: number } | null;
-  const score = typeof evalData?.score === "number"
-    ? evalData.score
-    : Math.round(Math.min(100, Math.max(0, (Math.min(s.currentQuestion, s.questionCount) / Math.max(1, s.questionCount)) * 80 + 20)));
+  const score = extractEvaluationScore(s.evaluation);
 
   return {
     id: s.id,

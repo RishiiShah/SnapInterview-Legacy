@@ -562,6 +562,9 @@ export async function retrieve(
  * Feature flag for RAG retrieval.
  */
 export function isQuestionRetrievalEnabled(): boolean {
+  if (process.env.NODE_ENV === "production") {
+    return false;
+  }
   const flag = process.env.RAG_RETRIEVAL_ENABLED;
   if (flag != null) {
     return flag === "true" || flag === "1";

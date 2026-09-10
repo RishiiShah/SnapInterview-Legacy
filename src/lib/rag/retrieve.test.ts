@@ -237,6 +237,12 @@ describe("retrieveQuestionsForSession", () => {
     expect(results).toEqual([]);
     expect(mocks.embed).not.toHaveBeenCalled();
   });
+
+  it("keeps retrieval disabled in production", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("RAG_RETRIEVAL_ENABLED", "true");
+    expect(isQuestionRetrievalEnabled()).toBe(false);
+  });
 });
 
 import {

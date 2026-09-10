@@ -23,8 +23,6 @@ import { triggerAutoEvaluation } from "@/services/evaluation-service";
 import { softDeleteInterviewSession } from "@/repositories/interview-repo";
 import { withCsrfProtection } from "@/lib/route-security";
 import { verifyMultipartCompletionToken } from "@/lib/s3/multipart-upload-token";
-import { warmEmbeddingModel } from "@/lib/rag/embeddings";
-import { warmRerankerModel } from "@/lib/rag/reranker";
 import { logger } from "@/utils/logger";
 import { isCuratedCompany } from "@/lib/company-options";
 
@@ -124,9 +122,6 @@ export const POST = withCsrfProtection(async (req: Request) => {
             durationMinutes,
             questionCount,
         });
-        warmEmbeddingModel();
-        warmRerankerModel();
-
         return apiJson({ id: interviewSession.id }, 201);
     } catch (error) {
         logger.error("Create interview session error", {

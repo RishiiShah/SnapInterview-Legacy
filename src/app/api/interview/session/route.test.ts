@@ -3,7 +3,6 @@ import { DELETE, GET, PATCH, POST } from "./route";
 import { getSessionUserIdentity } from "@/lib/server-auth";
 import { verifyMultipartCompletionToken } from "@/lib/s3/multipart-upload-token";
 import { getResumableInterviewSessionState, startInterviewSession, updateSessionStatusIfOwned } from "@/services/interview-service";
-import { warmEmbeddingModel } from "@/lib/rag/embeddings";
 import { softDeleteInterviewSession } from "@/repositories/interview-repo";
 import { triggerAutoEvaluation } from "@/services/evaluation-service";
 
@@ -59,14 +58,6 @@ describe("GET /api/interview/session", () => {
     await expect(response.json()).resolves.toEqual({ error: "This interview expired after 24 hours." });
   });
 });
-
-vi.mock("@/lib/rag/embeddings", () => ({
-  warmEmbeddingModel: vi.fn(),
-}));
-
-vi.mock("@/lib/rag/reranker", () => ({
-  warmRerankerModel: vi.fn(),
-}));
 
 describe("POST /api/interview/session", () => {
   beforeEach(() => {
@@ -135,7 +126,6 @@ describe("POST /api/interview/session", () => {
       resumeText: undefined,
       questionCount: 10,
     });
-    expect(warmEmbeddingModel).toHaveBeenCalledOnce();
     await expect(response.json()).resolves.toEqual({ id: "session-1" });
   });
 

@@ -16,7 +16,7 @@ const PROFILE_IMAGE_STORAGE_KEY = "profile-image-override";
 
 /** Question detail / coding workspace is a full-bleed split (not the padded content column). */
 function isFullscreenWorkspacePath(pathname: string) {
-  return /^\/(questions|coding)\/[^/]+$/.test(pathname);
+  return /^\/(questions|coding|plans)\/[^/]+$/.test(pathname);
 }
 
 function getProfileImageOverride() {

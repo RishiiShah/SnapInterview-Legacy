@@ -14,6 +14,7 @@ import {
   IconQuestionBank,
   IconRecordings,
   IconSettings,
+  IconWorkflow,
 } from "@/components/ui/icons";
 import {
   HoverSidebarBody,
@@ -39,6 +40,7 @@ export const navItems = [
   { label: "Practice", href: "/practice" },
   { label: "Question Bank", href: "/questions" },
   { label: "Coding", href: "/coding" },
+  { label: "Interview Plans", href: "/plans" },
   { label: "Analytics", href: "/analytics" },
   { label: "Recordings", href: "/recordings" },
 ];
@@ -77,6 +79,15 @@ const generalLinks = [
     icon: (
       <NavIcon>
         <IconQuestionBank />
+      </NavIcon>
+    ),
+  },
+  {
+    label: "Interview Plans",
+    href: "/plans",
+    icon: (
+      <NavIcon>
+        <IconWorkflow />
       </NavIcon>
     ),
   },
@@ -204,7 +215,7 @@ function SidebarContents() {
                 <HoverSidebarLink
                   key={link.href}
                   link={link}
-                  active={pathname === link.href}
+                  active={pathname === link.href || pathname.startsWith(`${link.href}/`)}
                   onClick={onNavigate}
                 />
               ))}
@@ -218,7 +229,7 @@ function SidebarContents() {
                 <HoverSidebarLink
                   key={link.href}
                   link={link}
-                  active={pathname === link.href}
+                  active={pathname === link.href || pathname.startsWith(`${link.href}/`)}
                   onClick={onNavigate}
                 />
               ))}

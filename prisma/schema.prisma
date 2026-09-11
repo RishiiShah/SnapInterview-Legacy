@@ -21,20 +21,20 @@ model User {
   updatedAt     DateTime @updatedAt
 
   // ─── App-specific user fields ───
-  isAdmin                Boolean   @default(false)
-  isFirstLogin           Boolean   @default(true)
-  failedLoginCount       Int       @default(0)
-  lockedUntil            DateTime?
-  lastPasswordChangedAt  DateTime?
-  onboardingCompletedAt  DateTime?
-  onboardingRole         String?
-  onboardingLevel        String?
-  onboardingCompany      String?
-  onboardingGoal         String?
-  preferredInterviewType    String?
-  notificationPrefs         Json      @default("{\"emailNotifs\":true,\"practiceReminders\":true,\"weeklyReport\":true,\"scoreAlerts\":false}")
-  notificationsLastReadAt   DateTime?
-  resumeText                String?   @db.Text
+  isAdmin                 Boolean   @default(false)
+  isFirstLogin            Boolean   @default(true)
+  failedLoginCount        Int       @default(0)
+  lockedUntil             DateTime?
+  lastPasswordChangedAt   DateTime?
+  onboardingCompletedAt   DateTime?
+  onboardingRole          String?
+  onboardingLevel         String?
+  onboardingCompany       String?
+  onboardingGoal          String?
+  preferredInterviewType  String?
+  notificationPrefs       Json      @default("{\"emailNotifs\":true,\"practiceReminders\":true,\"weeklyReport\":true,\"scoreAlerts\":false}")
+  notificationsLastReadAt DateTime?
+  resumeText              String?   @db.Text
 
   // ─── Relations ───
   sessions             Session[]
@@ -45,6 +45,7 @@ model User {
   securityEvents       SecurityEvent[]
   pendingRegistrations PendingUser[]
   supportTickets       SupportTicket[]
+  interviewPlans       InterviewPlan[]
 }
 
 model Session {
@@ -185,36 +186,37 @@ enum InterviewStatus {
 }
 
 model InterviewSession {
-  id              String          @id @default(dbgenerated("(gen_random_uuid())::text"))
-  userId          String
-  role            String
-  company         String?
-  type            String
-  difficulty      String
-  level           String?
-  persona         String?
-  jobDescription  String?         @db.Text
-  resumeUrl       String?
-  resumeText      String?  @db.Text
-  durationMinutes Int      @default(30)
-  videoUrl        String?
-  videoKey        String?         @unique
-  status          InterviewStatus @default(IN_PROGRESS)
-  questionCount   Int             @default(10)
-  currentQuestion Int             @default(0)
-  focusAreas      Json?
-  sessionPlan     Json?
-  evaluation      Json?
-  evaluationStartedAt DateTime?
-  evaluationClaimVersion Int @default(0)
-  shareToken      String?         @unique
-  deletedAt       DateTime?
-  createdAt       DateTime        @default(now())
-  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transcript         TranscriptEntry[]
-  questionFeedback   QuestionFeedback[]
-  moderationNotes    InterviewModerationNote[]
-  retrievedQuestions RetrievedQuestion[]
+  id                     String                    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  userId                 String
+  role                   String
+  company                String?
+  type                   String
+  difficulty             String
+  level                  String?
+  persona                String?
+  jobDescription         String?                   @db.Text
+  resumeUrl              String?
+  resumeText             String?                   @db.Text
+  durationMinutes        Int                       @default(30)
+  videoUrl               String?
+  videoKey               String?                   @unique
+  status                 InterviewStatus           @default(IN_PROGRESS)
+  questionCount          Int                       @default(10)
+  currentQuestion        Int                       @default(0)
+  focusAreas             Json?
+  sessionPlan            Json?
+  evaluation             Json?
+  evaluationStartedAt    DateTime?
+  evaluationClaimVersion Int                       @default(0)
+  shareToken             String?                   @unique
+  deletedAt              DateTime?
+  createdAt              DateTime                  @default(now())
+  user                   User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transcript             TranscriptEntry[]
+  questionFeedback       QuestionFeedback[]
+  moderationNotes        InterviewModerationNote[]
+  retrievedQuestions     RetrievedQuestion[]
+  planNodes              InterviewPlanNode[]
 
   @@index([userId])
   @@index([userId, deletedAt])
@@ -257,35 +259,35 @@ model TranscriptEntry {
   createdAt          DateTime         @default(now())
   interviewSession   InterviewSession @relation(fields: [interviewSessionId], references: [id], onDelete: Cascade)
 
-  @@index([interviewSessionId])
   @@unique([interviewSessionId, order])
+  @@index([interviewSessionId])
 }
 
 // ─── App: Practice Questions ─────────────────────────────────────────────────
 
 model PracticeQuestion {
-  id            Int      @id @default(autoincrement())
-  slug          String   @unique
-  text          String   @db.Text
+  id            Int              @id @default(autoincrement())
+  slug          String           @unique
+  text          String           @db.Text
   category      String
   difficulty    String
   estimatedTime String?
   tags          String[]
-  hint          String?  @db.Text
-  sampleAnswer  String?  @db.Text
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  hint          String?          @db.Text
+  sampleAnswer  String?          @db.Text
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
   solvedBy      SolvedQuestion[]
 
   @@index([category])
 }
 
 model SolvedQuestion {
-  id         String   @id @default(cuid())
+  id         String           @id @default(cuid())
   userId     String
   questionId Int
-  solvedAt   DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  solvedAt   DateTime         @default(now())
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   question   PracticeQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([userId, questionId])
@@ -294,9 +296,64 @@ model SolvedQuestion {
   @@index([userId, solvedAt(sort: Desc)], map: "SolvedQuestion_user_solvedAt_desc_idx")
 }
 
+// Candidate-authored DAGs that sequence mock interviews and practice sets.
+model InterviewPlan {
+  id          String              @id @default(dbgenerated("(gen_random_uuid())::text"))
+  ownerUserId String
+  title       String
+  status      String              @default("draft")
+  source      String              @default("custom")
+  templateKey String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  owner       User                @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  nodes       InterviewPlanNode[]
+  edges       InterviewPlanEdge[]
+
+  @@index([ownerUserId, updatedAt(sort: Desc), id])
+}
+
+model InterviewPlanNode {
+  id                String              @id @default(dbgenerated("(gen_random_uuid())::text"))
+  planId            String
+  nodeType          String
+  title             String
+  positionX         Float               @default(0)
+  positionY         Float               @default(0)
+  status            String
+  config            Json
+  resultInterviewId String?
+  resultScore       Int?
+  completedAt       DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  plan              InterviewPlan       @relation(fields: [planId], references: [id], onDelete: Cascade)
+  resultInterview   InterviewSession?   @relation(fields: [resultInterviewId], references: [id], onDelete: SetNull)
+  outgoingEdges     InterviewPlanEdge[] @relation("PlanEdgeSource")
+  incomingEdges     InterviewPlanEdge[] @relation("PlanEdgeTarget")
+
+  @@index([planId])
+  @@index([resultInterviewId])
+}
+
+model InterviewPlanEdge {
+  id           String            @id @default(dbgenerated("(gen_random_uuid())::text"))
+  planId       String
+  sourceNodeId String
+  targetNodeId String
+  plan         InterviewPlan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  sourceNode   InterviewPlanNode @relation("PlanEdgeSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode   InterviewPlanNode @relation("PlanEdgeTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, sourceNodeId, targetNodeId])
+  @@index([planId])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+}
+
 model CodingQuestion {
-  id            String   @id @default(cuid())
-  slug          String   @unique
+  id            String           @id @default(cuid())
+  slug          String           @unique
   title         String
   description   String
   constraints   String?
@@ -306,11 +363,11 @@ model CodingQuestion {
   hint          String?
   starterCode   Json
   solutionCode  Json?
-  isPublished   Boolean  @default(false)
-  sortOrder     Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  testCases   CodingTestCase[]
+  isPublished   Boolean          @default(false)
+  sortOrder     Int              @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  testCases     CodingTestCase[]
 
   @@index([isPublished, sortOrder, createdAt])
 }
@@ -337,23 +394,23 @@ enum TicketStatus {
 }
 
 model SupportTicket {
-  id               String       @id @default(cuid())
-  ticketNumber     Int          @unique @default(autoincrement())
-  userId           String
-  userEmail        String
-  userName         String
-  category         String
-  priority         String       @default("normal")
-  subject          String
-  description      String       @db.Text
-  attachmentName   String?
-  attachmentUrl    String?
-  status           TicketStatus @default(OPEN)
-  resolvedAt       DateTime?
-  adminNotes       String?      @db.Text
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  ticketNumber   Int          @unique @default(autoincrement())
+  userId         String
+  userEmail      String
+  userName       String
+  category       String
+  priority       String       @default("normal")
+  subject        String
+  description    String       @db.Text
+  attachmentName String?
+  attachmentUrl  String?
+  status         TicketStatus @default(OPEN)
+  resolvedAt     DateTime?
+  adminNotes     String?      @db.Text
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([ticketNumber])
@@ -366,37 +423,37 @@ model SupportTicket {
 // (see src/lib/rag/). Everything else is ordinary Prisma.
 
 model QuestionCorpus {
-  id          String   @id @default(cuid())
+  id             String                      @id @default(cuid())
   // Original CSV question number. Kept stable so corpus counts and reviews can
   // refer back to the exact source row.
-  sourceId    String?
-  question    String   @db.Text
+  sourceId       String?
+  question       String                      @db.Text
   // Model answer, used to help grade the candidate. Present for the technical
   // questions; the behavioural set shipped without usable ones.
-  answer      String?  @db.Text
-  commonMistakes String? @db.Text
-  category    String
+  answer         String?                     @db.Text
+  commonMistakes String?                     @db.Text
+  category       String
   // A hint, not a filter. The behavioural source labelled difficulty at random,
   // so use it to order results, never to exclude them.
-  difficulty  String?
-  level       String?
+  difficulty     String?
+  level          String?
   // Interview types this question suits.
-  types       String[]
+  types          String[]
   // Roles this question suits. Empty means it suits any role, which is true of
   // every behavioural question. Empty is deliberate, not missing data.
-  roleTags    String[]
-  keywords    String[]
-  source      String
+  roleTags       String[]
+  keywords       String[]
+  source         String
   // Fingerprint of the question text, used to avoid storing it twice. Only
   // exact repeats are removed. Questions that merely look similar are kept:
   // "What is OAuth..." and "What is Docker..." share a phrasing but ask
   // different things.
-  contentHash String   @unique
-  embedding   Unsupported("vector(384)")?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  contentHash    String                      @unique
+  embedding      Unsupported("vector(384)")?
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
 
-  retrievals  RetrievedQuestion[]
+  retrievals RetrievedQuestion[]
 
   @@index([source])
   @@index([category])

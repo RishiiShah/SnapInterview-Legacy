@@ -6,13 +6,16 @@ import { getPracticeQuestionRuntimeDataBySlug } from "@/repositories/question-re
 
 export default async function QuestionDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ planId?: string; nodeId?: string }>;
 }) {
   const { slug } = await params;
-  const [session, runtimeData] = await Promise.all([
+  const [session, runtimeData, planContext] = await Promise.all([
     getServerAuthSession(),
     getPracticeQuestionRuntimeDataBySlug(slug),
+    searchParams ?? Promise.resolve<{ planId?: string; nodeId?: string }>({}),
   ]);
   const userId = session?.user?.id ?? session?.session?.userId;
 
@@ -52,6 +55,8 @@ export default async function QuestionDetailPage({
       initialIsSolved={initialIsSolved}
       basePath="/questions"
       listLabel="Question Bank"
+      activePlanId={planContext.planId ?? null}
+      activePlanNodeId={planContext.nodeId ?? null}
     />
   );
 }

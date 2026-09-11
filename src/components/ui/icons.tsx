@@ -61,6 +61,7 @@ import {
   Check,
   RefreshCw,
   Trash2,
+  Workflow,
   type LucideIcon,
   type LucideProps,
 } from "lucide-react";
@@ -88,6 +89,7 @@ export const IconStarBurst = makeIcon(Sparkles);
 export const IconClock = makeIcon(Clock3);
 export const IconFlame = makeIcon(Flame);
 export const IconPlus = makeIcon(Plus);
+export const IconWorkflow = makeIcon(Workflow);
 export const IconBookOpen = makeIcon(BookOpen);
 export const IconArrowRight = makeIcon(ArrowRight);
 export const IconArrowLeft = makeIcon(ArrowLeft);

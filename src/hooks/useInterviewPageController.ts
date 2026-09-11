@@ -18,6 +18,21 @@ type UseInterviewPageControllerOptions = {
   interviewId: string;
 };
 
+type InterviewPlanLink = { planId: string; nodeId: string };
+
+function readInterviewPlanLink(interviewId: string): InterviewPlanLink | null {
+  try {
+    const raw = sessionStorage.getItem(`interview_plan_link_${interviewId}`);
+    if (!raw) return null;
+    const value = JSON.parse(raw) as Partial<InterviewPlanLink>;
+    return typeof value.planId === "string" && typeof value.nodeId === "string"
+      ? { planId: value.planId, nodeId: value.nodeId }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export function useInterviewPageController({
   interviewId,
 }: UseInterviewPageControllerOptions) {
@@ -62,6 +77,7 @@ export function useInterviewPageController({
   const chatMessagesRef = useRef<typeof chat.messages>([]);
   const handleExitInterviewRef = useRef<(opts?: { skipConfirmation?: boolean }) => Promise<void>>(async () => {});
   const onRecordingEndedRef = useRef<() => void>(() => {});
+  const planLinkRef = useRef<InterviewPlanLink | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined" || hasCheckedResumeRef.current) return;
@@ -217,10 +233,11 @@ export function useInterviewPageController({
 
   useEffect(() => {
     isMountedRef.current = true;
+    planLinkRef.current = readInterviewPlanLink(interviewId);
     return () => {
       isMountedRef.current = false;
     };
-  }, []);
+  }, [interviewId]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -270,9 +287,19 @@ export function useInterviewPageController({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      }).then(res => {
+      }).then(async res => {
         if (!res.ok) throw new Error("Server rejected session creation");
         sessionStorage.removeItem(`pending_interview_${interviewId}`);
+        const planLink = planLinkRef.current ?? readInterviewPlanLink(interviewId);
+        if (planLink) {
+          const attachResponse = await fetch(`/api/interview-plans/${planLink.planId}/nodes/${planLink.nodeId}/start`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ interview_id: interviewId }),
+          });
+          if (!attachResponse.ok) throw new Error("Could not link the interview to its plan");
+          planLinkRef.current = planLink;
+        }
       });
     } else {
       sessionPromise = loadSessionMeta();
@@ -396,8 +423,26 @@ export function useInterviewPageController({
         return;
       }
 
+      const planLink = planLinkRef.current;
+      if (planLink && interviewStatus === "COMPLETED") {
+        try {
+          const completionResponse = await fetch(`/api/interview-plans/${planLink.planId}/nodes/${planLink.nodeId}/complete`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          });
+          if (!completionResponse.ok) {
+            console.error("Interview plan step completion was rejected", completionResponse.status);
+          }
+        } catch (error) {
+          console.error("Failed to complete interview plan step", error);
+        }
+      }
+      if (planLink) {
+        sessionStorage.removeItem(`interview_plan_link_${interviewId}`);
+      }
       media.stopStream();
-      router.push("/analytics");
+      router.push(planLink ? `/plans/${planLink.planId}` : "/analytics");
     },
     [interviewId, media, router, speech, stopVideoRecordingForFinalize, closeModal]
   );

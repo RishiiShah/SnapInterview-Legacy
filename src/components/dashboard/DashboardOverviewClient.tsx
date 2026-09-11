@@ -8,7 +8,7 @@ import RecordingModal from "@/components/recordings/RecordingModal";
 import { FlipDate } from "@/components/ui/FlipDate";
 import { CompanyMark } from "@/components/ui/CompanyMark";
 import { displayCompany } from "@/lib/company-brands";
-import { IconPractice } from "@/components/ui/icons";
+import { IconPractice, IconWorkflow } from "@/components/ui/icons";
 import { uploadResumeFile } from "@/lib/resume-upload";
 import {
   interviewTypeBadgeClass,
@@ -342,6 +342,13 @@ export default function DashboardOverviewClient({
               >
                 Browse questions
               </Link>
+              <Link
+                href="/plans"
+                className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg px-4 text-sm font-medium text-[#B8C0CE] transition-colors hover:bg-white/[0.04] hover:text-[#E8ECF4]"
+              >
+                <IconWorkflow className="h-4 w-4" />
+                Create plan
+              </Link>
             </div>
           </div>
         </header>
@@ -666,6 +673,17 @@ export default function DashboardOverviewClient({
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-[#E8ECF4]">Explore coding concepts</p>
                   <p className="text-xs text-[#A8B0C2]">Read-only JavaScript previews and public samples</p>
+                </div>
+                <span className="text-[#A8B0C2]">→</span>
+              </Link>
+              <Link
+                href="/plans"
+                onClick={dismissWelcome}
+                className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-3 py-3 transition-colors hover:bg-white/[0.04]"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-[#E8ECF4]">Build an interview plan</p>
+                  <p className="text-xs text-[#A8B0C2]">Sequence mock interviews and questions</p>
                 </div>
                 <span className="text-[#A8B0C2]">→</span>
               </Link>

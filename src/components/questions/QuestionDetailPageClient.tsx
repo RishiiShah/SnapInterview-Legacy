@@ -8,6 +8,8 @@ import { QuestionLeftPanel, type LeftTab } from "@/components/questions/Question
 import { QuestionRightPanel, type RightTab } from "@/components/questions/QuestionRightPanel";
 import { useResizableSplit } from "@/hooks/useResizableSplit";
 import { cn } from "@/lib/utils";
+import AddToPlanModal from "@/components/plans/AddToPlanModal";
+import { completePlanNode } from "@/lib/api/plans";
 
 type QuestionDetailPageClientProps = {
   question: Question;
@@ -18,6 +20,8 @@ type QuestionDetailPageClientProps = {
   initialIsSolved: boolean;
   basePath?: "/questions" | "/coding";
   listLabel?: string;
+  activePlanId?: string | null;
+  activePlanNodeId?: string | null;
 };
 
 type QuestionAnswerDraft = {
@@ -64,7 +68,11 @@ export default function QuestionDetailPageClient({
   initialIsSolved,
   basePath = "/questions",
   listLabel = "Problem List",
+  activePlanId = null,
+  activePlanNodeId = null,
 }: QuestionDetailPageClientProps) {
+  const [addToPlanOpen, setAddToPlanOpen] = useState(false);
+  const [planCompleting, setPlanCompleting] = useState(false);
   const [leftTab, setLeftTab] = useState<LeftTab>("description");
   const [answerText, setAnswerText] = useState("");
   const [showHint, setShowHint] = useState(false);
@@ -290,6 +298,27 @@ export default function QuestionDetailPageClient({
           </Link>
         </div>
         <div className="flex items-center gap-1.5">
+          {basePath === "/questions" ? (
+            <button type="button" onClick={() => setAddToPlanOpen(true)} className="mr-2 h-8 cursor-pointer rounded-lg border border-white/[0.1] px-3 text-xs font-medium text-[#C5CBD8] hover:bg-white/[0.05]">Add to plan</button>
+          ) : null}
+          {activePlanId && activePlanNodeId ? (
+            <button
+              type="button"
+              disabled={planCompleting}
+              onClick={async () => {
+                setPlanCompleting(true);
+                try {
+                  await completePlanNode(activePlanId, activePlanNodeId);
+                  window.location.assign(`/plans/${activePlanId}`);
+                } finally {
+                  setPlanCompleting(false);
+                }
+              }}
+              className="mr-2 h-8 cursor-pointer rounded-lg bg-emerald-500/15 px-3 text-xs font-medium text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-50"
+            >
+              {planCompleting ? "Completing…" : "Complete plan step"}
+            </button>
+          ) : null}
           {prevQuestion ? (
             <Link
               href={`${basePath}/${prevQuestion.slug}`}
@@ -366,6 +395,7 @@ export default function QuestionDetailPageClient({
           />
         </div>
       </div>
+      {addToPlanOpen ? <AddToPlanModal question={question} onClose={() => setAddToPlanOpen(false)} /> : null}
     </div>
   );
 }

@@ -13,6 +13,8 @@ import { addPendingInterviewFinalize } from "@/lib/interview/finalize-pending-cl
 import type { InterviewCompletionStatus } from "@/lib/video/upload-service";
 import { coerceInterviewType, type InterviewType } from "@/lib/interview/domain";
 import type { InterviewWhiteboardRef } from "@/components/interview/InterviewWhiteboard";
+import { useVoiceDeliveryAnalysis } from "@/hooks/useVoiceDeliveryAnalysis";
+import { useInterviewReplayCapture } from "@/hooks/useInterviewReplayCapture";
 
 type UseInterviewPageControllerOptions = {
   interviewId: string;
@@ -49,6 +51,7 @@ export function useInterviewPageController({
   const [interviewType, setInterviewType] = useState<InterviewType | null>(null);
   const [joinBlockedReason, setJoinBlockedReason] = useState<BrowserBlockResult>(null);
   const [resumeExpired, setResumeExpired] = useState(false);
+  const [voiceAnalysisEnabled, setVoiceAnalysisEnabled] = useState(false);
 
   const [modal, setModal] = useState<{
     isOpen: boolean;
@@ -126,7 +129,24 @@ export function useInterviewPageController({
       onRecordingEndedRef.current();
     },
   });
-  const { startRecording, stopVideoRecording } = videoRecording;
+  const { startRecording, stopVideoRecording, getRecordingElapsedMs } = videoRecording;
+  const {
+    markQuestionStarted,
+    markQuestionCompleted,
+    markAnswerStarted,
+    markAnswerSubmitted,
+  } = useInterviewReplayCapture({ interviewId, getRecordingElapsedMs });
+  const { markQuestionReady, captureAnswer } = useVoiceDeliveryAnalysis({
+    interviewId,
+    stream: media.stream,
+    enabled: voiceAnalysisEnabled,
+    isMicEnabled: media.isMicEnabled,
+    onSpeechStarted: markAnswerStarted,
+  });
+  const captureSubmittedAnswer = useCallback((answer: string, transcriptOrder: number) => {
+    captureAnswer(answer, transcriptOrder);
+    markAnswerSubmitted(answer, transcriptOrder);
+  }, [captureAnswer, markAnswerSubmitted]);
   const pendingVideoStopRef = useRef<ReturnType<typeof stopVideoRecording> | null>(null);
 
   const stopVideoRecordingForFinalize = useCallback(() => {
@@ -150,6 +170,9 @@ export function useInterviewPageController({
     finalTranscriptBlock: speech.finalTranscriptBlock,
     setInterviewDone,
     getWhiteboardExport,
+    onAnswerSubmitted: captureSubmittedAnswer,
+    onQuestionStarted: markQuestionStarted,
+    onQuestionCompleted: markQuestionCompleted,
   });
 
   const tts = useStreamingTTS({
@@ -166,6 +189,30 @@ export function useInterviewPageController({
   }, [media, warmupTts]);
 
   const audioLevels = useAudioAnalyser(media.stream, media.isMicEnabled);
+
+  const lastReadyQuestionRef = useRef("");
+  useEffect(() => {
+    if (
+      interviewDone ||
+      chat.isThinking ||
+      tts.isSpeaking ||
+      !chat.lastCompletedAiText ||
+      chat.lastCompletedAiText === lastReadyQuestionRef.current
+    ) return;
+
+    // Let the TTS queue react to a newly completed response before declaring
+    // the question finished. With muted TTS this becomes the text completion time.
+    const timer = window.setTimeout(() => {
+      lastReadyQuestionRef.current = chat.lastCompletedAiText;
+      const transcriptOrder = Math.max(
+        0,
+        chat.messages.filter((message) => message.role === "ai" && !message.isSystem).length - 1,
+      );
+      if (voiceAnalysisEnabled) markQuestionReady(transcriptOrder);
+      markQuestionCompleted(transcriptOrder);
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [chat.isThinking, chat.lastCompletedAiText, chat.messages, interviewDone, tts.isSpeaking, voiceAnalysisEnabled, markQuestionReady, markQuestionCompleted]);
 
   const handleStartInterview = useCallback(() => {
     if (resumeExpiredRef.current) return;
@@ -554,6 +601,8 @@ export function useInterviewPageController({
     interviewType,
     joinBlockedReason,
     resumeExpired,
+    voiceAnalysisEnabled,
+    setVoiceAnalysisEnabled,
     answeredQuestions,
     questionProgressPercent,
     chatScrollContainerRef,

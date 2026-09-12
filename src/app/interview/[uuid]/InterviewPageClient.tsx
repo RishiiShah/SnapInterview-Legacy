@@ -31,6 +31,8 @@ export default function InterviewPageClient() {
     interviewType,
     joinBlockedReason,
     resumeExpired,
+    voiceAnalysisEnabled,
+    setVoiceAnalysisEnabled,
     answeredQuestions,
     questionProgressPercent,
     chatScrollContainerRef,
@@ -84,6 +86,8 @@ export default function InterviewPageClient() {
           toggleCamera={media.toggleCamera}
           joinBlockedReason={joinBlockedReason}
           resumeExpired={resumeExpired}
+          voiceAnalysisEnabled={voiceAnalysisEnabled}
+          onVoiceAnalysisEnabledChange={setVoiceAnalysisEnabled}
           stream={media.stream}
         />
       )}

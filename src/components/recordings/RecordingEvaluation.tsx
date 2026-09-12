@@ -1,4 +1,7 @@
 import type { TranscriptEvaluationResponse, TranscriptEvaluationV2 } from "@/lib/interview/evaluation";
+import type { VoiceAnalysisView } from "@/lib/interview/voice-analysis";
+import { DeliveryInsights } from "./DeliveryInsights";
+import type { InterviewReplayTurnView } from "@/lib/interview/replay";
 
 function scoreTone(score: number): string {
   if (score >= 85) return "text-emerald-400";
@@ -39,7 +42,17 @@ function formatEstimatedLevel(level: string): string {
   }
 }
 
-export function RecordingEvaluation({ evaluation }: { evaluation: TranscriptEvaluationResponse }) {
+export function RecordingEvaluation({
+  evaluation,
+  voiceAnalysis,
+  replayTurns = [],
+  onSeek,
+}: {
+  evaluation: TranscriptEvaluationResponse;
+  voiceAnalysis?: VoiceAnalysisView | null;
+  replayTurns?: InterviewReplayTurnView[];
+  onSeek?: (timeMs: number) => void;
+}) {
   const v2: TranscriptEvaluationV2 | undefined = evaluation.v2;
 
   const instruments = [
@@ -116,9 +129,29 @@ export function RecordingEvaluation({ evaluation }: { evaluation: TranscriptEval
                 {dim.evidenceCitations && dim.evidenceCitations.length > 0 && (
                   <div className="pt-1 border-t border-white/[0.04]">
                     <span className="text-[10px] text-slate-400">Evidence: </span>
-                    <span className="text-[11px] text-slate-300">
-                      {dim.evidenceCitations[0].quoteOrTopic} ({dim.evidenceCitations[0].note})
-                    </span>
+                    {(() => {
+                      const citation = dim.evidenceCitations[0];
+                      const replay = citation.turnOrder === undefined
+                        ? undefined
+                        : replayTurns.find((turn) =>
+                            turn.transcriptOrder === citation.turnOrder! - 1 ||
+                            turn.transcriptOrder === citation.turnOrder,
+                          );
+                      const seekMs = replay?.answerStartMs ?? replay?.questionStartMs;
+                      return seekMs !== null && seekMs !== undefined && onSeek ? (
+                        <button
+                          type="button"
+                          onClick={() => onSeek(Math.max(0, seekMs - 750))}
+                          className="cursor-pointer text-left text-[11px] text-blue-300 hover:text-blue-200"
+                        >
+                          {citation.quoteOrTopic} ({citation.note}) · Jump to recording
+                        </button>
+                      ) : (
+                        <span className="text-[11px] text-slate-300">
+                          {citation.quoteOrTopic} ({citation.note})
+                        </span>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -206,6 +239,8 @@ export function RecordingEvaluation({ evaluation }: { evaluation: TranscriptEval
           </div>
         </div>
       )}
+
+      {voiceAnalysis ? <DeliveryInsights analysis={voiceAnalysis} /> : null}
     </div>
   );
 }

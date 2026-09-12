@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import PreJoinScreen, { type PreJoinScreenProps } from "./PreJoinScreen";
 
@@ -50,6 +50,8 @@ function createProps(
     ttsStatus,
     sttStatus,
     resumeExpired,
+    voiceAnalysisEnabled: false,
+    onVoiceAnalysisEnabledChange: vi.fn(),
   };
 }
 
@@ -84,5 +86,16 @@ describe("PreJoinScreen", () => {
 
     expect(screen.getByText("This interview expired after 24 hours. Start a new interview to continue.")).toBeTruthy();
     expect(screen.getAllByRole("button", { name: /join now/i }).at(-1)?.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("offers explicit optional consent for private delivery coaching", () => {
+    const props = createProps("ready");
+    const view = render(<PreJoinScreen {...props} />);
+
+    const consent = view.container.querySelector('input[type="checkbox"]') as HTMLInputElement;
+    expect(consent.checked).toBe(false);
+    expect(view.container.textContent).toMatch(/you can join without enabling this/i);
+    fireEvent.click(consent);
+    expect(props.onVoiceAnalysisEnabledChange).toHaveBeenCalledWith(true);
   });
 });

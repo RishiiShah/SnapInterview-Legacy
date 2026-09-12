@@ -217,6 +217,8 @@ model InterviewSession {
   moderationNotes        InterviewModerationNote[]
   retrievedQuestions     RetrievedQuestion[]
   planNodes              InterviewPlanNode[]
+  voiceAnalysis          VoiceAnalysis?
+  replayTurns            InterviewReplayTurn[]
 
   @@index([userId])
   @@index([userId, deletedAt])
@@ -225,6 +227,60 @@ model InterviewSession {
   @@index([status, createdAt], map: "InterviewSession_resume_expiry_idx")
   @@index([userId, status, deletedAt, createdAt(sort: Desc), id(sort: Desc)], map: "InterviewSession_recordings_cursor_idx")
   @@index([userId, role, deletedAt, id], map: "InterviewSession_rag_retrieval_scope_idx")
+}
+
+model InterviewReplayTurn {
+  id                 String           @id @default(cuid())
+  interviewSessionId String
+  transcriptOrder    Int
+  questionStartMs    Int?
+  questionEndMs      Int?
+  answerStartMs      Int?
+  answerEndMs        Int?
+  timingSource       String           @default("browser-v1")
+  confidenceScore    Float            @default(0.8)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  interviewSession   InterviewSession @relation(fields: [interviewSessionId], references: [id], onDelete: Cascade)
+
+  @@unique([interviewSessionId, transcriptOrder])
+  @@index([interviewSessionId])
+}
+
+model VoiceAnalysis {
+  id                 String              @id @default(cuid())
+  interviewSessionId String              @unique
+  status             String              @default("COLLECTING")
+  analyzerVersion    String              @default("browser-v1")
+  audioQualityScore  Float?
+  confidenceScore    Float?
+  aggregateMetrics   Json?
+  coachingSummary    String?             @db.Text
+  createdAt          DateTime            @default(now())
+  completedAt        DateTime?
+  interviewSession   InterviewSession    @relation(fields: [interviewSessionId], references: [id], onDelete: Cascade)
+  turns              VoiceTurnAnalysis[]
+
+  @@index([status, createdAt])
+}
+
+model VoiceTurnAnalysis {
+  id                 String        @id @default(cuid())
+  voiceAnalysisId    String
+  transcriptOrder    Int
+  responseLatencyMs  Int?
+  speakingDurationMs Int?
+  wordsPerMinute     Float?
+  pauseRatio         Float?
+  energyVariation    Float?
+  fillerWordCount    Int           @default(0)
+  audioQualityScore  Float?
+  confidenceScore    Float
+  createdAt          DateTime      @default(now())
+  voiceAnalysis      VoiceAnalysis @relation(fields: [voiceAnalysisId], references: [id], onDelete: Cascade)
+
+  @@unique([voiceAnalysisId, transcriptOrder])
+  @@index([voiceAnalysisId])
 }
 
 model InterviewModerationNote {

@@ -14,6 +14,8 @@ export type PreJoinScreenProps = {
   ttsStatus: BrowserTtsStatus;
   sttStatus?: SttWorkerStatus;
   resumeExpired: boolean;
+  voiceAnalysisEnabled: boolean;
+  onVoiceAnalysisEnabledChange: (enabled: boolean) => void;
 } & Omit<PermissionRequestProps, "isOpen" | "onPermissionsGranted">;
 
 export default function PreJoinScreen({
@@ -22,6 +24,8 @@ export default function PreJoinScreen({
   ttsStatus,
   sttStatus,
   resumeExpired,
+  voiceAnalysisEnabled,
+  onVoiceAnalysisEnabledChange,
   hasPermission,
   isLoading,
   error,
@@ -178,6 +182,23 @@ export default function PreJoinScreen({
           joinBlockedReason={joinBlockedReason}
           stream={stream}
         />
+
+        <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.025] p-4">
+          <input
+            type="checkbox"
+            checked={voiceAnalysisEnabled}
+            onChange={(event) => onVoiceAnalysisEnabledChange(event.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-[#3B82F6]"
+          />
+          <span>
+            <span className="block text-sm font-medium text-[#E8ECF4]">Enable private delivery coaching</span>
+            <span className="mt-1 block text-xs leading-relaxed text-[#9CA5B7]">
+              Analyze response timing, speaking pace, pauses, filler words, and volume variation from this session.
+              These signals describe delivery patterns only—they do not detect intent, honesty, emotion, or copying.
+              You can join without enabling this.
+            </span>
+          </span>
+        </label>
       </div>
 
       {/* Sticky join */}

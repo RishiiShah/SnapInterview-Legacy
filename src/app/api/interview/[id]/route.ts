@@ -7,6 +7,7 @@ import { csrfRejectIfInvalid } from "@/lib/csrf";
 import { softDeleteInterviewSession } from "@/repositories/interview-repo";
 import { invalidateInterviewMetricsCache } from "@/lib/interview/metrics";
 import { interviewIdSchema } from "@/lib/interview/domain";
+import { buildVoiceAnalysis } from "@/lib/interview/voice-analysis";
 
 export async function DELETE(
     request: Request,
@@ -87,6 +88,36 @@ export async function GET(
                     },
                     orderBy: { questionOrder: "asc" },
                 },
+                voiceAnalysis: {
+                    select: {
+                        turns: {
+                            select: {
+                                transcriptOrder: true,
+                                responseLatencyMs: true,
+                                speakingDurationMs: true,
+                                wordsPerMinute: true,
+                                pauseRatio: true,
+                                energyVariation: true,
+                                fillerWordCount: true,
+                                audioQualityScore: true,
+                                confidenceScore: true,
+                            },
+                            orderBy: { transcriptOrder: "asc" },
+                        },
+                    },
+                },
+                replayTurns: {
+                    select: {
+                        transcriptOrder: true,
+                        questionStartMs: true,
+                        questionEndMs: true,
+                        answerStartMs: true,
+                        answerEndMs: true,
+                        timingSource: true,
+                        confidenceScore: true,
+                    },
+                    orderBy: { transcriptOrder: "asc" },
+                },
             },
         });
 
@@ -94,11 +125,12 @@ export async function GET(
             return notFoundError("Interview session not found");
         }
 
-        const { questionFeedback: feedback, ...session } = interviewSession;
+        const { questionFeedback: feedback, voiceAnalysis, ...session } = interviewSession;
 
         return apiJson({
             ...session,
             evaluation: normalizeTranscriptEvaluation(interviewSession.evaluation),
+            voiceAnalysis: voiceAnalysis ? buildVoiceAnalysis(voiceAnalysis.turns) : null,
             feedback,
         });
     } catch (error) {

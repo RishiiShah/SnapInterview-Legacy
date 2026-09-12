@@ -104,6 +104,7 @@ export function useStreamingTTS({
   const localReadyRef = useRef(false);
   const localFailureRef = useRef(!localEnabled);
   const [status, setStatus] = useState<BrowserTtsStatus>(localEnabled ? "idle" : "error");
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const processSynthesisQueueRef = useRef<() => void>(() => {});
   const processPlaybackQueueRef = useRef<() => void>(() => {});
@@ -156,6 +157,7 @@ export function useStreamingTTS({
     activeResponseRef.current = "";
     isSynthesizingRef.current = false;
     isPlayingRef.current = false;
+    setIsSpeaking(false);
     engineRef.current?.cancel();
     if (currentSourceRef.current) {
       try {
@@ -176,10 +178,14 @@ export function useStreamingTTS({
     const nextBuffer = audioQueueRef.current.shift();
     if (!nextBuffer) {
       isPlayingRef.current = false;
+      if (!isSynthesizingRef.current && textQueueRef.current.length === 0) {
+        setIsSpeaking(false);
+      }
       return;
     }
 
     isPlayingRef.current = true;
+    setIsSpeaking(true);
     const rate = getSpeechRate();
     const requestGeneration = generationRef.current;
 
@@ -208,6 +214,7 @@ export function useStreamingTTS({
 
     if (!localEnabled || localFailureRef.current) {
       textQueueRef.current = [];
+      setIsSpeaking(false);
       return;
     }
 
@@ -234,6 +241,7 @@ export function useStreamingTTS({
         localFailureRef.current = true;
         setStatus("error");
         console.error("[TTS] Kokoro background synthesis error:", error);
+        setIsSpeaking(false);
       }
     } finally {
       if (requestGeneration === generationRef.current) {
@@ -258,6 +266,8 @@ export function useStreamingTTS({
     (text: string) => {
       const cleaned = stripMarkdown(text);
       if (!cleaned) return;
+
+      setIsSpeaking(true);
 
       for (const chunk of splitTtsText(cleaned)) {
         if (textQueueRef.current.length >= 3) {
@@ -377,5 +387,5 @@ export function useStreamingTTS({
     };
   }, []);
 
-  return { muted, setMuted, cancel, warmup, status };
+  return { muted, setMuted, cancel, warmup, status, isSpeaking };
 }

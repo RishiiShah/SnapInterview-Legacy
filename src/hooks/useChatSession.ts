@@ -31,6 +31,9 @@ interface UseChatSessionOptions {
   finalTranscriptBlock: string;
   setInterviewDone: (done: boolean) => void;
   getWhiteboardExport?: () => Promise<WhiteboardExport | null>;
+  onAnswerSubmitted?: (answer: string, transcriptOrder: number) => void;
+  onQuestionStarted?: (transcriptOrder: number) => void;
+  onQuestionCompleted?: (transcriptOrder: number) => void;
 }
 
 export function shouldProcessFinalTranscriptBlock(options: {
@@ -51,6 +54,9 @@ export function useChatSession({
   finalTranscriptBlock,
   setInterviewDone: externalSetInterviewDone,
   getWhiteboardExport,
+  onAnswerSubmitted,
+  onQuestionStarted,
+  onQuestionCompleted,
 }: UseChatSessionOptions) {
   const [messages, setMessages] = useState<ChatSessionMessage[]>([]);
   const [currentStreamedText, setCurrentStreamedText] = useState("");
@@ -188,6 +194,8 @@ export function useChatSession({
 
         if (!response.body) throw new Error("No response body");
 
+        onQuestionStarted?.(expectedCurrentQuestion);
+
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
         let aiResponseText = "";
@@ -223,6 +231,7 @@ export function useChatSession({
         setMessages((previous) => [...previous, { role: "ai", text: displayText }]);
         setCurrentStreamedText("");
         setLastCompletedAiText(displayText);
+        onQuestionCompleted?.(expectedCurrentQuestion);
       } catch (error: unknown) {
         if (error instanceof Error && (error.name === "AbortError" || error.message === "AbortError")) {
           return;
@@ -237,7 +246,7 @@ export function useChatSession({
         setIsThinking(false);
       }
     },
-    [interviewId, interviewDone, setInterviewDone, codingChallenge, getWhiteboardExport]
+    [interviewId, interviewDone, setInterviewDone, codingChallenge, getWhiteboardExport, onQuestionCompleted, onQuestionStarted]
   );
 
   const shareBoard = useCallback(
@@ -276,10 +285,15 @@ export function useChatSession({
 
       const newUserMessage: ChatSessionMessage = { role: "user", text: trimmedText };
       const updatedHistory = [...messagesRef.current, newUserMessage];
+      const answeredQuestionOrder = Math.max(
+        0,
+        messagesRef.current.filter((message) => message.role === "ai" && !message.isSystem).length - 1,
+      );
+      onAnswerSubmitted?.(trimmedText, answeredQuestionOrder);
       setMessages(updatedHistory);
       await askGroq(updatedHistory);
     },
-    [askGroq, interviewDone]
+    [askGroq, interviewDone, onAnswerSubmitted]
   );
 
   useEffect(() => {

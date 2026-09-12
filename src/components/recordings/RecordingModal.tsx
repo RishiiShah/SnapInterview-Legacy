@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Difficulty, InterviewType } from "@/lib/interview/domain";
 import { RecordingEvaluation } from "./RecordingEvaluation";
 import { RecordingTranscript } from "./RecordingTranscript";
 import ModalPortal from "@/components/ui/ModalPortal";
+import type { VoiceAnalysisView } from "@/lib/interview/voice-analysis";
+import { DeliveryInsights } from "./DeliveryInsights";
+import type { InterviewReplayTurnView } from "@/lib/interview/replay";
+import { RecordingWaveform } from "./RecordingWaveform";
 
 type RecordingModalProps = {
   isOpen: boolean;
@@ -47,6 +51,8 @@ type InterviewData = {
   difficulty: Difficulty;
   transcript: TranscriptEntry[];
   evaluation: EvaluationResult | null;
+  voiceAnalysis: VoiceAnalysisView | null;
+  replayTurns: InterviewReplayTurnView[];
   feedback: FeedbackEntry[];
   createdAt: string;
 };
@@ -79,6 +85,42 @@ export default function RecordingModal({
   const [shareToken, setShareToken] = useState<string | null | undefined>(undefined);
   const [sharingLoading, setSharingLoading] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [currentTimeMs, setCurrentTimeMs] = useState(0);
+  const [recordingDurationMs, setRecordingDurationMs] = useState(0);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const seekRecording = useCallback((timeMs: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    const requestedSeconds = Math.max(0, timeMs / 1000);
+    const seekableEnd = video.seekable.length
+      ? video.seekable.end(video.seekable.length - 1)
+      : 0;
+    const knownDuration = Number.isFinite(video.duration) && video.duration > 0
+      ? video.duration
+      : Number.isFinite(seekableEnd) && seekableEnd > 0
+        ? seekableEnd
+        : recordingDurationMs > 0
+          ? recordingDurationMs / 1000
+          : null;
+    const boundedSeconds = knownDuration === null
+      ? requestedSeconds
+      : Math.min(requestedSeconds, knownDuration);
+    video.currentTime = boundedSeconds;
+    setCurrentTimeMs(Math.round(boundedSeconds * 1000));
+  }, [recordingDurationMs]);
+
+  const updateRecordingDuration = useCallback((video: HTMLVideoElement) => {
+    const seekableEnd = video.seekable.length
+      ? video.seekable.end(video.seekable.length - 1)
+      : 0;
+    const duration = Number.isFinite(video.duration) && video.duration > 0
+      ? video.duration
+      : seekableEnd;
+    if (Number.isFinite(duration) && duration > 0) {
+      setRecordingDurationMs(Math.round(duration * 1000));
+    }
+  }, []);
 
   function handleRetake() {
     if (!interviewData) return;
@@ -146,6 +188,8 @@ export default function RecordingModal({
     setActiveTab("results");
     setInterviewData(null);
     setShareToken(undefined);
+    setCurrentTimeMs(0);
+    setRecordingDurationMs(0);
 
     async function fetchData() {
       setLoadingStep("loadingSession");
@@ -249,11 +293,17 @@ export default function RecordingModal({
                 <div className="flex flex-1 items-center justify-center p-4 md:p-8">
                   {videoUrl ? (
                     <video
+                      ref={videoRef}
                       src={videoUrl}
                       crossOrigin="anonymous"
                       controls
                       autoPlay
-                      className="max-h-full w-full rounded-lg -scale-x-100"
+                      onLoadedMetadata={(event) => updateRecordingDuration(event.currentTarget)}
+                      onLoadedData={(event) => updateRecordingDuration(event.currentTarget)}
+                      onDurationChange={(event) => updateRecordingDuration(event.currentTarget)}
+                      onTimeUpdate={(event) => setCurrentTimeMs(Math.round(event.currentTarget.currentTime * 1000))}
+                      onSeeked={(event) => setCurrentTimeMs(Math.round(event.currentTarget.currentTime * 1000))}
+                      className="max-h-full w-full rounded-lg"
                     />
                   ) : (
                     <div className="text-center">
@@ -261,6 +311,18 @@ export default function RecordingModal({
                     </div>
                   )}
                 </div>
+                {videoUrl ? (
+                  <div className="px-5 pb-5">
+                    <RecordingWaveform
+                      sourceUrl={videoUrl}
+                      durationMs={recordingDurationMs}
+                      currentTimeMs={currentTimeMs}
+                      replayTurns={interviewData?.replayTurns ?? []}
+                      onSeek={seekRecording}
+                      onDurationResolved={setRecordingDurationMs}
+                    />
+                  </div>
+                ) : null}
               </div>
 
               {/* Data panel */}
@@ -326,7 +388,7 @@ export default function RecordingModal({
                   {(
                     [
                       { id: "results" as const, label: "Evaluation" },
-                      { id: "transcript" as const, label: "Transcript" },
+                      { id: "transcript" as const, label: "Replay" },
                     ] as const
                   ).map((tab) => (
                     <button
@@ -388,20 +450,41 @@ export default function RecordingModal({
                     </div>
                   ) : displayError ? (
                     <p className="text-sm text-rose-300">{displayError}</p>
-                  ) : activeTab === "results" && interviewData?.evaluation ? (
-                    <RecordingEvaluation evaluation={interviewData.evaluation} />
+                  ) : activeTab === "results" && (interviewData?.evaluation || interviewData?.voiceAnalysis) ? (
+                    interviewData.evaluation ? (
+                      <RecordingEvaluation
+                        evaluation={interviewData.evaluation}
+                        voiceAnalysis={interviewData.voiceAnalysis}
+                        replayTurns={interviewData.replayTurns ?? []}
+                        onSeek={(timeMs) => {
+                          seekRecording(timeMs);
+                          setActiveTab("transcript");
+                        }}
+                      />
+                    ) : (
+                      <DeliveryInsights analysis={interviewData.voiceAnalysis!} />
+                    )
                   ) : activeTab === "transcript" && interviewData?.transcript ? (
                     <RecordingTranscript
                       transcript={interviewData.transcript}
                       interviewId={interviewData.id}
                       feedback={interviewData.feedback}
+                      replayTurns={interviewData.replayTurns ?? []}
+                      currentTimeMs={currentTimeMs}
+                      onSeek={seekRecording}
                     />
                   ) : activeTab === "results" ? (
                     <p className="text-sm text-[#A8B0C2]">
                       Evaluation is not available for this interview yet.
                     </p>
                   ) : (
-                    <RecordingTranscript transcript={[]} interviewId={interviewId ?? ""} feedback={[]} />
+                    <RecordingTranscript
+                      transcript={[]}
+                      interviewId={interviewId ?? ""}
+                      feedback={[]}
+                      currentTimeMs={currentTimeMs}
+                      onSeek={seekRecording}
+                    />
                   )}
                 </div>
               </div>

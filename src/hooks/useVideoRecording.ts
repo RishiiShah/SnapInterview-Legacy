@@ -15,6 +15,7 @@ export function useVideoRecording({ interviewId, onRecordingEnded }: UseVideoRec
     const [isRecordingVideo, setIsRecordingVideo] = useState(false);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const recordingStreamRef = useRef<MediaStream | null>(null);
+    const recordingStartedAtRef = useRef<number | null>(null);
 
     // Multipart upload state
     const multipartStateRef = useRef<{
@@ -195,6 +196,7 @@ export function useVideoRecording({ interviewId, onRecordingEnded }: UseVideoRec
             }
 
             mediaRecorder.start(1000);
+            recordingStartedAtRef.current = performance.now();
             mediaRecorderRef.current = mediaRecorder;
             setIsRecordingVideo(true);
 
@@ -303,9 +305,15 @@ export function useVideoRecording({ interviewId, onRecordingEnded }: UseVideoRec
         });
     }, [flushBuffer, interviewId]);
 
+    const getRecordingElapsedMs = useCallback(() => {
+        const startedAt = recordingStartedAtRef.current;
+        return startedAt === null ? null : Math.max(0, Math.round(performance.now() - startedAt));
+    }, []);
+
     return {
         isRecordingVideo,
         startRecording,
         stopVideoRecording,
+        getRecordingElapsedMs,
     };
 }

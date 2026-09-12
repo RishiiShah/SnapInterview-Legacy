@@ -9,6 +9,14 @@ import type { BrowserTtsEngine } from "@/lib/tts/browser-tts";
 const mockFetch = vi.fn();
 const mockSourceStart = vi.fn();
 const mockSourceStop = vi.fn();
+const mockSourceConnect = vi.fn();
+const mockMicrophoneConnect = vi.fn();
+const mockCreateMediaStreamSource = vi.fn(() => ({
+  connect: mockMicrophoneConnect,
+  disconnect: vi.fn(),
+}));
+const mockRecordingStream = { id: "interviewer-audio" } as MediaStream;
+const mockRecordingDestination = { stream: mockRecordingStream };
 
 class MockAudioContext {
   state: "running" | "suspended" = "running";
@@ -19,11 +27,13 @@ class MockAudioContext {
   createBufferSource = vi.fn(() => ({
     buffer: null,
     playbackRate: { value: 1 },
-    connect: vi.fn(),
+    connect: mockSourceConnect,
     start: mockSourceStart,
     stop: mockSourceStop,
     onended: null,
   }));
+  createMediaStreamDestination = vi.fn(() => mockRecordingDestination);
+  createMediaStreamSource = mockCreateMediaStreamSource;
 }
 
 function createEngine(overrides: Partial<BrowserTtsEngine> = {}): BrowserTtsEngine {
@@ -55,6 +65,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal("fetch", mockFetch);
   vi.stubGlobal("AudioContext", MockAudioContext as unknown as typeof AudioContext);
+  vi.stubGlobal("MediaStream", class MockMediaStream {
+    constructor(public tracks: MediaStreamTrack[] = []) {}
+    getAudioTracks() { return this.tracks; }
+  });
   localStorage.clear();
 });
 
@@ -138,5 +152,35 @@ describe("useStreamingTTS", () => {
     act(() => result.current.setMuted(true));
     expect(engine.cancel).toHaveBeenCalled();
     expect(mockSourceStop).toHaveBeenCalled();
+  });
+
+  it("routes interviewer speech to a recording stream as well as the speakers", async () => {
+    const engine = createEngine();
+    const { rerender, result } = renderTTS(engine);
+
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.getRecordingAudioStream()).toBe(mockRecordingStream);
+
+    act(() => {
+      rerender({ completedText: "Walk me through your approach.", streamingText: "" });
+    });
+
+    await waitFor(() => expect(mockSourceStart).toHaveBeenCalled());
+    expect(mockSourceConnect).toHaveBeenCalledWith(mockRecordingDestination);
+  });
+
+  it("mixes the microphone into the same recording audio track", async () => {
+    const engine = createEngine();
+    const { result } = renderTTS(engine);
+    const microphoneTrack = { kind: "audio" } as MediaStreamTrack;
+    const microphoneStream = {
+      getAudioTracks: () => [microphoneTrack],
+    } as MediaStream;
+
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.getRecordingAudioStream(microphoneStream)).toBe(mockRecordingStream);
+
+    expect(mockCreateMediaStreamSource).toHaveBeenCalled();
+    expect(mockMicrophoneConnect).toHaveBeenCalledWith(mockRecordingDestination);
   });
 });

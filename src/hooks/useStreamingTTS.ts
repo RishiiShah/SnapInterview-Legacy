@@ -87,6 +87,8 @@ export function useStreamingTTS({
 
   const mutedRef = useRef(muted);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const recordingDestinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+  const recordingMicrophoneSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
   
   // Pipelined double-queue: text waiting to be synthesized, audio buffers ready to play
@@ -194,6 +196,9 @@ export function useStreamingTTS({
     source.buffer = nextBuffer;
     source.playbackRate.value = rate;
     source.connect(ctx.destination);
+    if (recordingDestinationRef.current) {
+      source.connect(recordingDestinationRef.current);
+    }
 
     source.onended = () => {
       currentSourceRef.current = null;
@@ -348,6 +353,31 @@ export function useStreamingTTS({
     });
   }, [localEnabled]);
 
+  const getRecordingAudioStream = useCallback((microphoneStream?: MediaStream | null): MediaStream | null => {
+    if (typeof window === "undefined" || !localEnabled) return null;
+    try {
+      const ctx = getOrCreateAudioContext(audioContextRef);
+      let recordingDestination = recordingDestinationRef.current;
+      if (!recordingDestination) {
+        recordingDestination = ctx.createMediaStreamDestination();
+        recordingDestinationRef.current = recordingDestination;
+      }
+      if (!recordingMicrophoneSourceRef.current && microphoneStream?.getAudioTracks().length) {
+        recordingMicrophoneSourceRef.current = ctx.createMediaStreamSource(
+          new MediaStream(microphoneStream.getAudioTracks()),
+        );
+        recordingMicrophoneSourceRef.current.connect(recordingDestination);
+      }
+      return recordingDestination.stream;
+    } catch (error) {
+      recordingMicrophoneSourceRef.current?.disconnect();
+      recordingMicrophoneSourceRef.current = null;
+      recordingDestinationRef.current = null;
+      console.warn("Could not create the combined interview recording audio", error);
+      return null;
+    }
+  }, [localEnabled]);
+
   useEffect(() => {
     if (!streamingText) return;
     queueIncrementalSpeech(streamingText, false);
@@ -378,14 +408,17 @@ export function useStreamingTTS({
         }
         currentSourceRef.current = null;
       }
+      recordingMicrophoneSourceRef.current?.disconnect();
+      recordingMicrophoneSourceRef.current = null;
       if (audioContextRef.current) {
         void audioContextRef.current.close();
         audioContextRef.current = null;
       }
+      recordingDestinationRef.current = null;
       generationRef.current += 1;
       engineRef.current?.cancel();
     };
   }, []);
 
-  return { muted, setMuted, cancel, warmup, status, isSpeaking };
+  return { muted, setMuted, cancel, warmup, getRecordingAudioStream, status, isSpeaking };
 }

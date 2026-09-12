@@ -17,6 +17,20 @@ export function useVideoRecording({ interviewId, onRecordingEnded }: UseVideoRec
     const recordingStreamRef = useRef<MediaStream | null>(null);
     const recordingStartedAtRef = useRef<number | null>(null);
 
+    const createRecordingStream = useCallback((cameraStream: MediaStream, mixedAudioStream?: MediaStream | null) => {
+        if (!mixedAudioStream?.getAudioTracks().length) {
+            return cameraStream;
+        }
+
+        // This stream is already a Web Audio mix of microphone + interviewer.
+        // Keep one audio track because MediaRecorder support for multiple audio
+        // tracks varies between browsers.
+        return new MediaStream([
+            ...cameraStream.getVideoTracks(),
+            ...mixedAudioStream.getAudioTracks(),
+        ]);
+    }, []);
+
     // Multipart upload state
     const multipartStateRef = useRef<{
         uploadId: string | null;
@@ -134,7 +148,10 @@ export function useVideoRecording({ interviewId, onRecordingEnded }: UseVideoRec
         }
     }, [schedulePartUpload]);
 
-    const startRecording = useCallback(async (cameraStream: MediaStream) => {
+    const startRecording = useCallback(async (
+        cameraStream: MediaStream,
+        mixedAudioStream?: MediaStream | null,
+    ) => {
         try {
             const initRes = await fetch("/api/s3/multipart/create", {
                 method: "POST",
@@ -162,7 +179,8 @@ export function useVideoRecording({ interviewId, onRecordingEnded }: UseVideoRec
             multipartStateRef.current.hasPartFailure = false;
             multipartStateRef.current.uploadQueue = Promise.resolve();
 
-            recordingStreamRef.current = cameraStream;
+            const recordingStream = createRecordingStream(cameraStream, mixedAudioStream);
+            recordingStreamRef.current = recordingStream;
 
             let mimeType = "video/webm;codecs=vp8,opus";
             if (typeof MediaRecorder.isTypeSupported === "function" && !MediaRecorder.isTypeSupported(mimeType)) {
@@ -181,7 +199,7 @@ export function useVideoRecording({ interviewId, onRecordingEnded }: UseVideoRec
                 audioBitsPerSecond: AUDIO_BITS_PER_SECOND,
             };
 
-            const mediaRecorder = new MediaRecorder(cameraStream, recorderOptions);
+            const mediaRecorder = new MediaRecorder(recordingStream, recorderOptions);
             mediaRecorder.ondataavailable = handleDataAvailable;
 
             const videoTrack = cameraStream.getVideoTracks()[0];
@@ -205,7 +223,7 @@ export function useVideoRecording({ interviewId, onRecordingEnded }: UseVideoRec
             console.error("Failed to start recording:", err);
             return false;
         }
-    }, [interviewId, onRecordingEnded, handleDataAvailable]);
+    }, [interviewId, onRecordingEnded, handleDataAvailable, createRecordingStream]);
 
     const stopVideoRecording = useCallback((): Promise<{ videoKey: string; videoCompletionToken: string } | null> => {
         return new Promise((resolve) => {
@@ -229,7 +247,6 @@ export function useVideoRecording({ interviewId, onRecordingEnded }: UseVideoRec
                     recordingStreamRef.current.getVideoTracks().forEach(track => { track.onended = null; });
                     recordingStreamRef.current = null;
                 }
-
                 const finalBlob = state.buffer.length > 0 ? new Blob(state.buffer, { type: "video/webm" }) : null;
                 state.buffer = [];
                 state.bufferSize = 0;

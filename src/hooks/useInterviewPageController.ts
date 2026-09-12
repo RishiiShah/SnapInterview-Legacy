@@ -181,7 +181,11 @@ export function useInterviewPageController({
     enabled: interviewStarted && !interviewDone,
     persona,
   });
-  const { cancel: cancelTts, warmup: warmupTts } = tts;
+  const {
+    cancel: cancelTts,
+    warmup: warmupTts,
+    getRecordingAudioStream,
+  } = tts;
 
   const requestPermissions = useCallback(() => {
     warmupTts();
@@ -370,7 +374,10 @@ export function useInterviewPageController({
       return;
     }
 
-    const started = await startRecording(media.stream);
+    const mixedAudioStream = getRecordingAudioStream?.(media.stream);
+    const started = mixedAudioStream
+      ? await startRecording(media.stream, mixedAudioStream)
+      : await startRecording(media.stream);
     if (!started) {
       if (resumeExpiredRef.current) return;
       setModal({
@@ -384,7 +391,7 @@ export function useInterviewPageController({
 
     setShowPreJoin(false);
     setInterviewStarted(true);
-  }, [media.stream, startRecording, stopVideoRecording, interviewId, loadSessionMeta]);
+  }, [media.stream, startRecording, stopVideoRecording, interviewId, loadSessionMeta, getRecordingAudioStream]);
 
   const handleExitInterview = useCallback(
     async ({ skipConfirmation = false }: { skipConfirmation?: boolean } = {}) => {

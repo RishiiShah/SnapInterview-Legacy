@@ -3,8 +3,29 @@ import type {
   InterviewPlanGraph,
   InterviewPlanSummary,
   InterviewPlanTemplate,
+  InterviewPlanTarget,
   PlanStatus,
 } from "@/lib/plans/graph";
+import type { InterviewLevel } from "@/lib/interview/domain";
+
+export type InterviewPlanBlueprintPreview = {
+  key: string;
+  version: number;
+  title: string;
+  description: string;
+  reviewed_at: string;
+  sources_note: string;
+  resolution: InterviewPlanTarget["resolution"];
+  rounds: Array<{
+    round_key: string;
+    title: string;
+    interview_type: string;
+    duration_minutes: 15 | 30 | 45;
+    difficulty: string;
+    purpose: string;
+    competencies: string[];
+  }>;
+};
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -26,11 +47,28 @@ export async function listInterviewPlanTemplates(): Promise<InterviewPlanTemplat
   return (await requestJson<{ templates: InterviewPlanTemplate[] }>("/api/interview-plans/templates")).templates;
 }
 
-export async function createInterviewPlan(input: { title: string; template_key?: string }): Promise<InterviewPlan> {
+export async function createInterviewPlan(input: {
+  title: string;
+  template_key?: string;
+  blueprint_key?: string;
+  target?: Pick<InterviewPlanTarget, "company" | "role" | "level"> & {
+    interview_date?: string;
+    job_description?: string;
+  };
+}): Promise<InterviewPlan> {
   return (await requestJson<{ plan: InterviewPlan }>("/api/interview-plans", {
     method: "POST",
     body: JSON.stringify(input),
   })).plan;
+}
+
+export async function previewInterviewPlanBlueprint(input: {
+  company: string;
+  role: string;
+  level: InterviewLevel;
+}): Promise<InterviewPlanBlueprintPreview> {
+  const params = new URLSearchParams(input);
+  return (await requestJson<{ blueprint: InterviewPlanBlueprintPreview }>(`/api/interview-plan-blueprints?${params}`)).blueprint;
 }
 
 export async function getInterviewPlan(id: string): Promise<InterviewPlan> {

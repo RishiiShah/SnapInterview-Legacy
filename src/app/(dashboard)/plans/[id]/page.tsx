@@ -18,5 +18,5 @@ export default async function InterviewPlanEditorPage({ params }: { params: Prom
     getAllPracticeQuestions(),
     prisma.user.findUnique({ where: { id: identity.userId }, select: { onboardingRole: true } }),
   ]);
-  return <PlanEditorClient initialPlan={plan} questions={questions} defaultRole={user?.onboardingRole || "Software Engineer"} />;
+  return <PlanEditorClient initialPlan={plan} questions={questions} defaultRole={plan.target?.role || user?.onboardingRole || "Software Engineer"} />;
 }

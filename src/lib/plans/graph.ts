@@ -4,6 +4,7 @@ import {
   INTERVIEW_TYPE_VALUES,
   type Difficulty,
   type InterviewDuration,
+  type InterviewLevel,
   type InterviewType,
 } from "@/lib/interview/domain";
 
@@ -17,6 +18,8 @@ export const PLAN_NODE_STATUSES = [
 ] as const;
 export const PLAN_STATUSES = ["draft", "active", "archived"] as const;
 export const PLAN_SOURCES = ["template", "custom"] as const;
+export const PLAN_STAGES = ["preparation", "interview_loop"] as const;
+export const BLUEPRINT_RESOLUTIONS = ["exact", "company_role_family", "role_family", "general"] as const;
 
 export const MAX_PLAN_TITLE_LENGTH = 120;
 export const MAX_PLAN_NODES = 30;
@@ -28,11 +31,54 @@ export type PlanNodeType = (typeof PLAN_NODE_TYPES)[number];
 export type PlanNodeStatus = (typeof PLAN_NODE_STATUSES)[number];
 export type PlanStatus = (typeof PLAN_STATUSES)[number];
 export type PlanSource = (typeof PLAN_SOURCES)[number];
+export type PlanStage = (typeof PLAN_STAGES)[number];
+export type BlueprintResolution = (typeof BLUEPRINT_RESOLUTIONS)[number];
+
+export type RoundRubricDimension = {
+  key: string;
+  label: string;
+  weight: number;
+  description: string;
+};
+
+export type RoundProfile = {
+  round_key: string;
+  stage: PlanStage;
+  purpose: string;
+  competencies: string[];
+  question_strategy: {
+    preferred_categories: string[];
+    required_tags: string[];
+    preferred_tags: string[];
+    excluded_tags: string[];
+    company_theme_ids: string[];
+    avoid_plan_question_repeats: boolean;
+  };
+  rubric_key: string;
+  rubric_dimensions: RoundRubricDimension[];
+  context_mode: "fresh";
+};
+
+export type InterviewPlanTarget = {
+  company: string;
+  company_key: string;
+  role: string;
+  role_slug: string;
+  role_family: string;
+  level: InterviewLevel;
+  interview_date?: string | null;
+  job_description?: string | null;
+  blueprint_key: string;
+  blueprint_version: number;
+  blueprint_reviewed_at: string;
+  resolution: BlueprintResolution;
+};
 
 export type InterviewNodeConfig = {
   interview_type: InterviewType;
   duration_minutes: InterviewDuration;
   difficulty: Difficulty;
+  round_profile?: RoundProfile;
 };
 
 export type QuestionSetNodeConfig = {
@@ -69,6 +115,8 @@ export type InterviewPlan = InterviewPlanGraph & {
   status: PlanStatus;
   source: PlanSource;
   template_key?: string | null;
+  target?: InterviewPlanTarget | null;
+  customized_from_blueprint?: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -94,7 +142,41 @@ function isInterviewConfig(config: unknown): config is InterviewNodeConfig {
   const value = config as Record<string, unknown>;
   return (INTERVIEW_TYPE_VALUES as readonly unknown[]).includes(value.interview_type)
     && (INTERVIEW_DURATION_VALUES as readonly unknown[]).includes(value.duration_minutes)
-    && (INTERVIEW_DIFFICULTY_VALUES as readonly unknown[]).includes(value.difficulty);
+    && (INTERVIEW_DIFFICULTY_VALUES as readonly unknown[]).includes(value.difficulty)
+    && (value.round_profile === undefined || isRoundProfile(value.round_profile));
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string" && item.trim().length > 0);
+}
+
+function isRoundProfile(profile: unknown): profile is RoundProfile {
+  if (!profile || typeof profile !== "object") return false;
+  const value = profile as Record<string, unknown>;
+  const strategy = value.question_strategy as Record<string, unknown> | null;
+  const dimensions = value.rubric_dimensions;
+  return typeof value.round_key === "string" && value.round_key.length > 0
+    && (PLAN_STAGES as readonly unknown[]).includes(value.stage)
+    && typeof value.purpose === "string" && value.purpose.length > 0
+    && isStringArray(value.competencies)
+    && Boolean(strategy)
+    && isStringArray(strategy?.preferred_categories)
+    && isStringArray(strategy?.required_tags)
+    && isStringArray(strategy?.preferred_tags)
+    && isStringArray(strategy?.excluded_tags)
+    && isStringArray(strategy?.company_theme_ids)
+    && typeof strategy?.avoid_plan_question_repeats === "boolean"
+    && typeof value.rubric_key === "string" && value.rubric_key.length > 0
+    && Array.isArray(dimensions) && dimensions.length > 0
+    && dimensions.every((dimension) => {
+      if (!dimension || typeof dimension !== "object") return false;
+      const item = dimension as Record<string, unknown>;
+      return typeof item.key === "string" && item.key.length > 0
+        && typeof item.label === "string" && item.label.length > 0
+        && typeof item.description === "string" && item.description.length > 0
+        && typeof item.weight === "number" && item.weight > 0 && item.weight <= 1;
+    })
+    && value.context_mode === "fresh";
 }
 
 function isQuestionSetConfig(config: unknown): config is QuestionSetNodeConfig {

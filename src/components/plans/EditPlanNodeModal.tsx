@@ -45,6 +45,7 @@ export default function EditPlanNodeModal({
       : questions;
   }, [questions, search]);
   const canSave = title.trim().length > 0 && (node.type === "interview" || selectedQuestions.size > 0);
+  const isBlueprintRound = Boolean(interviewConfig?.round_profile);
 
   function toggleQuestion(id: number) {
     setSelectedQuestions((current) => {
@@ -61,7 +62,9 @@ export default function EditPlanNodeModal({
       ...node,
       title: title.trim(),
       config: node.type === "interview"
-        ? { interview_type: interviewType, duration_minutes: duration, difficulty }
+        ? isBlueprintRound
+          ? node.config
+          : { interview_type: interviewType, duration_minutes: duration, difficulty }
         : { question_ids: [...selectedQuestions] },
     });
   }
@@ -77,9 +80,11 @@ export default function EditPlanNodeModal({
           <label className="block"><span className="mb-2 block text-xs font-medium text-[#A8B0C2]">Step title</span><input autoFocus value={title} maxLength={MAX_PLAN_TITLE_LENGTH} onChange={(event) => setTitle(event.target.value)} className="h-10 w-full rounded-lg border border-white/[0.1] bg-white/[0.03] px-3 text-sm text-white outline-none focus:border-[#3B82F6]/55" /></label>
           {node.type === "interview" ? (
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="sm:col-span-2"><span className="mb-2 block text-xs font-medium text-[#A8B0C2]">Interview type</span><select value={interviewType} onChange={(event) => setInterviewType(event.target.value as InterviewType)} className="h-10 w-full rounded-lg border border-white/[0.1] bg-[#171A22] px-3 text-sm text-white outline-none">{INTERVIEW_TYPE_VALUES.map((type) => <option key={type} value={type}>{INTERVIEW_TYPE_META[type].label}</option>)}</select></label>
-              <label><span className="mb-2 block text-xs font-medium text-[#A8B0C2]">Duration</span><select value={duration} onChange={(event) => setDuration(Number(event.target.value) as InterviewDuration)} className="h-10 w-full rounded-lg border border-white/[0.1] bg-[#171A22] px-3 text-sm text-white outline-none">{[15, 30, 45].map((value) => <option key={value} value={value}>{value} minutes</option>)}</select></label>
-              <label><span className="mb-2 block text-xs font-medium text-[#A8B0C2]">Difficulty</span><select value={difficulty} onChange={(event) => setDifficulty(event.target.value as Difficulty)} className="h-10 w-full rounded-lg border border-white/[0.1] bg-[#171A22] px-3 text-sm capitalize text-white outline-none">{["easy", "medium", "hard"].map((value) => <option key={value}>{value}</option>)}</select></label>
+              {isBlueprintRound ? <div className="sm:col-span-2 rounded-xl border border-[#3B82F6]/20 bg-[#3B82F6]/[0.07] p-4"><p className="text-xs font-semibold text-[#93C5FD]">Blueprint-managed round</p><p className="mt-2 text-xs leading-relaxed text-[#A8B0C2]">{interviewConfig?.round_profile?.purpose}</p><p className="mt-3 text-[11px] text-[#7D889B]">{INTERVIEW_TYPE_META[interviewType].label} · {duration} minutes · {difficulty}</p></div> : <>
+                <label className="sm:col-span-2"><span className="mb-2 block text-xs font-medium text-[#A8B0C2]">Interview type</span><select value={interviewType} onChange={(event) => setInterviewType(event.target.value as InterviewType)} className="h-10 w-full rounded-lg border border-white/[0.1] bg-[#171A22] px-3 text-sm text-white outline-none">{INTERVIEW_TYPE_VALUES.map((type) => <option key={type} value={type}>{INTERVIEW_TYPE_META[type].label}</option>)}</select></label>
+                <label><span className="mb-2 block text-xs font-medium text-[#A8B0C2]">Duration</span><select value={duration} onChange={(event) => setDuration(Number(event.target.value) as InterviewDuration)} className="h-10 w-full rounded-lg border border-white/[0.1] bg-[#171A22] px-3 text-sm text-white outline-none">{[15, 30, 45].map((value) => <option key={value} value={value}>{value} minutes</option>)}</select></label>
+                <label><span className="mb-2 block text-xs font-medium text-[#A8B0C2]">Difficulty</span><select value={difficulty} onChange={(event) => setDifficulty(event.target.value as Difficulty)} className="h-10 w-full rounded-lg border border-white/[0.1] bg-[#171A22] px-3 text-sm capitalize text-white outline-none">{["easy", "medium", "hard"].map((value) => <option key={value}>{value}</option>)}</select></label>
+              </>}
             </div>
           ) : (
             <div>

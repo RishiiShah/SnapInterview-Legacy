@@ -1,0 +1,115 @@
+{
+  "key": "amazon-frontend",
+  "version": 1,
+  "title": "Amazon Front-End Development Engineer",
+  "description": "A representative Amazon frontend loop spanning coding, UI implementation, web architecture, Leadership Principles, and bar-raiser judgment.",
+  "match_scope": "exact",
+  "company_keys": ["amazon"],
+  "role_slugs": ["software-engineer-frontend"],
+  "role_families": ["swe"],
+  "supported_levels": ["entry-level", "mid-level", "senior", "staff-plus"],
+  "reviewed_at": "2026-09-12",
+  "sources_note": "Representative structure based on publicly described Amazon technical and Leadership Principles interviews; actual loops vary by team, location, and level.",
+  "rounds": [
+    {
+      "round_key": "coding",
+      "title": "Coding and Problem Solving",
+      "stage": "interview_loop",
+      "interview_type": "coding-algorithms",
+      "duration_minutes": 45,
+      "difficulty_by_level": { "entry-level": "medium", "mid-level": "medium", "senior": "hard", "staff-plus": "hard" },
+      "included_levels": ["entry-level", "mid-level", "senior", "staff-plus"],
+      "purpose": "Assess correct, maintainable code, data structures, testing, and clear problem solving.",
+      "competencies": ["Problem solving", "Correctness", "Maintainability", "Testing", "Complexity"],
+      "question_strategy": { "preferred_categories": ["Algorithms", "Data Structures"], "required_tags": [], "preferred_tags": ["arrays", "strings", "hash-map"], "excluded_tags": ["system-design"], "company_theme_ids": [], "avoid_plan_question_repeats": true },
+      "rubric_key": "amazon-frontend-coding-v1",
+      "rubric_dimensions": [
+        { "key": "approach", "label": "Approach", "weight": 0.25, "description": "Decomposes the problem and selects a suitable approach." },
+        { "key": "correctness", "label": "Correctness", "weight": 0.3, "description": "Implements correct logic and handles edge cases." },
+        { "key": "quality", "label": "Code quality", "weight": 0.25, "description": "Produces readable, maintainable, testable code." },
+        { "key": "communication", "label": "Communication", "weight": 0.2, "description": "Explains decisions and responds to feedback." }
+      ],
+      "position": { "x": 80, "y": 220 }
+    },
+    {
+      "round_key": "frontend-coding",
+      "title": "Frontend Implementation",
+      "stage": "interview_loop",
+      "interview_type": "domain-role",
+      "duration_minutes": 45,
+      "difficulty_by_level": { "entry-level": "medium", "mid-level": "medium", "senior": "hard", "staff-plus": "hard" },
+      "included_levels": ["entry-level", "mid-level", "senior", "staff-plus"],
+      "purpose": "Assess component design, JavaScript and browser fundamentals, state, accessibility, testing, and practical UI trade-offs.",
+      "competencies": ["JavaScript", "Component design", "State management", "Accessibility", "Frontend testing"],
+      "question_strategy": { "preferred_categories": ["Front-end", "Web Development", "Software Testing"], "required_tags": [], "preferred_tags": ["javascript", "react", "accessibility", "testing"], "excluded_tags": ["distributed-systems"], "company_theme_ids": [], "avoid_plan_question_repeats": true },
+      "rubric_key": "amazon-frontend-implementation-v1",
+      "rubric_dimensions": [
+        { "key": "functionality", "label": "Functionality", "weight": 0.3, "description": "Builds behavior that satisfies the requirements." },
+        { "key": "component_design", "label": "Component design", "weight": 0.25, "description": "Uses clear state, data flow, and reusable boundaries." },
+        { "key": "quality", "label": "Quality", "weight": 0.25, "description": "Addresses accessibility, testing, errors, and maintainability." },
+        { "key": "tradeoffs", "label": "Trade-offs", "weight": 0.2, "description": "Explains practical browser and framework decisions." }
+      ],
+      "position": { "x": 360, "y": 220 }
+    },
+    {
+      "round_key": "frontend-system-design",
+      "title": "Frontend System Design",
+      "stage": "interview_loop",
+      "interview_type": "system-design",
+      "duration_minutes": 45,
+      "difficulty_by_level": { "mid-level": "medium", "senior": "hard", "staff-plus": "hard" },
+      "included_levels": ["mid-level", "senior", "staff-plus"],
+      "purpose": "Assess client architecture, API contracts, performance, accessibility, reliability, and scale.",
+      "competencies": ["Client architecture", "Web performance", "API contracts", "Accessibility", "Reliability"],
+      "question_strategy": { "preferred_categories": ["Front-end", "Web Development", "System Design"], "required_tags": [], "preferred_tags": ["frontend", "performance", "caching", "api-design"], "excluded_tags": ["machine-learning"], "company_theme_ids": ["scaling-aws-primitives"], "avoid_plan_question_repeats": true },
+      "rubric_key": "amazon-frontend-system-design-v1",
+      "rubric_dimensions": [
+        { "key": "requirements", "label": "Requirements", "weight": 0.15, "description": "Clarifies users, constraints, and experience goals." },
+        { "key": "client_architecture", "label": "Client architecture", "weight": 0.3, "description": "Designs maintainable client boundaries and data flow." },
+        { "key": "performance_reliability", "label": "Performance and reliability", "weight": 0.3, "description": "Handles latency, caching, failures, and observability." },
+        { "key": "tradeoffs", "label": "Trade-offs", "weight": 0.25, "description": "Makes justified product and engineering decisions." }
+      ],
+      "position": { "x": 640, "y": 220 }
+    },
+    {
+      "round_key": "leadership-principles",
+      "title": "Leadership Principles",
+      "stage": "interview_loop",
+      "interview_type": "behavioral-leadership",
+      "duration_minutes": 45,
+      "difficulty_by_level": { "entry-level": "medium", "mid-level": "medium", "senior": "hard", "staff-plus": "hard" },
+      "included_levels": ["entry-level", "mid-level", "senior", "staff-plus"],
+      "purpose": "Assess specific evidence of ownership, customer impact, judgment, learning, and measurable results.",
+      "competencies": ["Customer obsession", "Ownership", "Dive deep", "Bias for action", "Measured impact"],
+      "question_strategy": { "preferred_categories": ["Customer Obsession", "Leadership", "Adaptability"], "required_tags": [], "preferred_tags": ["ownership", "customer-impact", "metrics"], "excluded_tags": [], "company_theme_ids": ["customer-metric"], "avoid_plan_question_repeats": true },
+      "rubric_key": "amazon-leadership-principles-v1",
+      "rubric_dimensions": [
+        { "key": "specificity", "label": "Specificity", "weight": 0.25, "description": "Provides concrete situations, actions, and outcomes." },
+        { "key": "ownership", "label": "Ownership", "weight": 0.25, "description": "Shows clear personal responsibility and judgment." },
+        { "key": "customer_impact", "label": "Customer impact", "weight": 0.25, "description": "Connects decisions to customer outcomes." },
+        { "key": "results_learning", "label": "Results and learning", "weight": 0.25, "description": "Quantifies results and reflects on learning." }
+      ],
+      "position": { "x": 920, "y": 220 }
+    },
+    {
+      "round_key": "bar-raiser",
+      "title": "Bar Raiser",
+      "stage": "interview_loop",
+      "interview_type": "bar-raiser",
+      "duration_minutes": 45,
+      "difficulty_by_level": { "entry-level": "medium", "mid-level": "hard", "senior": "hard", "staff-plus": "hard" },
+      "included_levels": ["entry-level", "mid-level", "senior", "staff-plus"],
+      "purpose": "Assess calibrated judgment, high standards, principled disagreement, and level-appropriate scope.",
+      "competencies": ["Judgment", "High standards", "Earn trust", "Disagree and commit", "Scope"],
+      "question_strategy": { "preferred_categories": ["Leadership", "Conflict Resolution", "Ethics & Integrity"], "required_tags": [], "preferred_tags": ["judgment", "conflict", "high-standards"], "excluded_tags": [], "company_theme_ids": ["disagree-and-commit"], "avoid_plan_question_repeats": true },
+      "rubric_key": "amazon-bar-raiser-v1",
+      "rubric_dimensions": [
+        { "key": "evidence", "label": "Evidence", "weight": 0.25, "description": "Supports claims with detailed personal evidence." },
+        { "key": "judgment", "label": "Judgment", "weight": 0.3, "description": "Balances speed, risk, data, and principles." },
+        { "key": "standards", "label": "High standards", "weight": 0.25, "description": "Raises quality and addresses root causes." },
+        { "key": "scope", "label": "Level scope", "weight": 0.2, "description": "Demonstrates influence and complexity appropriate to level." }
+      ],
+      "position": { "x": 1200, "y": 220 }
+    }
+  ]
+}

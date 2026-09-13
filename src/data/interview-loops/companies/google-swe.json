@@ -1,0 +1,95 @@
+{
+  "key": "google-swe",
+  "version": 1,
+  "title": "Google Software Engineer",
+  "description": "A representative Google SWE interview loop with independent technical and Googleyness rounds.",
+  "match_scope": "exact",
+  "company_keys": ["google"],
+  "role_slugs": ["software-engineer"],
+  "role_families": ["swe"],
+  "supported_levels": ["entry-level", "mid-level", "senior", "staff-plus"],
+  "reviewed_at": "2026-09-12",
+  "sources_note": "Representative structure based on publicly described Google interview practices; actual loops vary by team, location, and level.",
+  "rounds": [
+    {
+      "round_key": "coding-1",
+      "title": "Coding Round 1",
+      "stage": "interview_loop",
+      "interview_type": "coding-algorithms",
+      "duration_minutes": 45,
+      "difficulty_by_level": { "entry-level": "medium", "mid-level": "medium", "senior": "hard", "staff-plus": "hard" },
+      "included_levels": ["entry-level", "mid-level", "senior", "staff-plus"],
+      "purpose": "Assess algorithm selection, implementation correctness, complexity analysis, and communication.",
+      "competencies": ["Data structures", "Algorithms", "Correctness", "Complexity analysis", "Communication"],
+      "question_strategy": { "preferred_categories": ["Algorithms", "Data Structures"], "required_tags": [], "preferred_tags": ["arrays", "hash-map", "trees"], "excluded_tags": ["system-design"], "company_theme_ids": [], "avoid_plan_question_repeats": true },
+      "rubric_key": "google-swe-coding-v1",
+      "rubric_dimensions": [
+        { "key": "problem_solving", "label": "Problem solving", "weight": 0.3, "description": "Frames the problem and selects a sound approach." },
+        { "key": "correctness", "label": "Correctness", "weight": 0.3, "description": "Produces correct, testable logic and handles edge cases." },
+        { "key": "complexity", "label": "Complexity", "weight": 0.2, "description": "Explains and improves time and space complexity." },
+        { "key": "communication", "label": "Communication", "weight": 0.2, "description": "Makes reasoning and trade-offs clear." }
+      ],
+      "position": { "x": 100, "y": 220 }
+    },
+    {
+      "round_key": "coding-2",
+      "title": "Coding Round 2",
+      "stage": "interview_loop",
+      "interview_type": "coding-algorithms",
+      "duration_minutes": 45,
+      "difficulty_by_level": { "entry-level": "medium", "mid-level": "hard", "senior": "hard", "staff-plus": "hard" },
+      "included_levels": ["entry-level", "mid-level", "senior", "staff-plus"],
+      "purpose": "Assess a distinct algorithm family with emphasis on testing, edge cases, and clean abstraction.",
+      "competencies": ["Algorithmic depth", "Testing", "Edge cases", "Code quality", "Adaptation"],
+      "question_strategy": { "preferred_categories": ["Algorithms", "Data Structures"], "required_tags": [], "preferred_tags": ["graphs", "dynamic-programming", "recursion"], "excluded_tags": ["system-design"], "company_theme_ids": [], "avoid_plan_question_repeats": true },
+      "rubric_key": "google-swe-coding-v1",
+      "rubric_dimensions": [
+        { "key": "problem_solving", "label": "Problem solving", "weight": 0.3, "description": "Frames the problem and selects a sound approach." },
+        { "key": "correctness", "label": "Correctness", "weight": 0.3, "description": "Produces correct, testable logic and handles edge cases." },
+        { "key": "complexity", "label": "Complexity", "weight": 0.2, "description": "Explains and improves time and space complexity." },
+        { "key": "communication", "label": "Communication", "weight": 0.2, "description": "Makes reasoning and trade-offs clear." }
+      ],
+      "position": { "x": 400, "y": 220 }
+    },
+    {
+      "round_key": "system-design",
+      "title": "System Design",
+      "stage": "interview_loop",
+      "interview_type": "system-design",
+      "duration_minutes": 45,
+      "difficulty_by_level": { "mid-level": "medium", "senior": "hard", "staff-plus": "hard" },
+      "included_levels": ["mid-level", "senior", "staff-plus"],
+      "purpose": "Assess scalable architecture, data modeling, reliability, and explicit trade-off reasoning.",
+      "competencies": ["Architecture", "Scalability", "Reliability", "Data modeling", "Trade-offs"],
+      "question_strategy": { "preferred_categories": ["System Design", "Distributed Systems"], "required_tags": [], "preferred_tags": ["scalability", "distributed-systems", "reliability"], "excluded_tags": ["frontend"], "company_theme_ids": ["google-scale-design"], "avoid_plan_question_repeats": true },
+      "rubric_key": "google-swe-system-design-v1",
+      "rubric_dimensions": [
+        { "key": "requirements", "label": "Requirements", "weight": 0.15, "description": "Clarifies scope, constraints, and success criteria." },
+        { "key": "architecture", "label": "Architecture", "weight": 0.3, "description": "Builds a coherent end-to-end design." },
+        { "key": "scale_reliability", "label": "Scale and reliability", "weight": 0.3, "description": "Handles load, failures, consistency, and operations." },
+        { "key": "tradeoffs", "label": "Trade-offs", "weight": 0.25, "description": "Compares alternatives and justifies decisions." }
+      ],
+      "position": { "x": 700, "y": 220 }
+    },
+    {
+      "round_key": "googleyness-leadership",
+      "title": "Googleyness and Leadership",
+      "stage": "interview_loop",
+      "interview_type": "behavioral-leadership",
+      "duration_minutes": 45,
+      "difficulty_by_level": { "entry-level": "medium", "mid-level": "medium", "senior": "hard", "staff-plus": "hard" },
+      "included_levels": ["entry-level", "mid-level", "senior", "staff-plus"],
+      "purpose": "Assess collaboration, navigating ambiguity, humility, ownership, and leadership appropriate to level.",
+      "competencies": ["Collaboration", "Ambiguity", "Intellectual humility", "Ownership", "Leadership"],
+      "question_strategy": { "preferred_categories": ["Team Collaboration", "Adaptability", "Leadership"], "required_tags": [], "preferred_tags": ["ambiguity", "collaboration", "leadership"], "excluded_tags": [], "company_theme_ids": ["navigating-ambiguity"], "avoid_plan_question_repeats": true },
+      "rubric_key": "google-googleyness-leadership-v1",
+      "rubric_dimensions": [
+        { "key": "evidence", "label": "Evidence", "weight": 0.25, "description": "Uses specific examples and personal contributions." },
+        { "key": "collaboration", "label": "Collaboration", "weight": 0.25, "description": "Works constructively across differing perspectives." },
+        { "key": "ambiguity", "label": "Navigating ambiguity", "weight": 0.25, "description": "Creates clarity and sound action from uncertainty." },
+        { "key": "growth", "label": "Growth and humility", "weight": 0.25, "description": "Reflects honestly, learns, and adjusts." }
+      ],
+      "position": { "x": 1000, "y": 220 }
+    }
+  ]
+}

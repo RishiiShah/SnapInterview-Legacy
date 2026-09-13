@@ -13,6 +13,12 @@ import {
 } from "@/lib/plans/graph";
 import { getPlanTemplate, listPlanTemplates } from "@/lib/plans/templates";
 import {
+  buildInterviewPlanTarget,
+  materializeInterviewLoop,
+  resolveInterviewLoopBlueprint,
+} from "@/data/interview-loops";
+import type { InterviewLevel } from "@/lib/interview/domain";
+import {
   countInterviewPlans,
   createInterviewPlanRecord,
   deleteInterviewPlanRecord,
@@ -64,6 +70,14 @@ export async function createUserInterviewPlan(input: {
   ownerUserId: string;
   title: string;
   templateKey?: string;
+  blueprintKey?: string;
+  target?: {
+    company: string;
+    role: string;
+    level: InterviewLevel;
+    interviewDate?: string;
+    jobDescription?: string;
+  };
 }): Promise<InterviewPlan> {
   if (await countInterviewPlans(input.ownerUserId) >= MAX_PLANS_PER_USER) {
     throw new PlanServiceError("PLAN_LIMIT", 409, "You already have the maximum number of interview plans.");
@@ -72,14 +86,42 @@ export async function createUserInterviewPlan(input: {
   if (input.templateKey && !template) {
     throw new PlanServiceError("NOT_FOUND", 404, "Interview plan template not found.");
   }
-  const graph: InterviewPlanGraph = template
-    ? { nodes: applyPlanUnlocks(template.nodes, template.edges), edges: template.edges }
-    : { nodes: [], edges: [] };
+  let target = null;
+  let blueprintTemplateKey: string | undefined;
+  let graph: InterviewPlanGraph;
+  if (input.target) {
+    let resolution;
+    try {
+      resolution = resolveInterviewLoopBlueprint({
+        company: input.target.company,
+        role: input.target.role,
+        level: input.target.level,
+        requestedKey: input.blueprintKey,
+      });
+    } catch {
+      throw new PlanServiceError("INVALID_PLAN", 400, "The selected interview-loop blueprint does not match this target.");
+    }
+    graph = materializeInterviewLoop({ blueprint: resolution.blueprint, level: input.target.level });
+    target = buildInterviewPlanTarget({
+      company: input.target.company,
+      role: input.target.role,
+      level: input.target.level,
+      interviewDate: input.target.interviewDate,
+      jobDescription: input.target.jobDescription,
+      resolution,
+    });
+    blueprintTemplateKey = resolution.blueprint.key;
+  } else {
+    graph = template
+      ? { nodes: applyPlanUnlocks(template.nodes, template.edges), edges: template.edges }
+      : { nodes: [], edges: [] };
+  }
   return createInterviewPlanRecord({
     ownerUserId: input.ownerUserId,
     title: input.title,
-    source: template ? "template" : "custom",
-    templateKey: template?.key,
+    source: template || target ? "template" : "custom",
+    templateKey: template?.key ?? blueprintTemplateKey,
+    target,
     graph,
   });
 }
@@ -129,6 +171,7 @@ export async function saveUserInterviewPlanGraph(input: {
     ownerUserId: input.ownerUserId,
     id: input.planId,
     graph,
+    markCustomizedFromBlueprint: Boolean(existing.target),
   });
   if (!plan) throw new PlanServiceError("NOT_FOUND", 404, "Interview plan not found.");
   return plan;

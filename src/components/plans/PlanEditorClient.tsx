@@ -198,7 +198,12 @@ export default function PlanEditorClient({
           const link = { planId: initialPlan.id, nodeId };
           sessionStorage.setItem(`interview_plan_link_${interviewId}`, JSON.stringify(link));
           sessionStorage.setItem(`pending_interview_${interviewId}`, JSON.stringify({
-            role: defaultRole || "Software Engineer",
+            role: initialPlan.target?.role || defaultRole || "Software Engineer",
+            company: initialPlan.target?.company,
+            level: initialPlan.target?.level,
+            jobDescription: initialPlan.target?.job_description,
+            planId: initialPlan.target ? initialPlan.id : undefined,
+            planNodeId: initialPlan.target ? nodeId : undefined,
             type: result.launch.interview_type,
             difficulty: result.launch.difficulty,
             durationMinutes: result.launch.duration_minutes,
@@ -232,7 +237,7 @@ export default function PlanEditorClient({
       setFlowEdges(edges);
       scheduleSave(nodes, edges);
     },
-  }), [adoptPlan, defaultRole, flowEdges, flowNodes, initialPlan.id, questions, router, scheduleSave]);
+  }), [adoptPlan, defaultRole, flowEdges, flowNodes, initialPlan.id, initialPlan.target, questions, router, scheduleSave]);
 
   return (
     <PlanActionsContext.Provider value={actions}>

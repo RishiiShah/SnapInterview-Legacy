@@ -63,6 +63,11 @@ export const transcriptEvaluationV2Schema = z.object({
       methodNotes: z.string().optional(),
     })
     .default({}),
+  rubricContext: z.object({
+    key: nonEmptyTrimmedString,
+    blueprintKey: z.string().nullable().optional(),
+    blueprintVersion: z.number().int().positive().nullable().optional(),
+  }).nullable().optional(),
   dimensions: z.array(scorecardDimensionSchema),
   briefPillarCoverage: z.array(briefPillarCoverageSchema).default([]),
   executiveSummary: nonEmptyTrimmedString,

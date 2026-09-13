@@ -1,0 +1,39 @@
+{
+  "key": "general-engineering",
+  "version": 1,
+  "title": "General Engineering Interview Loop",
+  "description": "A broad fallback loop for targets without a reviewed company-role blueprint.",
+  "match_scope": "general",
+  "company_keys": [],
+  "role_slugs": [],
+  "role_families": [],
+  "supported_levels": ["entry-level", "mid-level", "senior", "staff-plus"],
+  "reviewed_at": "2026-09-12",
+  "sources_note": "Generic engineering fallback; this structure is not specific to the selected company.",
+  "rounds": [
+    {
+      "round_key": "domain", "title": "Role Knowledge", "stage": "interview_loop", "interview_type": "domain-role", "duration_minutes": 45,
+      "difficulty_by_level": { "entry-level": "easy", "mid-level": "medium", "senior": "hard", "staff-plus": "hard" }, "included_levels": ["entry-level", "mid-level", "senior", "staff-plus"],
+      "purpose": "Assess practical knowledge and problem solving for the selected role.", "competencies": ["Role fundamentals", "Problem solving", "Technical judgment", "Communication"],
+      "question_strategy": { "preferred_categories": ["General Programming"], "required_tags": [], "preferred_tags": [], "excluded_tags": [], "company_theme_ids": [], "avoid_plan_question_repeats": true },
+      "rubric_key": "general-domain-v1", "rubric_dimensions": [
+        { "key": "knowledge", "label": "Role knowledge", "weight": 0.3, "description": "Demonstrates relevant fundamentals." },
+        { "key": "reasoning", "label": "Reasoning", "weight": 0.3, "description": "Works through ambiguity and trade-offs." },
+        { "key": "quality", "label": "Quality", "weight": 0.2, "description": "Accounts for correctness and maintainability." },
+        { "key": "communication", "label": "Communication", "weight": 0.2, "description": "Explains decisions clearly." }
+      ], "position": { "x": 220, "y": 220 }
+    },
+    {
+      "round_key": "behavioral", "title": "Behavioral and Leadership", "stage": "interview_loop", "interview_type": "behavioral-leadership", "duration_minutes": 45,
+      "difficulty_by_level": { "entry-level": "medium", "mid-level": "medium", "senior": "hard", "staff-plus": "hard" }, "included_levels": ["entry-level", "mid-level", "senior", "staff-plus"],
+      "purpose": "Assess ownership, collaboration, impact, and learning.", "competencies": ["Ownership", "Collaboration", "Impact", "Learning"],
+      "question_strategy": { "preferred_categories": ["Leadership", "Team Collaboration", "Adaptability"], "required_tags": [], "preferred_tags": [], "excluded_tags": [], "company_theme_ids": [], "avoid_plan_question_repeats": true },
+      "rubric_key": "general-behavioral-v1", "rubric_dimensions": [
+        { "key": "evidence", "label": "Evidence", "weight": 0.3, "description": "Uses specific personal examples." },
+        { "key": "ownership", "label": "Ownership", "weight": 0.25, "description": "Takes responsibility for outcomes." },
+        { "key": "collaboration", "label": "Collaboration", "weight": 0.25, "description": "Works effectively with others." },
+        { "key": "learning", "label": "Learning", "weight": 0.2, "description": "Reflects and improves." }
+      ], "position": { "x": 560, "y": 220 }
+    }
+  ]
+}

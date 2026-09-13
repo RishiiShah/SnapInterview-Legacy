@@ -43,6 +43,7 @@ import {
   type RetrievalSideEffects,
 } from "./retrieval-history";
 import type { RetrievedQuestion } from "./retrieval-format";
+import { readRoundProfileFromSessionPlan } from "@/lib/plans/session-context";
 
 // Loaded on first use, not at import time.
 export async function loadDeps() {
@@ -157,6 +158,14 @@ export async function retrieve(
   context: RetrievalExecutionContext
 ): Promise<RetrievalComputation> {
   const roleSlug = normalizeRoleSlug(session.role);
+  const roundProfile = readRoundProfileFromSessionPlan(session.sessionPlan);
+  const roundTerms = roundProfile
+    ? [
+        ...roundProfile.competencies,
+        ...roundProfile.question_strategy.required_tags,
+        ...roundProfile.question_strategy.preferred_tags,
+      ].join(" ")
+    : "";
   const companySignals = await resolveCompanySignals(session, roleSlug);
   const queryExtras: RetrievalQueryExtras = companySignals
     ? { companySignals }
@@ -209,6 +218,7 @@ export async function retrieve(
     parts.activePillar,
     parts.levelHint,
     parts.companySignals,
+    roundTerms,
     dialogueTerms.join(" "),
   ]
     .filter(Boolean)
@@ -221,6 +231,11 @@ export async function retrieve(
     activePillar: parts.activePillar,
     technicalTerms: dialogueTerms,
   });
+  for (const category of [...(roundProfile?.question_strategy.preferred_categories ?? [])].reverse()) {
+    const existingIndex = preferredCategories.indexOf(category);
+    if (existingIndex >= 0) preferredCategories.splice(existingIndex, 1);
+    preferredCategories.unshift(category);
+  }
   for (const label of focusPillars) {
     if (!preferredCategories.includes(label)) preferredCategories.push(label);
   }
@@ -232,6 +247,7 @@ export async function retrieve(
     parts.activePillar,
     resumeSkillKeywords.join(" "),
     parts.companySignals,
+    roundTerms,
   ]);
   const targetPillars = [
     ...focusPillars,

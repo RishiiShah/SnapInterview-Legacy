@@ -17,6 +17,7 @@ import {
     ALLOWED_STATUSES,
     getResumableInterviewSessionState,
     startInterviewSession,
+    PlanSessionContextError,
     updateSessionStatusIfOwned,
 } from "@/services/interview-service";
 import { triggerAutoEvaluation } from "@/services/evaluation-service";
@@ -44,6 +45,12 @@ const createSessionSchema = z.object({
     resumeText: z.string().trim().max(8000).optional(),
     durationMinutes: interviewDurationSchema.optional(),
     questionCount: interviewQuestionCountSchema.optional(),
+    planId: z.uuid().optional(),
+    planNodeId: z.uuid().optional(),
+}).superRefine((value, ctx) => {
+    if (Boolean(value.planId) !== Boolean(value.planNodeId)) {
+        ctx.addIssue({ code: "custom", path: ["planId"], message: "planId and planNodeId must be provided together" });
+    }
 });
 const createSessionLimiter = createRateLimiter("interview-session-create", 60 * 60 * 1000, 30);
 const deleteSessionLimiter = createRateLimiter("interview-session-delete", 60 * 60 * 1000, 60);
@@ -107,7 +114,7 @@ export const POST = withCsrfProtection(async (req: Request) => {
             return parsed.response;
         }
 
-        const { id, role, company, type, difficulty, level, persona, jobDescription, resumeUrl, resumeText, durationMinutes, questionCount } = parsed.data;
+        const { id, role, company, type, difficulty, level, persona, jobDescription, resumeUrl, resumeText, durationMinutes, questionCount, planId, planNodeId } = parsed.data;
 
         const interviewSession = await startInterviewSession({
             id,
@@ -123,12 +130,16 @@ export const POST = withCsrfProtection(async (req: Request) => {
             resumeText,
             durationMinutes,
             questionCount,
+            ...(planId && planNodeId ? { planContext: { planId, nodeId: planNodeId } } : {}),
         });
         warmEmbeddingModel();
         warmRerankerModel();
 
         return apiJson({ id: interviewSession.id }, 201);
     } catch (error) {
+        if (error instanceof PlanSessionContextError) {
+            return apiError(error.message, error.status);
+        }
         logger.error("Create interview session error", {
             error: error instanceof Error ? error.message : String(error),
             route: "POST /api/interview/session",

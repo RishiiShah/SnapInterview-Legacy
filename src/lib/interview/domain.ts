@@ -316,4 +316,8 @@ export type StartInterviewSessionInput = {
   resumeText?: string | null;
   questionCount?: InterviewQuestionCount;
   durationMinutes?: InterviewDuration;
+  planContext?: {
+    planId: string;
+    nodeId: string;
+  };
 };

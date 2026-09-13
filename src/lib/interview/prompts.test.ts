@@ -35,6 +35,46 @@ function makePromptSession(overrides: Partial<PromptInterviewSession> = {}): Pro
 }
 
 describe("buildSystemInstruction", () => {
+  it("enforces a node-local targeted round contract", async () => {
+    const instruction = await buildSystemInstruction(makePromptSession({
+      role: "Software Engineer - Frontend",
+      company: "Amazon",
+      type: "domain-role",
+      sessionPlan: {
+        version: 2,
+        planContext: {
+          planId: "plan-1",
+          nodeId: "node-frontend",
+          roundProfile: {
+            round_key: "frontend-coding",
+            stage: "interview_loop",
+            purpose: "Assess component implementation, accessibility, and testing.",
+            competencies: ["Component design", "Accessibility", "Frontend testing"],
+            question_strategy: {
+              preferred_categories: ["Front-end", "Web Development"],
+              required_tags: [],
+              preferred_tags: ["react", "accessibility"],
+              excluded_tags: ["distributed-systems"],
+              company_theme_ids: [],
+              avoid_plan_question_repeats: true,
+            },
+            rubric_key: "amazon-frontend-implementation-v1",
+            rubric_dimensions: [
+              { key: "implementation", label: "Implementation", weight: 1, description: "Builds a sound UI." },
+            ],
+            context_mode: "fresh",
+          },
+        },
+      },
+    }));
+
+    expect(instruction).toContain("TARGETED ROUND CONTRACT");
+    expect(instruction).toContain("Round: frontend-coding");
+    expect(instruction).toContain("Component design; Accessibility; Frontend testing");
+    expect(instruction).toContain("Topics to avoid in this round: distributed-systems");
+    expect(instruction).toContain("Do not infer, request, or reference performance");
+  });
+
   it("omits question retrieval from final-evaluation prompts", async () => {
     const instruction = await buildSystemInstruction(makePromptSession(), {
       includeQuestionRetrieval: false,

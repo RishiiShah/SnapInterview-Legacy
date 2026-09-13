@@ -2,6 +2,44 @@ import { describe, it, expect } from "vitest";
 import { buildInterviewBrief } from "./brief";
 
 describe("buildInterviewBrief", () => {
+  it("uses a targeted round contract instead of generic type pillars", async () => {
+    const brief = await buildInterviewBrief({
+      role: "Software Engineer - Frontend",
+      company: "Amazon",
+      type: "domain-role",
+      difficulty: "medium",
+      durationMinutes: 45,
+      roundProfile: {
+        round_key: "frontend-coding",
+        stage: "interview_loop",
+        purpose: "Assess practical frontend implementation.",
+        competencies: ["JavaScript", "Component design", "Accessibility", "Testing"],
+        question_strategy: {
+          preferred_categories: ["Front-end"],
+          required_tags: [],
+          preferred_tags: ["react"],
+          excluded_tags: ["distributed-systems"],
+          company_theme_ids: [],
+          avoid_plan_question_repeats: true,
+        },
+        rubric_key: "amazon-frontend-implementation-v1",
+        rubric_dimensions: [
+          { key: "implementation", label: "Implementation", weight: 1, description: "Builds a sound UI." },
+        ],
+        context_mode: "fresh",
+      },
+    });
+
+    expect(brief.agenda.pillars.map((pillar) => pillar.title)).toEqual([
+      "JavaScript",
+      "Component design",
+      "Accessibility",
+      "Testing",
+    ]);
+    expect(brief.agenda.openingDirective).toContain("frontend-coding");
+    expect(brief.agenda.openingDirective).toContain("Assess practical frontend implementation");
+  });
+
   it("detects new_grad mode for entry-level candidates with projects", async () => {
     const brief = await buildInterviewBrief({
       role: "Software Engineer - Backend",

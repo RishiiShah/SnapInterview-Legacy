@@ -5,6 +5,7 @@ import { latestTranscriptEntry, type PromptInterviewSession } from "@/lib/interv
 import { formatRetrievedQuestions, retrieveQuestionsForSession } from "@/lib/rag/retrieve";
 import { logger } from "@/utils/logger";
 import { normalizeRoleSlug } from "@/lib/rag/taxonomy";
+import { readRoundProfileFromSessionPlan } from "@/lib/plans/session-context";
 const DEFAULT_CORE_PROMPT = "You are a realistic mock interviewer. Ask exactly one question at a time, keep responses concise, and adapt follow-ups to the candidate's last answer.";
 
 function parseStringArray(value: unknown): string[] {
@@ -272,6 +273,26 @@ export async function buildSystemInstruction(
   systemInstruction += `Interview type: ${type}.\n`;
   systemInstruction += `Interview type directive: ${getInterviewTypeDirective(type)}\n`;
   systemInstruction += `Interview difficulty: ${difficulty}. Adjust question complexity accordingly.\n`;
+
+  const roundProfile = readRoundProfileFromSessionPlan(sessionPlan);
+  if (roundProfile) {
+    const strategy = roundProfile.question_strategy;
+    systemInstruction += `\n## TARGETED ROUND CONTRACT\n`;
+    systemInstruction += `Round: ${roundProfile.round_key}. Stage: ${roundProfile.stage}.\n`;
+    systemInstruction += `Purpose: ${roundProfile.purpose}\n`;
+    systemInstruction += `Competencies to assess: ${roundProfile.competencies.join("; ")}\n`;
+    if (strategy.preferred_categories.length > 0) {
+      systemInstruction += `Preferred question categories: ${strategy.preferred_categories.join("; ")}\n`;
+    }
+    if (strategy.preferred_tags.length > 0) {
+      systemInstruction += `Preferred topic signals: ${strategy.preferred_tags.join("; ")}\n`;
+    }
+    if (strategy.excluded_tags.length > 0) {
+      systemInstruction += `Topics to avoid in this round: ${strategy.excluded_tags.join("; ")}\n`;
+    }
+    systemInstruction += `Use only this round's transcript for adaptive follow-ups. Do not infer, request, or reference performance, answers, scores, strengths, or weaknesses from any other interview-plan round.\n`;
+    systemInstruction += `Stay inside this round contract even when broader company or resume context contains unrelated topics.\n`;
+  }
 
   // Brief Agenda & Company Method Injection
   if (briefData) {

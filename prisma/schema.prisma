@@ -354,19 +354,33 @@ model SolvedQuestion {
 
 // Candidate-authored DAGs that sequence mock interviews and practice sets.
 model InterviewPlan {
-  id          String              @id @default(dbgenerated("(gen_random_uuid())::text"))
-  ownerUserId String
-  title       String
-  status      String              @default("draft")
-  source      String              @default("custom")
-  templateKey String?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  owner       User                @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
-  nodes       InterviewPlanNode[]
-  edges       InterviewPlanEdge[]
+  id                      String              @id @default(dbgenerated("(gen_random_uuid())::text"))
+  ownerUserId             String
+  title                   String
+  status                  String              @default("draft")
+  source                  String              @default("custom")
+  templateKey             String?
+  targetCompany           String?
+  targetCompanyKey        String?
+  targetRole              String?
+  targetRoleSlug          String?
+  targetRoleFamily        String?
+  targetLevel             String?
+  interviewDate           DateTime?
+  jobDescription          String?             @db.Text
+  blueprintKey            String?
+  blueprintVersion        Int?
+  blueprintReviewedAt     DateTime?
+  blueprintResolution     String?
+  customizedFromBlueprint Boolean             @default(false)
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  owner                   User                @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  nodes                   InterviewPlanNode[]
+  edges                   InterviewPlanEdge[]
 
   @@index([ownerUserId, updatedAt(sort: Desc), id])
+  @@index([ownerUserId, targetCompanyKey, targetRoleSlug, updatedAt(sort: Desc)])
 }
 
 model InterviewPlanNode {

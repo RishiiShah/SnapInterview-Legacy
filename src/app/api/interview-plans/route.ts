@@ -26,6 +26,14 @@ export const POST = withCsrfProtection(async (request: Request) => {
       ownerUserId: authUser.userId,
       title: parsed.data.title,
       templateKey: parsed.data.template_key,
+      blueprintKey: parsed.data.blueprint_key,
+      target: parsed.data.target ? {
+        company: parsed.data.target.company,
+        role: parsed.data.target.role,
+        level: parsed.data.target.level,
+        interviewDate: parsed.data.target.interview_date,
+        jobDescription: parsed.data.target.job_description,
+      } : undefined,
     });
     return apiJson({ plan }, 201);
   } catch (error) {

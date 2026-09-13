@@ -27,6 +27,7 @@ import { formatMatchedEvaluationRubrics } from "@/lib/rag/evaluation-rubrics";
 import { prisma } from "@/lib/prisma";
 import { sendEvaluationEmail } from "@/lib/email";
 import { getNotificationPrefs } from "@/repositories/user-repo";
+import { readPlanSessionProvenance, readRoundProfileFromSessionPlan } from "@/lib/plans/session-context";
 
 const EVALUATION_CLAIM_TTL_MS = 10 * 60 * 1000;
 
@@ -125,7 +126,9 @@ export async function evaluateInterviewTranscript(params: {
         (whiteboardSnapshot as Record<string, unknown>).mimeType === "image/png");
     const evaluationUserContent = `Interview Transcript:\n\n${formattedTranscript}${whiteboardContext}`;
 
-    const targetDimensions = getScorecardDimensionsForType(promptInterviewSession.type);
+    const roundProfile = readRoundProfileFromSessionPlan(interviewSession.sessionPlan);
+    const planProvenance = readPlanSessionProvenance(interviewSession.sessionPlan);
+    const targetDimensions = roundProfile?.rubric_dimensions ?? getScorecardDimensionsForType(promptInterviewSession.type);
     const dimensionsJsonExample = targetDimensions.map((d, i) => ({
       key: d.key,
       label: d.label,
@@ -163,6 +166,7 @@ Your goal is to provide a calibrated hiring verdict, estimated level, dimension-
 Candidate Target Level: ${targetLevel}
 Target Role: ${interviewSession.role}
 Interview Type: ${interviewSession.type}
+${roundProfile ? `Targeted Round: ${roundProfile.round_key}\nRound Purpose: ${roundProfile.purpose}\nRubric: ${roundProfile.rubric_key}` : ""}
 
 Here is the role context and criteria:
 ---
@@ -195,6 +199,11 @@ Output MUST be valid JSON matching this exact structure:
     "matchedCompanyPack": "${interviewSession.company || "General Tech"}",
     "methodNotes": <string summarizing alignment with company method>
   },
+  "rubricContext": ${roundProfile ? JSON.stringify({
+    key: roundProfile.rubric_key,
+    blueprintKey: planProvenance?.blueprintKey ?? null,
+    blueprintVersion: planProvenance?.blueprintVersion ?? null,
+  }) : "null"},
   "dimensions": ${JSON.stringify(dimensionsJsonExample, null, 2)},
   "briefPillarCoverage": ${JSON.stringify(pillarJsonExample, null, 2)},
   "executiveSummary": <detailed 2-3 paragraph summary>,

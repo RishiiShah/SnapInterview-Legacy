@@ -2,6 +2,7 @@ export {
   ALLOWED_STATUSES,
   INTERVIEW_GRACE_PERIOD_MS,
   INTERVIEW_RESUME_WINDOW_MS,
+  PlanSessionContextError,
   getInterviewSessionState,
   getResumableInterviewSessionState,
   startInterviewSession,

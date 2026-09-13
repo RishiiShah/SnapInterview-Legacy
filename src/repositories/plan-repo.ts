@@ -7,6 +7,7 @@ import type {
   InterviewPlanGraph,
   InterviewPlanNode,
   InterviewPlanSummary,
+  InterviewPlanTarget,
   PlanSource,
   PlanStatus,
 } from "@/lib/plans/graph";
@@ -39,12 +40,39 @@ function serializeEdge(edge: PlanRecord["edges"][number]): InterviewPlanEdge {
 }
 
 export function serializePlan(plan: PlanRecord): InterviewPlan {
+  const target: InterviewPlanTarget | null = plan.targetCompany
+    && plan.targetCompanyKey
+    && plan.targetRole
+    && plan.targetRoleSlug
+    && plan.targetRoleFamily
+    && plan.targetLevel
+    && plan.blueprintKey
+    && plan.blueprintVersion
+    && plan.blueprintReviewedAt
+    && plan.blueprintResolution
+    ? {
+        company: plan.targetCompany,
+        company_key: plan.targetCompanyKey,
+        role: plan.targetRole,
+        role_slug: plan.targetRoleSlug,
+        role_family: plan.targetRoleFamily,
+        level: plan.targetLevel as InterviewPlanTarget["level"],
+        interview_date: plan.interviewDate?.toISOString().slice(0, 10) ?? null,
+        job_description: plan.jobDescription,
+        blueprint_key: plan.blueprintKey,
+        blueprint_version: plan.blueprintVersion,
+        blueprint_reviewed_at: plan.blueprintReviewedAt.toISOString().slice(0, 10),
+        resolution: plan.blueprintResolution as InterviewPlanTarget["resolution"],
+      }
+    : null;
   return {
     id: plan.id,
     title: plan.title,
     status: plan.status as PlanStatus,
     source: plan.source as PlanSource,
     template_key: plan.templateKey,
+    target,
+    customized_from_blueprint: plan.customizedFromBlueprint,
     created_at: plan.createdAt.toISOString(),
     updated_at: plan.updatedAt.toISOString(),
     nodes: plan.nodes.map(serializeNode),
@@ -73,6 +101,32 @@ export async function listInterviewPlans(ownerUserId: string): Promise<Interview
     status: plan.status as PlanStatus,
     source: plan.source as PlanSource,
     template_key: plan.templateKey,
+    target: plan.targetCompany
+      && plan.targetCompanyKey
+      && plan.targetRole
+      && plan.targetRoleSlug
+      && plan.targetRoleFamily
+      && plan.targetLevel
+      && plan.blueprintKey
+      && plan.blueprintVersion
+      && plan.blueprintReviewedAt
+      && plan.blueprintResolution
+      ? {
+          company: plan.targetCompany,
+          company_key: plan.targetCompanyKey,
+          role: plan.targetRole,
+          role_slug: plan.targetRoleSlug,
+          role_family: plan.targetRoleFamily,
+          level: plan.targetLevel as InterviewPlanTarget["level"],
+          interview_date: plan.interviewDate?.toISOString().slice(0, 10) ?? null,
+          job_description: plan.jobDescription,
+          blueprint_key: plan.blueprintKey,
+          blueprint_version: plan.blueprintVersion,
+          blueprint_reviewed_at: plan.blueprintReviewedAt.toISOString().slice(0, 10),
+          resolution: plan.blueprintResolution as InterviewPlanTarget["resolution"],
+        }
+      : null,
+    customized_from_blueprint: plan.customizedFromBlueprint,
     created_at: plan.createdAt.toISOString(),
     updated_at: plan.updatedAt.toISOString(),
     node_count: plan.nodes.length,
@@ -118,6 +172,7 @@ export async function createInterviewPlanRecord(input: {
   title: string;
   source: PlanSource;
   templateKey?: string | null;
+  target?: InterviewPlanTarget | null;
   graph: InterviewPlanGraph;
 }): Promise<InterviewPlan> {
   return prisma.$transaction(async (tx) => {
@@ -127,6 +182,18 @@ export async function createInterviewPlanRecord(input: {
         title: input.title,
         source: input.source,
         templateKey: input.templateKey ?? null,
+        targetCompany: input.target?.company ?? null,
+        targetCompanyKey: input.target?.company_key ?? null,
+        targetRole: input.target?.role ?? null,
+        targetRoleSlug: input.target?.role_slug ?? null,
+        targetRoleFamily: input.target?.role_family ?? null,
+        targetLevel: input.target?.level ?? null,
+        interviewDate: input.target?.interview_date ? new Date(`${input.target.interview_date}T00:00:00.000Z`) : null,
+        jobDescription: input.target?.job_description ?? null,
+        blueprintKey: input.target?.blueprint_key ?? null,
+        blueprintVersion: input.target?.blueprint_version ?? null,
+        blueprintReviewedAt: input.target?.blueprint_reviewed_at ? new Date(`${input.target.blueprint_reviewed_at}T00:00:00.000Z`) : null,
+        blueprintResolution: input.target?.resolution ?? null,
       },
     });
     if (input.graph.nodes.length > 0) {
@@ -169,6 +236,7 @@ export async function replaceInterviewPlanGraph(input: {
   ownerUserId: string;
   id: string;
   graph: InterviewPlanGraph;
+  markCustomizedFromBlueprint?: boolean;
 }): Promise<InterviewPlan | null> {
   return prisma.$transaction(async (tx) => {
     const existing = await tx.interviewPlan.findFirst({ where: { id: input.id, ownerUserId: input.ownerUserId }, select: { id: true } });
@@ -181,7 +249,13 @@ export async function replaceInterviewPlanGraph(input: {
     if (input.graph.edges.length > 0) {
       await tx.interviewPlanEdge.createMany({ data: input.graph.edges.map((edge) => edgeCreateData(input.id, edge)) });
     }
-    await tx.interviewPlan.update({ where: { id: input.id }, data: { updatedAt: new Date() } });
+    await tx.interviewPlan.update({
+      where: { id: input.id },
+      data: {
+        updatedAt: new Date(),
+        ...(input.markCustomizedFromBlueprint ? { customizedFromBlueprint: true } : {}),
+      },
+    });
     const plan = await tx.interviewPlan.findUniqueOrThrow({ where: { id: input.id }, include: planInclude });
     return serializePlan(plan);
   });

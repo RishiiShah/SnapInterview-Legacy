@@ -2,6 +2,7 @@ import type { Difficulty, InterviewLevel, InterviewPersona, InterviewType } from
 import { normalizeRoleSlug } from "@/lib/rag/taxonomy";
 import { resolveCompanyPack } from "@/data/company-packs";
 import { chunkResumeSemantic, chunkJobDescription } from "@/lib/rag/chunker";
+import type { RoundProfile } from "@/lib/plans/graph";
 
 export type CandidateRole = {
   title: string;
@@ -75,6 +76,7 @@ export type BuildInterviewBriefInput = {
   onboardingGoal?: string | null;
   jobDescription?: string | null;
   resumeText?: string | null;
+  roundProfile?: RoundProfile | null;
 };
 
 /**
@@ -429,18 +431,27 @@ export async function buildInterviewBrief(input: BuildInterviewBriefInput): Prom
   const resolvedCompany = await resolveCompanyPack(input.company, roleSlug, level);
 
   // 4. Agenda Pillars
-  const pillars = synthesizeAgendaPillars(
-    mode,
-    candidateData.recentRoles,
-    candidateData.projects,
-    jobData.requirements,
-    roleSlug,
-    input.type,
-    validDuration
-  );
+  const pillars = input.roundProfile
+    ? input.roundProfile.competencies.slice(0, validDuration === 15 ? 2 : validDuration === 30 ? 3 : 4).map((competency, index, selected) => ({
+        id: `round-${input.roundProfile!.round_key}-${index + 1}`,
+        title: competency,
+        source: "role" as const,
+        targetMinutes: Math.max(3, Math.round((validDuration * 0.85) / selected.length)),
+      }))
+    : synthesizeAgendaPillars(
+        mode,
+        candidateData.recentRoles,
+        candidateData.projects,
+        jobData.requirements,
+        roleSlug,
+        input.type,
+        validDuration
+      );
 
   // 5. Directives
-  const openingDirective =
+  const openingDirective = input.roundProfile
+    ? `Open by introducing yourself and stating the round length. This is the ${input.roundProfile.round_key} round. Stay within this purpose: ${input.roundProfile.purpose}`
+    :
     mode === "new_grad" && candidateData.projects.length > 0
       ? `Open by introducing yourself and stating the round length, then ask the candidate to walk through their project (${candidateData.projects[0].name}) and their core architectural choices.`
       : candidateData.recentRoles.length > 0

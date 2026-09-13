@@ -1,0 +1,63 @@
+{
+  "key": "swe-family",
+  "version": 1,
+  "title": "Software Engineering Interview Loop",
+  "description": "A role-family fallback covering coding, design, and behavioral assessment.",
+  "match_scope": "role_family",
+  "company_keys": [],
+  "role_slugs": [],
+  "role_families": ["swe"],
+  "supported_levels": ["entry-level", "mid-level", "senior", "staff-plus"],
+  "reviewed_at": "2026-09-12",
+  "sources_note": "Generalized from common public software-engineering interview formats; not company-specific.",
+  "rounds": [
+    {
+      "round_key": "coding-1", "title": "Coding Round 1", "stage": "interview_loop", "interview_type": "coding-algorithms", "duration_minutes": 45,
+      "difficulty_by_level": { "entry-level": "medium", "mid-level": "medium", "senior": "hard", "staff-plus": "hard" }, "included_levels": ["entry-level", "mid-level", "senior", "staff-plus"],
+      "purpose": "Assess problem solving, correct implementation, testing, and complexity.", "competencies": ["Problem solving", "Correctness", "Testing", "Complexity"],
+      "question_strategy": { "preferred_categories": ["Algorithms", "Data Structures"], "required_tags": [], "preferred_tags": ["arrays", "strings", "trees"], "excluded_tags": ["system-design"], "company_theme_ids": [], "avoid_plan_question_repeats": true },
+      "rubric_key": "swe-coding-v1", "rubric_dimensions": [
+        { "key": "approach", "label": "Approach", "weight": 0.25, "description": "Selects and explains a sound approach." },
+        { "key": "correctness", "label": "Correctness", "weight": 0.3, "description": "Implements correct logic and edge cases." },
+        { "key": "quality", "label": "Code quality", "weight": 0.25, "description": "Writes readable and testable code." },
+        { "key": "communication", "label": "Communication", "weight": 0.2, "description": "Communicates reasoning and trade-offs." }
+      ], "position": { "x": 120, "y": 220 }
+    },
+    {
+      "round_key": "coding-2", "title": "Coding Round 2", "stage": "interview_loop", "interview_type": "coding-algorithms", "duration_minutes": 45,
+      "difficulty_by_level": { "entry-level": "medium", "mid-level": "hard", "senior": "hard", "staff-plus": "hard" }, "included_levels": ["entry-level", "mid-level", "senior", "staff-plus"],
+      "purpose": "Assess a distinct problem family, edge cases, and adaptation.", "competencies": ["Algorithmic depth", "Edge cases", "Adaptation", "Communication"],
+      "question_strategy": { "preferred_categories": ["Algorithms", "Data Structures"], "required_tags": [], "preferred_tags": ["graphs", "recursion", "dynamic-programming"], "excluded_tags": ["system-design"], "company_theme_ids": [], "avoid_plan_question_repeats": true },
+      "rubric_key": "swe-coding-v1", "rubric_dimensions": [
+        { "key": "approach", "label": "Approach", "weight": 0.25, "description": "Selects and explains a sound approach." },
+        { "key": "correctness", "label": "Correctness", "weight": 0.3, "description": "Implements correct logic and edge cases." },
+        { "key": "quality", "label": "Code quality", "weight": 0.25, "description": "Writes readable and testable code." },
+        { "key": "communication", "label": "Communication", "weight": 0.2, "description": "Communicates reasoning and trade-offs." }
+      ], "position": { "x": 430, "y": 220 }
+    },
+    {
+      "round_key": "system-design", "title": "System Design", "stage": "interview_loop", "interview_type": "system-design", "duration_minutes": 45,
+      "difficulty_by_level": { "mid-level": "medium", "senior": "hard", "staff-plus": "hard" }, "included_levels": ["mid-level", "senior", "staff-plus"],
+      "purpose": "Assess architecture, scalability, reliability, and trade-offs.", "competencies": ["Architecture", "Scalability", "Reliability", "Trade-offs"],
+      "question_strategy": { "preferred_categories": ["System Design", "Distributed Systems"], "required_tags": [], "preferred_tags": ["scalability", "reliability"], "excluded_tags": [], "company_theme_ids": [], "avoid_plan_question_repeats": true },
+      "rubric_key": "swe-system-design-v1", "rubric_dimensions": [
+        { "key": "requirements", "label": "Requirements", "weight": 0.2, "description": "Clarifies requirements and constraints." },
+        { "key": "architecture", "label": "Architecture", "weight": 0.3, "description": "Builds a coherent design." },
+        { "key": "reliability", "label": "Scale and reliability", "weight": 0.25, "description": "Handles load and failure modes." },
+        { "key": "tradeoffs", "label": "Trade-offs", "weight": 0.25, "description": "Justifies important decisions." }
+      ], "position": { "x": 740, "y": 220 }
+    },
+    {
+      "round_key": "behavioral", "title": "Behavioral and Leadership", "stage": "interview_loop", "interview_type": "behavioral-leadership", "duration_minutes": 45,
+      "difficulty_by_level": { "entry-level": "medium", "mid-level": "medium", "senior": "hard", "staff-plus": "hard" }, "included_levels": ["entry-level", "mid-level", "senior", "staff-plus"],
+      "purpose": "Assess ownership, collaboration, impact, learning, and leadership.", "competencies": ["Ownership", "Collaboration", "Impact", "Learning"],
+      "question_strategy": { "preferred_categories": ["Leadership", "Team Collaboration", "Adaptability"], "required_tags": [], "preferred_tags": ["ownership", "collaboration"], "excluded_tags": [], "company_theme_ids": [], "avoid_plan_question_repeats": true },
+      "rubric_key": "swe-behavioral-v1", "rubric_dimensions": [
+        { "key": "evidence", "label": "Evidence", "weight": 0.3, "description": "Uses specific personal evidence." },
+        { "key": "ownership", "label": "Ownership", "weight": 0.25, "description": "Takes responsibility for decisions and outcomes." },
+        { "key": "collaboration", "label": "Collaboration", "weight": 0.25, "description": "Works effectively with others." },
+        { "key": "learning", "label": "Learning", "weight": 0.2, "description": "Reflects and improves from experience." }
+      ], "position": { "x": 1050, "y": 220 }
+    }
+  ]
+}

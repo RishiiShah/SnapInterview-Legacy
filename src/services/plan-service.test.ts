@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { InterviewPlan, InterviewPlanNode } from "@/lib/plans/graph";
+import type { InterviewNodeConfig, InterviewPlan, InterviewPlanNode } from "@/lib/plans/graph";
 import {
+  countInterviewPlans,
+  createInterviewPlanRecord,
   getInterviewPlan,
   replaceInterviewPlanGraph,
   setPlanNodeState,
@@ -9,6 +11,7 @@ import {
 } from "@/repositories/plan-repo";
 import {
   completeUserInterviewPlanNode,
+  createUserInterviewPlan,
   saveUserInterviewPlanGraph,
   startUserInterviewPlanNode,
 } from "@/services/plan-service";
@@ -80,6 +83,7 @@ describe("plan service graph integrity", () => {
     });
 
     expect(replaceInterviewPlanGraph).toHaveBeenCalledWith(expect.objectContaining({
+      markCustomizedFromBlueprint: false,
       graph: expect.objectContaining({
         nodes: [expect.objectContaining({
           status: "completed",
@@ -87,6 +91,39 @@ describe("plan service graph integrity", () => {
           result_score: 91,
         })],
       }),
+    }));
+  });
+
+  it("marks a targeted blueprint as customized when its graph is edited", async () => {
+    vi.mocked(getInterviewPlan).mockResolvedValue({
+      ...plan([node(NODE_A, "available")]),
+      source: "template",
+      target: {
+        company: "Google",
+        company_key: "google",
+        role: "Software Engineer",
+        role_slug: "software-engineer",
+        role_family: "swe",
+        level: "mid-level",
+        interview_date: null,
+        job_description: null,
+        blueprint_key: "google-swe",
+        blueprint_version: 1,
+        blueprint_reviewed_at: "2026-09-12",
+        resolution: "exact",
+      },
+      customized_from_blueprint: false,
+    });
+    vi.mocked(replaceInterviewPlanGraph).mockImplementation(async ({ graph }) => plan(graph.nodes, graph.edges));
+
+    await saveUserInterviewPlanGraph({
+      ownerUserId: "user-1",
+      planId: PLAN_ID,
+      graph: { nodes: [node(NODE_A, "available")], edges: [] },
+    });
+
+    expect(replaceInterviewPlanGraph).toHaveBeenCalledWith(expect.objectContaining({
+      markCustomizedFromBlueprint: true,
     }));
   });
 
@@ -114,5 +151,52 @@ describe("plan service graph integrity", () => {
       expect.objectContaining({ id: NODE_B, status: "available" }),
     ]);
     expect(result.nodes[1].status).toBe("available");
+  });
+});
+
+describe("targeted plan creation", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("creates Google SWE rounds from the resolved blueprint", async () => {
+    vi.mocked(countInterviewPlans).mockResolvedValue(0);
+    vi.mocked(createInterviewPlanRecord).mockImplementation(async ({ title, source, templateKey, target, graph }) => ({
+      id: PLAN_ID,
+      title,
+      status: "draft",
+      source,
+      template_key: templateKey,
+      target,
+      customized_from_blueprint: false,
+      created_at: "2026-09-12T00:00:00.000Z",
+      updated_at: "2026-09-12T00:00:00.000Z",
+      ...graph,
+    }));
+
+    const result = await createUserInterviewPlan({
+      ownerUserId: "user-1",
+      title: "Google SWE",
+      target: { company: "Google", role: "Software Engineer", level: "mid-level" },
+    });
+
+    expect(result.target).toMatchObject({ company_key: "google", role_slug: "software-engineer", blueprint_key: "google-swe", resolution: "exact" });
+    expect(result.nodes.map((item) => (item.config as InterviewNodeConfig).round_profile?.round_key)).toEqual([
+      "coding-1",
+      "coding-2",
+      "system-design",
+      "googleyness-leadership",
+    ]);
+    expect(result.edges).toEqual([]);
+    expect(createInterviewPlanRecord).toHaveBeenCalledWith(expect.objectContaining({ source: "template", templateKey: "google-swe" }));
+  });
+
+  it("rejects a forged incompatible blueprint selection", async () => {
+    vi.mocked(countInterviewPlans).mockResolvedValue(0);
+    await expect(createUserInterviewPlan({
+      ownerUserId: "user-1",
+      title: "Wrong loop",
+      blueprintKey: "amazon-frontend",
+      target: { company: "Google", role: "Software Engineer", level: "mid-level" },
+    })).rejects.toMatchObject({ code: "INVALID_PLAN", status: 400 });
+    expect(createInterviewPlanRecord).not.toHaveBeenCalled();
   });
 });

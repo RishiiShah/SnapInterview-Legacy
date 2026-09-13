@@ -7,6 +7,7 @@ import { getUserOnboardingContext } from "@/repositories/user-repo";
 import { saveLatestTranscriptEntry } from "@/lib/interview/transcript-service";
 import { groqClient } from "@/lib/ai/groq";
 import { buildSystemInstruction } from "@/lib/interview/prompts";
+import { getInterviewPlan } from "@/repositories/plan-repo";
 
 vi.mock("@/repositories/interview-repo", () => ({
   getInterviewSession: vi.fn(),
@@ -19,6 +20,10 @@ vi.mock("@/repositories/interview-repo", () => ({
 
 vi.mock("@/repositories/user-repo", () => ({
   getUserOnboardingContext: vi.fn(),
+}));
+
+vi.mock("@/repositories/plan-repo", () => ({
+  getInterviewPlan: vi.fn(),
 }));
 
 vi.mock("@/lib/interview/transcript-service", () => ({
@@ -332,6 +337,98 @@ describe("getResumableInterviewSessionState", () => {
 describe("startInterviewSession", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("snapshots only the selected plan node's targeted round context", async () => {
+    vi.mocked(getUserOnboardingContext).mockResolvedValue(null);
+    vi.mocked(createInterviewSession).mockResolvedValue({ id: "int-targeted" });
+    vi.mocked(getInterviewPlan).mockResolvedValue({
+      id: "plan-1",
+      title: "Amazon frontend",
+      status: "draft",
+      source: "template",
+      template_key: "amazon-frontend",
+      target: {
+        company: "Amazon",
+        company_key: "amazon",
+        role: "Software Engineer - Frontend",
+        role_slug: "software-engineer-frontend",
+        role_family: "swe",
+        level: "mid-level",
+        interview_date: null,
+        job_description: "Build accessible commerce experiences.",
+        blueprint_key: "amazon-frontend",
+        blueprint_version: 1,
+        blueprint_reviewed_at: "2026-09-12",
+        resolution: "exact",
+      },
+      customized_from_blueprint: false,
+      created_at: "2026-09-12T00:00:00.000Z",
+      updated_at: "2026-09-12T00:00:00.000Z",
+      edges: [],
+      nodes: [
+        {
+          id: "node-frontend",
+          type: "interview",
+          title: "Frontend Implementation",
+          position_x: 0,
+          position_y: 0,
+          status: "in_progress",
+          config: {
+            interview_type: "domain-role",
+            duration_minutes: 45,
+            difficulty: "medium",
+            round_profile: {
+              round_key: "frontend-coding",
+              stage: "interview_loop",
+              purpose: "Assess frontend implementation.",
+              competencies: ["JavaScript", "Accessibility"],
+              question_strategy: { preferred_categories: ["Front-end"], required_tags: [], preferred_tags: ["react"], excluded_tags: [], company_theme_ids: [], avoid_plan_question_repeats: true },
+              rubric_key: "amazon-frontend-implementation-v1",
+              rubric_dimensions: [{ key: "implementation", label: "Implementation", weight: 1, description: "Builds a sound UI." }],
+              context_mode: "fresh",
+            },
+          },
+        },
+        {
+          id: "sibling-secret",
+          type: "interview",
+          title: "Other round",
+          position_x: 1,
+          position_y: 1,
+          status: "completed",
+          result_score: 12,
+          config: { interview_type: "coding-algorithms", duration_minutes: 45, difficulty: "hard" },
+        },
+      ],
+    });
+
+    await startInterviewSession({
+      userId: "user-1",
+      role: "Client supplied wrong role",
+      company: "Google",
+      type: "coding-algorithms",
+      difficulty: "hard",
+      planContext: { planId: "plan-1", nodeId: "node-frontend" },
+    });
+
+    const persisted = vi.mocked(createInterviewSession).mock.calls[0][0];
+    expect(persisted).toMatchObject({
+      role: "Software Engineer - Frontend",
+      company: "Amazon",
+      type: "domain-role",
+      difficulty: "medium",
+      level: "mid-level",
+      durationMinutes: 45,
+      jobDescription: "Build accessible commerce experiences.",
+      sessionPlan: expect.objectContaining({
+        version: 2,
+        planContext: expect.objectContaining({ planId: "plan-1", nodeId: "node-frontend" }),
+      }),
+    });
+    expect(JSON.stringify(persisted.sessionPlan)).not.toContain("sibling-secret");
+    expect(JSON.stringify(persisted.sessionPlan)).not.toContain("Other round");
+    expect(JSON.stringify(persisted.sessionPlan)).not.toContain("result_score");
   });
 
   it("derives adaptive defaults from onboarding state", async () => {
